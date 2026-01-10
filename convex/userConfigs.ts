@@ -1,86 +1,66 @@
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { v } from "convex/values";
-import { encrypt, decrypt } from "../lib/encryption";
+import { mutation, query } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
+import { v } from 'convex/values';
 
-const ENCRYPTION_KEY = process.env.CONVEX_ENCRYPTION_KEY ?? "default-dev-key-change-in-production";
-
-export const getUserConfig = query({
+// Raw query that returns encrypted data without decrypting
+export const getUserConfigRaw = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
     const config = await ctx.db
-      .query("userLlmConfigs")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .query('userLlmConfigs')
+      .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .first();
 
     if (!config) return null;
 
-    // Decrypt the API key
-    let decryptedApiKey: string | undefined;
-    if (config.apiKey) {
-      try {
-        const encrypted = JSON.parse(Buffer.from(config.apiKey).toString("utf8"));
-        decryptedApiKey = decrypt(encrypted, ENCRYPTION_KEY);
-      } catch {
-        // If decryption fails, return undefined
-        decryptedApiKey = undefined;
-      }
-    }
-
     return {
       userId: config.userId,
       provider: config.provider,
-      apiKey: decryptedApiKey,
+      apiKey: config.apiKey,
       defaultModel: config.defaultModel,
       useSystem: config.useSystem,
     };
   },
 });
 
-export const saveUserConfig = mutation({
+// Raw mutation that saves encrypted data
+export const saveUserConfigRaw = mutation({
   args: {
     provider: v.string(),
-    apiKey: v.optional(v.string()),
+    encryptedApiKey: v.union(v.null(), v.array(v.number())),
     defaultModel: v.string(),
     useSystem: v.boolean(),
   },
   handler: async (ctx: MutationCtx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) throw new Error('Unauthenticated');
 
-    // For new configs, we need either an apiKey or useSystem to be true
-    if (!args.apiKey && !args.useSystem) {
-      throw new Error("Either an API key or system credential usage must be specified");
-    }
-
-    let encryptedApiKey: ArrayBuffer | null = null;
-    if (args.apiKey) {
-      const encrypted = encrypt(args.apiKey, ENCRYPTION_KEY);
-      encryptedApiKey = Buffer.from(JSON.stringify(encrypted)).buffer;
+    let apiKeyBuffer: ArrayBuffer | undefined;
+    if (args.encryptedApiKey) {
+      apiKeyBuffer = new Uint8Array(args.encryptedApiKey).buffer;
     }
 
     const existing = await ctx.db
-      .query("userLlmConfigs")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .query('userLlmConfigs')
+      .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .first();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
         provider: args.provider,
-        ...(encryptedApiKey !== null && { apiKey: encryptedApiKey }),
+        ...(apiKeyBuffer !== undefined && { apiKey: apiKeyBuffer }),
         defaultModel: args.defaultModel,
         useSystem: args.useSystem,
       });
       return existing._id;
     } else {
-      // For new configs, if useSystem is true but no apiKey provided, apiKey can be null
-      return await ctx.db.insert("userLlmConfigs", {
+      return await ctx.db.insert('userLlmConfigs', {
         userId: identity.subject,
         provider: args.provider,
-        apiKey: encryptedApiKey ?? undefined,
+        apiKey: apiKeyBuffer,
         defaultModel: args.defaultModel,
         useSystem: args.useSystem,
       });
@@ -88,15 +68,16 @@ export const saveUserConfig = mutation({
   },
 });
 
-export const deleteUserConfig = mutation({
+// Raw mutation for deletion
+export const deleteUserConfigRaw = mutation({
   args: {},
   handler: async (ctx: MutationCtx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) throw new Error('Unauthenticated');
 
     const existing = await ctx.db
-      .query("userLlmConfigs")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .query('userLlmConfigs')
+      .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .first();
 
     if (existing && existing.apiKey) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,9 @@ const PROVIDERS = [
 ];
 
 export default function LlmConfigPage() {
-  const userConfig = useQuery((api as any).userConfigs?.getUserConfig);
-  const saveConfig = useMutation((api as any).userConfigs?.saveUserConfig);
-  const deleteConfig = useMutation((api as any).userConfigs?.deleteUserConfig);
+  const getUserConfig = useAction(api.userConfigActions.getUserConfig);
+  const saveConfig = useAction(api.userConfigActions.saveUserConfig);
+  const deleteConfig = useAction(api.userConfigActions.deleteUserConfig);
 
   const [provider, setProvider] = useState("openai");
   const [apiKey, setApiKey] = useState("");
@@ -29,17 +29,30 @@ export default function LlmConfigPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [userConfig, setUserConfig] = useState<any>(null);
 
   useEffect(() => {
-    if (userConfig) {
-      setProvider(userConfig.provider);
-      if (userConfig.apiKey) {
-        setApiKey(userConfig.apiKey);
+    async function loadConfig() {
+      try {
+        const config = await getUserConfig({});
+        setUserConfig(config);
+        if (config) {
+          setProvider(config.provider);
+          if (config.apiKey) {
+            setApiKey(config.apiKey);
+          }
+          setDefaultModel(config.defaultModel);
+          setUseSystem(config.useSystem);
+        }
+      } catch (err) {
+        console.error("Failed to load config:", err);
+      } finally {
+        setLoading(false);
       }
-      setDefaultModel(userConfig.defaultModel);
-      setUseSystem(userConfig.useSystem);
     }
-  }, [userConfig]);
+    loadConfig();
+  }, [getUserConfig]);
 
   const currentProvider = PROVIDERS.find((p) => p.id === provider);
 
@@ -79,7 +92,7 @@ export default function LlmConfigPage() {
     }
   }
 
-  if (userConfig === undefined) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-white/50" />

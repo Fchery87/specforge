@@ -1,18 +1,53 @@
 "use client";
 
 import { useQuery } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, FolderOpen, FileText, Users, Activity } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const stats = useQuery((api as any).admin?.getSystemStats);
+  const { isLoaded, isSignedIn } = useAuth();
+  
+  // Skip the query until auth is fully loaded and user is signed in
+  const stats = useQuery(
+    api.admin.getSystemStats,
+    isLoaded && isSignedIn ? {} : "skip"
+  );
 
+  // Show loading while Clerk auth is initializing
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+      </div>
+    );
+  }
+
+  // Show message if not signed in (shouldn't happen due to middleware)
+  if (!isSignedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-white/50">Please sign in to access the admin dashboard</p>
+      </div>
+    );
+  }
+
+  // Show loading while stats query is pending
   if (stats === undefined) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+      </div>
+    );
+  }
+
+  // Handle case where stats is null
+  if (stats === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-white/50">Unable to load stats</p>
       </div>
     );
   }

@@ -6,7 +6,7 @@ export const listAllModels = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) return null;
     
     // In production, check for admin role here
     // const publicMetadata = identity.publicMetadata as { role?: string };
@@ -84,7 +84,7 @@ export const getSystemStats = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) return null;
 
     const projects = await ctx.db.query("projects").collect();
     const artifacts = await ctx.db.query("artifacts").collect();
