@@ -1,0 +1,297 @@
+"use node";
+
+import { action } from "../_generated/server";
+import type { ActionCtx } from "../_generated/server";
+import { api, internal as internalApi } from "../_generated/api";
+import { v } from "convex/values";
+import { FALLBACK_MODELS, getSectionPlan, planSections, mergeSectionContent, estimateTokenCount } from "../../lib/llm/chunking";
+import { getModelById, getFallbackModel, validateModelForArtifact } from "../../lib/llm/registry";
+import type { SectionPlan } from "../../lib/llm/types";
+
+interface Question {
+  id: string;
+  text: string;
+  answer?: string;
+  aiGenerated: boolean;
+  required?: boolean;
+}
+
+export const generatePhase = action({
+  args: { 
+    projectId: v.id("projects"), 
+    phaseId: v.string(), 
+    modelId: v.optional(v.string()) 
+  },
+  handler: async (ctx: ActionCtx, args): Promise<{ artifactId: any; status: string }> => {
+    const project = await ctx.runQuery(api.projects.getProject, { projectId: args.projectId });
+    if (!project) throw new Error("Project not found");
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+
+    // Get phase data with questions
+    const phaseData = await ctx.runQuery(api.projects.getPhase, { 
+      projectId: args.projectId, 
+      phaseId: args.phaseId 
+    });
+
+    if (!phaseData) throw new Error("Phase not found");
+
+    const questions = phaseData.questions || [];
+    const answeredQuestions = questions.filter((q: Question) => q.answer);
+    
+    if (answeredQuestions.length === 0 && args.phaseId !== "handoff") {
+      throw new Error("Please answer at least one question before generating");
+    }
+
+    // Get or select model
+    const model = args.modelId 
+      ? (getModelById(args.modelId) ?? getFallbackModel())
+      : getFallbackModel();
+
+    // Validate model for artifact type
+    const artifactType = args.phaseId === "brief" ? "prd" : 
+                         args.phaseId === "handoff" ? "handoff" : 
+                         args.phaseId === "specs" ? "spec" : "doc";
+
+    const validation = validateModelForArtifact(model, artifactType);
+    if (!validation.valid) {
+      console.warn(`Model validation warning: ${validation.reason}`);
+    }
+
+    // Get section plan based on phase
+    const sectionNames = getSectionPlan(artifactType, args.phaseId);
+    const sectionPlan = planSections(model, sectionNames, 0.5);
+
+    // Build project context from questions
+    const projectContext = {
+      title: project.title,
+      description: project.description,
+      questions: answeredQuestions.map((q: Question) => `${q.text}: ${q.answer}`).join("\n\n"),
+    };
+
+    // Generate sections (simulated - in production, this would call actual LLM APIs)
+    const generatedSections = await generateSectionsWithSelfCritique({
+      ctx,
+      projectId: args.projectId,
+      projectContext,
+      sectionPlan,
+      model,
+      questions: answeredQuestions,
+      phaseId: args.phaseId,
+    });
+
+    // Merge sections into final content
+    const content = mergeSectionContent(generatedSections);
+    const previewHtml = generatePreviewHtml(content);
+
+    // Calculate section metadata
+    const sections = generatedSections.map((section) => ({
+      name: section.name,
+      tokens: estimateTokenCount(section.content),
+      model: model.id,
+    }));
+
+    // Create artifact
+    const artifactId = await ctx.runMutation(internalApi.internal.createArtifact, {
+      projectId: args.projectId,
+      phaseId: args.phaseId,
+      type: artifactType,
+      title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} - ${getPhaseTitle(args.phaseId)}`,
+      content,
+      previewHtml,
+      sections,
+    });
+
+    // Update phase status
+    await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
+      projectId: args.projectId,
+      phaseId: args.phaseId,
+      status: "ready",
+    });
+
+    return { artifactId, status: "success" };
+  },
+});
+
+interface GenerateSectionsParams {
+  ctx: ActionCtx;
+  projectId: any;
+  projectContext: {
+    title: string;
+    description: string;
+    questions: string;
+  };
+  sectionPlan: SectionPlan[];
+  model: any;
+  questions: Question[];
+  phaseId: string;
+}
+
+async function generateSectionsWithSelfCritique(params: GenerateSectionsParams): Promise<Array<{ name: string; content: string }>> {
+  const { sectionPlan, projectContext, model, questions, phaseId } = params;
+  
+  const sections: Array<{ name: string; content: string }> = [];
+
+  for (let i = 0; i < sectionPlan.length; i++) {
+    const section = sectionPlan[i];
+    const previousSections = sections.slice(0, i);
+    const sectionQuestions = extractRelevantQuestions(questions, section.name);
+
+    // Generate section content
+    const content = await generateSectionContent({
+      projectContext,
+      sectionName: section.name,
+      sectionInstructions: getSectionInstructions(phaseId, section.name),
+      sectionQuestions,
+      previousSections,
+      model,
+      maxTokens: section.maxTokens,
+    });
+
+    // Self-critique and improve if needed
+    const improved = await selfCritiqueSection({
+      content,
+      sectionName: section.name,
+      projectContext,
+      model,
+    });
+
+    sections.push({
+      name: section.name,
+      content: improved,
+    });
+  }
+
+  return sections;
+}
+
+async function generateSectionContent(params: {
+  projectContext: { title: string; description: string; questions: string };
+  sectionName: string;
+  sectionInstructions: string;
+  sectionQuestions: string[];
+  previousSections: Array<{ name: string; content: string }>;
+  model: any;
+  maxTokens: number;
+}): Promise<string> {
+  // In a real implementation, this would call the actual LLM API
+  // For now, we generate placeholder content based on the section
+  
+  let content = `# ${formatSectionName(params.sectionName)}\n\n`;
+  
+  if (params.sectionQuestions.length > 0) {
+    const answers = params.sectionQuestions.map(q => `- ${q}`).join("\n");
+    content += `Based on your responses:\n\n${answers}\n\n`;
+  }
+  
+  content += `This is the ${params.sectionName} section for **${params.projectContext.title}**.\n\n`;
+  content += `**Description:** ${params.projectContext.description}\n\n`;
+  content += `**Context from previous sections:**\n`;
+  if (params.previousSections.length > 0) {
+    content += params.previousSections.map(s => `- ${s.name}: ${s.content.slice(0, 100)}...`).join("\n");
+  } else {
+    content += "No previous sections.\n";
+  }
+  
+  return content;
+}
+
+async function selfCritiqueSection(params: {
+  content: string;
+  sectionName: string;
+  projectContext: { title: string; description: string };
+  model: any;
+}): Promise<string> {
+  // In production, this would call the LLM to critique and improve the section
+  // For now, we perform basic validation and improvements
+  
+  let improved = params.content;
+  
+  // Basic checks and improvements
+  if (improved.length < 100) {
+    // Section is too short, add a note
+    improved += "\n\n*This section needs additional detail.*";
+  }
+  
+  // Ensure section ends properly
+  if (!improved.trimEnd().endsWith(".")) {
+    improved = improved.trimEnd() + ".";
+  }
+  
+  return improved;
+}
+
+function extractRelevantQuestions(questions: Question[], sectionName: string): string[] {
+  const keywords: Record<string, string[]> = {
+    "executive-summary": ["goal", "problem", "success"],
+    "architecture": ["architecture", "cloud", "infrastructure"],
+    "data-models": ["data", "database", "schema"],
+    "user-stories": ["user", "persona", "feature"],
+    "deployment": ["deployment", "environment", "infrastructure"],
+  };
+
+  const relevantKeywords = keywords[sectionName] || [];
+  
+  return questions
+    .filter(q => 
+      q.answer && 
+      relevantKeywords.some(kw => q.text.toLowerCase().includes(kw))
+    )
+    .map(q => `${q.text}: ${q.answer}`);
+}
+
+function getSectionInstructions(phaseId: string, sectionName: string): string {
+  const instructions: Record<string, string> = {
+    "executive-summary": "Provide a concise overview of the project goals, target users, and key deliverables.",
+    "problem-statement": "Clearly articulate the problem this project solves and why it matters.",
+    "goals-and-objectives": "List specific, measurable goals with success criteria.",
+    "user-personas": "Describe the primary user types and their needs.",
+    "key-features": "Outline the core features and functionality required.",
+    "technical-constraints": "Note any technical limitations, integrations, or compliance requirements.",
+    "success-metrics": "Define how success will be measured (KPIs, metrics, benchmarks).",
+    "timeline": "Provide estimated milestones and key dates.",
+    "architecture-overview": "Describe the high-level system architecture and design patterns.",
+    "data-models": "Define the core data structures, entities, and relationships.",
+    "api-specifications": "Document the API contracts and integration points.",
+    "security-requirements": "Outline authentication, authorization, and data protection requirements.",
+    "performance-requirements": "Define latency, throughput, and scalability requirements.",
+    "integration-points": "List external systems and APIs that need integration.",
+    "deployment-strategy": "Describe the deployment approach and infrastructure.",
+  };
+
+  return instructions[sectionName] || `Generate comprehensive content for the ${sectionName} section.`;
+}
+
+function formatSectionName(name: string): string {
+  return name
+    .split("-")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function generatePreviewHtml(content: string): string {
+  // Simple markdown to HTML conversion for preview
+  return content
+    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/^- (.+)$/gm, "<li>$1</li>")
+    .replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>")
+    .replace(/\n\n/g, "<br/><br/>")
+    .replace(/\n/g, "<br/>");
+}
+
+function getPhaseTitle(phaseId: string): string {
+  const titles: Record<string, string> = {
+    brief: "Product Requirements Document",
+    specs: "Technical Specifications",
+    stories: "User Stories & Tasks",
+    artifacts: "Technical Artifacts",
+    handoff: "Project Handoff",
+  };
+  return titles[phaseId] || "Document";
+}

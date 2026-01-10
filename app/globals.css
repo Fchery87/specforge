@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%; /* #09090B */
+    --foreground: 0 0% 98%; /* #FAFAFA */
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 61 96% 45%; /* #DFE104 Acid Yellow */
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 61 96% 45%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 240 5.9% 26%; /* Zinc 700ish */
+    --input: 240 5.9% 26%;
+    --ring: 61 96% 45%;
+
+    --radius: 0px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-grotesk antialiased selection:bg-primary selection:text-black min-h-screen overflow-x-hidden;
+  }
+
+  /* Kinetic Typography Utilities */
+  h1,
+  h2,
+  h3,
+  h4,
+  button {
+    @apply uppercase tracking-tighter font-bold;
+  }
+}
+
+/* === Standardized Text Color Utilities === */
+@layer utilities {
+  .text-subtle {
+    @apply text-muted-foreground;
+  }
+  .text-subtler {
+    @apply text-muted-foreground/60;
+  }
+  .text-subtlest {
+    @apply text-muted-foreground/40;
+  }
+}
+
+/* === Skeleton Animation === */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* === Grid Background Pattern === */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.3) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.3) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+}
+
+.bg-grid-fade {
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.2) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.2) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  mask-image: radial-gradient(
+    ellipse 80% 50% at 50% 0%,
+    #000 70%,
+    transparent 100%
+  );
+}
+
+/* === Focus States === */
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+/* === Page Section Utilities === */
+@layer components {
+  .page-container {
+    @apply px-4 md:px-6 lg:px-8 xl:px-12;
+  }
+
+  .page-header {
+    @apply py-12 md:py-16 lg:py-20 border-b-2 border-border;
+  }
+
+  .page-section {
+    @apply py-12 md:py-16;
+  }
+}
