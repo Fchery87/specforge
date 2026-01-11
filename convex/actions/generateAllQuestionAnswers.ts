@@ -183,7 +183,19 @@ async function generateAnswer(params: {
   model: any;
   llmClient: ReturnType<typeof getLlmClient>;
 }): Promise<string> {
-  // TODO: Replace with actual LLM API call when ready
-  // For now, return a placeholder
-  return `AI-generated batch answer for this question based on the project context and previous answers. This will be replaced with actual LLM integration.`;
+  if (!params.llmClient) {
+    throw new Error('No LLM client available. Please configure your API credentials in settings.');
+  }
+
+  try {
+    const response = await params.llmClient.complete(params.prompt, {
+      model: params.model.id,
+      maxTokens: 500,
+      temperature: 0.7,
+    });
+    return response.content.trim();
+  } catch (error: any) {
+    console.error('LLM API error:', error);
+    throw new Error(`Failed to generate answer: ${error.message || 'Unknown error'}`);
+  }
 }
