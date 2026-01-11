@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { BatchAiModal } from "./batch-ai-modal";
+const generateAllQuestionAnswers = useAction(api["actions/generateAllQuestionAnswers"].generateAllQuestionAnswers as any);
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,7 +56,11 @@ export function QuestionsPanel({
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [aiGeneratingId, setAiGeneratingId] = useState<string | null>(null);
-  
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState(0);
+  const [batchAnswers, setBatchAnswers] = useState<Array<{ questionId: string; answer: string }>>([]);
+
   // Track pending saves
   const pendingSaveRef = useRef<Record<string, string>>({});
 
@@ -132,6 +138,47 @@ export function QuestionsPanel({
     }
   }
 
+  async function handleBatchAiGenerate() {
+    setIsBatchModalOpen(true);
+    setIsBatchGenerating(true);
+    setBatchProgress(0);
+    setBatchAnswers([]);
+
+    try {
+      const result = await generateAllQuestionAnswers({
+        projectId,
+        phaseId,
+      });
+
+      setBatchAnswers(result.answers);
+      setBatchProgress(result.answers.length);
+    } catch (error) {
+      console.error("Failed to generate batch answers:", error);
+    } finally {
+      setIsBatchGenerating(false);
+    }
+  }
+
+  function handleAcceptBatchAnswers() {
+    // Update local state with all batch answers
+    const updates: Record<string, string> = {};
+    batchAnswers.forEach(({ questionId, answer }) => {
+      updates[questionId] = answer;
+      pendingSaveRef.current[questionId] = answer;
+    });
+
+    setLocalAnswers(prev => ({ ...prev, ...updates }));
+    setIsBatchModalOpen(false);
+    setBatchAnswers([]);
+    setBatchProgress(0);
+  }
+
+  function handleCancelBatch() {
+    setIsBatchModalOpen(false);
+    setBatchAnswers([]);
+    setBatchProgress(0);
+  }
+
   const getAnswerForQuestion = (q: Question) => localAnswers[q.id] ?? q.answer ?? "";
 
   return (
@@ -150,19 +197,30 @@ export function QuestionsPanel({
             )}
           </CardDescription>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRegenerateQuestions}
-          disabled={isRegenerating}
-        >
-          {isRegenerating ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <RefreshCw className="w-4 h-4 mr-2" />
-          )}
-          Regenerate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBatchAiGenerate}
+            disabled={isBatchGenerating || questions.length === 0}
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Let AI answer all
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRegenerateQuestions}
+            disabled={isRegenerating}
+          >
+            {isRegenerating ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Regenerate
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {questions.length === 0 ? (
@@ -280,6 +338,17 @@ export function QuestionsPanel({
           </div>
         )}
       </CardContent>
+      <BatchAiModal
+        open={isBatchModalOpen}
+        onOpenChange={setIsBatchModalOpen}
+        isGenerating={isBatchGenerating}
+        currentProgress={batchProgress}
+        totalQuestions={questions.length}
+        questions={questions}
+        batchAnswers={batchAnswers}
+        onAcceptAll={handleAcceptBatchAnswers}
+        onCancel={handleCancelBatch}
+      />
     </Card>
   );
 }
