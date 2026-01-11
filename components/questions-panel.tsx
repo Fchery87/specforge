@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { BatchAiModal } from "./batch-ai-modal";
-const generateAllQuestionAnswers = useAction(api["actions/generateAllQuestionAnswers"].generateAllQuestionAnswers as any);
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,8 +47,12 @@ export function QuestionsPanel({
   isGenerating = false,
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
-  const generateQuestions = useAction(api["actions/generateQuestions"].generateQuestions as any);
-  const generateQuestionAnswer = useAction(api["actions/generateQuestionAnswer"].generateQuestionAnswer as any);
+  const generateQuestionsAction: any = (api as any)["actions/generateQuestions"]?.generateQuestions;
+  const generateQuestionAnswerAction: any = (api as any)["actions/generateQuestionAnswer"]?.generateQuestionAnswer;
+  const generateAllQuestionAnswersAction: any = (api as any)["actions/generateAllQuestionAnswers"]?.generateAllQuestionAnswers;
+  const generateQuestions = useAction(generateQuestionsAction);
+  const generateQuestionAnswer = useAction(generateQuestionAnswerAction);
+  const generateAllQuestionAnswers = useAction(generateAllQuestionAnswersAction);
 
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -79,9 +82,11 @@ export function QuestionsPanel({
 
   // Debounced save function
   const handleSaveAnswer = useCallback(async (questionId: string, value: string) => {
+    console.log('[DEBUG] handleSaveAnswer called for', questionId, 'with value:', value);
     setSavingId(questionId);
     try {
       await saveAnswer({ projectId: projectId as any, phaseId, questionId, answer: value });
+      console.log('[DEBUG] Save successful for', questionId);
       setSavedId(questionId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (error) {
@@ -100,10 +105,18 @@ export function QuestionsPanel({
   // Debounced save effect
   const debouncedAnswers = useDebounce(localAnswers, 500);
   useEffect(() => {
+    console.log('[DEBUG] Debounced effect triggered');
+    console.log('[DEBUG] pendingSaveRef.current:', pendingSaveRef.current);
+    console.log('[DEBUG] debouncedAnswers:', debouncedAnswers);
+
     Object.entries(pendingSaveRef.current).forEach(([id, value]) => {
+      console.log('[DEBUG] Checking id:', id, 'pendingValue:', value, 'debouncedValue:', debouncedAnswers[id]);
       if (debouncedAnswers[id] === value) {
+        console.log('[DEBUG] Match found! Calling handleSaveAnswer');
         handleSaveAnswer(id, value);
         delete pendingSaveRef.current[id];
+      } else {
+        console.log('[DEBUG] No match - skipping save');
       }
     });
   }, [debouncedAnswers, handleSaveAnswer]);
@@ -118,19 +131,31 @@ export function QuestionsPanel({
   }
 
   async function handleAiSuggest(questionId: string) {
+    console.log('[DEBUG] handleAiSuggest called for questionId:', questionId);
     setAiGeneratingId(questionId);
     setErrorMessage(null);
     try {
+      console.log('[DEBUG] Calling generateQuestionAnswer action...');
       const result = await generateQuestionAnswer({
         projectId,
         phaseId,
         questionId,
       });
-      setLocalAnswers(prev => ({
-        ...prev,
-        [questionId]: result.suggestedAnswer,
-      }));
+      console.log('[DEBUG] Action returned result:', result);
+      console.log('[DEBUG] suggestedAnswer:', result.suggestedAnswer);
+
+      setLocalAnswers(prev => {
+        console.log('[DEBUG] Previous localAnswers:', prev);
+        const updated = {
+          ...prev,
+          [questionId]: result.suggestedAnswer,
+        };
+        console.log('[DEBUG] Updated localAnswers:', updated);
+        return updated;
+      });
+
       pendingSaveRef.current[questionId] = result.suggestedAnswer;
+      console.log('[DEBUG] Set pendingSaveRef for', questionId, ':', result.suggestedAnswer);
     } catch (error: any) {
       console.error("Failed to generate AI answer:", error);
       setErrorMessage(error.message || "Failed to generate AI answer. Please try again.");

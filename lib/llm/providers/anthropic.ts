@@ -1,4 +1,5 @@
-import type { LlmProvider, LlmResponse, LlmSectionRequest } from "../types";
+import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
+import { normalizeAnthropicResponse } from '../response-normalizer';
 
 export interface AnthropicModelConfig {
   modelId: string;
@@ -7,38 +8,54 @@ export interface AnthropicModelConfig {
 }
 
 export const ANTHROPIC_MODELS: Record<string, AnthropicModelConfig> = {
-  "claude-opus-4-5": { modelId: "claude-opus-4-5", contextTokens: 200000, maxOutputTokens: 16384 },
-  "claude-sonnet-4-5": { modelId: "claude-sonnet-4-5", contextTokens: 200000, maxOutputTokens: 8192 },
-  "claude-haiku-4-5": { modelId: "claude-haiku-4-5", contextTokens: 200000, maxOutputTokens: 8192 },
+  'claude-opus-4-5': {
+    modelId: 'claude-opus-4-5',
+    contextTokens: 200000,
+    maxOutputTokens: 16384,
+  },
+  'claude-sonnet-4-5': {
+    modelId: 'claude-sonnet-4-5',
+    contextTokens: 200000,
+    maxOutputTokens: 8192,
+  },
+  'claude-haiku-4-5': {
+    modelId: 'claude-haiku-4-5',
+    contextTokens: 200000,
+    maxOutputTokens: 8192,
+  },
 };
 
 export class AnthropicClient implements LlmProvider {
   private apiKey: string;
-  private baseUrl: string = "https://api.anthropic.com/v1";
+  private baseUrl: string = 'https://api.anthropic.com/v1';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  async complete(prompt: string, options: {
-    model: string;
-    maxTokens?: number;
-    temperature?: number;
-  }): Promise<LlmResponse> {
-    const modelConfig = ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS["claude-sonnet-4-5"];
-    
+  async complete(
+    prompt: string,
+    options: {
+      model: string;
+      maxTokens?: number;
+      temperature?: number;
+    }
+  ): Promise<LlmResponse> {
+    const modelConfig =
+      ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS['claude-sonnet-4-5'];
+
     const response = await fetch(`${this.baseUrl}/messages`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": this.apiKey,
-        "anthropic-version": "2023-06-01",
+        'Content-Type': 'application/json',
+        'x-api-key': this.apiKey,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: modelConfig.modelId,
         max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
         temperature: options.temperature ?? 0.7,
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: 'user', content: prompt }],
       }),
     });
 
@@ -48,28 +65,20 @@ export class AnthropicClient implements LlmProvider {
     }
 
     const data = await response.json();
-    return {
-      content: data.content[0]?.text ?? "",
-      usage: {
-        promptTokens: data.usage?.input_tokens ?? 0,
-        completionTokens: data.usage?.output_tokens ?? 0,
-        totalTokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
-      },
-    };
+    return normalizeAnthropicResponse(data);
   }
 
-  async generateSection(request: LlmSectionRequest): Promise<{ content: string; tokens: number }> {
+  async generateSection(
+    request: LlmSectionRequest
+  ): Promise<{ content: string; tokens: number }> {
     const systemPrompt = this.buildSystemPrompt(request);
     const userPrompt = this.buildUserPrompt(request);
-    
-    const response = await this.complete(
-      `${systemPrompt}\n\n${userPrompt}`,
-      {
-        model: request.modelId,
-        maxTokens: request.maxTokens,
-        temperature: 0.7,
-      }
-    );
+
+    const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
+      model: request.modelId,
+      maxTokens: request.maxTokens,
+      temperature: 0.7,
+    });
 
     return {
       content: response.content,
@@ -82,10 +91,10 @@ export class AnthropicClient implements LlmProvider {
 Your task is to generate the "${request.sectionName}" section.
 
 Context from previous sections:
-${request.previousSections.map(s => `## ${s.name}\n${s.content}`).join("\n\n") || "No previous sections."}
+${request.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n') || 'No previous sections.'}
 
 Current section requirements:
-${request.sectionInstructions || "Generate comprehensive, detailed content for this section."}
+${request.sectionInstructions || 'Generate comprehensive, detailed content for this section.'}
 
 Guidelines:
 - Use markdown formatting
@@ -103,8 +112,8 @@ Description: ${request.projectContext.description}
 
 ${
   request.sectionQuestions.length > 0
-    ? `Answer these questions based on the project context:\n${request.sectionQuestions.map(q => `- ${q}`).join("\n")}`
-    : ""
+    ? `Answer these questions based on the project context:\n${request.sectionQuestions.map((q) => `- ${q}`).join('\n')}`
+    : ''
 }
 
 Generate the section now. Be comprehensive and detailed.`;

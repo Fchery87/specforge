@@ -1,14 +1,34 @@
+"use client";
+
 import Link from "next/link";
 import type { Route } from "next";
-import { auth } from "@clerk/nextjs/server";
+import { useQuery } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
+import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Plus, Sparkles, ArrowRight, Clock, Zap } from "lucide-react";
+import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2 } from "lucide-react";
 
-export default async function DashboardPage() {
-  const { userId } = await auth();
-  if (!userId) {
+export default function DashboardPage() {
+  const { isLoaded, isSignedIn } = useAuth();
+  
+  const projects = useQuery(
+    api.projects.getProjects,
+    isLoaded && isSignedIn ? {} : "skip"
+  );
+
+  if (!isLoaded) {
+    return (
+      <main className="page-container py-20">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!isSignedIn) {
     return (
       <main className="page-container py-20">
         <div className="text-center">
@@ -20,6 +40,18 @@ export default async function DashboardPage() {
       </main>
     );
   }
+
+  if (projects === undefined) {
+    return (
+      <main className="page-container py-20">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </main>
+    );
+  }
+
+  const sortedProjects = [...(projects || [])].sort((a, b) => b.createdAt - a.createdAt);
 
   return (
     <main className="relative">
@@ -114,18 +146,46 @@ export default async function DashboardPage() {
           </Button>
         </div>
 
-        {/* Empty State */}
-        <EmptyState
-          variant="folder"
-          title="No Projects Yet"
-          description="Create your first project to start generating specs, stories, and artifacts with AI assistance."
-        >
-          <Link href="/dashboard/new">
-            <Button className="mt-4">
-              <Plus className="w-4 h-4 mr-2" /> Create First Project
-            </Button>
-          </Link>
-        </EmptyState>
+        {sortedProjects.length === 0 ? (
+          /* Empty State */
+          <EmptyState
+            variant="folder"
+            title="No Projects Yet"
+            description="Create your first project to start generating specs, stories, and artifacts with AI assistance."
+          >
+            <Link href="/dashboard/new">
+              <Button className="mt-4">
+                <Plus className="w-4 h-4 mr-2" /> Create First Project
+              </Button>
+            </Link>
+          </EmptyState>
+        ) : (
+          /* Projects Grid */
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {sortedProjects.map((project) => (
+              <Link key={project._id} href={`/project/${project._id}`} className="block">
+                <Card variant="interactive" className="h-full group">
+                  <CardHeader>
+                    <CardTitle className="text-lg normal-case tracking-normal font-semibold group-hover:text-primary transition-colors">
+                      {project.title}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {project.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground capitalize">{project.status}</span>
+                      <span className="text-muted-foreground">
+                        {new Date(project.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Decorative Footer Element */}

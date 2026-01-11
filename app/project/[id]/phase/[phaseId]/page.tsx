@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { FunctionReference } from "convex/server";
 import { PhaseStatusIndicator } from "@/components/phase-status";
 import { ArtifactPreview } from "@/components/artifact-preview";
 import { QuestionsPanel } from "@/components/questions-panel";
@@ -28,8 +29,12 @@ export default function PhasePage() {
 
   const project = useQuery(api.projects.getProject, { projectId: projectId as any });
   const phase = useQuery(api.projects.getPhase, { projectId: projectId as any, phaseId });
-  const generatePhase = useAction(api["actions/generatePhase"].generatePhase as any);
-  const generateZip = useAction(api["actions/generateProjectZip"].generateProjectZip as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const generatePhaseAction = (api as any)["actions/generatePhase"]?.generatePhase as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const generateZipAction = (api as any)["actions/generateProjectZip"]?.generateProjectZip as any;
+  const generatePhase = useAction(generatePhaseAction);
+  const generateZip = useAction(generateZipAction);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 

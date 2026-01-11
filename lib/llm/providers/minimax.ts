@@ -1,4 +1,5 @@
-import type { LlmProvider, LlmResponse, LlmSectionRequest } from "../types";
+import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
+import { normalizeOpenAIResponse } from '../response-normalizer';
 
 export interface MinimaxModelConfig {
   modelId: string;
@@ -7,37 +8,58 @@ export interface MinimaxModelConfig {
 }
 
 export const MINIMAX_MODELS: Record<string, MinimaxModelConfig> = {
-  "minimax-m2.1": { modelId: "MiniMax-M2.1", contextTokens: 1000000, maxOutputTokens: 1000000 },
-  "minimax-m2.1-lightning": { modelId: "MiniMax-M2.1-lightning", contextTokens: 1000000, maxOutputTokens: 1000000 },
-  "minimax-m2": { modelId: "MiniMax-M2", contextTokens: 1000000, maxOutputTokens: 1000000 },
-  "minimax-01": { modelId: "MiniMax-Text-01", contextTokens: 4000000, maxOutputTokens: 4000000 },
+  'minimax-m2.1': {
+    modelId: 'MiniMax-M2.1',
+    contextTokens: 1000000,
+    maxOutputTokens: 1000000,
+  },
+  'minimax-m2.1-lightning': {
+    modelId: 'MiniMax-M2.1-lightning',
+    contextTokens: 1000000,
+    maxOutputTokens: 1000000,
+  },
+  'minimax-m2': {
+    modelId: 'MiniMax-M2',
+    contextTokens: 1000000,
+    maxOutputTokens: 1000000,
+  },
+  'minimax-01': {
+    modelId: 'MiniMax-Text-01',
+    contextTokens: 4000000,
+    maxOutputTokens: 4000000,
+  },
 };
 
 export class MinimaxClient implements LlmProvider {
   private apiKey: string;
-  private baseUrl: string = "https://api.minimax.io/v1";
+  private baseUrl: string = 'https://api.minimax.io/v1';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
-  async complete(prompt: string, options: {
-    model: string;
-    maxTokens?: number;
-    temperature?: number;
-  }): Promise<LlmResponse> {
-    const modelConfig = MINIMAX_MODELS[options.model] || MINIMAX_MODELS["minimax-m2"];
+  async complete(
+    prompt: string,
+    options: {
+      model: string;
+      maxTokens?: number;
+      temperature?: number;
+    }
+  ): Promise<LlmResponse> {
+    const modelConfig =
+      MINIMAX_MODELS[options.model] || MINIMAX_MODELS['minimax-m2'];
 
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: modelConfig.modelId,
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: options.maxTokens ?? Math.min(modelConfig.maxOutputTokens, 4096),
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens:
+          options.maxTokens ?? Math.min(modelConfig.maxOutputTokens, 4096),
         temperature: options.temperature ?? 0.7,
       }),
     });
@@ -48,28 +70,20 @@ export class MinimaxClient implements LlmProvider {
     }
 
     const data = await response.json();
-    return {
-      content: data.choices[0]?.message?.content ?? "",
-      usage: {
-        promptTokens: data.usage?.prompt_tokens ?? 0,
-        completionTokens: data.usage?.completion_tokens ?? 0,
-        totalTokens: data.usage?.total_tokens ?? 0,
-      },
-    };
+    return normalizeOpenAIResponse(data);
   }
 
-  async generateSection(request: LlmSectionRequest): Promise<{ content: string; tokens: number }> {
+  async generateSection(
+    request: LlmSectionRequest
+  ): Promise<{ content: string; tokens: number }> {
     const systemPrompt = this.buildSystemPrompt(request);
     const userPrompt = this.buildUserPrompt(request);
 
-    const response = await this.complete(
-      `${systemPrompt}\n\n${userPrompt}`,
-      {
-        model: request.modelId,
-        maxTokens: request.maxTokens,
-        temperature: 0.7,
-      }
-    );
+    const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
+      model: request.modelId,
+      maxTokens: request.maxTokens,
+      temperature: 0.7,
+    });
 
     return {
       content: response.content,
@@ -82,10 +96,10 @@ export class MinimaxClient implements LlmProvider {
 Your task is to generate the "${request.sectionName}" section.
 
 Context from previous sections:
-${request.previousSections.map(s => `## ${s.name}\n${s.content}`).join("\n\n") || "No previous sections."}
+${request.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n') || 'No previous sections.'}
 
 Current section requirements:
-${request.sectionInstructions || "Generate comprehensive, detailed content for this section."}
+${request.sectionInstructions || 'Generate comprehensive, detailed content for this section.'}
 
 Guidelines:
 - Use markdown formatting
@@ -103,8 +117,8 @@ Description: ${request.projectContext.description}
 
 ${
   request.sectionQuestions.length > 0
-    ? `Answer these questions based on the project context:\n${request.sectionQuestions.map(q => `- ${q}`).join("\n")}`
-    : ""
+    ? `Answer these questions based on the project context:\n${request.sectionQuestions.map((q) => `- ${q}`).join('\n')}`
+    : ''
 }
 
 Generate the section now:`;

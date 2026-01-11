@@ -13,6 +13,7 @@ import { createOpenAIClient } from '../../lib/llm/providers/openai';
 import { createAnthropicClient } from '../../lib/llm/providers/anthropic';
 import { createZAIClient } from '../../lib/llm/providers/zai';
 import { createMinimaxClient } from '../../lib/llm/providers/minimax';
+import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import type { ProviderCredentials } from '../../lib/llm/types';
 
 interface Question {
@@ -184,18 +185,22 @@ async function generateAnswer(params: {
   llmClient: ReturnType<typeof getLlmClient>;
 }): Promise<string> {
   if (!params.llmClient) {
-    throw new Error('No LLM client available. Please configure your API credentials in settings.');
+    throw new Error(
+      'No LLM client available. Please configure your API credentials in settings.'
+    );
   }
 
   try {
     const response = await params.llmClient.complete(params.prompt, {
       model: params.model.id,
-      maxTokens: 500,
-      temperature: 0.7,
+      maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+      temperature: LLM_DEFAULTS.DEFAULT_TEMPERATURE,
     });
     return response.content.trim();
   } catch (error: any) {
     console.error('LLM API error:', error);
-    throw new Error(`Failed to generate answer: ${error.message || 'Unknown error'}`);
+    throw new Error(
+      `Failed to generate answer: ${error.message || 'Unknown error'}`
+    );
   }
 }

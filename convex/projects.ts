@@ -40,6 +40,17 @@ export const getProject = query({
   },
 });
 
+export const getProjects = query({
+  handler: async (ctx: QueryCtx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    return await ctx.db
+      .query("projects")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+  },
+});
+
 export const getPhase = query({
   args: { projectId: v.id("projects"), phaseId: v.string() },
   handler: async (ctx: QueryCtx, args) => {

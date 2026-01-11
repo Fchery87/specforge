@@ -13,6 +13,7 @@ import { createOpenAIClient } from '../../lib/llm/providers/openai';
 import { createAnthropicClient } from '../../lib/llm/providers/anthropic';
 import { createZAIClient } from '../../lib/llm/providers/zai';
 import { createMinimaxClient } from '../../lib/llm/providers/minimax';
+import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import type { ProviderCredentials } from '../../lib/llm/types';
 
 interface Question {
@@ -72,11 +73,15 @@ export const generateQuestionAnswer = action({
     if (!phaseData) throw new Error('Phase not found');
 
     const questions = phaseData.questions || [];
-    const targetQuestion = questions.find((q: Question) => q.id === args.questionId);
+    const targetQuestion = questions.find(
+      (q: Question) => q.id === args.questionId
+    );
     if (!targetQuestion) throw new Error('Question not found');
 
     // Get previously answered questions
-    const targetIndex = questions.findIndex((q: Question) => q.id === args.questionId);
+    const targetIndex = questions.findIndex(
+      (q: Question) => q.id === args.questionId
+    );
     const previousQuestions = questions
       .slice(0, targetIndex)
       .filter((q: Question) => q.answer)
@@ -177,18 +182,23 @@ async function generateAnswer(params: {
   llmClient: ReturnType<typeof getLlmClient>;
 }): Promise<string> {
   if (!params.llmClient) {
-    throw new Error('No LLM client available. Please configure your API credentials in settings.');
+    throw new Error(
+      'No LLM client available. Please configure your API credentials in settings.'
+    );
   }
 
   try {
     const response = await params.llmClient.complete(params.prompt, {
       model: params.model.id,
-      maxTokens: 500,
-      temperature: 0.7,
+      maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+      temperature: LLM_DEFAULTS.DEFAULT_TEMPERATURE,
     });
+
     return response.content.trim();
   } catch (error: any) {
     console.error('LLM API error:', error);
-    throw new Error(`Failed to generate answer: ${error.message || 'Unknown error'}`);
+    throw new Error(
+      `Failed to generate answer: ${error.message || 'Unknown error'}`
+    );
   }
 }
