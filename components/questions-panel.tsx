@@ -47,11 +47,13 @@ export function QuestionsPanel({
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
   const generateQuestions = useAction(api["actions/generateQuestions"].generateQuestions as any);
-  
+  const generateQuestionAnswer = useAction(api["actions/generateQuestionAnswer"].generateQuestionAnswer as any);
+
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [aiGeneratingId, setAiGeneratingId] = useState<string | null>(null);
   
   // Track pending saves
   const pendingSaveRef = useRef<Record<string, string>>({});
@@ -105,6 +107,28 @@ export function QuestionsPanel({
       await generateQuestions({ projectId, phaseId });
     } finally {
       setIsRegenerating(false);
+    }
+  }
+
+  async function handleAiSuggest(questionId: string) {
+    setAiGeneratingId(questionId);
+    try {
+      const result = await generateQuestionAnswer({
+        projectId,
+        phaseId,
+        questionId,
+      });
+      // Update local state with suggestion
+      setLocalAnswers(prev => ({
+        ...prev,
+        [questionId]: result.suggestedAnswer,
+      }));
+      // Trigger save
+      pendingSaveRef.current[questionId] = result.suggestedAnswer;
+    } catch (error) {
+      console.error("Failed to generate AI answer:", error);
+    } finally {
+      setAiGeneratingId(null);
     }
   }
 
@@ -179,15 +203,34 @@ export function QuestionsPanel({
                       )}
                     </div>
                   </div>
-                  <div className="ml-11">
-                    <Textarea
-                      value={answer}
-                      onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                      placeholder="Enter your answer..."
-                      className="min-h-[100px]"
-                      maxLength={maxLength}
-                    />
-                    <div className="flex items-center justify-between mt-2 text-xs">
+                  <div className="ml-11 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Textarea
+                        value={answer}
+                        onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                        placeholder="Enter your answer..."
+                        className="min-h-[100px] flex-1"
+                        maxLength={maxLength}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAiSuggest(question.id)}
+                        disabled={aiGeneratingId === question.id || isGenerating}
+                        className="self-start"
+                      >
+                        {aiGeneratingId === question.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         {isSaving && (
                           <span className="flex items-center text-muted-foreground">
