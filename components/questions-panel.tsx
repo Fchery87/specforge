@@ -60,6 +60,7 @@ export function QuestionsPanel({
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [batchProgress, setBatchProgress] = useState(0);
   const [batchAnswers, setBatchAnswers] = useState<Array<{ questionId: string; answer: string }>>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Track pending saves
   const pendingSaveRef = useRef<Record<string, string>>({});
@@ -118,21 +119,21 @@ export function QuestionsPanel({
 
   async function handleAiSuggest(questionId: string) {
     setAiGeneratingId(questionId);
+    setErrorMessage(null);
     try {
       const result = await generateQuestionAnswer({
         projectId,
         phaseId,
         questionId,
       });
-      // Update local state with suggestion
       setLocalAnswers(prev => ({
         ...prev,
         [questionId]: result.suggestedAnswer,
       }));
-      // Trigger save
       pendingSaveRef.current[questionId] = result.suggestedAnswer;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate AI answer:", error);
+      setErrorMessage(error.message || "Failed to generate AI answer. Please try again.");
     } finally {
       setAiGeneratingId(null);
     }
@@ -143,6 +144,7 @@ export function QuestionsPanel({
     setIsBatchGenerating(true);
     setBatchProgress(0);
     setBatchAnswers([]);
+    setErrorMessage(null);
 
     try {
       const result = await generateAllQuestionAnswers({
@@ -152,8 +154,10 @@ export function QuestionsPanel({
 
       setBatchAnswers(result.answers);
       setBatchProgress(result.answers.length);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate batch answers:", error);
+      setErrorMessage(error.message || "Failed to generate answers. Please try again.");
+      setIsBatchModalOpen(false);
     } finally {
       setIsBatchGenerating(false);
     }
@@ -196,6 +200,11 @@ export function QuestionsPanel({
               </span>
             )}
           </CardDescription>
+          {errorMessage && (
+            <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-sm text-destructive">{errorMessage}</p>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button
