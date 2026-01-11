@@ -79,6 +79,10 @@ function AuthNav() {
           appearance={{
             elements: {
               avatarBox: "w-10 h-10 rounded-none border-2 border-primary",
+              userButtonPopoverCard: "bg-background border-2 border-border",
+              userButtonPopoverActionButton: "text-foreground hover:bg-card",
+              userButtonPopoverActionButtonText: "text-foreground",
+              userButtonPopoverFooter: "hidden",
             },
           }}
         />

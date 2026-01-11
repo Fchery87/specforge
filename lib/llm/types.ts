@@ -38,7 +38,7 @@ export interface LlmSectionRequest {
 
 export interface LlmModel {
   id: string;
-  provider: "openai" | "anthropic" | "mistral" | "other";
+  provider: "openai" | "anthropic" | "mistral" | "zai" | "minimax" | "other";
   contextTokens: number;
   maxOutputTokens: number;
   defaultMax: number;
@@ -59,10 +59,14 @@ export interface UserConfig {
   defaultModel: string;
   useSystem: boolean;
   systemKeyId?: string;
+  zaiEndpointType?: "paid" | "coding";
+  zaiIsChina?: boolean;
 }
 
 export interface ProviderCredentials {
   provider: string;
   apiKey: string;
   modelId: string;
+  zaiEndpointType?: "paid" | "coding";
+  zaiIsChina?: boolean;
 }

@@ -1,22 +1,57 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from "../types";
 
-export interface OpenAIModelConfig {
+export interface ZAIModelConfig {
   modelId: string;
   contextTokens: number;
   maxOutputTokens: number;
 }
 
-export const OPENAI_MODELS: Record<string, OpenAIModelConfig> = {
-  "gpt-4o": { modelId: "gpt-4o", contextTokens: 128000, maxOutputTokens: 16384 },
-  "gpt-4o-mini": { modelId: "gpt-4o-mini", contextTokens: 128000, maxOutputTokens: 16384 },
+export const ZAI_MODELS: Record<string, ZAIModelConfig> = {
+  "glm-4.7": { modelId: "glm-4.7", contextTokens: 204800, maxOutputTokens: 131100 },
+  "glm-4.6": { modelId: "glm-4.6", contextTokens: 128000, maxOutputTokens: 96000 },
+  "glm-4.5": { modelId: "glm-4.5", contextTokens: 128000, maxOutputTokens: 96000 },
+  "glm-4.5-air": { modelId: "glm-4.5-air", contextTokens: 128000, maxOutputTokens: 96000 },
+  "glm-4.5-flash": { modelId: "glm-4.5-flash", contextTokens: 128000, maxOutputTokens: 96000 },
 };
 
-export class OpenAIClient implements LlmProvider {
-  private apiKey: string;
-  private baseUrl: string = "https://api.openai.com/v1";
+// Z.AI Endpoint types
+export type ZAIEndpointType = "paid" | "coding";
 
-  constructor(apiKey: string) {
+export const ZAI_ENDPOINTS: Record<ZAIEndpointType, { label: string; url: string; description: string }> = {
+  paid: {
+    label: "Paid API",
+    url: "https://api.z.ai/api/paas/v4",
+    description: "Pay-as-you-go API billing",
+  },
+  coding: {
+    label: "Coding Plan",
+    url: "https://api.z.ai/api/coding/paas/v4",
+    description: "Subscription-based coding plan (GLM Coding Plan)",
+  },
+};
+
+// China endpoints
+export const ZAI_ENDPOINTS_CN: Record<ZAIEndpointType, { label: string; url: string; description: string }> = {
+  paid: {
+    label: "Paid API (China)",
+    url: "https://open.bigmodel.cn/api/paas/v4",
+    description: "Pay-as-you-go API billing (China region)",
+  },
+  coding: {
+    label: "Coding Plan (China)",
+    url: "https://open.bigmodel.cn/api/coding/paas/v4",
+    description: "Subscription-based coding plan (China region)",
+  },
+};
+
+export class ZAIClient implements LlmProvider {
+  private apiKey: string;
+  private baseUrl: string;
+
+  constructor(apiKey: string, endpointType: ZAIEndpointType = "paid", isChina: boolean = false) {
     this.apiKey = apiKey;
+    const endpoints = isChina ? ZAI_ENDPOINTS_CN : ZAI_ENDPOINTS;
+    this.baseUrl = endpoints[endpointType].url;
   }
 
   async complete(prompt: string, options: {
@@ -24,25 +59,25 @@ export class OpenAIClient implements LlmProvider {
     maxTokens?: number;
     temperature?: number;
   }): Promise<LlmResponse> {
-    const modelConfig = OPENAI_MODELS[options.model] || OPENAI_MODELS["gpt-4o"];
-    
+    const modelConfig = ZAI_MODELS[options.model] || ZAI_MODELS["glm-4.5"];
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
+        "Authorization": `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: modelConfig.modelId,
         messages: [{ role: "user", content: prompt }],
         max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
-        temperature: options.temperature ?? 0.7,
+        temperature: options.temperature ?? 0.6,
       }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`OpenAI API error: ${error}`);
+      throw new Error(`Z.AI API error: ${error}`);
     }
 
     const data = await response.json();
@@ -59,13 +94,13 @@ export class OpenAIClient implements LlmProvider {
   async generateSection(request: LlmSectionRequest): Promise<{ content: string; tokens: number }> {
     const systemPrompt = this.buildSystemPrompt(request);
     const userPrompt = this.buildUserPrompt(request);
-    
+
     const response = await this.complete(
       `${systemPrompt}\n\n${userPrompt}`,
       {
         model: request.modelId,
         maxTokens: request.maxTokens,
-        temperature: 0.7,
+        temperature: 0.6,
       }
     );
 
@@ -113,6 +148,6 @@ Generate the section now:`;
   }
 }
 
-export function createOpenAIClient(apiKey: string): OpenAIClient {
-  return new OpenAIClient(apiKey);
+export function createZAIClient(apiKey: string, endpointType: ZAIEndpointType = "paid", isChina: boolean = false): ZAIClient {
+  return new ZAIClient(apiKey, endpointType, isChina);
 }

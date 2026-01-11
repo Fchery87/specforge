@@ -22,7 +22,7 @@ export function PhaseStepper({ projectId, currentPhase }: { projectId: string; c
             key={p.id}
             href={`/project/${projectId}/phase/${p.id}`}
             className={cn(
-              "px-3 py-2 rounded-xl border border-border bg-bg hover:bg-card transition",
+              "px-3 py-2 rounded-xl border border-border bg-background hover:bg-card transition",
               active && "shadow-brutal"
             )}
           >

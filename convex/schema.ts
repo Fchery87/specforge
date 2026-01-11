@@ -45,11 +45,26 @@ export default defineSchema({
     enabled: v.boolean(),
   }).index("by_model", ["modelId"]),
 
+  // System-wide LLM provider credentials (for system credentials feature)
+  systemCredentials: defineTable({
+    provider: v.string(), // e.g., "openai", "anthropic", "zai", "minimax"
+    apiKey: v.optional(v.bytes()), // Encrypted API key
+    isEnabled: v.boolean(), // Whether this credential is active
+    // Z.AI specific settings
+    zaiEndpointType: v.optional(v.union(v.literal("paid"), v.literal("coding"))),
+    zaiIsChina: v.optional(v.boolean()),
+    // Metadata
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_provider", ["provider"]),
+
   userLlmConfigs: defineTable({
     userId: v.string(),
     provider: v.string(),
     apiKey: v.optional(v.bytes()),
     defaultModel: v.string(),
     useSystem: v.boolean(),
+    zaiEndpointType: v.optional(v.union(v.literal("paid"), v.literal("coding"))),
+    zaiIsChina: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),
 });

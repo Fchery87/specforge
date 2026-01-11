@@ -2,6 +2,9 @@ import { mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 
+const ENCRYPTION_KEY =
+  process.env.CONVEX_ENCRYPTION_KEY ?? 'default-dev-key-change-in-production';
+
 // Raw query that returns encrypted data without decrypting
 export const getUserConfigRaw = query({
   args: {},
@@ -22,9 +25,15 @@ export const getUserConfigRaw = query({
       apiKey: config.apiKey,
       defaultModel: config.defaultModel,
       useSystem: config.useSystem,
+      zaiEndpointType: config.zaiEndpointType,
+      zaiIsChina: config.zaiIsChina,
     };
   },
 });
+
+// NOTE: Decryption must be done in actions with "use node" directive.
+// This query returns the raw encrypted config.
+// Use getUserConfig action from userConfigActions.ts for decrypted data.
 
 // Raw mutation that saves encrypted data
 export const saveUserConfigRaw = mutation({
@@ -33,6 +42,10 @@ export const saveUserConfigRaw = mutation({
     encryptedApiKey: v.union(v.null(), v.array(v.number())),
     defaultModel: v.string(),
     useSystem: v.boolean(),
+    zaiEndpointType: v.optional(
+      v.union(v.literal('paid'), v.literal('coding'))
+    ),
+    zaiIsChina: v.optional(v.boolean()),
   },
   handler: async (ctx: MutationCtx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -54,6 +67,8 @@ export const saveUserConfigRaw = mutation({
         ...(apiKeyBuffer !== undefined && { apiKey: apiKeyBuffer }),
         defaultModel: args.defaultModel,
         useSystem: args.useSystem,
+        zaiEndpointType: args.zaiEndpointType,
+        zaiIsChina: args.zaiIsChina,
       });
       return existing._id;
     } else {
@@ -63,6 +78,8 @@ export const saveUserConfigRaw = mutation({
         apiKey: apiKeyBuffer,
         defaultModel: args.defaultModel,
         useSystem: args.useSystem,
+        zaiEndpointType: args.zaiEndpointType,
+        zaiIsChina: args.zaiIsChina,
       });
     }
   },

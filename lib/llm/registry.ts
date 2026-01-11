@@ -13,25 +13,37 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   mistral: "Mistral AI",
   google: "Google Gemini",
   azure: "Azure OpenAI",
+  zai: "Z.AI (GLM)",
+  minimax: "Minimax",
 };
 
 export const MODEL_REGISTRY: RegistryEntry[] = [
-  // OpenAI Models
+  // OpenAI Models (Current as of 2026)
   { model: { id: "gpt-4o", provider: "openai", contextTokens: 128000, maxOutputTokens: 16384, defaultMax: 8000, enabled: true }, provider: "openai", displayName: "GPT-4o" },
   { model: { id: "gpt-4o-mini", provider: "openai", contextTokens: 128000, maxOutputTokens: 16384, defaultMax: 8000, enabled: true }, provider: "openai", displayName: "GPT-4o Mini" },
-  { model: { id: "gpt-4-turbo", provider: "openai", contextTokens: 128000, maxOutputTokens: 4096, defaultMax: 2000, enabled: true }, provider: "openai", displayName: "GPT-4 Turbo" },
-  { model: { id: "gpt-3.5-turbo", provider: "openai", contextTokens: 16385, maxOutputTokens: 4096, defaultMax: 2000, enabled: true }, provider: "openai", displayName: "GPT-3.5 Turbo" },
-  
-  // Anthropic Models
-  { model: { id: "claude-3-5-sonnet", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "anthropic", displayName: "Claude 3.5 Sonnet" },
-  { model: { id: "claude-3-5-haiku", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "anthropic", displayName: "Claude 3.5 Haiku" },
-  { model: { id: "claude-3-opus", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 4096, defaultMax: 2000, enabled: true }, provider: "anthropic", displayName: "Claude 3 Opus" },
-  { model: { id: "claude-sonnet-4-20250514", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "anthropic", displayName: "Claude Sonnet 4" },
-  
-  // Mistral Models
-  { model: { id: "mistral-large", provider: "mistral", contextTokens: 32000, maxOutputTokens: 4096, defaultMax: 2000, enabled: true }, provider: "mistral", displayName: "Mistral Large" },
-  { model: { id: "mistral-medium", provider: "mistral", contextTokens: 32000, maxOutputTokens: 4096, defaultMax: 2000, enabled: true }, provider: "mistral", displayName: "Mistral Medium" },
-  { model: { id: "mistral-small", provider: "mistral", contextTokens: 32000, maxOutputTokens: 4096, defaultMax: 2000, enabled: true }, provider: "mistral", displayName: "Mistral Small" },
+
+  // Anthropic Models (Current as of 2026)
+  { model: { id: "claude-opus-4-5", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 16384, defaultMax: 8000, enabled: true }, provider: "anthropic", displayName: "Claude Opus 4.5" },
+  { model: { id: "claude-sonnet-4-5", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "anthropic", displayName: "Claude Sonnet 4.5" },
+  { model: { id: "claude-haiku-4-5", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "anthropic", displayName: "Claude Haiku 4.5" },
+
+  // Mistral Models (Current as of 2026)
+  { model: { id: "mistral-large-3", provider: "mistral", contextTokens: 256000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "mistral", displayName: "Mistral Large 3" },
+  { model: { id: "mistral-medium-3-1", provider: "mistral", contextTokens: 128000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "mistral", displayName: "Mistral Medium 3.1" },
+  { model: { id: "mistral-small-3-2", provider: "mistral", contextTokens: 128000, maxOutputTokens: 8192, defaultMax: 4000, enabled: true }, provider: "mistral", displayName: "Mistral Small 3.2" },
+
+  // Z.AI (GLM) Models
+  { model: { id: "glm-4.7", provider: "zai", contextTokens: 204800, maxOutputTokens: 131100, defaultMax: 8000, enabled: true }, provider: "zai", displayName: "GLM-4.7" },
+  { model: { id: "glm-4.6", provider: "zai", contextTokens: 128000, maxOutputTokens: 96000, defaultMax: 8000, enabled: true }, provider: "zai", displayName: "GLM-4.6" },
+  { model: { id: "glm-4.5", provider: "zai", contextTokens: 128000, maxOutputTokens: 96000, defaultMax: 8000, enabled: true }, provider: "zai", displayName: "GLM-4.5" },
+  { model: { id: "glm-4.5-air", provider: "zai", contextTokens: 128000, maxOutputTokens: 96000, defaultMax: 6000, enabled: true }, provider: "zai", displayName: "GLM-4.5 Air" },
+  { model: { id: "glm-4.5-flash", provider: "zai", contextTokens: 128000, maxOutputTokens: 96000, defaultMax: 6000, enabled: true }, provider: "zai", displayName: "GLM-4.5 Flash" },
+
+  // Minimax Models
+  { model: { id: "minimax-m2.1", provider: "minimax", contextTokens: 1000000, maxOutputTokens: 1000000, defaultMax: 8000, enabled: true }, provider: "minimax", displayName: "MiniMax M2.1" },
+  { model: { id: "minimax-m2.1-lightning", provider: "minimax", contextTokens: 1000000, maxOutputTokens: 1000000, defaultMax: 8000, enabled: true }, provider: "minimax", displayName: "MiniMax M2.1 Lightning" },
+  { model: { id: "minimax-m2", provider: "minimax", contextTokens: 1000000, maxOutputTokens: 1000000, defaultMax: 8000, enabled: true }, provider: "minimax", displayName: "MiniMax M2" },
+  { model: { id: "minimax-01", provider: "minimax", contextTokens: 4000000, maxOutputTokens: 4000000, defaultMax: 8000, enabled: true }, provider: "minimax", displayName: "MiniMax-01 (4M Context)" },
 ];
 
 export function getModelById(modelId: string): LlmModel | null {
@@ -60,18 +72,26 @@ export function getModelDisplayName(modelId: string): string {
   return entry?.displayName ?? modelId;
 }
 
+export interface SystemCredential {
+  apiKey: string;
+  zaiEndpointType?: "paid" | "coding";
+  zaiIsChina?: boolean;
+}
+
 export function resolveCredentials(
   userConfig: UserConfig | null,
-  systemCredentials: Map<string, string>
+  systemCredentials: Map<string, SystemCredential>
 ): ProviderCredentials | null {
   // If user wants to use system credentials and has one configured
   if (userConfig?.useSystem && userConfig.systemKeyId) {
-    const systemKey = systemCredentials.get(userConfig.systemKeyId);
-    if (systemKey) {
+    const systemCred = systemCredentials.get(userConfig.systemKeyId);
+    if (systemCred) {
       return {
         provider: userConfig.provider,
-        apiKey: systemKey,
+        apiKey: systemCred.apiKey,
         modelId: userConfig.defaultModel,
+        zaiEndpointType: systemCred.zaiEndpointType,
+        zaiIsChina: systemCred.zaiIsChina,
       };
     }
   }
@@ -82,17 +102,21 @@ export function resolveCredentials(
       provider: userConfig.provider,
       apiKey: userConfig.apiKey,
       modelId: userConfig.defaultModel,
+      zaiEndpointType: userConfig.zaiEndpointType,
+      zaiIsChina: userConfig.zaiIsChina,
     };
   }
 
   // Try to find a system credential for the user's selected provider
   if (userConfig?.provider) {
-    const systemKey = systemCredentials.get(userConfig.provider);
-    if (systemKey) {
+    const systemCred = systemCredentials.get(userConfig.provider);
+    if (systemCred) {
       return {
         provider: userConfig.provider,
-        apiKey: systemKey,
+        apiKey: systemCred.apiKey,
         modelId: userConfig.defaultModel,
+        zaiEndpointType: systemCred.zaiEndpointType,
+        zaiIsChina: systemCred.zaiIsChina,
       };
     }
   }

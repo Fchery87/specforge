@@ -135,14 +135,14 @@ export default function AdminDashboardPage() {
           <CardContent className="space-y-2">
             <a
               href="/admin/llm-models"
-              className="block p-3 rounded-lg bg-bg border border-border hover:bg-card transition"
+              className="block p-3 rounded-lg bg-background border border-border hover:bg-card transition"
             >
               <p className="font-medium">Manage LLM Models</p>
               <p className="text-sm text-white/60">Configure available models</p>
             </a>
             <a
               href="/settings/llm-config"
-              className="block p-3 rounded-lg bg-bg border border-border hover:bg-card transition"
+              className="block p-3 rounded-lg bg-background border border-border hover:bg-card transition"
             >
               <p className="font-medium">LLM Configuration</p>
               <p className="text-sm text-white/60">Configure your API keys</p>

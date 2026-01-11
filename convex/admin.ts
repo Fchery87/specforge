@@ -1,6 +1,8 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { internalQuery } from "./_generated/server";
+import { internal as internalApi } from "./_generated/api";
 
 export const listAllModels = query({
   args: {},
@@ -100,5 +102,68 @@ export const getSystemStats = query({
         complete: projects.filter(p => p.status === "complete").length,
       },
     };
+  },
+});
+
+// Internal function to get system credentials (decrypted)
+export const getAllSystemCredentialsInternal = internalQuery({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    return await ctx.db.query("systemCredentials").collect();
+  },
+});
+
+// System credentials management for admins
+export const listSystemCredentials = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    // In production, check for admin role here
+
+    return await ctx.db.query("systemCredentials").collect();
+  },
+});
+
+export const getSystemCredential = query({
+  args: { provider: v.string() },
+  handler: async (ctx: QueryCtx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const config = await ctx.db
+      .query("systemCredentials")
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
+      .first();
+
+    if (!config) return null;
+
+    return {
+      provider: config.provider,
+      isEnabled: config.isEnabled,
+      hasApiKey: !!config.apiKey,
+      zaiEndpointType: config.zaiEndpointType,
+      zaiIsChina: config.zaiIsChina,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+    };
+  },
+});
+
+export const deleteSystemCredential = mutation({
+  args: { provider: v.string() },
+  handler: async (ctx: MutationCtx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
+    const existing = await ctx.db
+      .query("systemCredentials")
+      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
+      .first();
+
+    if (existing) {
+      await ctx.db.delete(existing._id);
+    }
   },
 });

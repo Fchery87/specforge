@@ -1,19 +1,21 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from "../types";
 
-export interface OpenAIModelConfig {
+export interface MinimaxModelConfig {
   modelId: string;
   contextTokens: number;
   maxOutputTokens: number;
 }
 
-export const OPENAI_MODELS: Record<string, OpenAIModelConfig> = {
-  "gpt-4o": { modelId: "gpt-4o", contextTokens: 128000, maxOutputTokens: 16384 },
-  "gpt-4o-mini": { modelId: "gpt-4o-mini", contextTokens: 128000, maxOutputTokens: 16384 },
+export const MINIMAX_MODELS: Record<string, MinimaxModelConfig> = {
+  "minimax-m2.1": { modelId: "MiniMax-M2.1", contextTokens: 1000000, maxOutputTokens: 1000000 },
+  "minimax-m2.1-lightning": { modelId: "MiniMax-M2.1-lightning", contextTokens: 1000000, maxOutputTokens: 1000000 },
+  "minimax-m2": { modelId: "MiniMax-M2", contextTokens: 1000000, maxOutputTokens: 1000000 },
+  "minimax-01": { modelId: "MiniMax-Text-01", contextTokens: 4000000, maxOutputTokens: 4000000 },
 };
 
-export class OpenAIClient implements LlmProvider {
+export class MinimaxClient implements LlmProvider {
   private apiKey: string;
-  private baseUrl: string = "https://api.openai.com/v1";
+  private baseUrl: string = "https://api.minimax.io/v1";
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -24,25 +26,25 @@ export class OpenAIClient implements LlmProvider {
     maxTokens?: number;
     temperature?: number;
   }): Promise<LlmResponse> {
-    const modelConfig = OPENAI_MODELS[options.model] || OPENAI_MODELS["gpt-4o"];
-    
+    const modelConfig = MINIMAX_MODELS[options.model] || MINIMAX_MODELS["minimax-m2"];
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
+        "Authorization": `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: modelConfig.modelId,
         messages: [{ role: "user", content: prompt }],
-        max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
+        max_tokens: options.maxTokens ?? Math.min(modelConfig.maxOutputTokens, 4096),
         temperature: options.temperature ?? 0.7,
       }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`OpenAI API error: ${error}`);
+      throw new Error(`Minimax API error: ${error}`);
     }
 
     const data = await response.json();
@@ -59,7 +61,7 @@ export class OpenAIClient implements LlmProvider {
   async generateSection(request: LlmSectionRequest): Promise<{ content: string; tokens: number }> {
     const systemPrompt = this.buildSystemPrompt(request);
     const userPrompt = this.buildUserPrompt(request);
-    
+
     const response = await this.complete(
       `${systemPrompt}\n\n${userPrompt}`,
       {
@@ -113,6 +115,6 @@ Generate the section now:`;
   }
 }
 
-export function createOpenAIClient(apiKey: string): OpenAIClient {
-  return new OpenAIClient(apiKey);
+export function createMinimaxClient(apiKey: string): MinimaxClient {
+  return new MinimaxClient(apiKey);
 }

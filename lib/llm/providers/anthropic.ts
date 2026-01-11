@@ -7,10 +7,9 @@ export interface AnthropicModelConfig {
 }
 
 export const ANTHROPIC_MODELS: Record<string, AnthropicModelConfig> = {
-  "claude-3-5-sonnet": { modelId: "claude-3-5-sonnet", contextTokens: 200000, maxOutputTokens: 8192 },
-  "claude-3-5-haiku": { modelId: "claude-3-5-haiku", contextTokens: 200000, maxOutputTokens: 8192 },
-  "claude-3-opus": { modelId: "claude-3-opus", contextTokens: 200000, maxOutputTokens: 4096 },
-  "claude-sonnet-4-20250514": { modelId: "claude-sonnet-4-20250514", contextTokens: 200000, maxOutputTokens: 8192 },
+  "claude-opus-4-5": { modelId: "claude-opus-4-5", contextTokens: 200000, maxOutputTokens: 16384 },
+  "claude-sonnet-4-5": { modelId: "claude-sonnet-4-5", contextTokens: 200000, maxOutputTokens: 8192 },
+  "claude-haiku-4-5": { modelId: "claude-haiku-4-5", contextTokens: 200000, maxOutputTokens: 8192 },
 };
 
 export class AnthropicClient implements LlmProvider {
@@ -26,7 +25,7 @@ export class AnthropicClient implements LlmProvider {
     maxTokens?: number;
     temperature?: number;
   }): Promise<LlmResponse> {
-    const modelConfig = ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS["claude-3-5-sonnet"];
+    const modelConfig = ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS["claude-sonnet-4-5"];
     
     const response = await fetch(`${this.baseUrl}/messages`, {
       method: "POST",

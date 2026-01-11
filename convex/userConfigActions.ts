@@ -16,6 +16,8 @@ interface UserConfig {
   apiKey?: string;
   defaultModel: string;
   useSystem: boolean;
+  zaiEndpointType?: "paid" | "coding";
+  zaiIsChina?: boolean;
 }
 
 export const getUserConfig = action({
@@ -47,6 +49,8 @@ export const getUserConfig = action({
       apiKey: decryptedApiKey,
       defaultModel: config.defaultModel,
       useSystem: config.useSystem,
+      zaiEndpointType: config.zaiEndpointType,
+      zaiIsChina: config.zaiIsChina,
     };
   },
 });
@@ -57,6 +61,8 @@ export const saveUserConfig = action({
     apiKey: v.optional(v.string()),
     defaultModel: v.string(),
     useSystem: v.boolean(),
+    zaiEndpointType: v.optional(v.union(v.literal("paid"), v.literal("coding"))),
+    zaiIsChina: v.optional(v.boolean()),
   },
   handler: async (ctx: ActionCtx, args): Promise<Id<'userLlmConfigs'>> => {
     const identity = await ctx.auth.getUserIdentity();
@@ -82,6 +88,8 @@ export const saveUserConfig = action({
         : null,
       defaultModel: args.defaultModel,
       useSystem: args.useSystem,
+      zaiEndpointType: args.zaiEndpointType,
+      zaiIsChina: args.zaiIsChina,
     });
   },
 });

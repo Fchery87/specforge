@@ -23,7 +23,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <NoiseOverlay />
-        <ClerkProvider>
+        <ClerkProvider
+          appearance={{
+            baseTheme: undefined,
+            variables: {
+              colorBackground: "hsl(240 10% 3.9%)",
+              colorText: "hsl(0 0% 98%)",
+              colorPrimary: "hsl(61 96% 45%)",
+              colorTextSecondary: "hsl(240 5% 64.9%)",
+              colorInputBackground: "hsl(240 10% 3.9%)",
+              colorInputText: "hsl(0 0% 98%)",
+            },
+          }}
+        >
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             <ConvexClientProvider>
               <SiteHeader />

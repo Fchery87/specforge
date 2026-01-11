@@ -8,13 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, AlertCircle, Shield } from "lucide-react";
+import { Loader2, Check, AlertCircle, Shield, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getModelById, getModelDisplayName } from "@/lib/llm/registry";
+import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/providers/zai";
 
 const PROVIDERS = [
-  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"] },
-  { id: "anthropic", name: "Anthropic", models: ["claude-3-5-sonnet", "claude-3-5-haiku", "claude-3-opus"] },
-  { id: "mistral", name: "Mistral AI", models: ["mistral-large", "mistral-medium", "mistral-small"] },
+  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4o-mini"] },
+  { id: "anthropic", name: "Anthropic", models: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"] },
+  { id: "mistral", name: "Mistral AI", models: ["mistral-large-3", "mistral-medium-3-1", "mistral-small-3-2"] },
+  { id: "zai", name: "Z.AI (GLM)", models: ["glm-4.7", "glm-4.6", "glm-4.5", "glm-4.5-air", "glm-4.5-flash"] },
+  { id: "minimax", name: "Minimax", models: ["minimax-m2.1", "minimax-m2.1-lightning", "minimax-m2", "minimax-01"] },
 ];
 
 export default function LlmConfigPage() {
@@ -22,10 +26,12 @@ export default function LlmConfigPage() {
   const saveConfig = useAction(api.userConfigActions.saveUserConfig);
   const deleteConfig = useAction(api.userConfigActions.deleteUserConfig);
 
-  const [provider, setProvider] = useState("openai");
+  const [provider, setProvider] = useState("anthropic");
   const [apiKey, setApiKey] = useState("");
-  const [defaultModel, setDefaultModel] = useState("gpt-4o");
+  const [defaultModel, setDefaultModel] = useState("claude-sonnet-4-5");
   const [useSystem, setUseSystem] = useState(true);
+  const [zaiEndpointType, setZaiEndpointType] = useState<ZAIEndpointType>("paid");
+  const [zaiIsChina, setZaiIsChina] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +50,12 @@ export default function LlmConfigPage() {
           }
           setDefaultModel(config.defaultModel);
           setUseSystem(config.useSystem);
+          if (config.zaiEndpointType) {
+            setZaiEndpointType(config.zaiEndpointType);
+          }
+          if (config.zaiIsChina !== undefined) {
+            setZaiIsChina(config.zaiIsChina);
+          }
         }
       } catch (err) {
         console.error("Failed to load config:", err);
@@ -67,6 +79,8 @@ export default function LlmConfigPage() {
         apiKey: apiKey || undefined,
         defaultModel,
         useSystem,
+        zaiEndpointType: provider === "zai" ? zaiEndpointType : undefined,
+        zaiIsChina: provider === "zai" ? zaiIsChina : undefined,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -120,7 +134,7 @@ export default function LlmConfigPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-start gap-3 p-4 bg-bg/50 rounded-lg border border-border">
+          <div className="flex items-start gap-3 p-4 bg-background/50 rounded-lg border border-border">
             <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-white/80">
               <p className="font-medium mb-1">Important Security Notes:</p>
@@ -167,14 +181,39 @@ export default function LlmConfigPage() {
             <select
               value={defaultModel}
               onChange={(e) => setDefaultModel(e.target.value)}
-              className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               {currentProvider?.models.map((m) => (
                 <option key={m} value={m}>
-                  {m}
+                  {getModelDisplayName(m) || m}
                 </option>
               ))}
             </select>
+            {(() => {
+              const modelInfo = getModelById(defaultModel);
+              if (modelInfo) {
+                return (
+                  <div className="flex items-start gap-2 p-3 bg-background/50 rounded-lg border border-border">
+                    <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-white/80 space-y-1">
+                      <p className="font-medium text-white">{getModelDisplayName(defaultModel)} Capabilities:</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Context: {(modelInfo.contextTokens / 1000).toLocaleString()}K tokens
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Max Output: {(modelInfo.maxOutputTokens / 1000).toLocaleString()}K tokens
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Default Gen: {(modelInfo.defaultMax / 1000).toLocaleString()}K tokens
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           <div className="space-y-2">
@@ -200,6 +239,8 @@ export default function LlmConfigPage() {
                     ? "https://platform.openai.com/api-keys"
                     : provider === "anthropic"
                     ? "https://console.anthropic.com/"
+                    : provider === "zai"
+                    ? "https://z.ai/api-keys"
                     : "https://console.mistral.ai/"
                 }
                 target="_blank"
@@ -211,13 +252,66 @@ export default function LlmConfigPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 p-4 bg-bg/50 rounded-lg border border-border">
+          {provider === "zai" && (
+            <>
+              <div className="space-y-2">
+                <Label>Z.AI Endpoint Type</Label>
+                <div className="flex flex-wrap gap-2">
+                  {(["paid", "coding"] as ZAIEndpointType[]).map((type) => {
+                    const endpoints = zaiIsChina ? ZAI_ENDPOINTS_CN : ZAI_ENDPOINTS;
+                    return (
+                      <Button
+                        key={type}
+                        variant={zaiEndpointType === type ? "default" : "outline"}
+                        onClick={() => setZaiEndpointType(type)}
+                        className="flex-1"
+                      >
+                        {endpoints[type].label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-white/60">
+                  {zaiIsChina
+                    ? ZAI_ENDPOINTS_CN[zaiEndpointType].description
+                    : ZAI_ENDPOINTS[zaiEndpointType].description}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Region</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={!zaiIsChina ? "default" : "outline"}
+                    onClick={() => setZaiIsChina(false)}
+                    className="flex-1"
+                  >
+                    International
+                  </Button>
+                  <Button
+                    variant={zaiIsChina ? "default" : "outline"}
+                    onClick={() => setZaiIsChina(true)}
+                    className="flex-1"
+                  >
+                    China
+                  </Button>
+                </div>
+                <p className="text-xs text-white/60">
+                  {zaiIsChina
+                    ? "Uses China-specific endpoints (open.bigmodel.cn)"
+                    : "Uses international endpoints (api.z.ai)"}
+                </p>
+              </div>
+            </>
+          )}
+
+          <div className="flex items-center gap-3 p-4 bg-background/50 rounded-lg border border-border">
             <input
               type="checkbox"
               id="useSystem"
               checked={useSystem}
               onChange={(e) => setUseSystem(e.target.checked)}
-              className="w-4 h-4 rounded border-border bg-bg text-accent focus:ring-accent"
+              className="w-4 h-4 rounded border-border bg-background text-accent focus:ring-accent"
             />
             <div className="flex-1">
               <Label htmlFor="useSystem" className="cursor-pointer">
