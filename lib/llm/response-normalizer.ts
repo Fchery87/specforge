@@ -59,7 +59,46 @@ export const LLM_DEFAULTS = {
   SECTION_GENERATION_TOKENS: 4000,
   /** Default temperature for generation */
   DEFAULT_TEMPERATURE: 0.7,
+  /** API request timeout in milliseconds - high to support slow reasoning models */
+  API_TIMEOUT_MS: 120000,
 } as const;
+
+/**
+ * Fetch with timeout support using AbortController.
+ * This prevents Convex actions from timing out by ensuring API requests
+ * complete within a reasonable time frame.
+ *
+ * @param url - URL to fetch
+ * @param options - Standard fetch options
+ * @param timeoutMs - Timeout in milliseconds (default: LLM_DEFAULTS.API_TIMEOUT_MS)
+ * @returns Promise<Response>
+ * @throws Error if request times out
+ */
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = LLM_DEFAULTS.API_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(
+        `API request timed out after ${timeoutMs / 1000} seconds`
+      );
+    }
+    throw error;
+  }
+}
 
 /**
  * Extracts content from a choice object, handling various response formats

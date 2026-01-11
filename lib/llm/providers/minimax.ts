@@ -1,5 +1,8 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
-import { normalizeOpenAIResponse } from '../response-normalizer';
+import {
+  normalizeOpenAIResponse,
+  fetchWithTimeout,
+} from '../response-normalizer';
 
 export interface MinimaxModelConfig {
   modelId: string;
@@ -49,20 +52,23 @@ export class MinimaxClient implements LlmProvider {
     const modelConfig =
       MINIMAX_MODELS[options.model] || MINIMAX_MODELS['minimax-m2'];
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelConfig.modelId,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens:
-          options.maxTokens ?? Math.min(modelConfig.maxOutputTokens, 4096),
-        temperature: options.temperature ?? 0.7,
-      }),
-    });
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelConfig.modelId,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens:
+            options.maxTokens ?? Math.min(modelConfig.maxOutputTokens, 4096),
+          temperature: options.temperature ?? 0.7,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response.text();

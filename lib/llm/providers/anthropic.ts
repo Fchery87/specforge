@@ -1,5 +1,8 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
-import { normalizeAnthropicResponse } from '../response-normalizer';
+import {
+  normalizeAnthropicResponse,
+  fetchWithTimeout,
+} from '../response-normalizer';
 
 export interface AnthropicModelConfig {
   modelId: string;
@@ -44,7 +47,7 @@ export class AnthropicClient implements LlmProvider {
     const modelConfig =
       ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS['claude-sonnet-4-5'];
 
-    const response = await fetch(`${this.baseUrl}/messages`, {
+    const response = await fetchWithTimeout(`${this.baseUrl}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

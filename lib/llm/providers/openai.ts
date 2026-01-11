@@ -1,5 +1,8 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
-import { normalizeOpenAIResponse } from '../response-normalizer';
+import {
+  normalizeOpenAIResponse,
+  fetchWithTimeout,
+} from '../response-normalizer';
 
 export interface OpenAIModelConfig {
   modelId: string;
@@ -38,19 +41,22 @@ export class OpenAIClient implements LlmProvider {
   ): Promise<LlmResponse> {
     const modelConfig = OPENAI_MODELS[options.model] || OPENAI_MODELS['gpt-4o'];
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelConfig.modelId,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
-        temperature: options.temperature ?? 0.7,
-      }),
-    });
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelConfig.modelId,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
+          temperature: options.temperature ?? 0.7,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response.text();

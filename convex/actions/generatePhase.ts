@@ -254,13 +254,20 @@ export const generatePhase = action({
         .join('\n\n'),
     };
 
-    // Get LLM client (for future use when actual API calls are implemented)
+    // Get LLM client
     const llmClient = getLlmClient(credentials);
     const providerInfo = credentials
       ? `Using ${credentials.provider} (${credentials.apiKey.slice(0, 8)}...)`
       : 'No credentials configured';
 
-    // Generate sections (simulated - in production, this would call actual LLM APIs)
+    // Update phase status to 'generating' to provide UI feedback
+    await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
+      projectId: args.projectId,
+      phaseId: args.phaseId,
+      status: 'generating',
+    });
+
+    // Generate sections using LLM
     const generatedSections = await generateSectionsWithSelfCritique({
       ctx,
       projectId: args.projectId,
@@ -356,6 +363,7 @@ async function generateSectionsWithSelfCritique(
       maxTokens: section.maxTokens,
       llmClient,
       providerInfo,
+      phaseId,
     });
 
     // Self-critique and improve if needed
@@ -386,31 +394,71 @@ async function generateSectionContent(params: {
   maxTokens: number;
   llmClient: ReturnType<typeof getLlmClient>;
   providerInfo: string;
+  phaseId: string;
 }): Promise<string> {
-  // In a real implementation, this would call the actual LLM API
-  // For now, we generate placeholder content based on the section
+  // If we have an LLM client, use it for real generation
+  if (params.llmClient && params.llmClient.isAvailable()) {
+    try {
+      const result = await params.llmClient.generateSection({
+        projectContext: {
+          title: params.projectContext.title,
+          description: params.projectContext.description,
+          questions: params.projectContext.questions,
+        },
+        sectionName: params.sectionName,
+        sectionInstructions: params.sectionInstructions,
+        sectionQuestions: params.sectionQuestions,
+        previousSections: params.previousSections,
+        artifactType: getArtifactType(params.phaseId),
+        modelId: params.model.id,
+        maxTokens: params.maxTokens,
+      });
+
+      return result.content;
+    } catch (error: any) {
+      console.error(
+        `[generatePhase] Error generating section ${params.sectionName}:`,
+        error.message
+      );
+      // Fall back to basic content on error
+    }
+  }
+
+  // Fallback: Generate basic content if no LLM client or on error
+  // This allows testing without API credentials
+  console.warn(
+    '[generatePhase] No LLM client available, generating fallback content'
+  );
 
   let content = `# ${formatSectionName(params.sectionName)}\n\n`;
+  content += `## ${params.projectContext.title}\n\n`;
+  content += `${params.projectContext.description}\n\n`;
 
   if (params.sectionQuestions.length > 0) {
-    const answers = params.sectionQuestions.map((q) => `- ${q}`).join('\n');
-    content += `Based on your responses:\n\n${answers}\n\n`;
+    content += `### Context from Questions\n\n`;
+    params.sectionQuestions.forEach((q) => {
+      content += `- ${q}\n`;
+    });
+    content += '\n';
   }
 
-  content += `This is the ${params.sectionName} section for **${params.projectContext.title}**.\n\n`;
-  content += `**Description:** ${params.projectContext.description}\n\n`;
-  content += `**Context from previous sections:**\n`;
-  if (params.previousSections.length > 0) {
-    content += params.previousSections
-      .map((s) => `- ${s.name}: ${s.content.slice(0, 100)}...`)
-      .join('\n');
-  } else {
-    content += 'No previous sections.\n';
-  }
+  content += `### ${formatSectionName(params.sectionName)} Details\n\n`;
+  content += `${params.sectionInstructions}\n\n`;
 
-  content += `\n\n---\n*Generated with ${params.model.id} via ${params.providerInfo}*\n`;
+  content += `*Note: This is fallback content. Configure LLM credentials to generate detailed AI content.*\n`;
 
   return content;
+}
+
+function getArtifactType(phaseId: string): string {
+  const types: Record<string, string> = {
+    brief: 'prd',
+    specs: 'spec',
+    stories: 'stories',
+    artifacts: 'artifacts',
+    handoff: 'handoff',
+  };
+  return types[phaseId] || 'doc';
 }
 
 async function selfCritiqueSection(params: {
@@ -464,32 +512,42 @@ function extractRelevantQuestions(
 
 function getSectionInstructions(phaseId: string, sectionName: string): string {
   const instructions: Record<string, string> = {
+    // PRD/Brief sections
     'executive-summary':
       'Provide a concise overview of the project goals, target users, and key deliverables.',
-    'problem-statement':
-      'Clearly articulate the problem this project solves and why it matters.',
-    'goals-and-objectives':
-      'List specific, measurable goals with success criteria.',
-    'user-personas': 'Describe the primary user types and their needs.',
-    'key-features': 'Outline the core features and functionality required.',
-    'technical-constraints':
-      'Note any technical limitations, integrations, or compliance requirements.',
-    'success-metrics':
-      'Define how success will be measured (KPIs, metrics, benchmarks).',
-    timeline: 'Provide estimated milestones and key dates.',
+    'problem-and-objectives':
+      'Clearly articulate the problem this project solves and define specific, measurable goals with success criteria.',
+    'features-and-requirements':
+      'Outline the core features, functionality required, and any technical constraints or compliance requirements.',
+
+    // Specs sections
     'architecture-overview':
-      'Describe the high-level system architecture and design patterns.',
-    'data-models':
-      'Define the core data structures, entities, and relationships.',
-    'api-specifications': 'Document the API contracts and integration points.',
-    'security-requirements':
-      'Outline authentication, authorization, and data protection requirements.',
-    'performance-requirements':
-      'Define latency, throughput, and scalability requirements.',
-    'integration-points':
-      'List external systems and APIs that need integration.',
-    'deployment-strategy':
-      'Describe the deployment approach and infrastructure.',
+      'Describe the high-level system architecture, design patterns, and technology choices.',
+    'data-models-and-api':
+      'Define core data structures, entities, relationships, and API contracts.',
+    'deployment-and-security':
+      'Describe deployment strategy, infrastructure, authentication, authorization, and security requirements.',
+
+    // Stories sections
+    'epic-overview':
+      'Provide an overview of the main epics and how they relate to project goals.',
+    'user-stories':
+      'List user stories with acceptance criteria in proper format.',
+    'technical-tasks':
+      'Break down user stories into technical implementation tasks with dependencies.',
+
+    // Artifacts sections
+    documentation:
+      'Generate API documentation and database schema documentation.',
+    configuration: 'Provide configuration files and infrastructure setup.',
+    'deployment-guide': 'Create step-by-step deployment instructions.',
+
+    // Handoff sections
+    'project-summary':
+      'Summarize the project structure, key files, and architecture.',
+    'setup-guide':
+      'Provide environment setup and development guide instructions.',
+    'next-steps': 'List recommended next steps and priorities for development.',
   };
 
   return (

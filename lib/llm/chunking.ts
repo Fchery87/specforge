@@ -1,64 +1,37 @@
-import type { LlmModel, SectionPlan } from "./types";
+import type { LlmModel, SectionPlan } from './types';
 
-export function getSectionPlan(artifactType: string, phaseId?: string): string[] {
+export function getSectionPlan(
+  artifactType: string,
+  phaseId?: string
+): string[] {
+  // NOTE: Reduced section counts to 3 max to fit within Convex action timeout
+  // Reasoning models (GLM-4.7, etc.) need significant time per section
+  // Generating more sections can be done in subsequent iterations
   switch (artifactType) {
-    case "prd":
-    case "brief":
+    case 'prd':
+    case 'brief':
       return [
-        "executive-summary",
-        "problem-statement",
-        "goals-and-objectives",
-        "user-personas",
-        "key-features",
-        "technical-constraints",
-        "success-metrics",
-        "timeline"
+        'executive-summary',
+        'problem-and-objectives',
+        'features-and-requirements',
       ];
-    case "spec":
-    case "specs":
+    case 'spec':
+    case 'specs':
       return [
-        "architecture-overview",
-        "data-models",
-        "api-specifications",
-        "security-requirements",
-        "performance-requirements",
-        "integration-points",
-        "deployment-strategy"
+        'architecture-overview',
+        'data-models-and-api',
+        'deployment-and-security',
       ];
-    case "stories":
-      return [
-        "epic-overview",
-        "user-stories",
-        "acceptance-criteria",
-        "technical-tasks",
-        "dependencies",
-        "priority-matrix"
-      ];
-    case "artifacts":
-      return [
-        "api-documentation",
-        "database-schema",
-        "infrastructure-config",
-        "deployment-guide",
-        "testing-strategy"
-      ];
-    case "handoff":
-      return [
-        "project-overview",
-        "folder-structure",
-        "master-prompt",
-        "environment-setup",
-        "development-guide",
-        "next-steps"
-      ];
-    case "doc":
-      return [
-        "introduction",
-        "main-content",
-        "conclusion"
-      ];
+    case 'stories':
+      return ['epic-overview', 'user-stories', 'technical-tasks'];
+    case 'artifacts':
+      return ['documentation', 'configuration', 'deployment-guide'];
+    case 'handoff':
+      return ['project-summary', 'setup-guide', 'next-steps'];
+    case 'doc':
+      return ['introduction', 'main-content', 'conclusion'];
     default:
-      return ["content"];
+      return ['content'];
   }
 }
 
@@ -86,7 +59,7 @@ export function splitLargeSection(
   model: LlmModel
 ): string[] {
   const estimatedTokens = estimateTokenCount(content);
-  
+
   if (estimatedTokens <= maxTokens) {
     return [content];
   }
@@ -94,18 +67,18 @@ export function splitLargeSection(
   // Split by paragraphs or sections
   const paragraphs = content.split(/\n\n+/);
   const chunks: string[] = [];
-  let currentChunk = "";
+  let currentChunk = '';
   let currentTokens = 0;
 
   for (const para of paragraphs) {
     const paraTokens = estimateTokenCount(para);
-    
+
     if (currentTokens + paraTokens > maxTokens && currentChunk.length > 0) {
       chunks.push(currentChunk.trim());
       currentChunk = para;
       currentTokens = paraTokens;
     } else {
-      currentChunk += (currentChunk ? "\n\n" : "") + para;
+      currentChunk += (currentChunk ? '\n\n' : '') + para;
       currentTokens += paraTokens;
     }
   }
@@ -130,11 +103,9 @@ export function calculateOptimalChunkSize(
 
 export function mergeSectionContent(
   sections: Array<{ name: string; content: string }>,
-  separator = "\n\n"
+  separator = '\n\n'
 ): string {
-  return sections
-    .map((s) => `## ${s.name}\n\n${s.content}`)
-    .join(separator);
+  return sections.map((s) => `## ${s.name}\n\n${s.content}`).join(separator);
 }
 
 export function validateSectionPlan(
@@ -148,7 +119,25 @@ export function validateSectionPlan(
 }
 
 export const FALLBACK_MODELS: LlmModel[] = [
-  { id: "openai-gpt-4o", provider: "openai", contextTokens: 128000, maxOutputTokens: 16384, defaultMax: 8000 },
-  { id: "anthropic-claude-3-5-sonnet", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 8192, defaultMax: 4000 },
-  { id: "mistral-large", provider: "mistral", contextTokens: 32000, maxOutputTokens: 4096, defaultMax: 2000 },
+  {
+    id: 'openai-gpt-4o',
+    provider: 'openai',
+    contextTokens: 128000,
+    maxOutputTokens: 16384,
+    defaultMax: 8000,
+  },
+  {
+    id: 'anthropic-claude-3-5-sonnet',
+    provider: 'anthropic',
+    contextTokens: 200000,
+    maxOutputTokens: 8192,
+    defaultMax: 4000,
+  },
+  {
+    id: 'mistral-large',
+    provider: 'mistral',
+    contextTokens: 32000,
+    maxOutputTokens: 4096,
+    defaultMax: 2000,
+  },
 ];

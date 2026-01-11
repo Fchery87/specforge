@@ -1,5 +1,8 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
-import { normalizeOpenAIResponse } from '../response-normalizer';
+import {
+  normalizeOpenAIResponse,
+  fetchWithTimeout,
+} from '../response-normalizer';
 
 export interface ZAIModelConfig {
   modelId: string;
@@ -95,19 +98,22 @@ export class ZAIClient implements LlmProvider {
   ): Promise<LlmResponse> {
     const modelConfig = ZAI_MODELS[options.model] || ZAI_MODELS['glm-4.5'];
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelConfig.modelId,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
-        temperature: options.temperature ?? 0.6,
-      }),
-    });
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelConfig.modelId,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
+          temperature: options.temperature ?? 0.6,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response.text();
