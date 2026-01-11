@@ -25,23 +25,47 @@ export const setSystemCredential = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthenticated');
 
+    console.log(
+      '[setSystemCredential] Saving credential for provider:',
+      args.provider
+    );
+    console.log('[setSystemCredential] Has API key:', !!args.apiKey);
+    console.log('[setSystemCredential] Is enabled:', args.isEnabled);
+
     // Encrypt the API key if provided
-    let encryptedApiKey: ArrayBuffer | null = null;
+    let encryptedBytes: number[] | null = null;
     if (args.apiKey) {
       const encrypted = encrypt(args.apiKey, ENCRYPTION_KEY);
-      encryptedApiKey = Buffer.from(JSON.stringify(encrypted)).buffer;
+      const jsonString = JSON.stringify(encrypted);
+      // IMPORTANT: Don't use Buffer.from().buffer - it returns the entire underlying
+      // ArrayBuffer pool which may contain garbage data from other operations.
+      // Instead, create a proper byte array from the Buffer directly.
+      const buffer = Buffer.from(jsonString, 'utf8');
+      encryptedBytes = Array.from(buffer);
+      console.log(
+        '[setSystemCredential] Encrypted API key successfully, byte length:',
+        encryptedBytes.length
+      );
+      console.log(
+        '[setSystemCredential] JSON preview:',
+        jsonString.substring(0, 50) + '...'
+      );
     }
 
     // Call the mutation to save the credential
-    return await ctx.runMutation(api.systemCredentials.setSystemCredentialRaw, {
-      provider: args.provider,
-      encryptedApiKey: encryptedApiKey
-        ? Array.from(new Uint8Array(encryptedApiKey))
-        : null,
-      isEnabled: args.isEnabled,
-      zaiEndpointType: args.zaiEndpointType,
-      zaiIsChina: args.zaiIsChina,
-    });
+    const result = await ctx.runMutation(
+      api.systemCredentials.setSystemCredentialRaw,
+      {
+        provider: args.provider,
+        encryptedApiKey: encryptedBytes,
+        isEnabled: args.isEnabled,
+        zaiEndpointType: args.zaiEndpointType,
+        zaiIsChina: args.zaiIsChina,
+      }
+    );
+
+    console.log('[setSystemCredential] Credential saved with ID:', result);
+    return result;
   },
 });
 

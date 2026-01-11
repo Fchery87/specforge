@@ -121,6 +121,21 @@ export function resolveCredentials(
     }
   }
 
+  // FALLBACK: If no user config, use the first enabled system credential
+  // This allows admin-configured system credentials to work by default
+  if (!userConfig && systemCredentials.size > 0) {
+    for (const [provider, systemCred] of systemCredentials.entries()) {
+      // Return the first enabled system credential found
+      return {
+        provider,
+        apiKey: systemCred.apiKey,
+        modelId: '', // Will be determined from enabled models in database
+        zaiEndpointType: systemCred.zaiEndpointType,
+        zaiIsChina: systemCred.zaiIsChina,
+      };
+    }
+  }
+
   return null;
 }
 

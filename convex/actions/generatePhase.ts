@@ -92,11 +92,70 @@ export const generatePhase = action({
       api.userConfigActions.getUserConfig,
       {}
     );
+    console.log(
+      '[generatePhase] User config:',
+      userConfig
+        ? {
+            provider: userConfig.provider,
+            defaultModel: userConfig.defaultModel,
+            useSystem: userConfig.useSystem,
+          }
+        : 'null'
+    );
 
     // Get system credentials from database (decrypted, only accessible from Convex actions)
-    const systemCredentialsMap = await ctx.runAction(
-      internalApi.internalActions.getAllDecryptedSystemCredentials,
-      {}
+    console.log(
+      '[generatePhase] About to call getAllDecryptedSystemCredentials...'
+    );
+    console.log(
+      '[generatePhase] Checking internalApi.internalActions exists:',
+      !!internalApi?.internalActions
+    );
+    console.log(
+      '[generatePhase] Checking getAllDecryptedSystemCredentials exists:',
+      !!internalApi?.internalActions?.getAllDecryptedSystemCredentials
+    );
+    console.log(
+      '[generatePhase] Function reference type:',
+      typeof internalApi?.internalActions?.getAllDecryptedSystemCredentials
+    );
+
+    let systemCredentialsMap: any;
+    try {
+      console.log('[generatePhase] Calling runAction NOW...');
+      systemCredentialsMap = await ctx.runAction(
+        internalApi.internalActions.getAllDecryptedSystemCredentials,
+        {}
+      );
+      console.log(
+        '[generatePhase] getAllDecryptedSystemCredentials SUCCEEDED with result:',
+        JSON.stringify(systemCredentialsMap)
+      );
+    } catch (error: any) {
+      console.error(
+        '[generatePhase] ERROR calling getAllDecryptedSystemCredentials:'
+      );
+      console.error('[generatePhase] Error message:', error?.message);
+      console.error('[generatePhase] Error stack:', error?.stack);
+      console.error(
+        '[generatePhase] Error full:',
+        JSON.stringify(error, Object.getOwnPropertyNames(error))
+      );
+      systemCredentialsMap = {};
+    }
+    console.log(
+      '[generatePhase] System credentials providers:',
+      Object.keys(systemCredentialsMap || {})
+    );
+
+    // Get enabled models from database
+    const enabledModelsFromDb = await ctx.runQuery(api.admin.listAllModels);
+    const enabledModels = (enabledModelsFromDb || []).filter(
+      (m: any) => m.enabled
+    );
+    console.log(
+      '[generatePhase] Enabled models from DB:',
+      enabledModels.map((m: any) => `${m.provider}:${m.modelId}`)
     );
 
     // Resolve credentials (user's own key or system key)
@@ -104,11 +163,68 @@ export const generatePhase = action({
       userConfig,
       new Map(Object.entries(systemCredentialsMap || {}))
     );
+    console.log(
+      '[generatePhase] Resolved credentials:',
+      credentials
+        ? { provider: credentials.provider, modelId: credentials.modelId }
+        : 'null'
+    );
 
     // Get or select model
-    const model = args.modelId
-      ? (getModelById(args.modelId) ?? getFallbackModel())
-      : getFallbackModel();
+    // Priority: explicit modelId arg > user's configured model > first enabled model for provider > fallback
+    let model: any;
+    if (args.modelId) {
+      console.log(
+        '[generatePhase] Using explicit modelId from args:',
+        args.modelId
+      );
+      model = getModelById(args.modelId) ?? getFallbackModel();
+    } else if (credentials?.modelId && credentials.modelId !== '') {
+      // User has configured a specific model
+      console.log(
+        '[generatePhase] Using user configured model:',
+        credentials.modelId
+      );
+      model = getModelById(credentials.modelId) ?? getFallbackModel();
+    } else if (credentials?.provider && enabledModels.length > 0) {
+      // No specific model configured, use first enabled model for the provider
+      console.log(
+        '[generatePhase] Looking for enabled model for provider:',
+        credentials.provider
+      );
+      const providerModel = enabledModels.find(
+        (m: any) => m.provider === credentials.provider
+      );
+      if (providerModel) {
+        console.log(
+          '[generatePhase] Found provider model:',
+          providerModel.modelId
+        );
+        model = {
+          id: providerModel.modelId,
+          provider: providerModel.provider,
+          contextTokens: providerModel.contextTokens,
+          maxOutputTokens: providerModel.maxOutputTokens,
+          defaultMax: providerModel.defaultMax,
+        };
+        // Update credentials with the selected model
+        credentials.modelId = providerModel.modelId;
+      } else {
+        console.log(
+          '[generatePhase] No model found for provider, using fallback'
+        );
+        model = getFallbackModel();
+      }
+    } else {
+      console.log(
+        '[generatePhase] No credentials or models, using fallback. credentials:',
+        credentials,
+        'enabledModels.length:',
+        enabledModels.length
+      );
+      model = getFallbackModel();
+    }
+    console.log('[generatePhase] Final selected model:', model.id);
 
     // Validate model for artifact type
     const artifactType =

@@ -1,4 +1,4 @@
-import { mutation, query } from './_generated/server';
+import { mutation, query, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 
@@ -34,9 +34,30 @@ export const getAllSystemCredentials = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    if (!identity) {
+      console.log('[getAllSystemCredentials] No identity, returning null');
+      return null;
+    }
 
-    return await ctx.db.query('systemCredentials').collect();
+    const credentials = await ctx.db.query('systemCredentials').collect();
+    console.log('[getAllSystemCredentials] Found credentials count:', credentials.length);
+    credentials.forEach(c => {
+      console.log('[getAllSystemCredentials] - Provider:', c.provider, 'isEnabled:', c.isEnabled, 'hasApiKey:', !!c.apiKey);
+    });
+    return credentials;
+  },
+});
+
+// Internal query for getting all system credentials (for use in internal actions)
+export const getAllSystemCredentialsInternal = internalQuery({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const credentials = await ctx.db.query('systemCredentials').collect();
+    console.log('[getAllSystemCredentialsInternal] Found credentials count:', credentials.length);
+    credentials.forEach(c => {
+      console.log('[getAllSystemCredentialsInternal] - Provider:', c.provider, 'isEnabled:', c.isEnabled, 'hasApiKey:', !!c.apiKey);
+    });
+    return credentials;
   },
 });
 
