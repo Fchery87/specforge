@@ -46,7 +46,7 @@ export function QuestionsPanel({
   isGenerating = false,
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
-  const generateQuestions = useAction(api.actions.generateQuestions as any);
+  const generateQuestions = useAction(api["actions/generateQuestions"].generateQuestions as any);
   
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);

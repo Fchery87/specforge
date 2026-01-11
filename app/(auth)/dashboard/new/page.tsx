@@ -41,7 +41,7 @@ export default function NewProjectPage() {
   return (
     <main className="relative min-h-[calc(100vh-5rem)]">
       {/* Grid Background */}
-      <div className="absolute inset-0 bg-grid-fade opacity-10" />
+      <div className="absolute inset-0 bg-grid-fade opacity-10 pointer-events-none" />
       
       {/* Back Navigation */}
       <div className="page-container py-6 relative z-10">

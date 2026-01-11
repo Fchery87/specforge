@@ -28,8 +28,8 @@ export default function PhasePage() {
 
   const project = useQuery(api.projects.getProject, { projectId: projectId as any });
   const phase = useQuery(api.projects.getPhase, { projectId: projectId as any, phaseId });
-  const generatePhase = useAction(api.actions.generatePhase as any);
-  const generateZip = useAction(api.actions.generateProjectZip as any);
+  const generatePhase = useAction(api["actions/generatePhase"].generatePhase as any);
+  const generateZip = useAction(api["actions/generateProjectZip"].generateProjectZip as any);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
