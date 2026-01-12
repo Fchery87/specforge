@@ -77,11 +77,19 @@ function AuthNav() {
         <UserButton
           afterSignOutUrl="/"
           appearance={{
+            variables: {
+              colorBackground: "#18181B",
+              colorText: "#FAFAFA",
+              colorInputBackground: "#27272A",
+              colorPrimary: "#DFE104",
+              colorTextSecondary: "#D4D4D8",
+            },
             elements: {
               avatarBox: "w-10 h-10 rounded-none border-2 border-primary",
-              userButtonPopoverCard: "bg-background border-2 border-border",
-              userButtonPopoverActionButton: "text-foreground hover:bg-card",
-              userButtonPopoverActionButtonText: "text-foreground",
+              userButtonPopoverCard: "bg-zinc-900 border-2 border-primary/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.25)]",
+              userButtonPopoverActionButton: "hover:bg-zinc-800 rounded-none transition-colors py-3",
+              userButtonPopoverActionButtonText: "text-zinc-200 font-bold uppercase tracking-wide text-xs",
+              userButtonPopoverActionButtonIcon: "text-primary w-4 h-4",
               userButtonPopoverFooter: "hidden",
             },
           }}

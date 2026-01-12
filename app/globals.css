@@ -108,6 +108,14 @@
   );
 }
 
+/* Grid pattern for auth pages - no fade mask */
+.bg-grid-auth {
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.15) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+}
+
 /* === Focus States === */
 @layer utilities {
   .focus-ring {
