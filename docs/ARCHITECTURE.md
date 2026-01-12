@@ -78,6 +78,7 @@ export default schema({
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
+    zipStorageId: v.optional(v.id("_storage")), // Project ZIP storage id
   }),
 
   artifacts: table({
@@ -95,7 +96,6 @@ export default schema({
         model: v.string(),
       })
     ),
-    zipFileUrl: v.optional(v.string()), // Signed URL to project ZIP (Convex file)
   }),
 
   userLlmConfigs: table({
@@ -154,7 +154,7 @@ Assemble:
 - `handoff.md` with project overview, folder map, and a master prompt for the user’s IDE/agent.
 - An in‑memory ZIP of all artifacts in a logical folder structure.
 
-The ZIP is stored once in Convex file storage; a signed URL is saved to `artifacts.zipFileUrl`.
+The ZIP is stored once in Convex file storage; the storage id is saved to `projects.zipStorageId` and a signed URL is retrieved on demand.
 
 ---
 
@@ -221,7 +221,7 @@ app/
 #### Downloads
 
 - **Single artifact:** create a Blob from `content` and trigger browser download (no file storage bandwidth).
-- **Full project:** call backend to get `zipFileUrl` and navigate to it once (counts toward Convex file bandwidth).
+- **Full project:** call backend to get a signed URL for `projects.zipStorageId` and navigate to it once (counts toward Convex file bandwidth).
 
 ---
 
