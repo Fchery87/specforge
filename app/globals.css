@@ -137,3 +137,125 @@
     @apply py-12 md:py-16;
   }
 }
+
+/* === Clerk UserButton Dropdown Overrides === */
+/* Force dark theme and brutalist styling on Clerk components */
+
+/* Popover card container */
+.cl-userButtonPopoverCard,
+[data-localization-key] .cl-card,
+.cl-popoverBox {
+  background-color: #18181b !important;
+  border: 2px solid rgba(223, 225, 4, 0.4) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 30px -8px rgba(223, 225, 4, 0.25) !important;
+}
+
+/* Main content area of popover */
+.cl-userButtonPopoverMain,
+.cl-userButtonPopoverActions {
+  background-color: #18181b !important;
+}
+
+/* User preview section */
+.cl-userPreview {
+  background-color: #18181b !important;
+  padding: 1rem !important;
+  border-bottom: 1px solid #27272a !important;
+}
+
+.cl-userPreviewMainIdentifier,
+.cl-userPreview__primaryIdentifier {
+  color: #fafafa !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: -0.025em !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+.cl-userPreviewSecondaryIdentifier,
+.cl-userPreview__secondaryIdentifier {
+  color: #a1a1aa !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+.cl-userPreviewAvatarBox,
+.cl-userPreview__avatarBox {
+  border-radius: 0 !important;
+  border: 2px solid #dfe104 !important;
+}
+
+/* Action buttons in dropdown */
+.cl-userButtonPopoverActionButton,
+.cl-menuButton {
+  background-color: #18181b !important;
+  color: #fafafa !important;
+  border-radius: 0 !important;
+  padding: 0.75rem 1rem !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.cl-userButtonPopoverActionButton:hover,
+.cl-menuButton:hover {
+  background-color: #27272a !important;
+}
+
+.cl-userButtonPopoverActionButtonText,
+.cl-menuButton__label {
+  color: #fafafa !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.025em !important;
+  font-size: 0.875rem !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+.cl-userButtonPopoverActionButtonIcon,
+.cl-menuButton__icon {
+  color: #dfe104 !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+/* Hide Clerk branding footer */
+.cl-userButtonPopoverFooter,
+.cl-footer {
+  display: none !important;
+}
+
+/* Avatar box in header */
+.cl-avatarBox,
+.cl-userButtonAvatarBox {
+  border-radius: 0 !important;
+  border: 2px solid #dfe104 !important;
+}
+
+/* Internal popover box */
+.cl-internal-b3fm6y,
+.cl-internal-1dauvpw {
+  background-color: #18181b !important;
+}
+
+/* Generic Clerk card and modal overrides */
+.cl-card {
+  background-color: #18181b !important;
+  border: 2px solid rgba(223, 225, 4, 0.4) !important;
+  border-radius: 0 !important;
+}
+
+/* Menu list items */
+.cl-menuList {
+  background-color: #18181b !important;
+}
+
+.cl-menuItem {
+  background-color: #18181b !important;
+  color: #fafafa !important;
+}
+
+.cl-menuItem:hover {
+  background-color: #27272a !important;
+}

@@ -80,16 +80,30 @@ function AuthNav() {
             variables: {
               colorBackground: "#18181B",
               colorText: "#FAFAFA",
-              colorInputBackground: "#27272A",
               colorPrimary: "#DFE104",
-              colorTextSecondary: "#D4D4D8",
+              colorTextSecondary: "#A1A1AA",
+              borderRadius: "0px",
+              fontFamily: "'Space Grotesk', sans-serif",
             },
             elements: {
-              avatarBox: "w-10 h-10 rounded-none border-2 border-primary",
-              userButtonPopoverCard: "bg-zinc-900 border-2 border-primary/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.25)]",
-              userButtonPopoverActionButton: "hover:bg-zinc-800 rounded-none transition-colors py-3",
-              userButtonPopoverActionButtonText: "text-zinc-200 font-bold uppercase tracking-wide text-xs",
-              userButtonPopoverActionButtonIcon: "text-primary w-4 h-4",
+              // Avatar in header
+              avatarBox: "w-10 h-10 rounded-none border-2 border-[#DFE104]",
+              userButtonAvatarBox: "rounded-none border-2 border-[#DFE104]",
+              // Popover card (dropdown container)
+              userButtonPopoverCard: "!bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.3)]",
+              userButtonPopoverMain: "!bg-zinc-900",
+              userButtonPopoverActions: "!bg-zinc-900 py-2",
+              // User preview section at top of dropdown
+              userPreview: "!bg-zinc-900 p-4 border-b border-zinc-800",
+              userPreviewMainIdentifier: "!text-zinc-100 font-bold uppercase tracking-tight text-base",
+              userPreviewSecondaryIdentifier: "!text-zinc-400 text-xs uppercase tracking-wide",
+              userPreviewAvatarBox: "rounded-none border-2 border-[#DFE104]",
+              // Action buttons
+              userButtonPopoverActionButton: "!bg-zinc-900 hover:!bg-zinc-800 rounded-none transition-colors px-4 py-3",
+              userButtonPopoverActionButton__manageAccount: "hover:!bg-zinc-800",
+              userButtonPopoverActionButton__signOut: "hover:!bg-zinc-800",
+              userButtonPopoverActionButtonText: "!text-zinc-100 font-bold uppercase tracking-wide text-sm",
+              userButtonPopoverActionButtonIcon: "!text-[#DFE104] w-5 h-5",
               userButtonPopoverFooter: "hidden",
             },
           }}
