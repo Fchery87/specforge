@@ -29,6 +29,7 @@ export default function PhasePage() {
 
   const project = useQuery(api.projects.getProject, { projectId: projectId as any });
   const phase = useQuery(api.projects.getPhase, { projectId: projectId as any, phaseId });
+  const phases = useQuery(api.projects.getProjectPhases, { projectId: projectId as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const generatePhaseAction = (api as any)["actions/generatePhase"]?.generatePhase as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,7 +133,7 @@ export default function PhasePage() {
       {/* Phase Status Indicator */}
       <section className="page-container pb-8 relative z-10">
         <PhaseStatusIndicator
-          phases={[{ phaseId: "brief", status: "ready" }, { phaseId: "specs", status: "ready" }]}
+          phases={phases ?? []}
           currentPhase={phaseId}
           projectId={projectId}
         />

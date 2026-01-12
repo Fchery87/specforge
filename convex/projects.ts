@@ -52,6 +52,24 @@ export const getProjects = query({
   },
 });
 
+export const getProjectPhases = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error("Forbidden");
+    }
+
+    return await ctx.db
+      .query("phases")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+  },
+});
+
 export const getPhase = query({
   args: { projectId: v.id("projects"), phaseId: v.string() },
   handler: async (ctx: QueryCtx, args) => {
