@@ -159,3 +159,20 @@ export const updatePhaseQuestions = mutation({
     }
   },
 });
+
+export const getProjectZipUrl = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return null;
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error("Forbidden");
+    }
+
+    if (!project.zipStorageId) return null;
+
+    return await ctx.storage.getUrl(project.zipStorageId);
+  },
+});
