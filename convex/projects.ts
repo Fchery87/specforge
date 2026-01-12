@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { canAccessProject } from "../lib/authz";
 
 const DEFAULT_PHASES = ["brief", "prd", "specs", "stories", "artifacts", "handoff"];
 
@@ -78,6 +79,14 @@ export const getPhase = query({
 export const getPhaseArtifacts = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error("Forbidden");
+    }
+
     return await ctx.db
       .query("artifacts")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
