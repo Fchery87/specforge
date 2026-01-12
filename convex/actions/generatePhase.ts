@@ -93,32 +93,11 @@ export const generatePhase = action({
     );
 
     // Get system credentials from database (decrypted, only accessible from Convex actions)
-    console.log(
-      '[generatePhase] About to call getAllDecryptedSystemCredentials...'
-    );
-    console.log(
-      '[generatePhase] Checking internalApi.internalActions exists:',
-      !!internalApi?.internalActions
-    );
-    console.log(
-      '[generatePhase] Checking getAllDecryptedSystemCredentials exists:',
-      !!internalApi?.internalActions?.getAllDecryptedSystemCredentials
-    );
-    console.log(
-      '[generatePhase] Function reference type:',
-      typeof internalApi?.internalActions?.getAllDecryptedSystemCredentials
-    );
-
     let systemCredentialsMap: Record<string, SystemCredential>;
     try {
-      console.log('[generatePhase] Calling runAction NOW...');
       systemCredentialsMap = await ctx.runAction(
         internalApi.internalActions.getAllDecryptedSystemCredentials,
         {}
-      );
-      console.log(
-        '[generatePhase] getAllDecryptedSystemCredentials SUCCEEDED with result:',
-        JSON.stringify(systemCredentialsMap)
       );
     } catch (error: any) {
       console.error(
