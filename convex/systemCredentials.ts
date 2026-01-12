@@ -40,11 +40,10 @@ export const getAllSystemCredentials = query({
 });
 
 // Internal query for getting all system credentials (for use in internal actions)
+// NOTE: No auth check needed - internal queries are server-to-server only
 export const getAllSystemCredentialsInternal = internalQuery({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    await requireAdmin(ctx);
-
     const credentials = await ctx.db.query('systemCredentials').collect();
     return credentials;
   },
@@ -62,10 +61,7 @@ export const setSystemCredentialRaw = mutation({
     zaiIsChina: v.optional(v.boolean()),
   },
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error('Unauthenticated');
-
-    // In production, check for admin role here
+    await requireAdmin(ctx);
 
     let apiKeyBuffer: ArrayBuffer | undefined;
     if (args.encryptedApiKey) {
@@ -114,8 +110,7 @@ export const setSystemCredentialRaw = mutation({
 export const deleteSystemCredentialRaw = mutation({
   args: { provider: v.string() },
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error('Unauthenticated');
+    await requireAdmin(ctx);
 
     const existing = await ctx.db
       .query('systemCredentials')
