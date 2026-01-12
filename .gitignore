@@ -55,3 +55,4 @@ bun-debug.log*
 # Operating System
 .DS_Store
 Thumbs.db
+.worktrees/
