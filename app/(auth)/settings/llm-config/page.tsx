@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Check, AlertCircle, Shield, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveSystemKeyId } from "@/lib/user-config";
 import { getModelById, getModelDisplayName } from "@/lib/llm/registry";
 import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/providers/zai";
 
@@ -30,6 +31,7 @@ export default function LlmConfigPage() {
   const [apiKey, setApiKey] = useState("");
   const [defaultModel, setDefaultModel] = useState("claude-sonnet-4-5");
   const [useSystem, setUseSystem] = useState(true);
+  const [systemKeyId, setSystemKeyId] = useState<string | null>(null);
   const [zaiEndpointType, setZaiEndpointType] = useState<ZAIEndpointType>("paid");
   const [zaiIsChina, setZaiIsChina] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -50,6 +52,9 @@ export default function LlmConfigPage() {
           }
           setDefaultModel(config.defaultModel);
           setUseSystem(config.useSystem);
+          if (config.systemKeyId) {
+            setSystemKeyId(config.systemKeyId);
+          }
           if (config.zaiEndpointType) {
             setZaiEndpointType(config.zaiEndpointType);
           }
@@ -79,6 +84,7 @@ export default function LlmConfigPage() {
         apiKey: apiKey || undefined,
         defaultModel,
         useSystem,
+        systemKeyId: resolveSystemKeyId({ useSystem, provider, systemKeyId }),
         zaiEndpointType: provider === "zai" ? zaiEndpointType : undefined,
         zaiIsChina: provider === "zai" ? zaiIsChina : undefined,
       });
@@ -167,6 +173,9 @@ export default function LlmConfigPage() {
                   onClick={() => {
                     setProvider(p.id);
                     setDefaultModel(p.models[0]);
+                    if (useSystem) {
+                      setSystemKeyId(p.id);
+                    }
                   }}
                   className="flex-1"
                 >

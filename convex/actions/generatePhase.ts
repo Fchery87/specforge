@@ -19,6 +19,7 @@ import {
   resolveCredentials,
 } from '../../lib/llm/registry';
 import type { SectionPlan, ProviderCredentials, LlmModel } from '../../lib/llm/types';
+import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import { rateLimiter } from '../rateLimiter';
@@ -195,16 +196,7 @@ export const generatePhase = action({
     console.log('[generatePhase] Final selected model:', model.id);
 
     // Validate model for artifact type
-    const artifactType =
-      args.phaseId === 'brief'
-        ? 'brief'
-        : args.phaseId === 'prd'
-          ? 'prd'
-          : args.phaseId === 'handoff'
-            ? 'handoff'
-            : args.phaseId === 'specs'
-              ? 'spec'
-              : 'doc';
+    const artifactType = getArtifactTypeForPhase(args.phaseId);
 
     const validation = validateModelForArtifact(model, artifactType);
     if (!validation.valid) {
@@ -422,16 +414,6 @@ Generate the "${params.sectionName}" section now:`;
   }
 }
 
-function getArtifactType(phaseId: string): string {
-  const types: Record<string, string> = {
-    brief: 'prd',
-    specs: 'spec',
-    stories: 'stories',
-    artifacts: 'artifacts',
-    handoff: 'handoff',
-  };
-  return types[phaseId] || 'doc';
-}
 
 async function selfCritiqueSection(params: {
   content: string;

@@ -4,6 +4,7 @@ import { action } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { encrypt, decrypt } from '../lib/encryption';
+import { resolveSystemKeyId } from '../lib/user-config';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 
@@ -16,6 +17,7 @@ interface UserConfig {
   apiKey?: string;
   defaultModel: string;
   useSystem: boolean;
+  systemKeyId?: string;
   zaiEndpointType?: "paid" | "coding";
   zaiIsChina?: boolean;
 }
@@ -49,6 +51,7 @@ export const getUserConfig = action({
       apiKey: decryptedApiKey,
       defaultModel: config.defaultModel,
       useSystem: config.useSystem,
+      systemKeyId: config.systemKeyId,
       zaiEndpointType: config.zaiEndpointType,
       zaiIsChina: config.zaiIsChina,
     };
@@ -61,6 +64,7 @@ export const saveUserConfig = action({
     apiKey: v.optional(v.string()),
     defaultModel: v.string(),
     useSystem: v.boolean(),
+    systemKeyId: v.optional(v.string()),
     zaiEndpointType: v.optional(v.union(v.literal("paid"), v.literal("coding"))),
     zaiIsChina: v.optional(v.boolean()),
   },
@@ -75,6 +79,12 @@ export const saveUserConfig = action({
       );
     }
 
+    const resolvedSystemKeyId = resolveSystemKeyId({
+      useSystem: args.useSystem,
+      provider: args.provider,
+      systemKeyId: args.systemKeyId,
+    });
+
     let encryptedApiKey: ArrayBuffer | null = null;
     if (args.apiKey) {
       const encrypted = encrypt(args.apiKey, ENCRYPTION_KEY);
@@ -88,6 +98,7 @@ export const saveUserConfig = action({
         : null,
       defaultModel: args.defaultModel,
       useSystem: args.useSystem,
+      systemKeyId: resolvedSystemKeyId,
       zaiEndpointType: args.zaiEndpointType,
       zaiIsChina: args.zaiIsChina,
     });

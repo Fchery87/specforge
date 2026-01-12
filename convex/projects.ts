@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { canAccessProject } from "../lib/authz";
 
 const DEFAULT_PHASES = ["brief", "prd", "specs", "stories", "artifacts", "handoff"];
 
@@ -51,6 +52,24 @@ export const getProjects = query({
   },
 });
 
+export const getProjectPhases = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error("Forbidden");
+    }
+
+    return await ctx.db
+      .query("phases")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+  },
+});
+
 export const getPhase = query({
   args: { projectId: v.id("projects"), phaseId: v.string() },
   handler: async (ctx: QueryCtx, args) => {
@@ -78,6 +97,14 @@ export const getPhase = query({
 export const getPhaseArtifacts = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error("Forbidden");
+    }
+
     return await ctx.db
       .query("artifacts")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
@@ -148,5 +175,22 @@ export const updatePhaseQuestions = mutation({
     } else {
       await ctx.db.patch(phase._id, { questions: args.questions });
     }
+  },
+});
+
+export const getProjectZipUrl = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return null;
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error("Forbidden");
+    }
+
+    if (!project.zipStorageId) return null;
+
+    return await ctx.storage.getUrl(project.zipStorageId);
   },
 });

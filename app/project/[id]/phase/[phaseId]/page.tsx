@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { FunctionReference } from "convex/server";
 import { PhaseStatusIndicator } from "@/components/phase-status";
@@ -29,12 +29,14 @@ export default function PhasePage() {
 
   const project = useQuery(api.projects.getProject, { projectId: projectId as any });
   const phase = useQuery(api.projects.getPhase, { projectId: projectId as any, phaseId });
+  const phases = useQuery(api.projects.getProjectPhases, { projectId: projectId as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const generatePhaseAction = (api as any)["actions/generatePhase"]?.generatePhase as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const generateZipAction = (api as any)["actions/generateProjectZip"]?.generateProjectZip as any;
   const generatePhase = useAction(generatePhaseAction);
   const generateZip = useAction(generateZipAction);
+  const convex = useConvex();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
@@ -51,15 +53,24 @@ export default function PhasePage() {
   }
 
   async function handleDownloadZip() {
-    if (!project?.zipStorageId) {
-      setIsDownloadingZip(true);
-      try {
+    setIsDownloadingZip(true);
+    try {
+      if (!project?.zipStorageId) {
         await generateZip({ projectId: projectId as any });
-      } finally {
-        setIsDownloadingZip(false);
       }
+
+      const zipUrl = await convex.query(api.projects.getProjectZipUrl, {
+        projectId: projectId as any,
+      });
+
+      if (zipUrl) {
+        window.location.href = zipUrl;
+      } else {
+        console.warn("ZIP download is not available yet.");
+      }
+    } finally {
+      setIsDownloadingZip(false);
     }
-    console.log("Downloading ZIP...");
   }
 
   // Loading state
@@ -122,7 +133,7 @@ export default function PhasePage() {
       {/* Phase Status Indicator */}
       <section className="page-container pb-8 relative z-10">
         <PhaseStatusIndicator
-          phases={[{ phaseId: "brief", status: "ready" }, { phaseId: "specs", status: "ready" }]}
+          phases={phases ?? []}
           currentPhase={phaseId}
           projectId={projectId}
         />

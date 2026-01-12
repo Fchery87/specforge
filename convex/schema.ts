@@ -33,7 +33,6 @@ export default defineSchema({
     content: v.string(),
     previewHtml: v.string(),
     sections: v.array(v.object({ name: v.string(), tokens: v.number(), model: v.string() })),
-    zipFileUrl: v.optional(v.string()),
   }).index("by_project", ["projectId"]),
 
   llmModels: defineTable({

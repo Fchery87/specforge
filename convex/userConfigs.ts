@@ -25,6 +25,7 @@ export const getUserConfigRaw = query({
       apiKey: config.apiKey,
       defaultModel: config.defaultModel,
       useSystem: config.useSystem,
+      systemKeyId: config.systemKeyId,
       zaiEndpointType: config.zaiEndpointType,
       zaiIsChina: config.zaiIsChina,
     };
@@ -42,6 +43,7 @@ export const saveUserConfigRaw = mutation({
     encryptedApiKey: v.union(v.null(), v.array(v.number())),
     defaultModel: v.string(),
     useSystem: v.boolean(),
+    systemKeyId: v.optional(v.string()),
     zaiEndpointType: v.optional(
       v.union(v.literal('paid'), v.literal('coding'))
     ),
@@ -67,6 +69,7 @@ export const saveUserConfigRaw = mutation({
         ...(apiKeyBuffer !== undefined && { apiKey: apiKeyBuffer }),
         defaultModel: args.defaultModel,
         useSystem: args.useSystem,
+        systemKeyId: args.systemKeyId,
         zaiEndpointType: args.zaiEndpointType,
         zaiIsChina: args.zaiIsChina,
       });
@@ -78,6 +81,7 @@ export const saveUserConfigRaw = mutation({
         apiKey: apiKeyBuffer,
         defaultModel: args.defaultModel,
         useSystem: args.useSystem,
+        systemKeyId: args.systemKeyId,
         zaiEndpointType: args.zaiEndpointType,
         zaiIsChina: args.zaiIsChina,
       });
