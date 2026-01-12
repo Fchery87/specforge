@@ -2,6 +2,7 @@
 
 import { action } from '../_generated/server';
 import type { ActionCtx } from '../_generated/server';
+import type { Id, Doc } from '../_generated/dataModel';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
@@ -17,11 +18,10 @@ import {
   validateModelForArtifact,
   resolveCredentials,
 } from '../../lib/llm/registry';
-import type { SectionPlan, ProviderCredentials } from '../../lib/llm/types';
-import { createOpenAIClient } from '../../lib/llm/providers/openai';
-import { createAnthropicClient } from '../../lib/llm/providers/anthropic';
-import { createZAIClient } from '../../lib/llm/providers/zai';
-import { createMinimaxClient } from '../../lib/llm/providers/minimax';
+import type { SectionPlan, ProviderCredentials, LlmModel } from '../../lib/llm/types';
+import type { SystemCredential } from '../../lib/llm/registry';
+import { createLlmClient } from '../../lib/llm/client-factory';
+import { rateLimiter } from '../rateLimiter';
 
 interface Question {
   id: string;
@@ -29,28 +29,6 @@ interface Question {
   answer?: string;
   aiGenerated: boolean;
   required?: boolean;
-}
-
-// Get the LLM client based on credentials
-function getLlmClient(credentials: ProviderCredentials | null) {
-  if (!credentials) return null;
-
-  switch (credentials.provider) {
-    case 'openai':
-      return createOpenAIClient(credentials.apiKey);
-    case 'anthropic':
-      return createAnthropicClient(credentials.apiKey);
-    case 'zai':
-      return createZAIClient(
-        credentials.apiKey,
-        credentials.zaiEndpointType ?? 'paid',
-        credentials.zaiIsChina ?? false
-      );
-    case 'minimax':
-      return createMinimaxClient(credentials.apiKey);
-    default:
-      return null;
-  }
 }
 
 export const generatePhase = action({
@@ -62,7 +40,7 @@ export const generatePhase = action({
   handler: async (
     ctx: ActionCtx,
     args
-  ): Promise<{ artifactId: any; status: string }> => {
+  ): Promise<{ artifactId: Id<'artifacts'>; status: string }> => {
     const project = await ctx.runQuery(api.projects.getProject, {
       projectId: args.projectId,
     });
@@ -71,6 +49,17 @@ export const generatePhase = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject)
       throw new Error('Forbidden');
+
+    const userId = identity.tokenIdentifier;
+
+    // Rate limiting - per-user limit
+    const userLimit = await rateLimiter.limit(ctx, "generatePhase", {
+      key: userId,
+      throws: true,
+    });
+
+    // Rate limiting - global limit
+    await rateLimiter.limit(ctx, "globalPhaseGen", { throws: true });
 
     // Get phase data with questions
     const phaseData = await ctx.runQuery(api.projects.getPhase, {
@@ -120,7 +109,7 @@ export const generatePhase = action({
       typeof internalApi?.internalActions?.getAllDecryptedSystemCredentials
     );
 
-    let systemCredentialsMap: any;
+    let systemCredentialsMap: Record<string, SystemCredential>;
     try {
       console.log('[generatePhase] Calling runAction NOW...');
       systemCredentialsMap = await ctx.runAction(
@@ -151,11 +140,11 @@ export const generatePhase = action({
     // Get enabled models from database
     const enabledModelsFromDb = await ctx.runQuery(api.admin.listAllModels);
     const enabledModels = (enabledModelsFromDb || []).filter(
-      (m: any) => m.enabled
+      (m: Doc<'llmModels'>) => m.enabled
     );
     console.log(
       '[generatePhase] Enabled models from DB:',
-      enabledModels.map((m: any) => `${m.provider}:${m.modelId}`)
+      enabledModels.map((m: Doc<'llmModels'>) => `${m.provider}:${m.modelId}`)
     );
 
     // Resolve credentials (user's own key or system key)
@@ -172,7 +161,7 @@ export const generatePhase = action({
 
     // Get or select model
     // Priority: explicit modelId arg > user's configured model > first enabled model for provider > fallback
-    let model: any;
+    let model: LlmModel;
     if (args.modelId) {
       console.log(
         '[generatePhase] Using explicit modelId from args:',
@@ -193,7 +182,7 @@ export const generatePhase = action({
         credentials.provider
       );
       const providerModel = enabledModels.find(
-        (m: any) => m.provider === credentials.provider
+        (m: Doc<'llmModels'>) => m.provider === credentials.provider
       );
       if (providerModel) {
         console.log(
@@ -202,7 +191,7 @@ export const generatePhase = action({
         );
         model = {
           id: providerModel.modelId,
-          provider: providerModel.provider,
+          provider: providerModel.provider as "openai" | "anthropic" | "mistral" | "zai" | "minimax" | "other",
           contextTokens: providerModel.contextTokens,
           maxOutputTokens: providerModel.maxOutputTokens,
           defaultMax: providerModel.defaultMax,
@@ -229,12 +218,14 @@ export const generatePhase = action({
     // Validate model for artifact type
     const artifactType =
       args.phaseId === 'brief'
-        ? 'prd'
-        : args.phaseId === 'handoff'
-          ? 'handoff'
-          : args.phaseId === 'specs'
-            ? 'spec'
-            : 'doc';
+        ? 'brief'
+        : args.phaseId === 'prd'
+          ? 'prd'
+          : args.phaseId === 'handoff'
+            ? 'handoff'
+            : args.phaseId === 'specs'
+              ? 'spec'
+              : 'doc';
 
     const validation = validateModelForArtifact(model, artifactType);
     if (!validation.valid) {
@@ -255,9 +246,9 @@ export const generatePhase = action({
     };
 
     // Get LLM client
-    const llmClient = getLlmClient(credentials);
+    const llmClient = createLlmClient(credentials);
     const providerInfo = credentials
-      ? `Using ${credentials.provider} (${credentials.apiKey.slice(0, 8)}...)`
+      ? `Using ${credentials.provider} provider`
       : 'No credentials configured';
 
     // Update phase status to 'generating' to provide UI feedback
@@ -318,17 +309,17 @@ export const generatePhase = action({
 
 interface GenerateSectionsParams {
   ctx: ActionCtx;
-  projectId: any;
+  projectId: Id<'projects'>;
   projectContext: {
     title: string;
     description: string;
     questions: string;
   };
   sectionPlan: SectionPlan[];
-  model: any;
+  model: LlmModel;
   questions: Question[];
   phaseId: string;
-  llmClient: ReturnType<typeof getLlmClient>;
+  llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
 }
 
@@ -390,64 +381,66 @@ async function generateSectionContent(params: {
   sectionInstructions: string;
   sectionQuestions: string[];
   previousSections: Array<{ name: string; content: string }>;
-  model: any;
+  model: LlmModel;
   maxTokens: number;
-  llmClient: ReturnType<typeof getLlmClient>;
+  llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
   phaseId: string;
 }): Promise<string> {
-  // If we have an LLM client, use it for real generation
-  if (params.llmClient && params.llmClient.isAvailable()) {
-    try {
-      const result = await params.llmClient.generateSection({
-        projectContext: {
-          title: params.projectContext.title,
-          description: params.projectContext.description,
-          questions: params.projectContext.questions,
-        },
-        sectionName: params.sectionName,
-        sectionInstructions: params.sectionInstructions,
-        sectionQuestions: params.sectionQuestions,
-        previousSections: params.previousSections,
-        artifactType: getArtifactType(params.phaseId),
-        modelId: params.model.id,
-        maxTokens: params.maxTokens,
-      });
+  const { llmClient, model, maxTokens } = params;
 
-      return result.content;
-    } catch (error: any) {
-      console.error(
-        `[generatePhase] Error generating section ${params.sectionName}:`,
-        error.message
-      );
-      // Fall back to basic content on error
-    }
+  // Guard: No LLM client available
+  if (!llmClient) {
+    console.warn(
+      '[generateSectionContent] No LLM client available, using fallback'
+    );
+    return `## ${formatSectionName(params.sectionName)}\n\n_Content generation requires LLM configuration. Please configure your API keys in Settings._`;
   }
 
-  // Fallback: Generate basic content if no LLM client or on error
-  // This allows testing without API credentials
-  console.warn(
-    '[generatePhase] No LLM client available, generating fallback content'
-  );
+  // Build the prompt
+  const systemPrompt = `You are an expert technical writer creating project documentation.
+Generate the "${params.sectionName}" section for a ${params.phaseId} document.
 
-  let content = `# ${formatSectionName(params.sectionName)}\n\n`;
-  content += `## ${params.projectContext.title}\n\n`;
-  content += `${params.projectContext.description}\n\n`;
+Project: ${params.projectContext.title}
+Description: ${params.projectContext.description}
 
-  if (params.sectionQuestions.length > 0) {
-    content += `### Context from Questions\n\n`;
-    params.sectionQuestions.forEach((q) => {
-      content += `- ${q}\n`;
-    });
-    content += '\n';
+${params.sectionInstructions}
+
+Requirements:
+- Use markdown formatting
+- Be thorough and detailed
+- Include specific, actionable content
+- Reference the project context throughout`;
+
+  const userPrompt = `${
+    params.previousSections.length > 0
+      ? `Previous sections for context:\n${params.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n')}\n\n`
+      : ''
   }
+${
+  params.sectionQuestions.length > 0
+    ? `Address these points:\n${params.sectionQuestions.map((q) => `- ${q}`).join('\n')}\n\n`
+    : ''
+}
+Generate the "${params.sectionName}" section now:`;
 
-  content += `### ${formatSectionName(params.sectionName)} Details\n\n`;
-  content += `${params.sectionInstructions}\n\n`;
+  try {
+    const response = await llmClient.complete(
+      `${systemPrompt}\n\n${userPrompt}`,
+      {
+        model: model.id,
+        maxTokens: maxTokens,
+        temperature: 0.7,
+      }
+    );
 
-  content += `*Note: This is fallback content. Configure LLM credentials to generate detailed AI content.*\n`;
-
-  return content;
+    return response.content;
+  } catch (error: any) {
+    console.error(`[generateSectionContent] LLM call failed:`, error?.message);
+    throw new Error(
+      `Failed to generate ${params.sectionName}: ${error?.message}`
+    );
+  }
 }
 
 function getArtifactType(phaseId: string): string {
@@ -465,26 +458,47 @@ async function selfCritiqueSection(params: {
   content: string;
   sectionName: string;
   projectContext: { title: string; description: string };
-  model: any;
-  llmClient: ReturnType<typeof getLlmClient>;
+  model: LlmModel;
+  llmClient: ReturnType<typeof createLlmClient>;
 }): Promise<string> {
-  // In production, this would call the LLM to critique and improve the section
-  // For now, we perform basic validation and improvements
+  const { llmClient, model, content, sectionName, projectContext } = params;
 
-  let improved = params.content;
-
-  // Basic checks and improvements
-  if (improved.length < 100) {
-    // Section is too short, add a note
-    improved += '\n\n*This section needs additional detail.*';
+  if (!llmClient) {
+    return content; // Return original if no LLM available
   }
 
-  // Ensure section ends properly
-  if (!improved.trimEnd().endsWith('.')) {
-    improved = improved.trimEnd() + '.';
-  }
+  const critiquePrompt = `Review this "${sectionName}" section for a project called "${projectContext.title}".
 
-  return improved;
+Content to review:
+${content}
+
+Analyze for:
+1. Completeness - are all key points covered?
+2. Clarity - is the content clear and actionable?
+3. Consistency - does it align with the project description?
+4. Quality - is it detailed enough for a handoff document?
+
+If improvements are needed, provide the improved version.
+If the content is sufficient, respond with "APPROVED" followed by the original content.`;
+
+  try {
+    const response = await llmClient.complete(critiquePrompt, {
+      model: model.id,
+      maxTokens: Math.min(model.maxOutputTokens, 4000),
+      temperature: 0.3,
+    });
+
+    // Check if approved or extract improved content
+    if (response.content.startsWith('APPROVED')) {
+      return content;
+    }
+    return response.content;
+  } catch (error) {
+    console.warn(
+      '[selfCritiqueSection] Critique failed, using original content'
+    );
+    return content;
+  }
 }
 
 function extractRelevantQuestions(
@@ -512,13 +526,25 @@ function extractRelevantQuestions(
 
 function getSectionInstructions(phaseId: string, sectionName: string): string {
   const instructions: Record<string, string> = {
-    // PRD/Brief sections
-    'executive-summary':
-      'Provide a concise overview of the project goals, target users, and key deliverables.',
+    // Brief sections
     'problem-and-objectives':
       'Clearly articulate the problem this project solves and define specific, measurable goals with success criteria.',
     'features-and-requirements':
       'Outline the core features, functionality required, and any technical constraints or compliance requirements.',
+
+    // PRD sections
+    'executive-summary':
+      'Provide a concise overview of the project goals, target users, and key deliverables.',
+    'problem-statement':
+      'Clearly articulate the problem space, current challenges, pain points, and why this project is necessary.',
+    'goals-and-objectives':
+      'Define specific, measurable, achievable, relevant, and time-bound (SMART) goals and success criteria.',
+    'user-personas':
+      'Describe the target user personas, their characteristics, goals, pain points, and how they will interact with the product.',
+    'requirements':
+      'List all functional and non-functional requirements, organized by priority and category.',
+    'success-metrics':
+      'Define key performance indicators (KPIs), metrics for success, and how they will be measured and tracked.',
 
     // Specs sections
     'architecture-overview':
@@ -580,7 +606,8 @@ function generatePreviewHtml(content: string): string {
 
 function getPhaseTitle(phaseId: string): string {
   const titles: Record<string, string> = {
-    brief: 'Product Requirements Document',
+    brief: 'Project Brief',
+    prd: 'Product Requirements Document',
     specs: 'Technical Specifications',
     stories: 'User Stories & Tasks',
     artifacts: 'Technical Artifacts',

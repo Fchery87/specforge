@@ -8,12 +8,20 @@ export function getSectionPlan(
   // Reasoning models (GLM-4.7, etc.) need significant time per section
   // Generating more sections can be done in subsequent iterations
   switch (artifactType) {
-    case 'prd':
     case 'brief':
       return [
         'executive-summary',
         'problem-and-objectives',
         'features-and-requirements',
+      ];
+    case 'prd':
+      return [
+        'executive-summary',
+        'problem-statement',
+        'goals-and-objectives',
+        'user-personas',
+        'requirements',
+        'success-metrics',
       ];
     case 'spec':
     case 'specs':

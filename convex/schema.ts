@@ -64,6 +64,7 @@ export default defineSchema({
     apiKey: v.optional(v.bytes()),
     defaultModel: v.string(),
     useSystem: v.boolean(),
+    systemKeyId: v.optional(v.string()),
     zaiEndpointType: v.optional(v.union(v.literal("paid"), v.literal("coding"))),
     zaiIsChina: v.optional(v.boolean()),
   }).index("by_user", ["userId"]),

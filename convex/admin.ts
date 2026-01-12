@@ -1,20 +1,54 @@
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { v } from "convex/values";
-import { internalQuery } from "./_generated/server";
-import { internal as internalApi } from "./_generated/api";
+import { mutation, query } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
+import { v } from 'convex/values';
+import { internalQuery } from './_generated/server';
+import { internal as internalApi } from './_generated/api';
+import { requireAdmin } from './lib/auth';
+
+export const debugIdentity = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return { error: 'Not authenticated' };
+    }
+    // Return the raw identity object keys to see what's available
+    return {
+      identityKeys: Object.keys(identity),
+      identityValues: identity,
+    };
+  },
+});
+
+// Admin check - now using proper JWT metadata claim
+export const getSystemStats = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    await requireAdmin(ctx);
+
+    const projects = await ctx.db.query('projects').collect();
+    const artifacts = await ctx.db.query('artifacts').collect();
+    const users = await ctx.db.query('userLlmConfigs').collect();
+
+    return {
+      totalProjects: projects.length,
+      totalArtifacts: artifacts.length,
+      totalUsersWithConfig: users.length,
+      projectsByStatus: {
+        draft: projects.filter((p) => p.status === 'draft').length,
+        active: projects.filter((p) => p.status === 'active').length,
+        complete: projects.filter((p) => p.status === 'complete').length,
+      },
+    };
+  },
+});
 
 export const listAllModels = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-    
-    // In production, check for admin role here
-    // const publicMetadata = identity.publicMetadata as { role?: string };
-    // if (publicMetadata.role !== "admin") throw new Error("Unauthorized");
+    await requireAdmin(ctx);
 
-    return await ctx.db.query("llmModels").collect();
+    return await ctx.db.query('llmModels').collect();
   },
 });
 
@@ -28,14 +62,9 @@ export const addModel = mutation({
     enabled: v.boolean(),
   },
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-    
-    // In production, check for admin role here
-    // const publicMetadata = identity.publicMetadata as { role?: string };
-    // if (publicMetadata.role !== "admin") throw new Error("Unauthorized");
+    await requireAdmin(ctx);
 
-    return await ctx.db.insert("llmModels", args);
+    return await ctx.db.insert('llmModels', args);
   },
 });
 
@@ -50,15 +79,14 @@ export const updateModel = mutation({
     }),
   },
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-    
+    await requireAdmin(ctx);
+
     const existing = await ctx.db
-      .query("llmModels")
-      .withIndex("by_model", (q) => q.eq("modelId", args.modelId))
+      .query('llmModels')
+      .withIndex('by_model', (q) => q.eq('modelId', args.modelId))
       .first();
 
-    if (!existing) throw new Error("Model not found");
+    if (!existing) throw new Error('Model not found');
 
     await ctx.db.patch(existing._id, args.updates);
     return existing._id;
@@ -68,48 +96,16 @@ export const updateModel = mutation({
 export const deleteModel = mutation({
   args: { modelId: v.string() },
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-    
+    await requireAdmin(ctx);
+
     const existing = await ctx.db
-      .query("llmModels")
-      .withIndex("by_model", (q) => q.eq("modelId", args.modelId))
+      .query('llmModels')
+      .withIndex('by_model', (q) => q.eq('modelId', args.modelId))
       .first();
 
-    if (!existing) throw new Error("Model not found");
+    if (!existing) throw new Error('Model not found');
 
     await ctx.db.delete(existing._id);
-  },
-});
-
-export const getSystemStats = query({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    const projects = await ctx.db.query("projects").collect();
-    const artifacts = await ctx.db.query("artifacts").collect();
-    const users = await ctx.db.query("userLlmConfigs").collect();
-
-    return {
-      totalProjects: projects.length,
-      totalArtifacts: artifacts.length,
-      totalUsersWithConfig: users.length,
-      projectsByStatus: {
-        draft: projects.filter(p => p.status === "draft").length,
-        active: projects.filter(p => p.status === "active").length,
-        complete: projects.filter(p => p.status === "complete").length,
-      },
-    };
-  },
-});
-
-// Internal function to get system credentials (decrypted)
-export const getAllSystemCredentialsInternal = internalQuery({
-  args: {},
-  handler: async (ctx: QueryCtx) => {
-    return await ctx.db.query("systemCredentials").collect();
   },
 });
 
@@ -117,24 +113,20 @@ export const getAllSystemCredentialsInternal = internalQuery({
 export const listSystemCredentials = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    await requireAdmin(ctx);
 
-    // In production, check for admin role here
-
-    return await ctx.db.query("systemCredentials").collect();
+    return await ctx.db.query('systemCredentials').collect();
   },
 });
 
 export const getSystemCredential = query({
   args: { provider: v.string() },
   handler: async (ctx: QueryCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    await requireAdmin(ctx);
 
     const config = await ctx.db
-      .query("systemCredentials")
-      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
+      .query('systemCredentials')
+      .withIndex('by_provider', (q) => q.eq('provider', args.provider))
       .first();
 
     if (!config) return null;
@@ -154,12 +146,11 @@ export const getSystemCredential = query({
 export const deleteSystemCredential = mutation({
   args: { provider: v.string() },
   handler: async (ctx: MutationCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    await requireAdmin(ctx);
 
     const existing = await ctx.db
-      .query("systemCredentials")
-      .withIndex("by_provider", (q) => q.eq("provider", args.provider))
+      .query('systemCredentials')
+      .withIndex('by_provider', (q) => q.eq('provider', args.provider))
       .first();
 
     if (existing) {

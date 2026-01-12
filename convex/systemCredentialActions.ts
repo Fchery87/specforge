@@ -6,9 +6,7 @@ import { v } from 'convex/values';
 import { encrypt } from '../lib/encryption';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-
-const ENCRYPTION_KEY =
-  process.env.CONVEX_ENCRYPTION_KEY ?? 'default-dev-key-change-in-production';
+import { requireAdmin } from './lib/auth';
 
 // Set or update system credential for a provider (action wrapper)
 export const setSystemCredential = action({
@@ -22,34 +20,23 @@ export const setSystemCredential = action({
     zaiIsChina: v.optional(v.boolean()),
   },
   handler: async (ctx: ActionCtx, args): Promise<Id<'systemCredentials'>> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error('Unauthenticated');
+    await requireAdmin(ctx);
 
-    console.log(
-      '[setSystemCredential] Saving credential for provider:',
-      args.provider
-    );
-    console.log('[setSystemCredential] Has API key:', !!args.apiKey);
-    console.log('[setSystemCredential] Is enabled:', args.isEnabled);
+    const ENCRYPTION_KEY = process.env.CONVEX_ENCRYPTION_KEY;
+    if (!ENCRYPTION_KEY) {
+      throw new Error(
+        'CONVEX_ENCRYPTION_KEY environment variable is required. ' +
+          'Set it in your Convex dashboard under Settings > Environment Variables.'
+      );
+    }
 
     // Encrypt the API key if provided
     let encryptedBytes: number[] | null = null;
     if (args.apiKey) {
       const encrypted = encrypt(args.apiKey, ENCRYPTION_KEY);
       const jsonString = JSON.stringify(encrypted);
-      // IMPORTANT: Don't use Buffer.from().buffer - it returns the entire underlying
-      // ArrayBuffer pool which may contain garbage data from other operations.
-      // Instead, create a proper byte array from the Buffer directly.
       const buffer = Buffer.from(jsonString, 'utf8');
       encryptedBytes = Array.from(buffer);
-      console.log(
-        '[setSystemCredential] Encrypted API key successfully, byte length:',
-        encryptedBytes.length
-      );
-      console.log(
-        '[setSystemCredential] JSON preview:',
-        jsonString.substring(0, 50) + '...'
-      );
     }
 
     // Call the mutation to save the credential
@@ -64,7 +51,6 @@ export const setSystemCredential = action({
       }
     );
 
-    console.log('[setSystemCredential] Credential saved with ID:', result);
     return result;
   },
 });
@@ -73,8 +59,7 @@ export const setSystemCredential = action({
 export const deleteSystemCredential = action({
   args: { provider: v.string() },
   handler: async (ctx: ActionCtx, args): Promise<void> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error('Unauthenticated');
+    await requireAdmin(ctx);
 
     await ctx.runMutation(api.systemCredentials.deleteSystemCredentialRaw, {
       provider: args.provider,

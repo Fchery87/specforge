@@ -1,15 +1,14 @@
 import { mutation, query, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
+import { requireAdmin } from './lib/auth';
 
 // Raw query that returns encrypted data without decrypting
 export const getSystemCredentialRaw = query({
   args: { provider: v.string() },
   handler: async (ctx: QueryCtx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    await requireAdmin(ctx);
 
-    // In production, check for admin role here
     const config = await ctx.db
       .query('systemCredentials')
       .withIndex('by_provider', (q) => q.eq('provider', args.provider))
@@ -33,17 +32,9 @@ export const getSystemCredentialRaw = query({
 export const getAllSystemCredentials = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      console.log('[getAllSystemCredentials] No identity, returning null');
-      return null;
-    }
+    await requireAdmin(ctx);
 
     const credentials = await ctx.db.query('systemCredentials').collect();
-    console.log('[getAllSystemCredentials] Found credentials count:', credentials.length);
-    credentials.forEach(c => {
-      console.log('[getAllSystemCredentials] - Provider:', c.provider, 'isEnabled:', c.isEnabled, 'hasApiKey:', !!c.apiKey);
-    });
     return credentials;
   },
 });
@@ -52,11 +43,9 @@ export const getAllSystemCredentials = query({
 export const getAllSystemCredentialsInternal = internalQuery({
   args: {},
   handler: async (ctx: QueryCtx) => {
+    await requireAdmin(ctx);
+
     const credentials = await ctx.db.query('systemCredentials').collect();
-    console.log('[getAllSystemCredentialsInternal] Found credentials count:', credentials.length);
-    credentials.forEach(c => {
-      console.log('[getAllSystemCredentialsInternal] - Provider:', c.provider, 'isEnabled:', c.isEnabled, 'hasApiKey:', !!c.apiKey);
-    });
     return credentials;
   },
 });

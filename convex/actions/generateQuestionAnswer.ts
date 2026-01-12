@@ -2,6 +2,7 @@
 
 import { action } from '../_generated/server';
 import type { ActionCtx } from '../_generated/server';
+import type { Doc } from '../_generated/dataModel';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
@@ -9,12 +10,11 @@ import {
   getFallbackModel,
   resolveCredentials,
 } from '../../lib/llm/registry';
-import { createOpenAIClient } from '../../lib/llm/providers/openai';
-import { createAnthropicClient } from '../../lib/llm/providers/anthropic';
-import { createZAIClient } from '../../lib/llm/providers/zai';
-import { createMinimaxClient } from '../../lib/llm/providers/minimax';
+import type { LlmModel, ProviderCredentials } from '../../lib/llm/types';
+import type { SystemCredential } from '../../lib/llm/registry';
+import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
-import type { ProviderCredentials } from '../../lib/llm/types';
+import { rateLimiter } from '../rateLimiter';
 
 interface Question {
   id: string;
@@ -22,27 +22,6 @@ interface Question {
   answer?: string;
   aiGenerated: boolean;
   required?: boolean;
-}
-
-function getLlmClient(credentials: ProviderCredentials | null) {
-  if (!credentials) return null;
-
-  switch (credentials.provider) {
-    case 'openai':
-      return createOpenAIClient(credentials.apiKey);
-    case 'anthropic':
-      return createAnthropicClient(credentials.apiKey);
-    case 'zai':
-      return createZAIClient(
-        credentials.apiKey,
-        credentials.zaiEndpointType ?? 'paid',
-        credentials.zaiIsChina ?? false
-      );
-    case 'minimax':
-      return createMinimaxClient(credentials.apiKey);
-    default:
-      return null;
-  }
 }
 
 export const generateQuestionAnswer = action({
@@ -64,6 +43,14 @@ export const generateQuestionAnswer = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject)
       throw new Error('Forbidden');
+
+    const userId = identity.tokenIdentifier;
+
+    // Rate limiting - per-user limit
+    await rateLimiter.limit(ctx, "generateQuestionAnswer", {
+      key: userId,
+      throws: true,
+    });
 
     // Get phase with questions
     const phaseData = await ctx.runQuery(api.projects.getPhase, {
@@ -94,7 +81,7 @@ export const generateQuestionAnswer = action({
       {}
     );
 
-    let systemCredentialsMap: any;
+    let systemCredentialsMap: Record<string, SystemCredential>;
     try {
       systemCredentialsMap = await ctx.runAction(
         internalApi.internalActions.getAllDecryptedSystemCredentials,
@@ -112,20 +99,20 @@ export const generateQuestionAnswer = action({
     // Get model
     const enabledModelsFromDb = await ctx.runQuery(api.admin.listAllModels);
     const enabledModels = (enabledModelsFromDb || []).filter(
-      (m: any) => m.enabled
+      (m: Doc<'llmModels'>) => m.enabled
     );
 
-    let model: any;
+    let model: LlmModel;
     if (credentials?.modelId && credentials.modelId !== '') {
       model = getModelById(credentials.modelId) ?? getFallbackModel();
     } else if (credentials?.provider && enabledModels.length > 0) {
       const providerModel = enabledModels.find(
-        (m: any) => m.provider === credentials.provider
+        (m: Doc<'llmModels'>) => m.provider === credentials.provider
       );
       if (providerModel) {
         model = {
           id: providerModel.modelId,
-          provider: providerModel.provider,
+          provider: providerModel.provider as "openai" | "anthropic" | "mistral" | "zai" | "minimax" | "other",
           contextTokens: providerModel.contextTokens,
           maxOutputTokens: providerModel.maxOutputTokens,
           defaultMax: providerModel.defaultMax,
@@ -147,7 +134,7 @@ export const generateQuestionAnswer = action({
     });
 
     // Generate answer using LLM
-    const llmClient = getLlmClient(credentials);
+    const llmClient = createLlmClient(credentials);
     const suggestedAnswer = await generateAnswer({
       prompt,
       model,
@@ -178,8 +165,8 @@ Provide a clear, concise answer based on the project context. Be specific and ac
 
 async function generateAnswer(params: {
   prompt: string;
-  model: any;
-  llmClient: ReturnType<typeof getLlmClient>;
+  model: LlmModel;
+  llmClient: ReturnType<typeof createLlmClient>;
 }): Promise<string> {
   if (!params.llmClient) {
     throw new Error(
@@ -190,8 +177,8 @@ async function generateAnswer(params: {
   try {
     const response = await params.llmClient.complete(params.prompt, {
       model: params.model.id,
-      maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
-      temperature: LLM_DEFAULTS.DEFAULT_TEMPERATURE,
+      maxTokens: Math.min(params.model.maxOutputTokens || 2000, 2000),
+      temperature: 0.7,
     });
 
     return response.content.trim();

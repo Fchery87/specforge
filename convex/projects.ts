@@ -2,7 +2,7 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 
-const DEFAULT_PHASES = ["brief", "specs", "stories", "artifacts", "handoff"];
+const DEFAULT_PHASES = ["brief", "prd", "specs", "stories", "artifacts", "handoff"];
 
 export const createProject = mutation({
   args: { title: v.string(), description: v.string() },
