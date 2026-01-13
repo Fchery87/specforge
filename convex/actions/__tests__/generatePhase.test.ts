@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   extractRelevantQuestions,
   generateSectionContent,
+  planSectionsForPhase,
   stripLeadingHeading,
 } from "../generatePhase";
 
@@ -59,5 +60,21 @@ describe("generatePhase helpers", () => {
 
     expect(result).toContain("Part 1");
     expect(result).toContain("Part 2");
+  });
+
+  it("expands section plan when budget is too small", () => {
+    const plan = planSectionsForPhase({
+      sectionNames: ["architecture-overview"],
+      estimatedTokens: 12000,
+      model: {
+        id: "m",
+        provider: "openai",
+        contextTokens: 1,
+        maxOutputTokens: 4000,
+        defaultMax: 2000,
+      },
+    });
+
+    expect(plan.length).toBe(3);
   });
 });

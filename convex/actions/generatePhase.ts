@@ -7,6 +7,7 @@ import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
   FALLBACK_MODELS,
+  expandSectionsForBudget,
   getSectionPlan,
   planSections,
   mergeSectionContent,
@@ -216,7 +217,18 @@ export const generatePhase = action({
 
     // Get section plan based on phase
     const sectionNames = getSectionPlan(artifactType, args.phaseId);
-    const sectionPlan = planSections(model, sectionNames, 0.5);
+    const questionsText = answeredQuestions
+      .map((q: Question) => `${q.text} ${q.answer ?? ''}`.trim())
+      .join('\n');
+    const estimatedTokens =
+      estimateTokenCount(
+        `${project.title}\n${project.description}\n${questionsText}`
+      ) * 6;
+    const sectionPlan = planSectionsForPhase({
+      sectionNames,
+      estimatedTokens,
+      model,
+    });
 
     // Build project context from questions
     const projectContext = {
@@ -312,6 +324,23 @@ interface GenerateSectionsParams {
   phaseId: string;
   llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
+}
+
+export function planSectionsForPhase(params: {
+  sectionNames: string[];
+  estimatedTokens: number;
+  model: LlmModel;
+}): SectionPlan[] {
+  const maxTokensPerSection = Math.max(
+    256,
+    Math.floor(params.model.maxOutputTokens * 0.8)
+  );
+  const expandedNames = expandSectionsForBudget({
+    sectionNames: params.sectionNames,
+    estimatedTokens: params.estimatedTokens,
+    maxTokensPerSection,
+  });
+  return planSections(params.model, expandedNames, 0.8);
 }
 
 async function generateSectionsWithSelfCritique(
