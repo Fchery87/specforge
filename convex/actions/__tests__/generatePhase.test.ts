@@ -76,6 +76,6 @@ describe("generatePhase helpers", () => {
       },
     });
 
-    expect(plan.length).toBe(3);
+    expect(plan.length).toBe(4);
   });
 });
