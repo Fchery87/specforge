@@ -2,12 +2,17 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { canAccessProject } from "../lib/authz";
+import { normalizeProjectInput } from "../lib/project-input";
 
 const DEFAULT_PHASES = ["brief", "prd", "specs", "stories", "artifacts", "handoff"];
 
 export const createProject = mutation({
   args: { title: v.string(), description: v.string() },
   handler: async (ctx: MutationCtx, args) => {
+    const normalized = normalizeProjectInput({
+      title: args.title,
+      description: args.description,
+    });
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthenticated");
     const userId = identity.subject;
@@ -15,8 +20,8 @@ export const createProject = mutation({
     const now = Date.now();
     const projectId = await ctx.db.insert("projects", {
       userId,
-      title: args.title,
-      description: args.description,
+      title: normalized.title,
+      description: normalized.description,
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -112,6 +117,23 @@ export const getPhaseArtifacts = query({
   },
 });
 
+export const getProjectZipUrl = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return null;
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error("Forbidden");
+    }
+
+    if (!project.zipStorageId) return null;
+
+    return await ctx.storage.getUrl(project.zipStorageId);
+  },
+});
+
 export const saveAnswer = mutation({
   args: {
     projectId: v.id("projects"),
@@ -175,22 +197,5 @@ export const updatePhaseQuestions = mutation({
     } else {
       await ctx.db.patch(phase._id, { questions: args.questions });
     }
-  },
-});
-
-export const getProjectZipUrl = query({
-  args: { projectId: v.id("projects") },
-  handler: async (ctx: QueryCtx, args) => {
-    const project = await ctx.db.get(args.projectId);
-    if (!project) return null;
-
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || !canAccessProject(project.userId, identity.subject)) {
-      throw new Error("Forbidden");
-    }
-
-    if (!project.zipStorageId) return null;
-
-    return await ctx.storage.getUrl(project.zipStorageId);
   },
 });
