@@ -58,8 +58,9 @@ describe("generatePhase helpers", () => {
       phaseId: "brief",
     });
 
-    expect(result).toContain("Part 1");
-    expect(result).toContain("Part 2");
+    expect(result.content).toContain("Part 1");
+    expect(result.content).toContain("Part 2");
+    expect(result.continued).toBe(true);
   });
 
   it("expands section plan when budget is too small", () => {

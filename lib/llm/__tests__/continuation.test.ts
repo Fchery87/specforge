@@ -26,5 +26,6 @@ test("continues when finishReason is length", async () => {
   });
 
   expect(result.content).toBe("Part 1\n\nPart 2");
+  expect(result.continued).toBe(true);
   expect(calls.length).toBe(2);
 });

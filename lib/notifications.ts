@@ -10,6 +10,7 @@ export type ToastEvent =
   | "ai_batch_error"
   | "phase_start"
   | "phase_done"
+  | "phase_continued"
   | "phase_error"
   | "export_start"
   | "export_done"
@@ -67,6 +68,10 @@ const TOAST_MESSAGES: Record<ToastEvent, ToastMessage> = {
   phase_done: {
     title: "Phase ready",
     description: "Review the generated artifact",
+  },
+  phase_continued: {
+    title: "Phase extended",
+    description: "Output was continued to avoid truncation",
   },
   phase_error: {
     title: "Phase generation failed",
