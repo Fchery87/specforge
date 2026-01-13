@@ -1,4 +1,6 @@
 import { createOpenAIClient } from './providers/openai';
+import { createOpenRouterClient } from './providers/openrouter';
+import { createDeepSeekClient } from './providers/deepseek';
 import { createAnthropicClient } from './providers/anthropic';
 import { createMistralClient } from './providers/mistral';
 import { createZAIClient } from './providers/zai';
@@ -15,6 +17,10 @@ export function createLlmClient(
   switch (credentials.provider) {
     case 'openai':
       return createOpenAIClient(credentials.apiKey);
+    case 'openrouter':
+      return createOpenRouterClient(credentials.apiKey);
+    case 'deepseek':
+      return createDeepSeekClient(credentials.apiKey);
     case 'anthropic':
       return createAnthropicClient(credentials.apiKey);
     case 'mistral':

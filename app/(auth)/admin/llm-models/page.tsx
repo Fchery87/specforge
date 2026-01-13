@@ -15,6 +15,8 @@ import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/prov
 
 const PROVIDERS = [
   { id: "openai", name: "OpenAI" },
+  { id: "openrouter", name: "OpenRouter" },
+  { id: "deepseek", name: "DeepSeek" },
   { id: "anthropic", name: "Anthropic" },
   { id: "mistral", name: "Mistral AI" },
   { id: "zai", name: "Z.AI (GLM)" },
@@ -266,6 +268,8 @@ export default function LlmModelsPage() {
                       className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm"
                     >
                       <option value="openai">OpenAI</option>
+                      <option value="openrouter">OpenRouter</option>
+                      <option value="deepseek">DeepSeek</option>
                       <option value="anthropic">Anthropic</option>
                       <option value="mistral">Mistral AI</option>
                       <option value="google">Google Gemini</option>

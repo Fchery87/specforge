@@ -16,6 +16,7 @@ import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/prov
 
 const PROVIDERS = [
   { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4o-mini"] },
+  { id: "deepseek", name: "DeepSeek", models: ["deepseek-chat"] },
   { id: "anthropic", name: "Anthropic", models: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"] },
   { id: "mistral", name: "Mistral AI", models: ["mistral-large-3", "mistral-medium-3-1", "mistral-small-3-2"] },
   { id: "zai", name: "Z.AI (GLM)", models: ["glm-4.7", "glm-4.6", "glm-4.5", "glm-4.5-air", "glm-4.5-flash"] },
@@ -326,7 +327,7 @@ export default function LlmConfigPage() {
                 Use System Credentials
               </Label>
               <p className="text-sm text-white/60">
-                Use the API key configured by the system administrator instead of your own.
+                System credentials are used by default unless you provide your own API key.
               </p>
             </div>
             {useSystem && (

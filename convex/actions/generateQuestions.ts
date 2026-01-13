@@ -15,6 +15,7 @@ import type { LlmModel } from "../../lib/llm/types";
 import type { SystemCredential } from "../../lib/llm/registry";
 import { createLlmClient } from "../../lib/llm/client-factory";
 import { LLM_DEFAULTS } from "../../lib/llm/response-normalizer";
+import { retryWithBackoff } from "../../lib/llm/retry";
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -92,6 +93,17 @@ export function normalizeQuestions(
   return filtered.slice(0, range.max);
 }
 
+export function selectQuestions(
+  aiQuestions: Array<{ text: string; required?: boolean }>,
+  baseQuestions: Array<{ text: string; required?: boolean }>,
+  range: { min: number; max: number }
+): { questions: Array<{ text: string; required?: boolean }>; aiGenerated: boolean } {
+  if (aiQuestions.length >= range.min) {
+    return { questions: aiQuestions.slice(0, range.max), aiGenerated: true };
+  }
+  return { questions: baseQuestions.slice(0, range.max), aiGenerated: false };
+}
+
 function parseQuestionsResponse(
   raw: string
 ): Array<{ text: string; required?: boolean }> {
@@ -135,65 +147,68 @@ export const generateQuestions = action({
     const range = PHASE_QUESTION_RANGE[args.phaseId] || { min: 5, max: 8 };
     const baseQuestions = PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS["brief"];
 
-    // Resolve credentials for AI question generation
-    const userConfig = await ctx.runAction(
-      api.userConfigActions.getUserConfig,
-      {}
-    );
-
-    let systemCredentialsMap: Record<string, SystemCredential>;
+    let aiQuestions: Array<{ text: string; required?: boolean }> = [];
+    let aiGenerated = false;
     try {
-      systemCredentialsMap = await ctx.runAction(
-        internalApi.internalActions.getAllDecryptedSystemCredentials,
+      // Resolve credentials for AI question generation
+      const userConfig = await ctx.runAction(
+        api.userConfigActions.getUserConfig,
         {}
       );
-    } catch {
-      systemCredentialsMap = {};
-    }
 
-    const credentials = resolveCredentials(
-      userConfig,
-      new Map(Object.entries(systemCredentialsMap || {}))
-    );
+      let systemCredentialsMap: Record<string, SystemCredential>;
+      try {
+        systemCredentialsMap = await ctx.runAction(
+          internalApi.internalActions.getAllDecryptedSystemCredentials,
+          {}
+        );
+      } catch {
+        systemCredentialsMap = {};
+      }
 
-    const enabledModelsFromDb = await ctx.runQuery(
-      internalApi.llmModels.listEnabledModelsInternal
-    );
-    const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
-
-    let model: LlmModel;
-    if (credentials?.modelId && credentials.modelId !== "") {
-      model = getModelById(credentials.modelId) ?? getFallbackModel();
-    } else if (credentials?.provider && enabledModels.length > 0) {
-      const providerModel = enabledModels.find(
-        (m: Doc<"llmModels">) => m.provider === credentials.provider
+      const credentials = resolveCredentials(
+        userConfig,
+        new Map(Object.entries(systemCredentialsMap || {}))
       );
-      if (providerModel) {
-        model = {
-          id: providerModel.modelId,
-          provider: providerModel.provider as
-            | "openai"
-            | "anthropic"
-            | "mistral"
-            | "zai"
-            | "minimax"
-            | "other",
-          contextTokens: providerModel.contextTokens,
-          maxOutputTokens: providerModel.maxOutputTokens,
-          defaultMax: providerModel.defaultMax,
-        };
-        credentials.modelId = providerModel.modelId;
+
+      const enabledModelsFromDb = await ctx.runQuery(
+        internalApi.llmModels.listEnabledModelsInternal
+      );
+      const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
+
+      let model: LlmModel;
+      if (credentials?.modelId && credentials.modelId !== "") {
+        model = getModelById(credentials.modelId) ?? getFallbackModel();
+      } else if (credentials?.provider && enabledModels.length > 0) {
+        const providerModel = enabledModels.find(
+          (m: Doc<"llmModels">) => m.provider === credentials.provider
+        );
+        if (providerModel) {
+          model = {
+            id: providerModel.modelId,
+            provider: providerModel.provider as
+              | "openai"
+              | "openrouter"
+              | "deepseek"
+              | "anthropic"
+              | "mistral"
+              | "zai"
+              | "minimax"
+              | "other",
+            contextTokens: providerModel.contextTokens,
+            maxOutputTokens: providerModel.maxOutputTokens,
+            defaultMax: providerModel.defaultMax,
+          };
+          credentials.modelId = providerModel.modelId;
+        } else {
+          model = getFallbackModel();
+        }
       } else {
         model = getFallbackModel();
       }
-    } else {
-      model = getFallbackModel();
-    }
 
-    let aiQuestions: Array<{ text: string; required?: boolean }> = [];
-    const llmClient = createLlmClient(credentials);
-    if (llmClient) {
-      try {
+      const llmClient = createLlmClient(credentials);
+      if (llmClient) {
         const prompt = buildQuestionPrompt({
           title: project.title,
           description: project.description,
@@ -201,29 +216,33 @@ export const generateQuestions = action({
           range,
         });
 
-        const response = await llmClient.complete(prompt, {
-          model: model.id,
-          maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
-          temperature: 0.4,
-        });
+        const response = await retryWithBackoff(
+          () =>
+            llmClient.complete(prompt, {
+              model: model.id,
+              maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+              temperature: 0.4,
+            }),
+          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
+        );
         aiQuestions = normalizeQuestions(
           parseQuestionsResponse(response.content),
           args.phaseId,
           range
         );
-      } catch {
-        aiQuestions = [];
       }
+    } catch {
+      aiQuestions = [];
     }
 
-    const normalizedQuestions =
-      aiQuestions.length >= range.min ? aiQuestions : baseQuestions;
+    const selection = selectQuestions(aiQuestions, baseQuestions, range);
+    aiGenerated = selection.aiGenerated;
 
-    const questions = normalizedQuestions.slice(0, range.max).map((q, idx) => ({
+    const questions = selection.questions.map((q, idx) => ({
       id: `${args.phaseId}-q${idx + 1}`,
       text: q.text,
       answer: undefined as string | undefined,
-      aiGenerated: normalizedQuestions === aiQuestions,
+      aiGenerated,
       required: q.required ?? false,
     }));
 

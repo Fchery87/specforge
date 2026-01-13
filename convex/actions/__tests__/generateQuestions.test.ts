@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildQuestionPrompt,
   normalizeQuestions,
+  selectQuestions,
 } from "../generateQuestions";
 
 describe("generateQuestions helpers", () => {
@@ -38,5 +39,14 @@ describe("generateQuestions helpers", () => {
     expect(result.length).toBe(8);
     expect(result[0].text).toBe("Q1");
     expect(result.every((q) => q.text.trim().length > 0)).toBe(true);
+  });
+
+  it("selectQuestions falls back when ai questions below min", () => {
+    const base = [{ text: "B1" }, { text: "B2" }];
+    const ai = [{ text: "A1" }];
+
+    const result = selectQuestions(ai, base, { min: 2, max: 5 });
+    expect(result.questions).toEqual(base);
+    expect(result.aiGenerated).toBe(false);
   });
 });

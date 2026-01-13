@@ -13,6 +13,8 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   mistral: "Mistral AI",
   google: "Google Gemini",
   azure: "Azure OpenAI",
+  openrouter: "OpenRouter",
+  deepseek: "DeepSeek",
   zai: "Z.AI (GLM)",
   minimax: "Minimax",
 };
@@ -21,6 +23,9 @@ export const MODEL_REGISTRY: RegistryEntry[] = [
   // OpenAI Models (Current as of 2026)
   { model: { id: "gpt-4o", provider: "openai", contextTokens: 128000, maxOutputTokens: 16384, defaultMax: 8000, enabled: true }, provider: "openai", displayName: "GPT-4o" },
   { model: { id: "gpt-4o-mini", provider: "openai", contextTokens: 128000, maxOutputTokens: 16384, defaultMax: 8000, enabled: true }, provider: "openai", displayName: "GPT-4o Mini" },
+
+  // DeepSeek Models (Current as of 2026)
+  { model: { id: "deepseek-chat", provider: "deepseek", contextTokens: 128000, maxOutputTokens: 8000, defaultMax: 4000, enabled: true }, provider: "deepseek", displayName: "DeepSeek Chat (V3.2)" },
 
   // Anthropic Models (Current as of 2026)
   { model: { id: "claude-opus-4-5", provider: "anthropic", contextTokens: 200000, maxOutputTokens: 16384, defaultMax: 8000, enabled: true }, provider: "anthropic", displayName: "Claude Opus 4.5" },
@@ -82,20 +87,6 @@ export function resolveCredentials(
   userConfig: UserConfig | null,
   systemCredentials: Map<string, SystemCredential>
 ): ProviderCredentials | null {
-  // If user wants to use system credentials and has one configured
-  if (userConfig?.useSystem && userConfig.systemKeyId) {
-    const systemCred = systemCredentials.get(userConfig.systemKeyId);
-    if (systemCred) {
-      return {
-        provider: userConfig.provider,
-        apiKey: systemCred.apiKey,
-        modelId: userConfig.defaultModel,
-        zaiEndpointType: systemCred.zaiEndpointType,
-        zaiIsChina: systemCred.zaiIsChina,
-      };
-    }
-  }
-
   // If user provided their own API key
   if (userConfig?.apiKey) {
     return {
@@ -109,7 +100,8 @@ export function resolveCredentials(
 
   // Try to find a system credential for the user's selected provider
   if (userConfig?.provider) {
-    const systemCred = systemCredentials.get(userConfig.provider);
+    const systemKey = userConfig.systemKeyId ?? userConfig.provider;
+    const systemCred = systemCredentials.get(systemKey);
     if (systemCred) {
       return {
         provider: userConfig.provider,
@@ -121,9 +113,9 @@ export function resolveCredentials(
     }
   }
 
-  // FALLBACK: If no user config, use the first enabled system credential
+  // FALLBACK: Use the first enabled system credential
   // This allows admin-configured system credentials to work by default
-  if (!userConfig && systemCredentials.size > 0) {
+  if (systemCredentials.size > 0) {
     for (const [provider, systemCred] of systemCredentials.entries()) {
       // Return the first enabled system credential found
       return {

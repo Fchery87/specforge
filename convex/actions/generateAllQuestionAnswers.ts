@@ -15,6 +15,7 @@ import type { LlmModel, ProviderCredentials } from '../../lib/llm/types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
+import { retryWithBackoff, sleep } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
 
 interface Question {
@@ -24,6 +25,9 @@ interface Question {
   aiGenerated: boolean;
   required?: boolean;
 }
+
+const ANSWER_FALLBACK_MESSAGE =
+  'Answer temporarily unavailable due to provider rate limits. Please retry.';
 
 export const generateAllQuestionAnswers = action({
   args: {
@@ -101,7 +105,15 @@ export const generateAllQuestionAnswers = action({
       if (providerModel) {
         model = {
           id: providerModel.modelId,
-          provider: providerModel.provider as "openai" | "anthropic" | "mistral" | "zai" | "minimax" | "other",
+          provider: providerModel.provider as
+            | "openai"
+            | "openrouter"
+            | "deepseek"
+            | "anthropic"
+            | "mistral"
+            | "zai"
+            | "minimax"
+            | "other",
           contextTokens: providerModel.contextTokens,
           maxOutputTokens: providerModel.maxOutputTokens,
           defaultMax: providerModel.defaultMax,
@@ -135,14 +147,20 @@ export const generateAllQuestionAnswers = action({
         previousAnswers: previousContext,
       });
 
-      const answer = await generateAnswer({
-        prompt,
-        model,
-        llmClient,
-      });
+      const answer = await getAnswerOrFallback(() =>
+        generateAnswer({
+          prompt,
+          model,
+          llmClient,
+        })
+      );
 
       answers.push({ questionId: question.id, answer });
       generatedAnswers.push(answer);
+
+      if (i < questions.length - 1) {
+        await sleep(300);
+      }
     }
 
     return { answers };
@@ -177,18 +195,34 @@ async function generateAnswer(params: {
       'No LLM client available. Please configure your API credentials in settings.'
     );
   }
+  const llmClient = params.llmClient;
 
   try {
-    const response = await params.llmClient.complete(params.prompt, {
-      model: params.model.id,
-      maxTokens: Math.min(params.model.maxOutputTokens || 2000, 2000),
-      temperature: 0.7,
-    });
+    const response = await retryWithBackoff(
+      () =>
+        llmClient.complete(params.prompt, {
+          model: params.model.id,
+          maxTokens: Math.min(params.model.maxOutputTokens || 2000, 2000),
+          temperature: 0.7,
+        }),
+      { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
+    );
     return response.content.trim();
   } catch (error: any) {
     console.error('LLM API error:', error);
     throw new Error(
       `Failed to generate answer: ${error.message || 'Unknown error'}`
     );
+  }
+}
+
+export async function getAnswerOrFallback(
+  generator: () => Promise<string>
+): Promise<string> {
+  try {
+    return await generator();
+  } catch (error) {
+    console.error('[generateAllQuestionAnswers] Falling back after error:', error);
+    return ANSWER_FALLBACK_MESSAGE;
   }
 }

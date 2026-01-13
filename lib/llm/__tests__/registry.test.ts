@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getModelById } from '../registry';
+import { getModelById, getProviderDisplayName } from '../registry';
 
 describe('LLM Model Registry', () => {
   it('should find known models', () => {
@@ -23,5 +23,9 @@ describe('LLM Model Registry', () => {
         maxOutputTokens: expect.any(Number),
       });
     }
+  });
+
+  it('returns display names for known providers', () => {
+    expect(getProviderDisplayName('openrouter')).toBe('OpenRouter');
   });
 });

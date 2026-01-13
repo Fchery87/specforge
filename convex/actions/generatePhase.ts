@@ -24,6 +24,7 @@ import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
+import { retryWithBackoff } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
 
 interface Question {
@@ -173,7 +174,15 @@ export const generatePhase = action({
         );
         model = {
           id: providerModel.modelId,
-          provider: providerModel.provider as "openai" | "anthropic" | "mistral" | "zai" | "minimax" | "other",
+          provider: providerModel.provider as
+            | "openai"
+            | "openrouter"
+            | "deepseek"
+            | "anthropic"
+            | "mistral"
+            | "zai"
+            | "minimax"
+            | "other",
           contextTokens: providerModel.contextTokens,
           maxOutputTokens: providerModel.maxOutputTokens,
           defaultMax: providerModel.defaultMax,
@@ -410,16 +419,17 @@ ${
 Generate the "${params.sectionName}" section now:`;
 
   try {
-    const response = await llmClient.complete(
-      `${systemPrompt}\n\n${userPrompt}`,
-      {
-        model: model.id,
-        maxTokens: Math.min(
-          maxTokens,
-          LLM_DEFAULTS.SECTION_GENERATION_TOKENS
-        ),
-        temperature: 0.7,
-      }
+    const response = await retryWithBackoff(
+      () =>
+        llmClient.complete(`${systemPrompt}\n\n${userPrompt}`, {
+          model: model.id,
+          maxTokens: Math.min(
+            maxTokens,
+            LLM_DEFAULTS.SECTION_GENERATION_TOKENS
+          ),
+          temperature: 0.7,
+        }),
+      { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
     );
 
     return response.content;
@@ -460,11 +470,15 @@ If improvements are needed, provide the improved version.
 If the content is sufficient, respond with "APPROVED" followed by the original content.`;
 
   try {
-    const response = await llmClient.complete(critiquePrompt, {
-      model: model.id,
-      maxTokens: Math.min(model.maxOutputTokens, 4000),
-      temperature: 0.3,
-    });
+    const response = await retryWithBackoff(
+      () =>
+        llmClient.complete(critiquePrompt, {
+          model: model.id,
+          maxTokens: Math.min(model.maxOutputTokens, 4000),
+          temperature: 0.3,
+        }),
+      { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
+    );
 
     // Check if approved or extract improved content
     if (response.content.startsWith('APPROVED')) {

@@ -38,7 +38,15 @@ export interface LlmSectionRequest {
 
 export interface LlmModel {
   id: string;
-  provider: "openai" | "anthropic" | "mistral" | "zai" | "minimax" | "other";
+  provider:
+    | "openai"
+    | "openrouter"
+    | "deepseek"
+    | "anthropic"
+    | "mistral"
+    | "zai"
+    | "minimax"
+    | "other";
   contextTokens: number;
   maxOutputTokens: number;
   defaultMax: number;
