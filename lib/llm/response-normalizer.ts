@@ -45,6 +45,7 @@ export interface NormalizedResponse {
     completionTokens: number;
     totalTokens: number;
   };
+  finishReason?: string;
 }
 
 /**
@@ -170,9 +171,11 @@ export function normalizeOpenAIResponse(
   data: RawApiResponse
 ): NormalizedResponse {
   let content = '';
+  let finishReason: string | undefined;
 
   if (data.choices?.[0]) {
     content = extractContentFromChoice(data.choices[0]);
+    finishReason = data.choices[0].finish_reason;
   }
 
   return {
@@ -182,6 +185,7 @@ export function normalizeOpenAIResponse(
       completionTokens: data.usage?.completion_tokens ?? 0,
       totalTokens: data.usage?.total_tokens ?? 0,
     },
+    finishReason,
   };
 }
 
@@ -218,6 +222,7 @@ export function normalizeAnthropicResponse(
       completionTokens,
       totalTokens: promptTokens + completionTokens,
     },
+    finishReason: undefined,
   };
 }
 

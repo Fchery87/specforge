@@ -16,6 +16,7 @@ export interface LlmResponse {
     completionTokens: number;
     totalTokens: number;
   };
+  finishReason?: string;
 }
 
 export interface LlmSectionRequest {
