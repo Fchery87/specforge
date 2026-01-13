@@ -8,6 +8,7 @@ import { requireAdmin } from './lib/auth';
 export const debugIdentity = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
+    await requireAdmin(ctx);
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       return { error: 'Not authenticated' };
