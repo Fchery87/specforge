@@ -20,6 +20,10 @@ export const generateProjectZip = action({
     await rateLimiter.limit(ctx, "generateProjectZip", { key: userId, throws: true });
     await rateLimiter.limit(ctx, "globalZipGen", { throws: true });
 
+    if (project.zipStorageId) {
+      await ctx.storage.delete(project.zipStorageId);
+    }
+
     const artifacts = await ctx.runQuery(api.projects.getPhaseArtifacts, { projectId: args.projectId });
 
     const entries = artifacts.map((a: any) => ({
