@@ -3,13 +3,13 @@
 import { action } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { v } from 'convex/values';
+import { getRequiredEncryptionKey } from '../lib/encryption-key';
 import { encrypt, decrypt } from '../lib/encryption';
 import { resolveSystemKeyId } from '../lib/user-config';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 
-const ENCRYPTION_KEY =
-  process.env.CONVEX_ENCRYPTION_KEY ?? 'default-dev-key-change-in-production';
+const ENCRYPTION_KEY = getRequiredEncryptionKey();
 
 interface UserConfig {
   userId: string;

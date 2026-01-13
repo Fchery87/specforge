@@ -1,9 +1,9 @@
 import { mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
+import { getRequiredEncryptionKey } from '../lib/encryption-key';
 
-const ENCRYPTION_KEY =
-  process.env.CONVEX_ENCRYPTION_KEY ?? 'default-dev-key-change-in-production';
+const ENCRYPTION_KEY = getRequiredEncryptionKey();
 
 // Raw query that returns encrypted data without decrypting
 export const getUserConfigRaw = query({

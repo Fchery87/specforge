@@ -3,6 +3,7 @@
 import { action } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { v } from 'convex/values';
+import { getRequiredEncryptionKey } from '../lib/encryption-key';
 import { encrypt } from '../lib/encryption';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -22,13 +23,7 @@ export const setSystemCredential = action({
   handler: async (ctx: ActionCtx, args): Promise<Id<'systemCredentials'>> => {
     await requireAdmin(ctx);
 
-    const ENCRYPTION_KEY = process.env.CONVEX_ENCRYPTION_KEY;
-    if (!ENCRYPTION_KEY) {
-      throw new Error(
-        'CONVEX_ENCRYPTION_KEY environment variable is required. ' +
-          'Set it in your Convex dashboard under Settings > Environment Variables.'
-      );
-    }
+    const ENCRYPTION_KEY = getRequiredEncryptionKey();
 
     // Encrypt the API key if provided
     let encryptedBytes: number[] | null = null;
