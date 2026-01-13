@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderMarkdownSafe } from "../markdown-render";
+import { renderMarkdownSafe, renderPreviewHtml } from "../markdown-render";
 
 describe("renderMarkdownSafe", () => {
   it("strips script tags and unsafe attributes", () => {
@@ -15,5 +15,12 @@ describe("renderMarkdownSafe", () => {
     expect(html).toContain("<h2>");
     expect(html).toContain("<li>");
     expect(html).toContain("<code>");
+  });
+});
+
+describe("renderPreviewHtml", () => {
+  it("sanitizes preview output", () => {
+    const html = renderPreviewHtml("<script>alert(1)</script>");
+    expect(html).not.toContain("<script");
   });
 });

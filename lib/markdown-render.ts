@@ -39,3 +39,7 @@ export function renderMarkdownSafe(markdown: string): string {
   const raw = marked.parse(markdown, { mangle: false, headerIds: false });
   return sanitizeHtml(raw, SANITIZE_OPTIONS);
 }
+
+export function renderPreviewHtml(markdown: string): string {
+  return renderMarkdownSafe(markdown);
+}
