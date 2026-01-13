@@ -7,7 +7,16 @@ export type ToastEvent =
   | "ai_answer_error"
   | "ai_batch_start"
   | "ai_batch_done"
-  | "ai_batch_error";
+  | "ai_batch_error"
+  | "phase_start"
+  | "phase_done"
+  | "phase_error"
+  | "export_start"
+  | "export_done"
+  | "export_error"
+  | "artifact_delete_start"
+  | "artifact_delete_done"
+  | "artifact_delete_error";
 
 export type ToastMessage = {
   title: string;
@@ -49,6 +58,42 @@ const TOAST_MESSAGES: Record<ToastEvent, ToastMessage> = {
   },
   ai_batch_error: {
     title: "Batch generation failed",
+    description: "Try again in a moment",
+  },
+  phase_start: {
+    title: "Phase generating",
+    description: "Building the artifact draft",
+  },
+  phase_done: {
+    title: "Phase ready",
+    description: "Review the generated artifact",
+  },
+  phase_error: {
+    title: "Phase generation failed",
+    description: "Try again in a moment",
+  },
+  export_start: {
+    title: "Preparing export",
+    description: "Building your ZIP file",
+  },
+  export_done: {
+    title: "Export ready",
+    description: "Download should start shortly",
+  },
+  export_error: {
+    title: "Export failed",
+    description: "Try again in a moment",
+  },
+  artifact_delete_start: {
+    title: "Deleting artifact",
+    description: "Removing the selected artifact",
+  },
+  artifact_delete_done: {
+    title: "Artifact deleted",
+    description: "The artifact has been removed",
+  },
+  artifact_delete_error: {
+    title: "Artifact deletion failed",
     description: "Try again in a moment",
   },
 };

@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { getToastMessage } from "@/lib/notifications";
 import { Loader2, Check, RefreshCw, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 type Question = {
   id: string;
@@ -131,8 +133,23 @@ export function QuestionsPanel({
 
   async function handleRegenerateQuestions() {
     setIsRegenerating(true);
+    const startToast = getToastMessage("questions_start");
+    const toastId = toast.message(startToast.title, {
+      description: startToast.description,
+    });
     try {
       await generateQuestions({ projectId, phaseId });
+      const doneToast = getToastMessage("questions_done");
+      toast.success(doneToast.title, {
+        id: toastId,
+        description: doneToast.description,
+      });
+    } catch (error) {
+      const errorToast = getToastMessage("questions_error");
+      toast.error(errorToast.title, {
+        id: toastId,
+        description: errorToast.description,
+      });
     } finally {
       setIsRegenerating(false);
     }
@@ -142,6 +159,10 @@ export function QuestionsPanel({
     console.log('[DEBUG] handleAiSuggest called for questionId:', questionId);
     setAiGeneratingId(questionId);
     setErrorMessage(null);
+    const startToast = getToastMessage("ai_answer_start");
+    const toastId = toast.message(startToast.title, {
+      description: startToast.description,
+    });
     try {
       console.log('[DEBUG] Calling generateQuestionAnswer action...');
       const result = await generateQuestionAnswer({
@@ -166,9 +187,19 @@ export function QuestionsPanel({
       pendingSaveRef.current[questionId] = result.suggestedAnswer;
       pendingAiGeneratedRef.current[questionId] = true;
       console.log('[DEBUG] Set pendingSaveRef for', questionId, ':', result.suggestedAnswer);
+      const doneToast = getToastMessage("ai_answer_done");
+      toast.success(doneToast.title, {
+        id: toastId,
+        description: doneToast.description,
+      });
     } catch (error: any) {
       console.error("Failed to generate AI answer:", error);
       setErrorMessage(error.message || "Failed to generate AI answer. Please try again.");
+      const errorToast = getToastMessage("ai_answer_error");
+      toast.error(errorToast.title, {
+        id: toastId,
+        description: errorToast.description,
+      });
     } finally {
       setAiGeneratingId(null);
     }
@@ -180,6 +211,10 @@ export function QuestionsPanel({
     setBatchProgress(0);
     setBatchAnswers([]);
     setErrorMessage(null);
+    const startToast = getToastMessage("ai_batch_start");
+    const toastId = toast.message(startToast.title, {
+      description: startToast.description,
+    });
 
     try {
       const result = await generateAllQuestionAnswers({
@@ -189,10 +224,20 @@ export function QuestionsPanel({
 
       setBatchAnswers(result.answers);
       setBatchProgress(result.answers.length);
+      const doneToast = getToastMessage("ai_batch_done");
+      toast.success(doneToast.title, {
+        id: toastId,
+        description: doneToast.description,
+      });
     } catch (error: any) {
       console.error("Failed to generate batch answers:", error);
       setErrorMessage(error.message || "Failed to generate answers. Please try again.");
       setIsBatchModalOpen(false);
+      const errorToast = getToastMessage("ai_batch_error");
+      toast.error(errorToast.title, {
+        id: toastId,
+        description: errorToast.description,
+      });
     } finally {
       setIsBatchGenerating(false);
     }

@@ -3,6 +3,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "next-themes";
 import { ConvexClientProvider } from "@/lib/auth";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "SpecForge",
@@ -73,6 +74,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <main className="pt-20 min-h-screen">
                 {children}
               </main>
+              <Toaster
+                theme="dark"
+                position="top-right"
+                closeButton
+                toastOptions={{
+                  classNames: {
+                    toast:
+                      "bg-card border-2 border-border rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.3)] font-grotesk text-foreground",
+                    title: "font-bold uppercase tracking-wide text-xs",
+                    description: "text-xs text-muted-foreground",
+                    success: "border-success/60",
+                    error: "border-destructive/60",
+                    warning: "border-warning/60",
+                    info: "border-accent/60",
+                  },
+                }}
+              />
             </ConvexClientProvider>
           </ThemeProvider>
         </ClerkProvider>

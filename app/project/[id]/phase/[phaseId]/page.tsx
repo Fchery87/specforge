@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Loader2, Download, Archive, ArrowLeft, Sparkles, FileText, Layers, Code, Package } from "lucide-react";
+import { toast } from "sonner";
+import { getToastMessage } from "@/lib/notifications";
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
   brief: { label: "Brief", icon: FileText, description: "Define your project scope and goals" },
@@ -47,8 +49,23 @@ export default function PhasePage() {
 
   async function handleGeneratePhase() {
     setIsGenerating(true);
+    const startToast = getToastMessage("phase_start");
+    const toastId = toast.message(startToast.title, {
+      description: startToast.description,
+    });
     try {
       await generatePhase({ projectId: projectId as any, phaseId });
+      const doneToast = getToastMessage("phase_done");
+      toast.success(doneToast.title, {
+        id: toastId,
+        description: doneToast.description,
+      });
+    } catch (error) {
+      const errorToast = getToastMessage("phase_error");
+      toast.error(errorToast.title, {
+        id: toastId,
+        description: errorToast.description,
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -56,6 +73,10 @@ export default function PhasePage() {
 
   async function handleDownloadZip() {
     setIsDownloadingZip(true);
+    const startToast = getToastMessage("export_start");
+    const toastId = toast.message(startToast.title, {
+      description: startToast.description,
+    });
     try {
       if (!project?.zipStorageId) {
         await generateZip({ projectId: projectId as any });
@@ -67,9 +88,25 @@ export default function PhasePage() {
 
       if (zipUrl) {
         window.location.href = zipUrl;
+        const doneToast = getToastMessage("export_done");
+        toast.success(doneToast.title, {
+          id: toastId,
+          description: doneToast.description,
+        });
       } else {
         console.warn("ZIP download is not available yet.");
+        const errorToast = getToastMessage("export_error");
+        toast.error(errorToast.title, {
+          id: toastId,
+          description: errorToast.description,
+        });
       }
+    } catch (error) {
+      const errorToast = getToastMessage("export_error");
+      toast.error(errorToast.title, {
+        id: toastId,
+        description: errorToast.description,
+      });
     } finally {
       setIsDownloadingZip(false);
     }
