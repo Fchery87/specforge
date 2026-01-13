@@ -2,66 +2,123 @@
 
 SpecForge is a high-performance scaffold designed for building **repo-native**, **spec-driven**, and **LLM-agnostic** applications. It provides a solid foundation for generating, previewing, and exporting complex project architectures.
 
-## 🚀 Tech Stack
+## Tech Stack
 
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router with Turbopack)
 - **Runtime**: [Bun](https://bun.sh/)
 - **Database & Backend**: [Convex](https://www.convex.dev/)
 - **Authentication**: [Clerk](https://clerk.com/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) (Brutalist + Dark Mode)
 - **Components**: [Radix UI](https://www.radix-ui.com/) + [Framer Motion](https://www.framer.com/motion/)
+- **Testing**: [Vitest](https://vitest.dev/)
 - **Utilities**: [Lucide React](https://lucide.dev/), [JSZip](https://stuk.github.io/jszip/)
 
-## ✨ Key Features
+## Key Features
 
-- **Phase-Based Workflow**: Structured project generation across multiple phases.
-- **Anti-Truncation Foundation**: Chunked generation helpers to handle large LLM outputs.
-- **Artifact Management**: Real-time preview and individual download of generated artifacts.
-- **Project Export**: Full project ZIP export functionality.
-- **Enterprise Ready**: Designed to scale from startup prototypes to enterprise systems.
+- **Phase-Based Workflow**: Structured project generation across multiple phases (Brief → PRD → Specs → Stories → Handoff)
+- **Anti-Truncation Foundation**: Chunked generation helpers to handle large LLM outputs
+- **Multi-LLM Support**: OpenAI, Anthropic, Mistral, Z.AI, and Minimax providers
+- **Artifact Management**: Real-time preview and individual download of generated artifacts
+- **Project Export**: Full project ZIP export functionality
+- **System & User Credentials**: Encrypted credential storage with flexible provider selection
 
-## 🛠️ Quickstart
+## Quickstart
 
-### 1. Installation
+### Prerequisites
+
+- Bun 1.0+ (`curl -fsSL https://bun.sh/install | bash`)
+- Node.js 18+
+
+### Installation
 
 ```bash
 bun install
 ```
 
-### 2. Environment Setup
+### Environment Setup
 
-Copy `.env.example` to `.env.local` and configure your credentials:
-
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` & `CLERK_SECRET_KEY`
-- `NEXT_PUBLIC_CONVEX_URL`
-
-### 3. Development
-
-Start the Next.js development server:
+Copy `.env.example` to `.env.local` and configure:
 
 ```bash
+cp .env.example .env.local
+```
+
+Required variables:
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk publishable key
+- `CLERK_SECRET_KEY` - Clerk secret key
+- `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL (auto-set by `bunx convex dev`)
+
+### Development
+
+Start both servers in separate terminals:
+
+```bash
+# Terminal 1: Convex backend
+bunx convex dev
+
+# Terminal 2: Next.js frontend
 bun run dev
 ```
 
-In a separate terminal, start the Convex development environment:
+Visit `http://localhost:3000`
+
+### Build & Deploy
 
 ```bash
-bunx convex dev
+# Production build
+bun run build
+
+# Deploy Convex
+bunx convex deploy
 ```
 
-## 📂 Project Structure
+## Project Structure
 
-- `app/`: Next.js application routes and layouts.
-- `components/`: Reusable UI components.
-- `convex/`: Backend schema, mutations, and actions.
-- `lib/`: Shared utilities (LLM registry, ZIP helpers, etc.).
-- `docs/`: Technical documentation and architecture overviews.
+```
+specforge/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Auth-protected routes (Clerk)
+│   │   ├── dashboard/     # Project list & creation
+│   │   ├── admin/         # Admin dashboard & LLM models
+│   │   ├── settings/      # User LLM configuration
+│   │   └── {sign-in,sign-up}/
+│   ├── api/               # API routes (health check)
+│   ├── project/[id]/      # Project & phase pages
+│   └── layout.tsx         # Root layout with providers
+├── components/            # React components
+│   ├── ui/               # Radix UI primitives
+│   └── *.tsx             # Feature components
+├── convex/               # Convex backend
+│   ├── actions/          # Server actions (LLM calls)
+│   ├── lib/              # Convex utilities
+│   ├── schema.ts         # Database schema
+│   └── *.ts              # Queries & mutations
+├── lib/                  # Shared utilities
+│   ├── llm/              # LLM providers, registry, chunking
+│   ├── encryption.ts     # Credential encryption
+│   └── zip.ts            # ZIP generation
+├── docs/                 # Documentation
+└── .claude/              # Claude Code configuration
+```
 
-## 📌 Implementation Notes
+## Documentation
 
-- LLM adapters in `lib/llm/*` should be updated with specific provider clients (OpenAI, Anthropic, etc.).
-- The section-based generation pattern is demonstrated in `convex/actions/generatePhase.ts`.
-- Admin pages for managing models and limits are available under `/admin`.
+- [Architecture](docs/ARCHITECTURE.md) - System design and data models
+- [Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md) - Feature status
+- [Code Review Handoff](docs/CODE_REVIEW_HANDOFF.md) - Review checklist
+- [AI Question Answering](docs/features/ai-question-answering.md) - Feature spec
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | Start Next.js development server |
+| `bunx convex dev` | Start Convex development server |
+| `bun run build` | Production build |
+| `bun run lint` | Run ESLint |
+| `bun run typecheck` | TypeScript type checking |
+| `bun test` | Run unit tests |
+| `bun test --coverage` | Run tests with coverage |
 
 ---
 

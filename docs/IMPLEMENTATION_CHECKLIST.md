@@ -1,13 +1,13 @@
 # SpecForge Implementation Checklist
 
 **Last Updated:** January 10, 2026  
-**Status:** ✅ ALL COMPLETE
+**Status:** ALL COMPLETE
 
 ---
 
-## ✅ Completed Items
+## Completed Items
 
-- [x] Next.js 16.1.1 + React 19.2.0 + Convex 1.31.2 + Clerk 6.36.7 setup
+- [x] Next.js 16.1.1 + React 19.2.0 + Convex 1.22.0 + Clerk 6.36.7 setup
 - [x] Convex schema: projects, phases, artifacts, llmModels, userLlmConfigs
 - [x] Clerk middleware (middleware.ts) for auth protection
 - [x] Dashboard auth fix (async auth() for Clerk v6)
@@ -121,7 +121,7 @@ lib/
 next@16.1.1
 react@19.2.0
 react-dom@19.2.0
-convex@1.31.2
+convex@1.22.0
 @clerk/nextjs@6.36.7
 @clerk/clerk-react@5.59.3
 @tanstack/react-query@5.71.10

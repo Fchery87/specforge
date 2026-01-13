@@ -259,7 +259,7 @@ bun run build
 ## 📊 Project Stats
 
 - **Framework:** Next.js 16.1.1 + React 19.2.0
-- **Backend:** Convex 1.31.2
+- **Backend:** Convex 1.22.0
 - **Auth:** Clerk 6.36.7
 - **Package Manager:** Bun
 
