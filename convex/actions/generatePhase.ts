@@ -27,6 +27,7 @@ import { createLlmClient } from '../../lib/llm/client-factory';
 import { retryWithBackoff } from '../../lib/llm/retry';
 import { continueIfTruncated } from '../../lib/llm/continuation';
 import { rateLimiter } from '../rateLimiter';
+import { renderPreviewHtml } from '../../lib/markdown-render';
 
 interface Question {
   id: string;
@@ -34,6 +35,10 @@ interface Question {
   answer?: string;
   aiGenerated: boolean;
   required?: boolean;
+}
+
+export function hasMissingRequiredAnswers(questions: Question[]): boolean {
+  return questions.some((q) => q.required && !q.answer?.trim());
 }
 
 export const generatePhase = action({
@@ -80,6 +85,12 @@ export const generatePhase = action({
 
     const questions = phaseData.questions || [];
     const answeredQuestions = questions.filter((q: Question) => q.answer);
+
+    if (hasMissingRequiredAnswers(questions) && args.phaseId !== 'handoff') {
+      throw new Error(
+        'Please answer all required questions before generating'
+      );
+    }
 
     if (answeredQuestions.length === 0 && args.phaseId !== 'handoff') {
       throw new Error('Please answer at least one question before generating');
@@ -273,7 +284,7 @@ export const generatePhase = action({
 
       // Merge sections into final content
       const content = mergeSectionContent(generatedSections);
-      const previewHtml = generatePreviewHtml(content);
+      const previewHtml = renderPreviewHtml(content);
 
       // Calculate section metadata
       const sections = generatedSections.map((section) => ({
@@ -651,21 +662,6 @@ function formatSectionName(name: string): string {
     .split('-')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
-}
-
-function generatePreviewHtml(content: string): string {
-  // Simple markdown to HTML conversion for preview
-  return content
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
 }
 
 function getPhaseTitle(phaseId: string): string {
