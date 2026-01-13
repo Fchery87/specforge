@@ -49,6 +49,24 @@ export function planSections(
   }));
 }
 
+export function expandSectionsForBudget({
+  sectionNames,
+  estimatedTokens,
+  maxTokensPerSection,
+}: {
+  sectionNames: string[];
+  estimatedTokens: number;
+  maxTokensPerSection: number;
+}): string[] {
+  if (sectionNames.length !== 1) return sectionNames;
+  const needed = Math.max(1, Math.ceil(estimatedTokens / maxTokensPerSection));
+  if (needed === 1) return sectionNames;
+  return Array.from(
+    { length: needed },
+    (_, i) => `${sectionNames[0]}-part-${i + 1}`
+  );
+}
+
 export function estimateTokenCount(text: string): number {
   // Rough estimate: ~4 characters per token on average
   return Math.ceil(text.length / 4);

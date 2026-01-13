@@ -15,6 +15,7 @@ describe("toast messages", () => {
   it("returns text for phase and export events", () => {
     expect(getToastMessage("phase_start").title).toBe("Phase generating");
     expect(getToastMessage("phase_done").title).toBe("Phase ready");
+    expect(getToastMessage("phase_continued").title).toBe("Phase extended");
     expect(getToastMessage("export_start").title).toBe("Preparing export");
     expect(getToastMessage("export_done").title).toBe("Export ready");
   });

@@ -54,12 +54,18 @@ export default function PhasePage() {
       description: startToast.description,
     });
     try {
-      await generatePhase({ projectId: projectId as any, phaseId });
+      const result = await generatePhase({ projectId: projectId as any, phaseId });
       const doneToast = getToastMessage("phase_done");
       toast.success(doneToast.title, {
         id: toastId,
         description: doneToast.description,
       });
+      if (result?.continuedSections) {
+        const continuedToast = getToastMessage("phase_continued");
+        toast.message(continuedToast.title, {
+          description: `${continuedToast.description} (${result.continuedSections} section${result.continuedSections === 1 ? "" : "s"})`,
+        });
+      }
     } catch (error) {
       const errorToast = getToastMessage("phase_error");
       toast.error(errorToast.title, {

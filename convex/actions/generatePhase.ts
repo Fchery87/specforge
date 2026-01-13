@@ -7,6 +7,7 @@ import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
   FALLBACK_MODELS,
+  expandSectionsForBudget,
   getSectionPlan,
   planSections,
   mergeSectionContent,
@@ -23,8 +24,8 @@ import type { SectionPlan, ProviderCredentials, LlmModel } from '../../lib/llm/t
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
-import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff } from '../../lib/llm/retry';
+import { continueIfTruncated } from '../../lib/llm/continuation';
 import { rateLimiter } from '../rateLimiter';
 
 interface Question {
@@ -44,7 +45,11 @@ export const generatePhase = action({
   handler: async (
     ctx: ActionCtx,
     args
-  ): Promise<{ artifactId: Id<'artifacts'>; status: string }> => {
+  ): Promise<{
+    artifactId: Id<'artifacts'>;
+    status: string;
+    continuedSections: number;
+  }> => {
     const project = await ctx.runQuery(api.projects.getProject, {
       projectId: args.projectId,
     });
@@ -216,7 +221,18 @@ export const generatePhase = action({
 
     // Get section plan based on phase
     const sectionNames = getSectionPlan(artifactType, args.phaseId);
-    const sectionPlan = planSections(model, sectionNames, 0.5);
+    const questionsText = answeredQuestions
+      .map((q: Question) => `${q.text} ${q.answer ?? ''}`.trim())
+      .join('\n');
+    const estimatedTokens =
+      estimateTokenCount(
+        `${project.title}\n${project.description}\n${questionsText}`
+      ) * 6;
+    const sectionPlan = planSectionsForPhase({
+      sectionNames,
+      estimatedTokens,
+      model,
+    });
 
     // Build project context from questions
     const projectContext = {
@@ -242,7 +258,8 @@ export const generatePhase = action({
 
     try {
       // Generate sections using LLM
-      const generatedSections = await generateSectionsWithSelfCritique({
+      const { sections: generatedSections, continuedSections } =
+        await generateSectionsWithSelfCritique({
         ctx,
         projectId: args.projectId,
         projectContext,
@@ -286,7 +303,7 @@ export const generatePhase = action({
         status: 'ready',
       });
 
-      return { artifactId, status: 'success' };
+      return { artifactId, status: 'success', continuedSections };
     } catch (error) {
       await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
         projectId: args.projectId,
@@ -314,9 +331,29 @@ interface GenerateSectionsParams {
   providerInfo: string;
 }
 
+export function planSectionsForPhase(params: {
+  sectionNames: string[];
+  estimatedTokens: number;
+  model: LlmModel;
+}): SectionPlan[] {
+  const maxTokensPerSection = Math.max(
+    256,
+    Math.floor(params.model.maxOutputTokens * 0.8)
+  );
+  const expandedNames = expandSectionsForBudget({
+    sectionNames: params.sectionNames,
+    estimatedTokens: params.estimatedTokens,
+    maxTokensPerSection,
+  });
+  return planSections(params.model, expandedNames, 0.8);
+}
+
 async function generateSectionsWithSelfCritique(
   params: GenerateSectionsParams
-): Promise<Array<{ name: string; content: string }>> {
+): Promise<{
+  sections: Array<{ name: string; content: string }>;
+  continuedSections: number;
+}> {
   const {
     sectionPlan,
     projectContext,
@@ -328,6 +365,7 @@ async function generateSectionsWithSelfCritique(
   } = params;
 
   const sections: Array<{ name: string; content: string }> = [];
+  let continuedSections = 0;
   const enableSelfCritique = false;
 
   for (let i = 0; i < sectionPlan.length; i++) {
@@ -336,7 +374,7 @@ async function generateSectionsWithSelfCritique(
     const sectionQuestions = extractRelevantQuestions(questions, section.name);
 
     // Generate section content
-    const content = await generateSectionContent({
+    const response = await generateSectionContent({
       projectContext,
       sectionName: section.name,
       sectionInstructions: getSectionInstructions(phaseId, section.name),
@@ -349,7 +387,11 @@ async function generateSectionsWithSelfCritique(
       phaseId,
     });
 
-    const normalizedContent = stripLeadingHeading(content);
+    if (response.continued) {
+      continuedSections += 1;
+    }
+
+    const normalizedContent = stripLeadingHeading(response.content);
     const improved = enableSelfCritique
       ? await selfCritiqueSection({
           content: normalizedContent,
@@ -366,10 +408,10 @@ async function generateSectionsWithSelfCritique(
     });
   }
 
-  return sections;
+  return { sections, continuedSections };
 }
 
-async function generateSectionContent(params: {
+export async function generateSectionContent(params: {
   projectContext: { title: string; description: string; questions: string };
   sectionName: string;
   sectionInstructions: string;
@@ -380,7 +422,7 @@ async function generateSectionContent(params: {
   llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
   phaseId: string;
-}): Promise<string> {
+}): Promise<{ content: string; continued: boolean }> {
   const { llmClient, model, maxTokens } = params;
 
   // Guard: No LLM client available
@@ -388,7 +430,10 @@ async function generateSectionContent(params: {
     console.warn(
       '[generateSectionContent] No LLM client available, using fallback'
     );
-    return `## ${formatSectionName(params.sectionName)}\n\n_Content generation requires LLM configuration. Please configure your API keys in Settings._`;
+    return {
+      content: `## ${formatSectionName(params.sectionName)}\n\n_Content generation requires LLM configuration. Please configure your API keys in Settings._`,
+      continued: false,
+    };
   }
 
   // Build the prompt
@@ -418,21 +463,30 @@ ${
 }
 Generate the "${params.sectionName}" section now:`;
 
-  try {
-    const response = await retryWithBackoff(
-      () =>
-        llmClient.complete(`${systemPrompt}\n\n${userPrompt}`, {
-          model: model.id,
-          maxTokens: Math.min(
-            maxTokens,
-            LLM_DEFAULTS.SECTION_GENERATION_TOKENS
-          ),
-          temperature: 0.7,
-        }),
-      { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
-    );
+  const basePrompt = `${systemPrompt}\n\n${userPrompt}`;
 
-    return response.content;
+  try {
+    const response = await continueIfTruncated({
+      prompt: basePrompt,
+      maxTurns: 3,
+      continuationPrompt: (soFar) =>
+        `${systemPrompt}\n\nContinue from the last sentence. Do not repeat content. Use markdown and continue exactly where you left off.\n\nCurrent content:\n${soFar}`,
+      complete: (prompt) =>
+        retryWithBackoff(
+          () =>
+            llmClient.complete(prompt, {
+              model: model.id,
+              maxTokens: Math.min(maxTokens, model.maxOutputTokens),
+              temperature: 0.7,
+            }),
+          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
+        ),
+    });
+
+    return {
+      content: response.content,
+      continued: response.continued,
+    };
   } catch (error: any) {
     console.error(`[generateSectionContent] LLM call failed:`, error?.message);
     throw new Error(
