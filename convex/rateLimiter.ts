@@ -18,11 +18,30 @@ const RATE_LIMIT_CONFIG = {
     rate: 30,
     capacity: 50, // Allow bursts up to 50
   },
+  // Limit question generation: 10 per minute per user
+  generateQuestions: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 10,
+    capacity: 15,
+  },
+  // Limit ZIP generation: 5 per minute per user
+  generateProjectZip: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 5,
+    capacity: 8,
+  },
   // Global limits to prevent abuse
   globalPhaseGen: {
     kind: "fixed window" as const,
     period: MINUTE,
     rate: 100, // 100 total per minute across all users
+  },
+  globalZipGen: {
+    kind: "fixed window" as const,
+    period: MINUTE,
+    rate: 30,
   },
 };
 

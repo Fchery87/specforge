@@ -5,6 +5,7 @@ import type { ActionCtx } from "../_generated/server";
 import { api, internal as internalApi } from "../_generated/api";
 import { v } from "convex/values";
 import { createZip, sanitizeZipPathSegment } from "../../lib/zip";
+import { rateLimiter } from "../rateLimiter";
 
 export const generateProjectZip = action({
   args: { projectId: v.id("projects") },
@@ -14,6 +15,10 @@ export const generateProjectZip = action({
     
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+
+    const userId = identity.tokenIdentifier;
+    await rateLimiter.limit(ctx, "generateProjectZip", { key: userId, throws: true });
+    await rateLimiter.limit(ctx, "globalZipGen", { throws: true });
 
     const artifacts = await ctx.runQuery(api.projects.getPhaseArtifacts, { projectId: args.projectId });
 

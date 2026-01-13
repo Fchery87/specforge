@@ -16,6 +16,7 @@ import type { SystemCredential } from "../../lib/llm/registry";
 import { createLlmClient } from "../../lib/llm/client-factory";
 import { LLM_DEFAULTS } from "../../lib/llm/response-normalizer";
 import { retryWithBackoff } from "../../lib/llm/retry";
+import { rateLimiter } from "../rateLimiter";
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -143,6 +144,9 @@ export const generateQuestions = action({
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+
+    const userId = identity.tokenIdentifier;
+    await rateLimiter.limit(ctx, "generateQuestions", { key: userId, throws: true });
 
     const range = PHASE_QUESTION_RANGE[args.phaseId] || { min: 5, max: 8 };
     const baseQuestions = PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS["brief"];
