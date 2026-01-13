@@ -47,6 +47,7 @@ Required variables:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk publishable key
 - `CLERK_SECRET_KEY` - Clerk secret key
 - `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL (auto-set by `bunx convex dev`)
+- `CONVEX_ENCRYPTION_KEY` - required for encrypting stored credentials
 
 ### Development
 
