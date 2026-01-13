@@ -4,7 +4,7 @@ import { action } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
 import { api, internal as internalApi } from "../_generated/api";
 import { v } from "convex/values";
-import { createZip } from "../../lib/zip";
+import { createZip, sanitizeZipPathSegment } from "../../lib/zip";
 
 export const generateProjectZip = action({
   args: { projectId: v.id("projects") },
@@ -17,7 +17,10 @@ export const generateProjectZip = action({
 
     const artifacts = await ctx.runQuery(api.projects.getPhaseArtifacts, { projectId: args.projectId });
 
-    const entries = artifacts.map((a: any) => ({ path: `${a.phaseId}/${a.title}.md`, content: a.content }));
+    const entries = artifacts.map((a: any) => ({
+      path: `${sanitizeZipPathSegment(a.phaseId)}/${sanitizeZipPathSegment(a.title)}.md`,
+      content: a.content,
+    }));
     entries.push({ path: "handoff/README.md", content: "# Project Export\n\nExported from SpecForge.\n" });
 
     const zipBytes = await createZip(entries);

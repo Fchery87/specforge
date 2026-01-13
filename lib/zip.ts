@@ -182,3 +182,14 @@ export async function zipFolderToUint8Array(folder: ZipFolder): Promise<Uint8Arr
 
   return await zip.generateAsync({ type: "uint8array" });
 }
+
+export function sanitizeZipPathSegment(value: string): string {
+  return value
+    .replace(/\.+/g, "")
+    .replace(/[\\/]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "")
+    .trim();
+}
