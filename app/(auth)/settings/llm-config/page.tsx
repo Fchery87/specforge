@@ -47,9 +47,6 @@ export default function LlmConfigPage() {
         setUserConfig(config);
         if (config) {
           setProvider(config.provider);
-          if (config.apiKey) {
-            setApiKey(config.apiKey);
-          }
           setDefaultModel(config.defaultModel);
           setUseSystem(config.useSystem);
           if (config.systemKeyId) {
@@ -235,7 +232,9 @@ export default function LlmConfigPage() {
               placeholder={
                 useSystem
                   ? "Leave empty to use system credentials"
-                  : `Enter your ${currentProvider?.name} API key`
+                  : userConfig?.hasApiKey
+                    ? "API key saved (re-enter to replace)"
+                    : `Enter your ${currentProvider?.name} API key`
               }
               disabled={useSystem}
               className={cn(useSystem && "opacity-50")}
@@ -384,8 +383,8 @@ export default function LlmConfigPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-white/60">API Key:</span>
-                <Badge variant={userConfig.apiKey ? "default" : "secondary"}>
-                  {userConfig.apiKey ? "••••••••" : "System"}
+                <Badge variant={userConfig.hasApiKey ? "default" : "secondary"}>
+                  {userConfig.hasApiKey ? "••••••••" : "System"}
                 </Badge>
               </div>
             </div>

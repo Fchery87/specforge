@@ -6,6 +6,7 @@ import { v } from 'convex/values';
 import { getRequiredEncryptionKey } from '../lib/encryption-key';
 import { encrypt, decrypt } from '../lib/encryption';
 import { resolveSystemKeyId } from '../lib/user-config';
+import { toPublicUserConfig } from '../lib/llm/user-config-public';
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 
@@ -45,7 +46,7 @@ export const getUserConfig = action({
       }
     }
 
-    return {
+    return toPublicUserConfig({
       userId: config.userId,
       provider: config.provider,
       apiKey: decryptedApiKey,
@@ -54,7 +55,7 @@ export const getUserConfig = action({
       systemKeyId: config.systemKeyId,
       zaiEndpointType: config.zaiEndpointType,
       zaiIsChina: config.zaiIsChina,
-    };
+    });
   },
 });
 
