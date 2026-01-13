@@ -23,8 +23,8 @@ import type { SectionPlan, ProviderCredentials, LlmModel } from '../../lib/llm/t
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
-import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff } from '../../lib/llm/retry';
+import { continueIfTruncated } from '../../lib/llm/continuation';
 import { rateLimiter } from '../rateLimiter';
 
 interface Question {
@@ -369,7 +369,7 @@ async function generateSectionsWithSelfCritique(
   return sections;
 }
 
-async function generateSectionContent(params: {
+export async function generateSectionContent(params: {
   projectContext: { title: string; description: string; questions: string };
   sectionName: string;
   sectionInstructions: string;
@@ -418,19 +418,25 @@ ${
 }
 Generate the "${params.sectionName}" section now:`;
 
+  const basePrompt = `${systemPrompt}\n\n${userPrompt}`;
+
   try {
-    const response = await retryWithBackoff(
-      () =>
-        llmClient.complete(`${systemPrompt}\n\n${userPrompt}`, {
-          model: model.id,
-          maxTokens: Math.min(
-            maxTokens,
-            LLM_DEFAULTS.SECTION_GENERATION_TOKENS
-          ),
-          temperature: 0.7,
-        }),
-      { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
-    );
+    const response = await continueIfTruncated({
+      prompt: basePrompt,
+      maxTurns: 3,
+      continuationPrompt: (soFar) =>
+        `${systemPrompt}\n\nContinue from the last sentence. Do not repeat content. Use markdown and continue exactly where you left off.\n\nCurrent content:\n${soFar}`,
+      complete: (prompt) =>
+        retryWithBackoff(
+          () =>
+            llmClient.complete(prompt, {
+              model: model.id,
+              maxTokens: Math.min(maxTokens, model.maxOutputTokens),
+              temperature: 0.7,
+            }),
+          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
+        ),
+    });
 
     return response.content;
   } catch (error: any) {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   extractRelevantQuestions,
+  generateSectionContent,
   stripLeadingHeading,
 } from "../generatePhase";
 
@@ -26,5 +27,37 @@ describe("generatePhase helpers", () => {
   it("strips leading headings from content", () => {
     const content = "## Architecture Overview\n\nDetails here";
     expect(stripLeadingHeading(content)).toBe("Details here");
+  });
+
+  it("continues when the model truncates output", async () => {
+    const responses = [
+      { content: "Part 1", finishReason: "length" },
+      { content: "Part 2", finishReason: "stop" },
+    ];
+    const llmClient = {
+      complete: async () => responses.shift(),
+    } as any;
+
+    const result = await generateSectionContent({
+      projectContext: { title: "T", description: "D", questions: "" },
+      sectionName: "test",
+      sectionInstructions: "",
+      sectionQuestions: [],
+      previousSections: [],
+      model: {
+        id: "m",
+        provider: "openai",
+        contextTokens: 1,
+        maxOutputTokens: 2000,
+        defaultMax: 1000,
+      },
+      maxTokens: 2000,
+      llmClient,
+      providerInfo: "",
+      phaseId: "brief",
+    });
+
+    expect(result).toContain("Part 1");
+    expect(result).toContain("Part 2");
   });
 });
