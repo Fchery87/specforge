@@ -209,7 +209,7 @@ export default function LlmModelsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">LLM Configuration</h1>
-          <p className="text-white/70 mt-2">Manage LLM models and system credentials</p>
+          <p className="text-white/70 mt-2">Manage global LLM models and system credentials for shared use.</p>
         </div>
       </div>
 
@@ -486,7 +486,8 @@ export default function LlmModelsPage() {
                 <CardTitle>System Credentials</CardTitle>
               </div>
               <CardDescription>
-                Configure API keys for each provider to enable the "Use System Credentials" option for users.
+                Configure provider API keys that non-admin users can opt into via "Use System Credentials".
+                System credentials are never exposed to non-admins; only admins can view and manage global settings.
                 All API keys are encrypted before storage.
               </CardDescription>
             </CardHeader>

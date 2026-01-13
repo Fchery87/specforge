@@ -110,6 +110,8 @@ export const deleteModel = mutation({
 });
 
 // System credentials management for admins
+// Admin-only: global LLM configuration for shared system credentials.
+// Non-admins must never access these models or credentials.
 export const listSystemCredentials = query({
   args: {},
   handler: async (ctx: QueryCtx) => {
