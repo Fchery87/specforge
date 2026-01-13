@@ -118,10 +118,10 @@ export const generatePhase = action({
     );
 
     // Get enabled models from database
-    const enabledModelsFromDb = await ctx.runQuery(api.admin.listAllModels);
-    const enabledModels = (enabledModelsFromDb || []).filter(
-      (m: Doc<'llmModels'>) => m.enabled
+    const enabledModelsFromDb = await ctx.runQuery(
+      internalApi.internal.llmModels.listEnabledModelsInternal
     );
+    const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
     console.log(
       '[generatePhase] Enabled models from DB:',
       enabledModels.map((m: Doc<'llmModels'>) => `${m.provider}:${m.modelId}`)

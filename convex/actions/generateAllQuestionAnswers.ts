@@ -85,10 +85,10 @@ export const generateAllQuestionAnswers = action({
     );
 
     // Get model
-    const enabledModelsFromDb = await ctx.runQuery(api.admin.listAllModels);
-    const enabledModels = (enabledModelsFromDb || []).filter(
-      (m: Doc<'llmModels'>) => m.enabled
+    const enabledModelsFromDb = await ctx.runQuery(
+      internalApi.internal.llmModels.listEnabledModelsInternal
     );
+    const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
 
     let model: LlmModel;
     if (credentials?.modelId && credentials.modelId !== '') {
