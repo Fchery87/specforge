@@ -10,6 +10,7 @@ import {
   getFallbackModel,
   resolveCredentials,
 } from '../../lib/llm/registry';
+import { selectEnabledModels } from '../../lib/llm/model-select';
 import type { LlmModel, ProviderCredentials } from '../../lib/llm/types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
@@ -98,7 +99,7 @@ export const generateQuestionAnswer = action({
 
     // Get model
     const enabledModelsFromDb = await ctx.runQuery(
-      internalApi.internal.llmModels.listEnabledModelsInternal
+      internalApi.llmModels.listEnabledModelsInternal
     );
     const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
 

@@ -18,6 +18,7 @@ import {
   validateModelForArtifact,
   resolveCredentials,
 } from '../../lib/llm/registry';
+import { selectEnabledModels } from '../../lib/llm/model-select';
 import type { SectionPlan, ProviderCredentials, LlmModel } from '../../lib/llm/types';
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import type { SystemCredential } from '../../lib/llm/registry';
@@ -119,7 +120,7 @@ export const generatePhase = action({
 
     // Get enabled models from database
     const enabledModelsFromDb = await ctx.runQuery(
-      internalApi.internal.llmModels.listEnabledModelsInternal
+      internalApi.llmModels.listEnabledModelsInternal
     );
     const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
     console.log(
