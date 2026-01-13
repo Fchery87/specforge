@@ -17,6 +17,7 @@ import { createLlmClient } from "../../lib/llm/client-factory";
 import { LLM_DEFAULTS } from "../../lib/llm/response-normalizer";
 import { retryWithBackoff } from "../../lib/llm/retry";
 import { rateLimiter } from "../rateLimiter";
+import { buildTelemetry } from "../../lib/llm/telemetry";
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -220,6 +221,9 @@ export const generateQuestions = action({
           range,
         });
 
+        const telemetryProvider = credentials?.provider ?? model.provider;
+        const telemetryModel = model.id;
+        const startedAt = Date.now();
         const response = await retryWithBackoff(
           () =>
             llmClient.complete(prompt, {
@@ -229,6 +233,21 @@ export const generateQuestions = action({
             }),
           { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
         );
+        const durationMs = Date.now() - startedAt;
+        console.info(
+          "[llm.telemetry]",
+          buildTelemetry({
+            provider: telemetryProvider,
+            model: telemetryModel,
+            durationMs,
+            success: true,
+            tokens: {
+              prompt: response.usage.promptTokens,
+              completion: response.usage.completionTokens,
+              total: response.usage.totalTokens,
+            },
+          })
+        );
         aiQuestions = normalizeQuestions(
           parseQuestionsResponse(response.content),
           args.phaseId,
@@ -236,6 +255,15 @@ export const generateQuestions = action({
         );
       }
     } catch {
+      console.warn(
+        "[llm.telemetry]",
+        buildTelemetry({
+          provider: credentials?.provider ?? "unknown",
+          model: "unknown",
+          success: false,
+          error: "generateQuestions failed",
+        })
+      );
       aiQuestions = [];
     }
 

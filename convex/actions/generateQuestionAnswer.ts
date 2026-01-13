@@ -17,6 +17,7 @@ import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
+import { buildTelemetry } from '../../lib/llm/telemetry';
 
 interface Question {
   id: string;
@@ -186,6 +187,7 @@ async function generateAnswer(params: {
   const llmClient = params.llmClient;
 
   try {
+    const startedAt = Date.now();
     const response = await retryWithBackoff(
       () =>
         llmClient.complete(params.prompt, {
@@ -195,9 +197,33 @@ async function generateAnswer(params: {
         }),
       { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
     );
+    const durationMs = Date.now() - startedAt;
+    console.info(
+      '[llm.telemetry]',
+      buildTelemetry({
+        provider: params.model.provider,
+        model: params.model.id,
+        durationMs,
+        success: true,
+        tokens: {
+          prompt: response.usage.promptTokens,
+          completion: response.usage.completionTokens,
+          total: response.usage.totalTokens,
+        },
+      })
+    );
 
     return response.content.trim();
   } catch (error: any) {
+    console.warn(
+      '[llm.telemetry]',
+      buildTelemetry({
+        provider: params.model.provider,
+        model: params.model.id,
+        success: false,
+        error: error?.message ?? 'Unknown error',
+      })
+    );
     console.error('LLM API error:', error);
     throw new Error(
       `Failed to generate answer: ${error.message || 'Unknown error'}`
