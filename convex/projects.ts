@@ -140,6 +140,7 @@ export const saveAnswer = mutation({
     phaseId: v.string(),
     questionId: v.string(),
     answer: v.string(),
+    aiGenerated: v.optional(v.boolean()),
   },
   handler: async (ctx: MutationCtx, args) => {
     const project = await ctx.db.get(args.projectId);
@@ -155,13 +156,33 @@ export const saveAnswer = mutation({
 
     if (!phase) throw new Error("Phase not found");
 
-    const updatedQuestions = phase.questions.map((q) =>
-      q.id === args.questionId ? { ...q, answer: args.answer } : q
+    const updatedQuestions = applyAnswerUpdate(
+      phase.questions,
+      args.questionId,
+      args.answer,
+      args.aiGenerated
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
   },
 });
+
+export function applyAnswerUpdate<T extends { id: string; aiGenerated?: boolean; answer?: string }>(
+  questions: T[],
+  questionId: string,
+  answer: string,
+  aiGenerated?: boolean
+): T[] {
+  return questions.map((q) =>
+    q.id === questionId
+      ? {
+          ...q,
+          answer,
+          ...(aiGenerated !== undefined ? { aiGenerated } : {}),
+        }
+      : q
+  );
+}
 
 export const updatePhaseQuestions = mutation({
   args: {

@@ -55,6 +55,7 @@ export function QuestionsPanel({
   const generateAllQuestionAnswers = useAction(generateAllQuestionAnswersAction);
 
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
+  const [localAiGenerated, setLocalAiGenerated] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -67,25 +68,29 @@ export function QuestionsPanel({
 
   // Track pending saves
   const pendingSaveRef = useRef<Record<string, string>>({});
+  const pendingAiGeneratedRef = useRef<Record<string, boolean>>({});
 
   // Initialize local answers from questions
   useEffect(() => {
     const initial: Record<string, string> = {};
+    const initialAi: Record<string, boolean> = {};
     questions.forEach(q => {
       if (q.answer) initial[q.id] = q.answer;
+      if (q.aiGenerated !== undefined) initialAi[q.id] = q.aiGenerated;
     });
     setLocalAnswers(initial);
+    setLocalAiGenerated(initialAi);
   }, [questions]);
 
   const unansweredRequired = questions.filter((q) => q.required && !localAnswers[q.id]?.trim()).length;
   const allAnswered = unansweredRequired === 0;
 
   // Debounced save function
-  const handleSaveAnswer = useCallback(async (questionId: string, value: string) => {
+  const handleSaveAnswer = useCallback(async (questionId: string, value: string, aiGenerated?: boolean) => {
     console.log('[DEBUG] handleSaveAnswer called for', questionId, 'with value:', value);
     setSavingId(questionId);
     try {
-      await saveAnswer({ projectId: projectId as any, phaseId, questionId, answer: value });
+      await saveAnswer({ projectId: projectId as any, phaseId, questionId, answer: value, aiGenerated });
       console.log('[DEBUG] Save successful for', questionId);
       setSavedId(questionId);
       setTimeout(() => setSavedId(null), 2000);
@@ -99,7 +104,9 @@ export function QuestionsPanel({
   // Handle answer change with local state and debounced save
   const handleAnswerChange = useCallback((questionId: string, value: string) => {
     setLocalAnswers(prev => ({ ...prev, [questionId]: value }));
+    setLocalAiGenerated(prev => ({ ...prev, [questionId]: false }));
     pendingSaveRef.current[questionId] = value;
+    pendingAiGeneratedRef.current[questionId] = false;
   }, []);
 
   // Debounced save effect
@@ -113,8 +120,9 @@ export function QuestionsPanel({
       console.log('[DEBUG] Checking id:', id, 'pendingValue:', value, 'debouncedValue:', debouncedAnswers[id]);
       if (debouncedAnswers[id] === value) {
         console.log('[DEBUG] Match found! Calling handleSaveAnswer');
-        handleSaveAnswer(id, value);
+        handleSaveAnswer(id, value, pendingAiGeneratedRef.current[id]);
         delete pendingSaveRef.current[id];
+        delete pendingAiGeneratedRef.current[id];
       } else {
         console.log('[DEBUG] No match - skipping save');
       }
@@ -153,8 +161,10 @@ export function QuestionsPanel({
         console.log('[DEBUG] Updated localAnswers:', updated);
         return updated;
       });
+      setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
 
       pendingSaveRef.current[questionId] = result.suggestedAnswer;
+      pendingAiGeneratedRef.current[questionId] = true;
       console.log('[DEBUG] Set pendingSaveRef for', questionId, ':', result.suggestedAnswer);
     } catch (error: any) {
       console.error("Failed to generate AI answer:", error);
@@ -194,9 +204,14 @@ export function QuestionsPanel({
     batchAnswers.forEach(({ questionId, answer }) => {
       updates[questionId] = answer;
       pendingSaveRef.current[questionId] = answer;
+      pendingAiGeneratedRef.current[questionId] = true;
     });
 
     setLocalAnswers(prev => ({ ...prev, ...updates }));
+    setLocalAiGenerated(prev => ({
+      ...prev,
+      ...Object.fromEntries(batchAnswers.map(({ questionId }) => [questionId, true])),
+    }));
     setIsBatchModalOpen(false);
     setBatchAnswers([]);
     setBatchProgress(0);
@@ -209,6 +224,8 @@ export function QuestionsPanel({
   }
 
   const getAnswerForQuestion = (q: Question) => localAnswers[q.id] ?? q.answer ?? "";
+  const getAiGeneratedForQuestion = (q: Question) =>
+    localAiGenerated[q.id] ?? q.aiGenerated ?? false;
 
   return (
     <Card variant="static">
@@ -288,7 +305,7 @@ export function QuestionsPanel({
                         {question.text}
                         {question.required && <span className="text-warning ml-1">*</span>}
                       </p>
-                      {question.aiGenerated && (
+                      {getAiGeneratedForQuestion(question) && (
                         <span className="inline-flex items-center text-xs text-muted-foreground mt-1">
                           <Sparkles className="w-3 h-3 mr-1" /> AI suggested
                         </span>

@@ -16,9 +16,11 @@ import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Loader2, Download, Archive, ArrowLeft, Sparkles, FileText, Layers, Code, Package } from "lucide-react";
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
-  brief: { label: "Brief & PRD", icon: FileText, description: "Define your project scope and requirements" },
+  brief: { label: "Brief", icon: FileText, description: "Define your project scope and goals" },
+  prd: { label: "PRD", icon: FileText, description: "Product requirements and user needs" },
   specs: { label: "Specifications", icon: Layers, description: "Technical specifications and architecture" },
   stories: { label: "User Stories", icon: Code, description: "User stories and task breakdown" },
+  artifacts: { label: "Artifacts", icon: Archive, description: "Supporting technical artifacts and docs" },
   handoff: { label: "Handoff", icon: Package, description: "Final artifacts and deliverables" },
 };
 

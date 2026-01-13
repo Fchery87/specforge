@@ -23,6 +23,7 @@ import type { SectionPlan, ProviderCredentials, LlmModel } from '../../lib/llm/t
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
+import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { rateLimiter } from '../rateLimiter';
 
 interface Question {
@@ -230,52 +231,61 @@ export const generatePhase = action({
       status: 'generating',
     });
 
-    // Generate sections using LLM
-    const generatedSections = await generateSectionsWithSelfCritique({
-      ctx,
-      projectId: args.projectId,
-      projectContext,
-      sectionPlan,
-      model,
-      questions: answeredQuestions,
-      phaseId: args.phaseId,
-      llmClient,
-      providerInfo,
-    });
+    try {
+      // Generate sections using LLM
+      const generatedSections = await generateSectionsWithSelfCritique({
+        ctx,
+        projectId: args.projectId,
+        projectContext,
+        sectionPlan,
+        model,
+        questions: answeredQuestions,
+        phaseId: args.phaseId,
+        llmClient,
+        providerInfo,
+      });
 
-    // Merge sections into final content
-    const content = mergeSectionContent(generatedSections);
-    const previewHtml = generatePreviewHtml(content);
+      // Merge sections into final content
+      const content = mergeSectionContent(generatedSections);
+      const previewHtml = generatePreviewHtml(content);
 
-    // Calculate section metadata
-    const sections = generatedSections.map((section) => ({
-      name: section.name,
-      tokens: estimateTokenCount(section.content),
-      model: model.id,
-    }));
+      // Calculate section metadata
+      const sections = generatedSections.map((section) => ({
+        name: section.name,
+        tokens: estimateTokenCount(section.content),
+        model: model.id,
+      }));
 
-    // Create artifact
-    const artifactId = await ctx.runMutation(
-      internalApi.internal.createArtifact,
-      {
+      // Create artifact
+      const artifactId = await ctx.runMutation(
+        internalApi.internal.createArtifact,
+        {
+          projectId: args.projectId,
+          phaseId: args.phaseId,
+          type: artifactType,
+          title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} - ${getPhaseTitle(args.phaseId)}`,
+          content,
+          previewHtml,
+          sections,
+        }
+      );
+
+      // Update phase status
+      await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
         projectId: args.projectId,
         phaseId: args.phaseId,
-        type: artifactType,
-        title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} - ${getPhaseTitle(args.phaseId)}`,
-        content,
-        previewHtml,
-        sections,
-      }
-    );
+        status: 'ready',
+      });
 
-    // Update phase status
-    await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
-      projectId: args.projectId,
-      phaseId: args.phaseId,
-      status: 'ready',
-    });
-
-    return { artifactId, status: 'success' };
+      return { artifactId, status: 'success' };
+    } catch (error) {
+      await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        status: 'error',
+      });
+      throw error;
+    }
   },
 });
 
@@ -309,10 +319,11 @@ async function generateSectionsWithSelfCritique(
   } = params;
 
   const sections: Array<{ name: string; content: string }> = [];
+  const enableSelfCritique = false;
 
   for (let i = 0; i < sectionPlan.length; i++) {
     const section = sectionPlan[i];
-    const previousSections = sections.slice(0, i);
+    const previousSections = sections.slice(Math.max(0, i - 1), i);
     const sectionQuestions = extractRelevantQuestions(questions, section.name);
 
     // Generate section content
@@ -329,18 +340,20 @@ async function generateSectionsWithSelfCritique(
       phaseId,
     });
 
-    // Self-critique and improve if needed
-    const improved = await selfCritiqueSection({
-      content,
-      sectionName: section.name,
-      projectContext,
-      model,
-      llmClient,
-    });
+    const normalizedContent = stripLeadingHeading(content);
+    const improved = enableSelfCritique
+      ? await selfCritiqueSection({
+          content: normalizedContent,
+          sectionName: section.name,
+          projectContext,
+          model,
+          llmClient,
+        })
+      : normalizedContent;
 
     sections.push({
       name: section.name,
-      content: improved,
+      content: stripLeadingHeading(improved),
     });
   }
 
@@ -401,7 +414,10 @@ Generate the "${params.sectionName}" section now:`;
       `${systemPrompt}\n\n${userPrompt}`,
       {
         model: model.id,
-        maxTokens: maxTokens,
+        maxTokens: Math.min(
+          maxTokens,
+          LLM_DEFAULTS.SECTION_GENERATION_TOKENS
+        ),
         temperature: 0.7,
       }
     );
@@ -463,16 +479,30 @@ If the content is sufficient, respond with "APPROVED" followed by the original c
   }
 }
 
-function extractRelevantQuestions(
+export function extractRelevantQuestions(
   questions: Question[],
   sectionName: string
 ): string[] {
   const keywords: Record<string, string[]> = {
     'executive-summary': ['goal', 'problem', 'success'],
-    architecture: ['architecture', 'cloud', 'infrastructure'],
-    'data-models': ['data', 'database', 'schema'],
+    'problem-and-objectives': ['goal', 'problem', 'objective'],
+    'features-and-requirements': ['feature', 'requirement', 'constraint'],
+    'problem-statement': ['problem', 'challenge', 'pain'],
+    'goals-and-objectives': ['goal', 'objective', 'success'],
+    'user-personas': ['user', 'persona', 'audience'],
+    requirements: ['requirement', 'feature', 'constraint'],
+    'success-metrics': ['metric', 'kpi', 'success'],
+    'architecture-overview': ['architecture', 'cloud', 'infrastructure'],
+    'data-models-and-api': ['data', 'database', 'schema', 'api'],
+    'deployment-and-security': ['deployment', 'security', 'auth'],
     'user-stories': ['user', 'persona', 'feature'],
-    deployment: ['deployment', 'environment', 'infrastructure'],
+    'technical-tasks': ['task', 'dependency', 'implementation'],
+    documentation: ['documentation', 'api', 'schema'],
+    configuration: ['configuration', 'environment', 'setup'],
+    'deployment-guide': ['deployment', 'release', 'infrastructure'],
+    'project-summary': ['summary', 'architecture', 'structure'],
+    'setup-guide': ['setup', 'environment', 'install'],
+    'next-steps': ['next', 'roadmap', 'follow-up'],
   };
 
   const relevantKeywords = keywords[sectionName] || [];
@@ -484,6 +514,10 @@ function extractRelevantQuestions(
         relevantKeywords.some((kw) => q.text.toLowerCase().includes(kw))
     )
     .map((q) => `${q.text}: ${q.answer}`);
+}
+
+export function stripLeadingHeading(content: string): string {
+  return content.replace(/^#{1,6}\s+.*\n+/, '').trim();
 }
 
 function getSectionInstructions(phaseId: string, sectionName: string): string {

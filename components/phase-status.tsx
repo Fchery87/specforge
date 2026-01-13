@@ -15,7 +15,8 @@ interface PhaseStatusIndicatorProps {
 }
 
 const PHASE_CONFIG = [
-  { id: "brief", label: "Brief & PRD", color: "bg-blue-500" },
+  { id: "brief", label: "Brief", color: "bg-blue-500" },
+  { id: "prd", label: "PRD", color: "bg-indigo-500" },
   { id: "specs", label: "Specs & Architecture", color: "bg-purple-500" },
   { id: "stories", label: "Tasks/Stories", color: "bg-amber-500" },
   { id: "artifacts", label: "Artifacts", color: "bg-green-500" },

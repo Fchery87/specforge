@@ -15,14 +15,7 @@ export function getSectionPlan(
         'features-and-requirements',
       ];
     case 'prd':
-      return [
-        'executive-summary',
-        'problem-statement',
-        'goals-and-objectives',
-        'user-personas',
-        'requirements',
-        'success-metrics',
-      ];
+      return ['executive-summary', 'requirements', 'success-metrics'];
     case 'spec':
     case 'specs':
       return [
@@ -113,7 +106,16 @@ export function mergeSectionContent(
   sections: Array<{ name: string; content: string }>,
   separator = '\n\n'
 ): string {
-  return sections.map((s) => `## ${s.name}\n\n${s.content}`).join(separator);
+  return sections
+    .map((s) => `## ${formatSectionName(s.name)}\n\n${s.content}`)
+    .join(separator);
+}
+
+function formatSectionName(name: string): string {
+  return name
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 export function validateSectionPlan(

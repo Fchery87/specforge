@@ -2,6 +2,18 @@ import { internalMutation, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 
+export function filterArtifactsByPhase<
+  T extends { projectId: string; phaseId: string; _id?: string }
+>(
+  artifacts: T[],
+  projectId: string,
+  phaseId: string
+): T[] {
+  return artifacts.filter(
+    (artifact) => artifact.projectId === projectId && artifact.phaseId === phaseId
+  );
+}
+
 export const createArtifact = internalMutation({
   args: {
     projectId: v.id('projects'),
@@ -15,6 +27,18 @@ export const createArtifact = internalMutation({
     ),
   },
   handler: async (ctx, args) => {
+    const existingArtifacts = await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect();
+    const toDelete = filterArtifactsByPhase(
+      existingArtifacts,
+      args.projectId,
+      args.phaseId
+    );
+    for (const artifact of toDelete) {
+      await ctx.db.delete(artifact._id);
+    }
     return await ctx.db.insert('artifacts', { ...args });
   },
 });
