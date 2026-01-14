@@ -1,14 +1,31 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2, Trash2 } from "lucide-react";
+
+function getRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
+  if (minutes > 0) return `${minutes}m ago`;
+  return "Just now";
+}
 
 export default function DashboardPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -17,6 +34,14 @@ export default function DashboardPage() {
     api.projects.getProjects,
     isLoaded && isSignedIn ? {} : "skip"
   );
+
+  const deleteProjectMutation = useMutation(api.projects.deleteProject);
+
+  const [deleteDialogState, setDeleteDialogState] = useState<{
+    open: boolean;
+    projectId: Id<"projects"> | null;
+    projectTitle: string;
+  }>({ open: false, projectId: null, projectTitle: "" });
 
   if (!isLoaded) {
     return (
@@ -52,9 +77,28 @@ export default function DashboardPage() {
   }
 
   const sortedProjects = [...(projects || [])].sort((a, b) => b.createdAt - a.createdAt);
+  const recentByUpdated = [...(projects || [])].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3);
+  const mostRecentProject = sortedProjects[0] || null;
+
+  async function handleDeleteProject() {
+    if (deleteDialogState.projectId) {
+      await deleteProjectMutation({ projectId: deleteDialogState.projectId });
+    }
+  }
 
   return (
     <main className="relative">
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteDialogState.open}
+        onOpenChange={(open) => setDeleteDialogState((s) => ({ ...s, open }))}
+        title="Delete Project"
+        description={`Are you sure you want to delete "${deleteDialogState.projectTitle}"? This will permanently remove the project and all associated phases and artifacts.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleDeleteProject}
+      />
+
       {/* Hero Header with Grid Background */}
       <section className="page-header relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-fade opacity-20" />
@@ -111,7 +155,25 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-sm">No recent activity</p>
+              {recentByUpdated.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No recent activity</p>
+              ) : (
+                <ul className="space-y-2">
+                  {recentByUpdated.map((project) => (
+                    <li key={project._id} className="flex items-center justify-between text-sm">
+                      <Link
+                        href={`/project/${project._id}`}
+                        className="text-foreground hover:text-primary transition-colors truncate max-w-[180px]"
+                      >
+                        {project.title}
+                      </Link>
+                      <span className="text-muted-foreground text-xs">
+                        {getRelativeTime(project.updatedAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
 
@@ -127,7 +189,17 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-sm">No projects yet</p>
+              {mostRecentProject ? (
+                <Link
+                  href={`/project/${mostRecentProject._id}`}
+                  className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors group"
+                >
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="truncate">{mostRecentProject.title}</span>
+                </Link>
+              ) : (
+                <p className="text-muted-foreground text-sm">No projects yet</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -163,26 +235,44 @@ export default function DashboardPage() {
           /* Projects Grid */
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sortedProjects.map((project) => (
-              <Link key={project._id} href={`/project/${project._id}`} className="block">
-                <Card variant="interactive" className="h-full group">
-                  <CardHeader>
-                    <CardTitle className="text-lg normal-case tracking-normal font-semibold group-hover:text-primary transition-colors">
-                      {project.title}
-                    </CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      {project.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground capitalize">{project.status}</span>
-                      <span className="text-muted-foreground">
-                        {new Date(project.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <div key={project._id} className="relative group/card">
+                <Link href={`/project/${project._id}`} className="block">
+                  <Card variant="interactive" className="h-full group">
+                    <CardHeader>
+                      <CardTitle className="text-lg normal-case tracking-normal font-semibold group-hover:text-black transition-colors">
+                        {project.title}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2 group-hover:text-black/70">
+                        {project.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground capitalize group-hover:text-black/60">{project.status}</span>
+                        <span className="text-muted-foreground group-hover:text-black/60">
+                          {new Date(project.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+                {/* Delete Button */}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDeleteDialogState({
+                      open: true,
+                      projectId: project._id,
+                      projectTitle: project.title,
+                    });
+                  }}
+                  className="absolute top-4 right-4 p-2 opacity-0 group-hover/card:opacity-100 bg-background/80 hover:bg-destructive hover:text-destructive-foreground border border-border hover:border-destructive transition-all z-10"
+                  aria-label={`Delete ${project.title}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             ))}
           </div>
         )}

@@ -1,10 +1,17 @@
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { v } from "convex/values";
-import { canAccessProject } from "../lib/authz";
-import { normalizeProjectInput } from "../lib/project-input";
+import { mutation, query } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
+import { v } from 'convex/values';
+import { canAccessProject } from '../lib/authz';
+import { normalizeProjectInput } from '../lib/project-input';
 
-const DEFAULT_PHASES = ["brief", "prd", "specs", "stories", "artifacts", "handoff"];
+const DEFAULT_PHASES = [
+  'brief',
+  'prd',
+  'specs',
+  'stories',
+  'artifacts',
+  'handoff',
+];
 
 export const createProject = mutation({
   args: { title: v.string(), description: v.string() },
@@ -14,21 +21,26 @@ export const createProject = mutation({
       description: args.description,
     });
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) throw new Error('Unauthenticated');
     const userId = identity.subject;
 
     const now = Date.now();
-    const projectId = await ctx.db.insert("projects", {
+    const projectId = await ctx.db.insert('projects', {
       userId,
       title: normalized.title,
       description: normalized.description,
-      status: "active",
+      status: 'active',
       createdAt: now,
       updatedAt: now,
     });
 
     for (const phaseId of DEFAULT_PHASES) {
-      await ctx.db.insert("phases", { projectId, phaseId, status: "pending", questions: [] });
+      await ctx.db.insert('phases', {
+        projectId,
+        phaseId,
+        status: 'pending',
+        questions: [],
+      });
     }
 
     return projectId;
@@ -36,12 +48,13 @@ export const createProject = mutation({
 });
 
 export const getProject = query({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id('projects') },
   handler: async (ctx: QueryCtx, args) => {
     const project = await ctx.db.get(args.projectId);
     if (!project) return null;
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+    if (!identity || project.userId !== identity.subject)
+      throw new Error('Forbidden');
     return project;
   },
 });
@@ -51,48 +64,49 @@ export const getProjects = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
     return await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .query('projects')
+      .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .collect();
   },
 });
 
 export const getProjectPhases = query({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id('projects') },
   handler: async (ctx: QueryCtx, args) => {
     const project = await ctx.db.get(args.projectId);
     if (!project) return [];
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || !canAccessProject(project.userId, identity.subject)) {
-      throw new Error("Forbidden");
+      throw new Error('Forbidden');
     }
 
     return await ctx.db
-      .query("phases")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
       .collect();
   },
 });
 
 export const getPhase = query({
-  args: { projectId: v.id("projects"), phaseId: v.string() },
+  args: { projectId: v.id('projects'), phaseId: v.string() },
   handler: async (ctx: QueryCtx, args) => {
     const project = await ctx.db.get(args.projectId);
     if (!project) return null;
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+    if (!identity || project.userId !== identity.subject)
+      throw new Error('Forbidden');
 
     const phase = await ctx.db
-      .query("phases")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .filter((q) => q.eq(q.field("phaseId"), args.phaseId))
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .first();
 
     const artifacts = await ctx.db
-      .query("artifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .filter((q) => q.eq(q.field("phaseId"), args.phaseId))
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .collect();
 
     return { ...(phase ?? { questions: [] }), artifacts };
@@ -100,32 +114,32 @@ export const getPhase = query({
 });
 
 export const getPhaseArtifacts = query({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id('projects') },
   handler: async (ctx: QueryCtx, args) => {
     const project = await ctx.db.get(args.projectId);
     if (!project) return [];
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || !canAccessProject(project.userId, identity.subject)) {
-      throw new Error("Forbidden");
+      throw new Error('Forbidden');
     }
 
     return await ctx.db
-      .query("artifacts")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
       .collect();
   },
 });
 
 export const getProjectZipUrl = query({
-  args: { projectId: v.id("projects") },
+  args: { projectId: v.id('projects') },
   handler: async (ctx: QueryCtx, args) => {
     const project = await ctx.db.get(args.projectId);
     if (!project) return null;
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || !canAccessProject(project.userId, identity.subject)) {
-      throw new Error("Forbidden");
+      throw new Error('Forbidden');
     }
 
     if (!project.zipStorageId) return null;
@@ -136,7 +150,7 @@ export const getProjectZipUrl = query({
 
 export const saveAnswer = mutation({
   args: {
-    projectId: v.id("projects"),
+    projectId: v.id('projects'),
     phaseId: v.string(),
     questionId: v.string(),
     answer: v.string(),
@@ -144,17 +158,18 @@ export const saveAnswer = mutation({
   },
   handler: async (ctx: MutationCtx, args) => {
     const project = await ctx.db.get(args.projectId);
-    if (!project) throw new Error("Project not found");
+    if (!project) throw new Error('Project not found');
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+    if (!identity || project.userId !== identity.subject)
+      throw new Error('Forbidden');
 
     const phase = await ctx.db
-      .query("phases")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .filter((q) => q.eq(q.field("phaseId"), args.phaseId))
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .first();
 
-    if (!phase) throw new Error("Phase not found");
+    if (!phase) throw new Error('Phase not found');
 
     const updatedQuestions = applyAnswerUpdate(
       phase.questions,
@@ -167,7 +182,9 @@ export const saveAnswer = mutation({
   },
 });
 
-export function applyAnswerUpdate<T extends { id: string; aiGenerated?: boolean; answer?: string }>(
+export function applyAnswerUpdate<
+  T extends { id: string; aiGenerated?: boolean; answer?: string },
+>(
   questions: T[],
   questionId: string,
   answer: string,
@@ -184,35 +201,72 @@ export function applyAnswerUpdate<T extends { id: string; aiGenerated?: boolean;
   );
 }
 
+export const deleteProject = mutation({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx: MutationCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new Error('Project not found');
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || project.userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
+    // Cascade delete phases
+    const phases = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect();
+    for (const phase of phases) {
+      await ctx.db.delete(phase._id);
+    }
+
+    // Cascade delete artifacts
+    const artifacts = await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect();
+    for (const artifact of artifacts) {
+      await ctx.db.delete(artifact._id);
+    }
+
+    // Delete the project
+    await ctx.db.delete(args.projectId);
+  },
+});
+
 export const updatePhaseQuestions = mutation({
   args: {
-    projectId: v.id("projects"),
+    projectId: v.id('projects'),
     phaseId: v.string(),
-    questions: v.array(v.object({
-      id: v.string(),
-      text: v.string(),
-      answer: v.optional(v.string()),
-      aiGenerated: v.boolean(),
-      required: v.optional(v.boolean()),
-    })),
+    questions: v.array(
+      v.object({
+        id: v.string(),
+        text: v.string(),
+        answer: v.optional(v.string()),
+        aiGenerated: v.boolean(),
+        required: v.optional(v.boolean()),
+      })
+    ),
   },
   handler: async (ctx: MutationCtx, args) => {
     const project = await ctx.db.get(args.projectId);
-    if (!project) throw new Error("Project not found");
+    if (!project) throw new Error('Project not found');
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+    if (!identity || project.userId !== identity.subject)
+      throw new Error('Forbidden');
 
     const phase = await ctx.db
-      .query("phases")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .filter((q) => q.eq(q.field("phaseId"), args.phaseId))
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .first();
 
     if (!phase) {
-      await ctx.db.insert("phases", {
+      await ctx.db.insert('phases', {
         projectId: args.projectId,
         phaseId: args.phaseId,
-        status: "ready",
+        status: 'ready',
         questions: args.questions,
       });
     } else {
