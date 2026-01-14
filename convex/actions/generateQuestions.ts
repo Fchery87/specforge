@@ -154,6 +154,7 @@ export const generateQuestions = action({
 
     let aiQuestions: Array<{ text: string; required?: boolean }> = [];
     let aiGenerated = false;
+    let credentials: ReturnType<typeof resolveCredentials> = null;
     try {
       // Resolve credentials for AI question generation
       const userConfig = await ctx.runAction(
@@ -171,7 +172,7 @@ export const generateQuestions = action({
         systemCredentialsMap = {};
       }
 
-      const credentials = resolveCredentials(
+      credentials = resolveCredentials(
         userConfig,
         new Map(Object.entries(systemCredentialsMap || {}))
       );
@@ -182,11 +183,12 @@ export const generateQuestions = action({
       const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
 
       let model: LlmModel;
+      const provider = credentials?.provider;
       if (credentials?.modelId && credentials.modelId !== "") {
         model = getModelById(credentials.modelId) ?? getFallbackModel();
-      } else if (credentials?.provider && enabledModels.length > 0) {
+      } else if (provider && enabledModels.length > 0) {
         const providerModel = enabledModels.find(
-          (m: Doc<"llmModels">) => m.provider === credentials.provider
+          (m: Doc<"llmModels">) => m.provider === provider
         );
         if (providerModel) {
           model = {
@@ -204,7 +206,9 @@ export const generateQuestions = action({
             maxOutputTokens: providerModel.maxOutputTokens,
             defaultMax: providerModel.defaultMax,
           };
-          credentials.modelId = providerModel.modelId;
+          if (credentials) {
+            credentials.modelId = providerModel.modelId;
+          }
         } else {
           model = getFallbackModel();
         }

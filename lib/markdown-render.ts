@@ -36,7 +36,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
 };
 
 export function renderMarkdownSafe(markdown: string): string {
-  const raw = marked.parse(markdown, { mangle: false, headerIds: false });
+  const raw = marked.parse(markdown) as string;
   return sanitizeHtml(raw, SANITIZE_OPTIONS);
 }
 
