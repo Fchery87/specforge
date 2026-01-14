@@ -14,9 +14,9 @@ describe("telemetry", () => {
   });
 
   it("disables logging in test env", () => {
-    const previous = process.env.NODE_ENV;
-    process.env.NODE_ENV = "test";
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, NODE_ENV: "test" };
     expect(shouldLogTelemetry()).toBe(false);
-    process.env.NODE_ENV = previous;
+    process.env = originalEnv;
   });
 });
