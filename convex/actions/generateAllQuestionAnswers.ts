@@ -2,7 +2,7 @@
 
 import { action } from '../_generated/server';
 import type { ActionCtx } from '../_generated/server';
-import type { Doc } from '../_generated/dataModel';
+import type { Id, Doc } from '../_generated/dataModel';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
@@ -38,7 +38,7 @@ export const generateAllQuestionAnswers = action({
   handler: async (
     ctx: ActionCtx,
     args
-  ): Promise<{ answers: Array<{ questionId: string; answer: string }> }> => {
+  ): Promise<{ taskId: Id<'generationTasks'> }> => {
     // Verify user owns project
     const project = await ctx.runQuery(api.projects.getProject, {
       projectId: args.projectId,
@@ -49,14 +49,6 @@ export const generateAllQuestionAnswers = action({
     if (!identity || project.userId !== identity.subject)
       throw new Error('Forbidden');
 
-    const userId = identity.tokenIdentifier;
-
-    // Rate limiting - per-user limit
-    await rateLimiter.limit(ctx, "generateQuestionAnswer", {
-      key: userId,
-      throws: true,
-    });
-
     // Get phase with questions
     const phaseData = await ctx.runQuery(api.projects.getPhase, {
       projectId: args.projectId,
@@ -66,105 +58,62 @@ export const generateAllQuestionAnswers = action({
 
     const questions = phaseData.questions || [];
     if (questions.length === 0) {
-      return { answers: [] };
+      throw new Error('No questions found for this phase');
     }
 
-    // Resolve credentials
+    // Resolve credentials and model
     const userConfig = await ctx.runAction(
       api.userConfigActions.getUserConfig,
       {}
     );
-
-    let systemCredentialsMap: Record<string, SystemCredential>;
-    try {
-      systemCredentialsMap = await ctx.runAction(
-        internalApi.internalActions.getAllDecryptedSystemCredentials,
-        {}
-      );
-    } catch {
-      systemCredentialsMap = {};
-    }
-
+    const systemCredentialsMap = await ctx.runAction(
+      internalApi.internalActions.getAllDecryptedSystemCredentials,
+      {}
+    );
+    const enabledModelsFromDb = await ctx.runQuery(
+      internalApi.llmModels.listEnabledModelsInternal
+    );
+    const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
     const credentials = resolveCredentials(
       userConfig,
       new Map(Object.entries(systemCredentialsMap || {}))
     );
 
-    // Get model
-    const enabledModelsFromDb = await ctx.runQuery(
-      internalApi.llmModels.listEnabledModelsInternal
-    );
-    const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
-
     let model: LlmModel;
-    if (credentials?.modelId && credentials.modelId !== '') {
+    if (credentials?.modelId) {
       model = getModelById(credentials.modelId) ?? getFallbackModel();
-    } else if (credentials?.provider && enabledModels.length > 0) {
-      const providerModel = enabledModels.find(
-        (m: Doc<'llmModels'>) => m.provider === credentials.provider
-      );
-      if (providerModel) {
-        model = {
-          id: providerModel.modelId,
-          provider: providerModel.provider as
-            | "openai"
-            | "openrouter"
-            | "deepseek"
-            | "anthropic"
-            | "mistral"
-            | "zai"
-            | "minimax"
-            | "other",
-          contextTokens: providerModel.contextTokens,
-          maxOutputTokens: providerModel.maxOutputTokens,
-          defaultMax: providerModel.defaultMax,
-        };
-        credentials.modelId = providerModel.modelId;
-      } else {
-        model = getFallbackModel();
-      }
     } else {
       model = getFallbackModel();
     }
 
-    const llmClient = createLlmClient(credentials);
-
-    // Generate answers progressively
-    const answers: Array<{ questionId: string; answer: string }> = [];
-    const generatedAnswers: string[] = [];
-
-    for (let i = 0; i < questions.length; i++) {
-      const question = questions[i] as Question;
-
-      // Build context from previous answers in this batch
-      const previousContext = generatedAnswers
-        .map((ans, idx) => `${questions[idx].text}\nAnswer: ${ans}`)
-        .join('\n\n');
-
-      const prompt = buildBatchQuestionPrompt({
-        projectTitle: project.title,
-        projectDescription: project.description,
-        questionText: question.text,
-        previousAnswers: previousContext,
-      });
-
-      const answer = await getAnswerOrFallback(() =>
-        generateAnswer({
-          prompt,
+    // Initialize the background task
+    const taskId = await ctx.runMutation(
+      internalApi.internal.initGenerationTask,
+      {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        type: 'questions',
+        totalSteps: questions.length,
+        plan: questions.map((q) => ({ id: q.id, text: q.text })),
+        metadata: {
+          credentials,
           model,
-          llmClient,
-        })
-      );
-
-      answers.push({ questionId: question.id, answer });
-      generatedAnswers.push(answer);
-
-      if (i < questions.length - 1) {
-        await sleep(300);
+          projectContext: {
+            title: project.title,
+            description: project.description,
+          },
+        },
       }
-    }
+    );
 
-    return { answers };
+    // Kick off the worker
+    await ctx.scheduler.runAfter(
+      0,
+      internalApi.internalActions.generateQuestionsWorker,
+      { taskId }
+    );
+
+    return { taskId };
   },
 });
 
@@ -242,7 +191,10 @@ export async function getAnswerOrFallback(
   try {
     return await generator();
   } catch (error) {
-    console.error('[generateAllQuestionAnswers] Falling back after error:', error);
+    console.error(
+      '[generateAllQuestionAnswers] Falling back after error:',
+      error
+    );
     return ANSWER_FALLBACK_MESSAGE;
   }
 }

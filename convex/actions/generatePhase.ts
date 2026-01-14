@@ -20,7 +20,11 @@ import {
   resolveCredentials,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
-import type { SectionPlan, ProviderCredentials, LlmModel } from '../../lib/llm/types';
+import type {
+  SectionPlan,
+  ProviderCredentials,
+  LlmModel,
+} from '../../lib/llm/types';
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
@@ -51,11 +55,7 @@ export const generatePhase = action({
   handler: async (
     ctx: ActionCtx,
     args
-  ): Promise<{
-    artifactId: Id<'artifacts'>;
-    status: string;
-    continuedSections: number;
-  }> => {
+  ): Promise<{ taskId: Id<'generationTasks'> }> => {
     const project = await ctx.runQuery(api.projects.getProject, {
       projectId: args.projectId,
     });
@@ -65,265 +65,100 @@ export const generatePhase = action({
     if (!identity || project.userId !== identity.subject)
       throw new Error('Forbidden');
 
-    const userId = identity.tokenIdentifier;
-
-    // Rate limiting - per-user limit
-    const userLimit = await rateLimiter.limit(ctx, "generatePhase", {
-      key: userId,
-      throws: true,
-    });
-
-    // Rate limiting - global limit
-    await rateLimiter.limit(ctx, "globalPhaseGen", { throws: true });
-
-    // Get phase data with questions
+    // Get phase data
     const phaseData = await ctx.runQuery(api.projects.getPhase, {
       projectId: args.projectId,
       phaseId: args.phaseId,
     });
-
     if (!phaseData) throw new Error('Phase not found');
 
     const questions = phaseData.questions || [];
     const answeredQuestions = questions.filter((q: Question) => q.answer);
 
     if (hasMissingRequiredAnswers(questions) && args.phaseId !== 'handoff') {
-      throw new Error(
-        'Please answer all required questions before generating'
-      );
+      throw new Error('Please answer all required questions before generating');
     }
 
-    if (answeredQuestions.length === 0 && args.phaseId !== 'handoff') {
-      throw new Error('Please answer at least one question before generating');
-    }
-
-    // Get user config to determine if they use system credentials
+    // Resolve model and credentials (similar to original logic)
     const userConfig = await ctx.runAction(
       api.userConfigActions.getUserConfig,
       {}
     );
-    console.log(
-      '[generatePhase] User config:',
-      userConfig
-        ? {
-            provider: userConfig.provider,
-            defaultModel: userConfig.defaultModel,
-            useSystem: userConfig.useSystem,
-          }
-        : 'null'
+    const systemCredentialsMap = await ctx.runAction(
+      internalApi.internalActions.getAllDecryptedSystemCredentials,
+      {}
     );
-
-    // Get system credentials from database (decrypted, only accessible from Convex actions)
-    let systemCredentialsMap: Record<string, SystemCredential>;
-    try {
-      systemCredentialsMap = await ctx.runAction(
-        internalApi.internalActions.getAllDecryptedSystemCredentials,
-        {}
-      );
-    } catch (error: any) {
-      console.error(
-        '[generatePhase] ERROR calling getAllDecryptedSystemCredentials:'
-      );
-      console.error('[generatePhase] Error message:', error?.message);
-      console.error('[generatePhase] Error stack:', error?.stack);
-      console.error(
-        '[generatePhase] Error full:',
-        JSON.stringify(error, Object.getOwnPropertyNames(error))
-      );
-      systemCredentialsMap = {};
-    }
-    console.log(
-      '[generatePhase] System credentials providers:',
-      Object.keys(systemCredentialsMap || {})
-    );
-
-    // Get enabled models from database
     const enabledModelsFromDb = await ctx.runQuery(
       internalApi.llmModels.listEnabledModelsInternal
     );
     const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
-    console.log(
-      '[generatePhase] Enabled models from DB:',
-      enabledModels.map((m: Doc<'llmModels'>) => `${m.provider}:${m.modelId}`)
-    );
-
-    // Resolve credentials (user's own key or system key)
     const credentials = resolveCredentials(
       userConfig,
       new Map(Object.entries(systemCredentialsMap || {}))
     );
-    console.log(
-      '[generatePhase] Resolved credentials:',
-      credentials
-        ? { provider: credentials.provider, modelId: credentials.modelId }
-        : 'null'
-    );
 
-    // Get or select model
-    // Priority: explicit modelId arg > user's configured model > first enabled model for provider > fallback
     let model: LlmModel;
     if (args.modelId) {
-      console.log(
-        '[generatePhase] Using explicit modelId from args:',
-        args.modelId
-      );
       model = getModelById(args.modelId) ?? getFallbackModel();
-    } else if (credentials?.modelId && credentials.modelId !== '') {
-      // User has configured a specific model
-      console.log(
-        '[generatePhase] Using user configured model:',
-        credentials.modelId
-      );
+    } else if (credentials?.modelId) {
       model = getModelById(credentials.modelId) ?? getFallbackModel();
-    } else if (credentials?.provider && enabledModels.length > 0) {
-      // No specific model configured, use first enabled model for the provider
-      console.log(
-        '[generatePhase] Looking for enabled model for provider:',
-        credentials.provider
-      );
-      const providerModel = enabledModels.find(
-        (m: Doc<'llmModels'>) => m.provider === credentials.provider
-      );
-      if (providerModel) {
-        console.log(
-          '[generatePhase] Found provider model:',
-          providerModel.modelId
-        );
-        model = {
-          id: providerModel.modelId,
-          provider: providerModel.provider as
-            | "openai"
-            | "openrouter"
-            | "deepseek"
-            | "anthropic"
-            | "mistral"
-            | "zai"
-            | "minimax"
-            | "other",
-          contextTokens: providerModel.contextTokens,
-          maxOutputTokens: providerModel.maxOutputTokens,
-          defaultMax: providerModel.defaultMax,
-        };
-        // Update credentials with the selected model
-        credentials.modelId = providerModel.modelId;
-      } else {
-        console.log(
-          '[generatePhase] No model found for provider, using fallback'
-        );
-        model = getFallbackModel();
-      }
     } else {
-      console.log(
-        '[generatePhase] No credentials or models, using fallback. credentials:',
-        credentials,
-        'enabledModels.length:',
-        enabledModels.length
-      );
       model = getFallbackModel();
     }
-    console.log('[generatePhase] Final selected model:', model.id);
 
-    // Validate model for artifact type
     const artifactType = getArtifactTypeForPhase(args.phaseId);
-
-    const validation = validateModelForArtifact(model, artifactType);
-    if (!validation.valid) {
-      console.warn(`Model validation warning: ${validation.reason}`);
-    }
-
-    // Get section plan based on phase
     const sectionNames = getSectionPlan(artifactType, args.phaseId);
     const questionsText = answeredQuestions
-      .map((q: Question) => `${q.text} ${q.answer ?? ''}`.trim())
+      .map((q: Question) => `${q.text}: ${q.answer}`)
       .join('\n');
     const estimatedTokens =
       estimateTokenCount(
         `${project.title}\n${project.description}\n${questionsText}`
       ) * 6;
+
     const sectionPlan = planSectionsForPhase({
       sectionNames,
       estimatedTokens,
       model,
     });
 
-    // Build project context from questions
-    const projectContext = {
-      title: project.title,
-      description: project.description,
-      questions: answeredQuestions
-        .map((q: Question) => `${q.text}: ${q.answer}`)
-        .join('\n\n'),
-    };
+    // Initialize the background task
+    const taskId = await ctx.runMutation(
+      internalApi.internal.initGenerationTask,
+      {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        type: 'artifact',
+        totalSteps: sectionPlan.length,
+        plan: sectionPlan,
+        metadata: {
+          credentials,
+          model,
+          artifactType,
+          projectContext: {
+            title: project.title,
+            description: project.description,
+            questions: questionsText,
+          },
+        },
+      }
+    );
 
-    // Get LLM client
-    const llmClient = createLlmClient(credentials);
-    const providerInfo = credentials
-      ? `Using ${credentials.provider} provider`
-      : 'No credentials configured';
-
-    // Update phase status to 'generating' to provide UI feedback
+    // Update phase status
     await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
       projectId: args.projectId,
       phaseId: args.phaseId,
       status: 'generating',
     });
 
-    try {
-      // Generate sections using LLM
-      const { sections: generatedSections, continuedSections } =
-        await generateSectionsWithSelfCritique({
-        ctx,
-        projectId: args.projectId,
-        projectContext,
-        sectionPlan,
-        model,
-        questions: answeredQuestions,
-        phaseId: args.phaseId,
-        llmClient,
-        providerInfo,
-      });
+    // Kick off the worker
+    await ctx.scheduler.runAfter(
+      0,
+      internalApi.internalActions.generatePhaseWorker,
+      { taskId }
+    );
 
-      // Merge sections into final content
-      const content = mergeSectionContent(generatedSections);
-      const previewHtml = renderPreviewHtml(content);
-
-      // Calculate section metadata
-      const sections = generatedSections.map((section) => ({
-        name: section.name,
-        tokens: estimateTokenCount(section.content),
-        model: model.id,
-      }));
-
-      // Create artifact
-      const artifactId = await ctx.runMutation(
-        internalApi.internal.createArtifact,
-        {
-          projectId: args.projectId,
-          phaseId: args.phaseId,
-          type: artifactType,
-          title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} - ${getPhaseTitle(args.phaseId)}`,
-          content,
-          previewHtml,
-          sections,
-        }
-      );
-
-      // Update phase status
-      await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
-        projectId: args.projectId,
-        phaseId: args.phaseId,
-        status: 'ready',
-      });
-
-      return { artifactId, status: 'success', continuedSections };
-    } catch (error) {
-      await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
-        projectId: args.projectId,
-        phaseId: args.phaseId,
-        status: 'error',
-      });
-      throw error;
-    }
+    return { taskId };
   },
 });
 
@@ -498,11 +333,11 @@ Generate the "${params.sectionName}" section now:`;
 
     const durationMs = Date.now() - startedAt;
     logTelemetry('info', {
-        provider: model.provider,
-        model: model.id,
-        durationMs,
-        success: true,
-      });
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: true,
+    });
 
     return {
       content: response.content,
@@ -511,19 +346,18 @@ Generate the "${params.sectionName}" section now:`;
   } catch (error: any) {
     const durationMs = Date.now() - startedAt;
     logTelemetry('warn', {
-        provider: model.provider,
-        model: model.id,
-        durationMs,
-        success: false,
-        error: error?.message ?? String(error),
-      });
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: false,
+      error: error?.message ?? String(error),
+    });
     console.error(`[generateSectionContent] LLM call failed:`, error?.message);
     throw new Error(
       `Failed to generate ${params.sectionName}: ${error?.message}`
     );
   }
 }
-
 
 async function selfCritiqueSection(params: {
   content: string;
@@ -617,7 +451,10 @@ export function stripLeadingHeading(content: string): string {
   return content.replace(/^#{1,6}\s+.*\n+/, '').trim();
 }
 
-function getSectionInstructions(phaseId: string, sectionName: string): string {
+export function getSectionInstructions(
+  phaseId: string,
+  sectionName: string
+): string {
   const instructions: Record<string, string> = {
     // Brief sections
     'problem-and-objectives':
@@ -634,7 +471,7 @@ function getSectionInstructions(phaseId: string, sectionName: string): string {
       'Define specific, measurable, achievable, relevant, and time-bound (SMART) goals and success criteria.',
     'user-personas':
       'Describe the target user personas, their characteristics, goals, pain points, and how they will interact with the product.',
-    'requirements':
+    requirements:
       'List all functional and non-functional requirements, organized by priority and category.',
     'success-metrics':
       'Define key performance indicators (KPIs), metrics for success, and how they will be measured and tracked.',
