@@ -8,13 +8,15 @@ import { PhaseStepper } from "@/components/phase-stepper";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ArrowRight, Sparkles, Layers, FileText, Code, Package } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Layers, FileText, Code, Package, Target, ClipboardList } from "lucide-react";
 
 const PHASES = [
   { id: "brief", label: "Brief", icon: FileText, description: "Define your project scope and requirements" },
-  { id: "specs", label: "Specs", icon: Layers, description: "Technical specifications and architecture" },
-  { id: "stories", label: "Stories", icon: Code, description: "User stories and task breakdown" },
-  { id: "handoff", label: "Handoff", icon: Package, description: "Final artifacts and deliverables" },
+  { id: "prd", label: "PRD", icon: Target, description: "Formal product requirements and goals" },
+  { id: "specs", label: "Spec & Architecture", icon: Layers, description: "Technical specifications and design" },
+  { id: "stories", label: "Tasks/Stories", icon: ClipboardList, description: "User stories and task breakdown" },
+  { id: "artifacts", label: "Artifacts", icon: Sparkles, description: "Generated assets and codebase models" },
+  { id: "handoff", label: "Handoff + ZIP", icon: Package, description: "Final deliverables and documentation" },
 ];
 
 export default function ProjectPage() {
@@ -89,7 +91,7 @@ export default function ProjectPage() {
         <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-8">
           Workflow Phases
         </h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {PHASES.map((phase, idx) => (
             <Link key={phase.id} href={`/project/${params.id}/phase/${phase.id}`} className="block">
               <Card 

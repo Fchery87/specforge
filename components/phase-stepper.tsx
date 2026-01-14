@@ -5,8 +5,9 @@ import { cn } from "@/lib/markdown";
 import { Badge } from "@/components/ui/badge";
 
 const PHASES = [
-  { id: "brief", label: "Brief & PRD" },
-  { id: "specs", label: "Specs & Architecture" },
+  { id: "brief", label: "Brief" },
+  { id: "prd", label: "PRD" },
+  { id: "specs", label: "Spec & Architecture" },
   { id: "stories", label: "Tasks/Stories" },
   { id: "artifacts", label: "Artifacts" },
   { id: "handoff", label: "Handoff + ZIP" },
