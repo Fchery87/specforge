@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildTelemetry } from "../telemetry";
+import { buildTelemetry, shouldLogTelemetry } from "../telemetry";
 
 describe("telemetry", () => {
   it("redacts secrets and excludes prompts", () => {
@@ -11,5 +11,12 @@ describe("telemetry", () => {
     });
     expect(entry).not.toHaveProperty("prompt");
     expect(entry).not.toHaveProperty("apiKey");
+  });
+
+  it("disables logging in test env", () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "test";
+    expect(shouldLogTelemetry()).toBe(false);
+    process.env.NODE_ENV = previous;
   });
 });

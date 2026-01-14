@@ -28,7 +28,7 @@ import { retryWithBackoff } from '../../lib/llm/retry';
 import { continueIfTruncated } from '../../lib/llm/continuation';
 import { rateLimiter } from '../rateLimiter';
 import { renderPreviewHtml } from '../../lib/markdown-render';
-import { buildTelemetry } from '../../lib/llm/telemetry';
+import { logTelemetry } from '../../lib/llm/telemetry';
 
 interface Question {
   id: string;
@@ -497,15 +497,12 @@ Generate the "${params.sectionName}" section now:`;
     });
 
     const durationMs = Date.now() - startedAt;
-    console.info(
-      '[llm.telemetry]',
-      buildTelemetry({
+    logTelemetry('info', {
         provider: model.provider,
         model: model.id,
         durationMs,
         success: true,
-      })
-    );
+      });
 
     return {
       content: response.content,
@@ -513,16 +510,13 @@ Generate the "${params.sectionName}" section now:`;
     };
   } catch (error: any) {
     const durationMs = Date.now() - startedAt;
-    console.warn(
-      '[llm.telemetry]',
-      buildTelemetry({
+    logTelemetry('warn', {
         provider: model.provider,
         model: model.id,
         durationMs,
         success: false,
         error: error?.message ?? String(error),
-      })
-    );
+      });
     console.error(`[generateSectionContent] LLM call failed:`, error?.message);
     throw new Error(
       `Failed to generate ${params.sectionName}: ${error?.message}`
