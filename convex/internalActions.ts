@@ -123,8 +123,8 @@ export const generatePhaseWorker = internalAction({
 
       const previewHtml = renderPreviewHtml(response.content);
 
-      // Append to artifact
-      await ctx.runMutation(api.projects.appendSectionToArtifact, {
+      // Append to artifact (using internal mutation for system context)
+      await ctx.runMutation(internal.internal.appendSectionToArtifactInternal, {
         projectId,
         phaseId,
         section: {

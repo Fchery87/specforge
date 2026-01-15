@@ -125,3 +125,65 @@ export const getGenerationTask = internalQuery({
     return await ctx.db.get(args.taskId);
   },
 });
+
+export const appendSectionToArtifactInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    section: v.object({
+      name: v.string(),
+      content: v.string(),
+      previewHtml: v.string(),
+      tokens: v.number(),
+      model: v.string(),
+    }),
+    isFirst: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    // Get existing artifact for this phase
+    const existing = await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (args.isFirst || !existing) {
+      // Create new or overwrite
+      if (existing) await ctx.db.delete(existing._id);
+
+      await ctx.db.insert('artifacts', {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        type: args.phaseId, // Placeholder, usually resolved by caller
+        title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} Document`,
+        content: args.section.content,
+        previewHtml: args.section.previewHtml,
+        sections: [
+          {
+            name: args.section.name,
+            tokens: args.section.tokens,
+            model: args.section.model,
+          },
+        ],
+      });
+    } else {
+      // Append content
+      const newContent = `${existing.content}\n\n${args.section.content}`;
+      const newPreview = `${existing.previewHtml}${args.section.previewHtml}`;
+      const newSections = [
+        ...existing.sections,
+        {
+          name: args.section.name,
+          tokens: args.section.tokens,
+          model: args.section.model,
+        },
+      ];
+
+      await ctx.db.patch(existing._id, {
+        content: newContent,
+        previewHtml: newPreview,
+        sections: newSections,
+      });
+    }
+  },
+});
