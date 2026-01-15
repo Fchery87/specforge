@@ -15,12 +15,30 @@ SpecForge is a high-performance scaffold designed for building **repo-native**, 
 
 ## Key Features
 
-- **Phase-Based Workflow**: Structured project generation across multiple phases (Brief → PRD → Specs → Stories → Handoff)
-- **Anti-Truncation Foundation**: Chunked generation helpers to handle large LLM outputs
-- **Multi-LLM Support**: OpenAI, Anthropic, Mistral, Z.AI, and Minimax providers
-- **Artifact Management**: Real-time preview and individual download of generated artifacts
-- **Project Export**: Full project ZIP export functionality
-- **System & User Credentials**: Encrypted credential storage with flexible provider selection
+- **Phase-Based Workflow**: Structured project generation across multiple phases (Brief → PRD → Specs → Stories → Artifacts → Handoff)
+- **Chained Worker Architecture**: Long-running LLM generations are broken into sequential background tasks, bypassing the 600s Convex timeout.
+- **Incremental Persistence**: Artifacts are forged section-by-section and saved in real-time to prevent data loss.
+- **Provider-Model Intelligence**: Automatic matching of LLM providers (DeepSeek, OpenAI, etc.) with their specific enabled models.
+- **Multi-LLM Support**: DeepSeek (V3.2), OpenAI (GPT-4o), Anthropic (Claude 3.5), Mistral, Z.AI, and Minimax.
+- **Artifact Management**: Real-time preview with high-fidelity markdown rendering.
+- **Project Export**: Full project ZIP generation and storage.
+- **Encrypted Credentials**: AES-encrypted system and user API keys stored in Convex.
+
+## Architecture Overview
+
+### Chained Worker Pattern
+
+SpecForge uses a **Coordinator-Worker** pattern to handle complex generation tasks:
+
+1. **Coordinator Action**: Initializes a `generationTask` in the database with a specific plan (ordered sections).
+2. **Scheduled Worker**: An `internalAction` picks up the next section in the plan, executes the LLM call with a fresh 600s budget, and saves the result.
+3. **Chain Execution**: After each section, the worker updates the task progress and schedules the next worker step until the plan is complete.
+
+### Data Flow
+
+- **Input**: User Project Brief + Answered Phase Questions.
+- **Context**: For each section, the worker retrieves previous sections to maintain coherence.
+- **Output**: Markdown content appended to the phase's `artifact` record incrementally.
 
 ## Quickstart
 
@@ -44,6 +62,7 @@ cp .env.example .env.local
 ```
 
 Required variables:
+
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk publishable key
 - `CLERK_SECRET_KEY` - Clerk secret key
 - `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL (auto-set by `bunx convex dev`)
@@ -111,15 +130,15 @@ specforge/
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | Start Next.js development server |
-| `bunx convex dev` | Start Convex development server |
-| `bun run build` | Production build |
-| `bun run lint` | Run ESLint |
-| `bun run typecheck` | TypeScript type checking |
-| `bun test` | Run unit tests |
-| `bun test --coverage` | Run tests with coverage |
+| Command               | Description                      |
+| --------------------- | -------------------------------- |
+| `bun run dev`         | Start Next.js development server |
+| `bunx convex dev`     | Start Convex development server  |
+| `bun run build`       | Production build                 |
+| `bun run lint`        | Run ESLint                       |
+| `bun run typecheck`   | TypeScript type checking         |
+| `bun test`            | Run unit tests                   |
+| `bun test --coverage` | Run tests with coverage          |
 
 ---
 

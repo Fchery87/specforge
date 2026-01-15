@@ -230,34 +230,6 @@ export default function HomePage() {
           <Link href="/dashboard">Execute Protocol // Start</Link>
         </Button>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t-2 border-border py-12 px-6 bg-background">
-        <div className="max-w-[95vw] mx-auto flex flex-col md:flex-row justify-between items-end gap-8">
-          <div>
-            <div className="text-4xl font-bold uppercase tracking-tighter mb-2">
-              SpecForge
-            </div>
-            <p className="text-muted-foreground uppercase tracking-widest text-sm">
-              Advanced Agentic Framework
-            </p>
-          </div>
-          <div className="flex gap-8 text-lg font-bold uppercase tracking-tight">
-            <Link href="#" className="hover:text-primary">
-              Terms
-            </Link>
-            <Link href="#" className="hover:text-primary">
-              Privacy
-            </Link>
-            <Link href="https://github.com" className="hover:text-primary">
-              GitHub
-            </Link>
-          </div>
-        </div>
-        <div className="text-[20vw] font-bold leading-none text-muted opacity-10 text-center pointer-events-none select-none mt-[-5vw]">
-          BUILD
-        </div>
-      </footer>
     </div>
   );
 }

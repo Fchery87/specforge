@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 import { NoiseOverlay } from "@/components/ui/noise-overlay";
 
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -71,9 +72,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             <ConvexClientProvider>
               <SiteHeader />
-              <main className="pt-20 min-h-screen">
-                {children}
-              </main>
+              <div className="flex flex-col min-h-screen">
+                <main className="pt-20 flex-grow">
+                  {children}
+                </main>
+                <SiteFooter />
+              </div>
               <Toaster
                 theme="dark"
                 position="top-right"

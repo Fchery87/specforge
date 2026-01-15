@@ -9,16 +9,14 @@ import { useUser, UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 function NavLinks() {
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
   const pathname = usePathname();
 
   if (!isSignedIn) return null;
 
-  const links: Array<{
-    href: Route;
-    label: string;
-    icon: typeof LayoutDashboard;
-  }> = [
+  const isAdmin = user?.publicMetadata?.role === "admin";
+
+  const links = [
     {
       href: "/dashboard" as Route,
       label: "Dashboard",
@@ -29,11 +27,11 @@ function NavLinks() {
       label: "Settings",
       icon: Settings,
     },
-    {
+    ...(isAdmin ? [{
       href: "/admin/dashboard" as Route,
       label: "Admin",
       icon: Shield,
-    },
+    }] : []),
   ];
 
   return (
