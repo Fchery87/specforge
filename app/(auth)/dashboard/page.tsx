@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
   const sortedProjects = [...(projects || [])].sort((a, b) => b.createdAt - a.createdAt);
   const recentByUpdated = [...(projects || [])].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 3);
-  const mostRecentProject = sortedProjects[0] || null;
+  const mostRecentProject = recentByUpdated[0] || null;
 
   async function handleDeleteProject() {
     if (deleteDialogState.projectId) {

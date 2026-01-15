@@ -1,6 +1,7 @@
 import { internalMutation, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
+import { getNextUpdatedAt } from './projects';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },
@@ -67,6 +68,13 @@ export const updatePhaseStatus = internalMutation({
 
     if (phase) {
       await ctx.db.patch(phase._id, { status: args.status });
+      const project = await ctx.db.get(args.projectId);
+      if (project) {
+        const now = Date.now();
+        await ctx.db.patch(args.projectId, {
+          updatedAt: getNextUpdatedAt(project.updatedAt, now),
+        });
+      }
     }
   },
 });
@@ -109,6 +117,8 @@ export const updatePhaseQuestionsInternal = internalMutation({
       .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .first();
 
+    const project = await ctx.db.get(args.projectId);
+    const now = Date.now();
     if (!phase) {
       await ctx.db.insert('phases', {
         projectId: args.projectId,
@@ -118,6 +128,12 @@ export const updatePhaseQuestionsInternal = internalMutation({
       });
     } else {
       await ctx.db.patch(phase._id, { questions: args.questions });
+    }
+
+    if (project) {
+      await ctx.db.patch(args.projectId, {
+        updatedAt: getNextUpdatedAt(project.updatedAt, now),
+      });
     }
   },
 });
@@ -198,6 +214,8 @@ export const appendSectionToArtifactInternal = internalMutation({
       .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .first();
 
+    const project = await ctx.db.get(args.projectId);
+    const now = Date.now();
     if (args.isFirst || !existing) {
       // Create new or overwrite
       if (existing) await ctx.db.delete(existing._id);
@@ -234,6 +252,12 @@ export const appendSectionToArtifactInternal = internalMutation({
         content: newContent,
         previewHtml: newPreview,
         sections: newSections,
+      });
+    }
+
+    if (project) {
+      await ctx.db.patch(args.projectId, {
+        updatedAt: getNextUpdatedAt(project.updatedAt, now),
       });
     }
   },
@@ -275,6 +299,8 @@ export const saveAnswerInternal = internalMutation({
 
     if (!phase) throw new Error('Phase not found');
 
+    const project = await ctx.db.get(args.projectId);
+    const now = Date.now();
     const updatedQuestions = (phase.questions || []).map((q: any) =>
       q.id === args.questionId
         ? {
@@ -288,5 +314,10 @@ export const saveAnswerInternal = internalMutation({
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
+    if (project) {
+      await ctx.db.patch(args.projectId, {
+        updatedAt: getNextUpdatedAt(project.updatedAt, now),
+      });
+    }
   },
 });

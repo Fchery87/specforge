@@ -189,6 +189,7 @@ export const saveAnswer = mutation({
 
     if (!phase) throw new Error('Phase not found');
 
+    const now = Date.now();
     const updatedQuestions = applyAnswerUpdate(
       phase.questions,
       args.questionId,
@@ -197,6 +198,9 @@ export const saveAnswer = mutation({
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
+    await ctx.db.patch(args.projectId, {
+      updatedAt: getNextUpdatedAt(project.updatedAt, now),
+    });
   },
 });
 
@@ -217,6 +221,10 @@ export function applyAnswerUpdate<
         }
       : q
   );
+}
+
+export function getNextUpdatedAt(current: number, now: number): number {
+  return now > current ? now : current;
 }
 
 export const deleteProject = mutation({
@@ -280,6 +288,7 @@ export const updatePhaseQuestions = mutation({
       .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .first();
 
+    const now = Date.now();
     if (!phase) {
       await ctx.db.insert('phases', {
         projectId: args.projectId,
@@ -290,6 +299,10 @@ export const updatePhaseQuestions = mutation({
     } else {
       await ctx.db.patch(phase._id, { questions: args.questions });
     }
+
+    await ctx.db.patch(args.projectId, {
+      updatedAt: getNextUpdatedAt(project.updatedAt, now),
+    });
   },
 });
 
@@ -320,6 +333,7 @@ export const appendSectionToArtifact = mutation({
       .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .first();
 
+    const now = Date.now();
     if (args.isFirst || !existing) {
       // Create new or overwrite
       if (existing) await ctx.db.delete(existing._id);
@@ -358,5 +372,9 @@ export const appendSectionToArtifact = mutation({
         sections: newSections,
       });
     }
+
+    await ctx.db.patch(args.projectId, {
+      updatedAt: getNextUpdatedAt(project.updatedAt, now),
+    });
   },
 });

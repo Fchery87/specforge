@@ -6,10 +6,9 @@ import { useQuery } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import { PhaseStepper } from "@/components/phase-stepper";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ArrowRight, Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
+import { ProjectPhaseCard } from "@/components/project-phase-card";
+import { ArrowLeft, Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
 
 const PHASES = [
   { id: "brief", label: "Brief", icon: FileText, description: "Define your project scope and requirements" },
@@ -26,6 +25,10 @@ export default function ProjectPage() {
   
   const project = useQuery(
     api.projects.getProject,
+    isLoaded && isSignedIn ? { projectId: params.id as any } : "skip"
+  );
+  const phases = useQuery(
+    api.projects.getProjectPhases,
     isLoaded && isSignedIn ? { projectId: params.id as any } : "skip"
   );
 
@@ -62,6 +65,11 @@ export default function ProjectPage() {
       </main>
     );
   }
+
+  const phaseStatusMap = new Map<
+    string,
+    "pending" | "generating" | "ready" | "error"
+  >((phases ?? []).map((phase) => [phase.phaseId, phase.status]));
 
   return (
     <main className="relative min-h-[calc(100vh-5rem)]">
@@ -111,28 +119,16 @@ export default function ProjectPage() {
         </h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {PHASES.map((phase, idx) => (
-            <Link key={phase.id} href={`/project/${params.id}/phase/${phase.id}`} className="block">
-              <Card 
-                variant="interactive"
-                className="relative h-full group"
-              >
-                <CardHeader>
-                  <div className="text-6xl font-bold text-muted/20 absolute top-4 right-4 group-hover:text-black/10 transition-colors">
-                    {String(idx + 1).padStart(2, '0')}
-                  </div>
-                  <div className="w-12 h-12 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-black group-hover:bg-black/10 transition-colors">
-                    <phase.icon className="w-6 h-6 text-muted-foreground group-hover:text-black transition-colors" />
-                  </div>
-                  <CardTitle>{phase.label}</CardTitle>
-                  <CardDescription>{phase.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-primary group-hover:text-black font-bold uppercase tracking-tight text-sm transition-colors">
-                    Enter Phase <ArrowRight className="w-4 h-4 ml-2" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <ProjectPhaseCard
+              key={phase.id}
+              projectId={params.id}
+              phaseId={phase.id}
+              label={phase.label}
+              description={phase.description}
+              icon={phase.icon}
+              index={idx}
+              status={phaseStatusMap.get(phase.id)}
+            />
           ))}
         </div>
       </section>
