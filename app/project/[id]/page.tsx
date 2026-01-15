@@ -109,7 +109,11 @@ export default function ProjectPage() {
 
       {/* Phase Stepper */}
       <section className="page-container pb-8 relative z-10">
-        <PhaseStepper projectId={params.id} currentPhase="brief" />
+        <PhaseStepper
+          projectId={params.id}
+          currentPhase="brief"
+          phaseStatuses={Object.fromEntries(phaseStatusMap)}
+        />
       </section>
 
       {/* Phase Cards */}
