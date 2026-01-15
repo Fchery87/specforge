@@ -40,7 +40,7 @@ export const generateQuestionAnswer = action({
     args
   ): Promise<{ suggestedAnswer: string }> => {
     // Verify user owns project
-    const project = await ctx.runQuery(api.projects.getProject, {
+    const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
       projectId: args.projectId,
     });
     if (!project) throw new Error('Project not found');
@@ -58,7 +58,7 @@ export const generateQuestionAnswer = action({
     });
 
     // Get phase with questions
-    const phaseData = await ctx.runQuery(api.projects.getPhase, {
+    const phaseData = await ctx.runQuery(internalApi.internal.getPhaseInternal, {
       projectId: args.projectId,
       phaseId: args.phaseId,
     });

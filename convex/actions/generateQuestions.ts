@@ -171,7 +171,7 @@ function parseQuestionsResponse(
 export const generateQuestions = action({
   args: { projectId: v.id('projects'), phaseId: v.string() },
   handler: async (ctx: ActionCtx, args) => {
-    const project = await ctx.runQuery(api.projects.getProject, {
+    const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
       projectId: args.projectId,
     });
     if (!project) throw new Error('Project not found');
@@ -315,7 +315,7 @@ export const generateQuestions = action({
       required: q.required ?? false,
     }));
 
-    await ctx.runMutation(api.projects.updatePhaseQuestions, {
+    await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {
       projectId: args.projectId,
       phaseId: args.phaseId,
       questions,

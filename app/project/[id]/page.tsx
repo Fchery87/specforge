@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import { PhaseStepper } from "@/components/phase-stepper";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ArrowRight, Sparkles, Layers, FileText, Code, Package, Target, ClipboardList } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
 
 const PHASES = [
   { id: "brief", label: "Brief", icon: FileText, description: "Define your project scope and requirements" },
@@ -21,8 +22,25 @@ const PHASES = [
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
-  const project = useQuery(api.projects.getProject, { projectId: params.id as any });
+  const { isLoaded, isSignedIn } = useAuth();
+  
+  const project = useQuery(
+    api.projects.getProject,
+    isLoaded && isSignedIn ? { projectId: params.id as any } : "skip"
+  );
 
+  // Show loading while auth is initializing
+  if (!isLoaded) {
+    return (
+      <main className="page-container py-20">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </main>
+    );
+  }
+
+  // Show loading skeleton while project data is being fetched
   if (!project) {
     return (
       <main className="relative min-h-[calc(100vh-5rem)]">

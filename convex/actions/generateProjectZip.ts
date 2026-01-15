@@ -2,7 +2,7 @@
 
 import { action } from "../_generated/server";
 import type { ActionCtx } from "../_generated/server";
-import { api, internal as internalApi } from "../_generated/api";
+import { internal as internalApi } from "../_generated/api";
 import { v } from "convex/values";
 import { createZip, sanitizeZipPathSegment } from "../../lib/zip";
 import { rateLimiter } from "../rateLimiter";
@@ -10,7 +10,9 @@ import { rateLimiter } from "../rateLimiter";
 export const generateProjectZip = action({
   args: { projectId: v.id("projects") },
   handler: async (ctx: ActionCtx, args) => {
-    const project = await ctx.runQuery(api.projects.getProject, { projectId: args.projectId });
+    const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
+      projectId: args.projectId,
+    });
     if (!project) throw new Error("Not found");
     
     const identity = await ctx.auth.getUserIdentity();
@@ -24,7 +26,10 @@ export const generateProjectZip = action({
       await ctx.storage.delete(project.zipStorageId);
     }
 
-    const artifacts = await ctx.runQuery(api.projects.getPhaseArtifacts, { projectId: args.projectId });
+    const artifacts = await ctx.runQuery(
+      internalApi.internal.getPhaseArtifactsInternal,
+      { projectId: args.projectId }
+    );
 
     const entries = artifacts.map((a: any) => ({
       path: `${sanitizeZipPathSegment(a.phaseId)}/${sanitizeZipPathSegment(a.title)}.md`,

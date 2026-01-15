@@ -58,7 +58,7 @@ export const generatePhase = action({
     ctx: ActionCtx,
     args
   ): Promise<{ taskId: Id<'generationTasks'> }> => {
-    const project = await ctx.runQuery(api.projects.getProject, {
+    const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
       projectId: args.projectId,
     });
     if (!project) throw new Error('Project not found');
@@ -68,7 +68,7 @@ export const generatePhase = action({
       throw new Error('Forbidden');
 
     // Get phase data
-    const phaseData = await ctx.runQuery(api.projects.getPhase, {
+    const phaseData = await ctx.runQuery(internalApi.internal.getPhaseInternal, {
       projectId: args.projectId,
       phaseId: args.phaseId,
     });

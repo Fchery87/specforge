@@ -71,6 +71,57 @@ export const updatePhaseStatus = internalMutation({
   },
 });
 
+export const getProjectInternal = internalQuery({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.projectId);
+  },
+});
+
+export const getPhaseArtifactsInternal = internalQuery({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect();
+  },
+});
+
+export const updatePhaseQuestionsInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    questions: v.array(
+      v.object({
+        id: v.string(),
+        text: v.string(),
+        answer: v.optional(v.string()),
+        aiGenerated: v.boolean(),
+        required: v.optional(v.boolean()),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) {
+      await ctx.db.insert('phases', {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        status: 'ready',
+        questions: args.questions,
+      });
+    } else {
+      await ctx.db.patch(phase._id, { questions: args.questions });
+    }
+  },
+});
+
 export const initGenerationTask = internalMutation({
   args: {
     projectId: v.id('projects'),

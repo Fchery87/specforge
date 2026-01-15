@@ -131,6 +131,24 @@ export const getPhaseArtifacts = query({
   },
 });
 
+export const getGenerationTask = query({
+  args: { taskId: v.id('generationTasks') },
+  handler: async (ctx: QueryCtx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthenticated');
+
+    const task = await ctx.db.get(args.taskId);
+    if (!task) return null;
+
+    const project = await ctx.db.get(task.projectId);
+    if (!project || project.userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
+    return task;
+  },
+});
+
 export const getProjectZipUrl = query({
   args: { projectId: v.id('projects') },
   handler: async (ctx: QueryCtx, args) => {

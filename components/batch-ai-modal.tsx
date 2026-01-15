@@ -24,7 +24,7 @@ interface BatchAiModalProps {
   totalQuestions?: number;
   questions: Question[];
   batchAnswers: BatchAnswer[];
-  onAcceptAll: () => void;
+  onAcceptAll?: () => void;
   onCancel: () => void;
 }
 
@@ -36,7 +36,6 @@ export function BatchAiModal({
   totalQuestions = 0,
   questions,
   batchAnswers,
-  onAcceptAll,
   onCancel,
 }: BatchAiModalProps) {
   return (
@@ -50,7 +49,7 @@ export function BatchAiModal({
           <DialogDescription>
             {isGenerating
               ? `Generating answers... (${currentProgress} of ${totalQuestions})`
-              : "Review and accept the AI-generated answers below"}
+              : "Review the AI-generated answers below"}
           </DialogDescription>
         </DialogHeader>
 
@@ -88,29 +87,12 @@ export function BatchAiModal({
           </div>
         </ScrollArea>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onCancel}
-            disabled={isGenerating}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={onAcceptAll}
-            disabled={isGenerating || (batchAnswers?.length ?? 0) === 0}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                Accept All
-              </>
-            )}
+        <DialogFooter className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">
+            Answers are saved automatically.
+          </p>
+          <Button variant="outline" onClick={onCancel}>
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

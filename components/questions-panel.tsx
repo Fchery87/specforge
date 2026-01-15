@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useMutation, useAction } from "convex/react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { BatchAiModal } from "./batch-ai-modal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { getToastMessage } from "@/lib/notifications";
+import { collectBatchAnswers } from "@/lib/batch-answers";
 import { Loader2, Check, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,6 +56,7 @@ export function QuestionsPanel({
   const generateQuestions = useAction(generateQuestionsAction);
   const generateQuestionAnswer = useAction(generateQuestionAnswerAction);
   const generateAllQuestionAnswers = useAction(generateAllQuestionAnswersAction);
+  const getGenerationTaskQuery: any = (api as any)?.projects?.getGenerationTask;
 
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
   const [localAiGenerated, setLocalAiGenerated] = useState<Record<string, boolean>>({});
@@ -63,14 +65,23 @@ export function QuestionsPanel({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [aiGeneratingId, setAiGeneratingId] = useState<string | null>(null);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [isBatchGenerating, setIsBatchGenerating] = useState(false);
-  const [batchProgress, setBatchProgress] = useState(0);
-  const [batchAnswers, setBatchAnswers] = useState<Array<{ questionId: string; answer: string }>>([]);
+  const [isBatchStarting, setIsBatchStarting] = useState(false);
+  const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const batchToastIdRef = useRef<string | number | null>(null);
+  const batchStatusRef = useRef<string | null>(null);
 
   // Track pending saves
   const pendingSaveRef = useRef<Record<string, string>>({});
   const pendingAiGeneratedRef = useRef<Record<string, boolean>>({});
+  const batchAnswers = useMemo(() => collectBatchAnswers(questions), [questions]);
+  const batchTask = useQuery(
+    getGenerationTaskQuery,
+    batchTaskId ? { taskId: batchTaskId as any } : "skip"
+  );
+  const isBatchGenerating =
+    isBatchStarting || batchTask?.status === "in_progress";
+  const batchProgress = Math.min(batchTask?.currentStep ?? 0, questions.length);
 
   // Initialize local answers from questions
   useEffect(() => {
@@ -83,6 +94,36 @@ export function QuestionsPanel({
     setLocalAnswers(initial);
     setLocalAiGenerated(initialAi);
   }, [questions]);
+
+  useEffect(() => {
+    if (!batchTask || !batchTaskId) return;
+    if (batchTask.status === batchStatusRef.current) return;
+    batchStatusRef.current = batchTask.status;
+
+    const toastId = batchToastIdRef.current ?? undefined;
+    if (batchTask.status === "completed") {
+      const doneToast = getToastMessage("ai_batch_done");
+      toast.success(doneToast.title, {
+        id: toastId,
+        description: doneToast.description,
+      });
+    } else if (batchTask.status === "failed") {
+      const errorToast = getToastMessage("ai_batch_error");
+      toast.error(errorToast.title, {
+        id: toastId,
+        description: errorToast.description,
+      });
+      setErrorMessage(
+        batchTask.error || "Failed to generate answers. Please try again."
+      );
+    }
+  }, [batchTask, batchTaskId]);
+
+  useEffect(() => {
+    if (batchTask && isBatchStarting) {
+      setIsBatchStarting(false);
+    }
+  }, [batchTask, isBatchStarting]);
 
   const unansweredRequired = questions.filter((q) => q.required && !localAnswers[q.id]?.trim()).length;
   const allAnswered = unansweredRequired === 0;
@@ -191,15 +232,16 @@ export function QuestionsPanel({
   }
 
   async function handleBatchAiGenerate() {
+    setBatchTaskId(null);
+    batchStatusRef.current = null;
     setIsBatchModalOpen(true);
-    setIsBatchGenerating(true);
-    setBatchProgress(0);
-    setBatchAnswers([]);
+    setIsBatchStarting(true);
     setErrorMessage(null);
     const startToast = getToastMessage("ai_batch_start");
     const toastId = toast.message(startToast.title, {
       description: startToast.description,
     });
+    batchToastIdRef.current = toastId;
 
     try {
       const result = await generateAllQuestionAnswers({
@@ -207,50 +249,32 @@ export function QuestionsPanel({
         phaseId,
       });
 
-      setBatchAnswers(result?.answers ?? []);
-      setBatchProgress(result?.answers?.length ?? 0);
-      const doneToast = getToastMessage("ai_batch_done");
-      toast.success(doneToast.title, {
-        id: toastId,
-        description: doneToast.description,
-      });
+      setBatchTaskId(result?.taskId ?? null);
+      if (!result?.taskId) {
+        throw new Error("Batch generation did not return a task id.");
+      }
     } catch (error: any) {
       console.error("Failed to generate batch answers:", error);
       setErrorMessage(error.message || "Failed to generate answers. Please try again.");
-      setIsBatchModalOpen(false);
       const errorToast = getToastMessage("ai_batch_error");
       toast.error(errorToast.title, {
         id: toastId,
         description: errorToast.description,
       });
-    } finally {
-      setIsBatchGenerating(false);
+      setIsBatchStarting(false);
     }
-  }
-
-  function handleAcceptBatchAnswers() {
-    // Update local state with all batch answers
-    const updates: Record<string, string> = {};
-    batchAnswers.forEach(({ questionId, answer }) => {
-      updates[questionId] = answer;
-      pendingSaveRef.current[questionId] = answer;
-      pendingAiGeneratedRef.current[questionId] = true;
-    });
-
-    setLocalAnswers(prev => ({ ...prev, ...updates }));
-    setLocalAiGenerated(prev => ({
-      ...prev,
-      ...Object.fromEntries(batchAnswers.map(({ questionId }) => [questionId, true])),
-    }));
-    setIsBatchModalOpen(false);
-    setBatchAnswers([]);
-    setBatchProgress(0);
   }
 
   function handleCancelBatch() {
     setIsBatchModalOpen(false);
-    setBatchAnswers([]);
-    setBatchProgress(0);
+    setIsBatchStarting(false);
+  }
+
+  function handleBatchModalChange(open: boolean) {
+    setIsBatchModalOpen(open);
+    if (!open) {
+      setIsBatchStarting(false);
+    }
   }
 
   const getAnswerForQuestion = (q: Question) => localAnswers[q.id] ?? q.answer ?? "";
@@ -421,13 +445,12 @@ export function QuestionsPanel({
       </CardContent>
       <BatchAiModal
         open={isBatchModalOpen}
-        onOpenChange={setIsBatchModalOpen}
+        onOpenChange={handleBatchModalChange}
         isGenerating={isBatchGenerating}
         currentProgress={batchProgress}
         totalQuestions={questions.length}
         questions={questions}
         batchAnswers={batchAnswers}
-        onAcceptAll={handleAcceptBatchAnswers}
         onCancel={handleCancelBatch}
       />
     </Card>

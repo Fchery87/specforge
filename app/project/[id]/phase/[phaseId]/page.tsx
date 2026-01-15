@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useAction, useConvex } from "convex/react";
+import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { FunctionReference } from "convex/server";
 import { PhaseStatusIndicator } from "@/components/phase-status";
@@ -30,10 +31,20 @@ export default function PhasePage() {
   const params = useParams<{ id: string; phaseId: string }>();
   const projectId = params.id;
   const phaseId = params.phaseId;
+  const { isLoaded, isSignedIn } = useAuth();
 
-  const project = useQuery(api.projects.getProject, { projectId: projectId as any });
-  const phase = useQuery(api.projects.getPhase, { projectId: projectId as any, phaseId });
-  const phases = useQuery(api.projects.getProjectPhases, { projectId: projectId as any });
+  const project = useQuery(
+    api.projects.getProject,
+    isLoaded && isSignedIn ? { projectId: projectId as any } : "skip"
+  );
+  const phase = useQuery(
+    api.projects.getPhase,
+    isLoaded && isSignedIn ? { projectId: projectId as any, phaseId } : "skip"
+  );
+  const phases = useQuery(
+    api.projects.getProjectPhases,
+    isLoaded && isSignedIn ? { projectId: projectId as any } : "skip"
+  );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const generatePhaseAction = (api as any)["actions/generatePhase"]?.generatePhase as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

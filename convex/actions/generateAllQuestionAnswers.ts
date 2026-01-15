@@ -42,7 +42,7 @@ export const generateAllQuestionAnswers = action({
     args
   ): Promise<{ taskId: Id<'generationTasks'> }> => {
     // Verify user owns project
-    const project = await ctx.runQuery(api.projects.getProject, {
+    const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
       projectId: args.projectId,
     });
     if (!project) throw new Error('Project not found');
@@ -52,7 +52,7 @@ export const generateAllQuestionAnswers = action({
       throw new Error('Forbidden');
 
     // Get phase with questions
-    const phaseData = await ctx.runQuery(api.projects.getPhase, {
+    const phaseData = await ctx.runQuery(internalApi.internal.getPhaseInternal, {
       projectId: args.projectId,
       phaseId: args.phaseId,
     });
