@@ -1,0 +1,63 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "name": "BlockDangerousCommands",
+            "description": "Block dangerous rm commands without confirmation",
+            "command": "if [[ \"$CLAUDE_TOOL_INPUT\" =~ rm\\ -rf|rm\\ -r|force\\ push ]]; then echo 'BLOCKED: This command requires explicit user confirmation' && exit 2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "name": "LogFileEdits",
+            "description": "Log file edits for audit trail",
+            "command": "echo \"Editing: $CLAUDE_FILE_PATHS\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "name": "AutoTypecheck",
+            "description": "Run typecheck after editing TypeScript files",
+            "command": "if [[ \"$CLAUDE_FILE_PATHS\" =~ \\.(ts|tsx)$ ]]; then npx tsc -p tsconfig.json --noEmit 2>&1 | head -20 || true; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "name": "AutoLint",
+            "description": "Run lint after editing code files",
+            "command": "if [[ \"$CLAUDE_FILE_PATHS\" =~ \\.(ts|tsx|js|jsx)$ ]]; then npx eslint --max-warnings=0 \"$CLAUDE_FILE_PATHS\" 2>&1 | head -20 || true; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "name": "RunAffectedTests",
+            "description": "Run tests for edited test files",
+            "command": "if [[ \"$CLAUDE_FILE_PATHS\" =~ \\.test\\.(ts|tsx)$ ]]; then npm test -- \"$CLAUDE_FILE_PATHS\" 2>&1 | tail -30 || true; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
