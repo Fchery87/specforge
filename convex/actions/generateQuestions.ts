@@ -1,66 +1,94 @@
-"use node";
+'use node';
 
-import { action } from "../_generated/server";
-import type { ActionCtx } from "../_generated/server";
-import { api, internal as internalApi } from "../_generated/api";
-import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
-import { selectEnabledModels } from "../../lib/llm/model-select";
+import { action } from '../_generated/server';
+import type { ActionCtx } from '../_generated/server';
+import { api, internal as internalApi } from '../_generated/api';
+import { v } from 'convex/values';
+import type { Doc } from '../_generated/dataModel';
+import { selectEnabledModels } from '../../lib/llm/model-select';
 import {
   getModelById,
   getFallbackModel,
   resolveCredentials,
-} from "../../lib/llm/registry";
-import type { LlmModel } from "../../lib/llm/types";
-import type { SystemCredential } from "../../lib/llm/registry";
-import { createLlmClient } from "../../lib/llm/client-factory";
-import { LLM_DEFAULTS } from "../../lib/llm/response-normalizer";
-import { retryWithBackoff } from "../../lib/llm/retry";
-import { rateLimiter } from "../rateLimiter";
-import { logTelemetry } from "../../lib/llm/telemetry";
+  validateProviderModelMatch,
+  getFirstEnabledModelForProvider,
+} from '../../lib/llm/registry';
+import type { LlmModel } from '../../lib/llm/types';
+import type { SystemCredential } from '../../lib/llm/registry';
+import { createLlmClient } from '../../lib/llm/client-factory';
+import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
+import { retryWithBackoff } from '../../lib/llm/retry';
+import { rateLimiter } from '../rateLimiter';
+import { logTelemetry } from '../../lib/llm/telemetry';
 
 const PHASE_QUESTIONS: Record<
   string,
   Array<{ text: string; required?: boolean }>
 > = {
   brief: [
-    { text: "What is the primary goal of this project? What problem does it solve?", required: true },
-    { text: "Who are the target users or audience for this product?", required: true },
-    { text: "What are the key features or functionalities you want to include?", required: true },
-    { text: "Are there any specific technical constraints or requirements? (e.g., integrations, compliance)" },
-    { text: "What is your expected timeline or deadline for launch?" },
-    { text: "Do you have any existing documentation, competitor analysis, or reference materials?" },
-    { text: "What defines success for this project? Key metrics or outcomes?" },
+    {
+      text: 'What is the primary goal of this project? What problem does it solve?',
+      required: true,
+    },
+    {
+      text: 'Who are the target users or audience for this product?',
+      required: true,
+    },
+    {
+      text: 'What are the key features or functionalities you want to include?',
+      required: true,
+    },
+    {
+      text: 'Are there any specific technical constraints or requirements? (e.g., integrations, compliance)',
+    },
+    { text: 'What is your expected timeline or deadline for launch?' },
+    {
+      text: 'Do you have any existing documentation, competitor analysis, or reference materials?',
+    },
+    { text: 'What defines success for this project? Key metrics or outcomes?' },
   ],
   prd: [
-    { text: "What is the primary goal of this product and who is it for?", required: true },
-    { text: "What problem does this solve, and why now?" },
-    { text: "What are the key user journeys or workflows?" },
-    { text: "What are the must-have vs nice-to-have requirements?" },
-    { text: "How will success be measured (KPIs/metrics)?" },
+    {
+      text: 'What is the primary goal of this product and who is it for?',
+      required: true,
+    },
+    { text: 'What problem does this solve, and why now?' },
+    { text: 'What are the key user journeys or workflows?' },
+    { text: 'What are the must-have vs nice-to-have requirements?' },
+    { text: 'How will success be measured (KPIs/metrics)?' },
   ],
   specs: [
-    { text: "What architectural style do you prefer? (e.g., REST, GraphQL, gRPC)" },
-    { text: "Do you have preferred cloud providers or infrastructure requirements?" },
-    { text: "What are the expected scale and performance requirements?" },
-    { text: "Do you need real-time features, and if so, what kind? (e.g., websockets, server-sent events)" },
-    { text: "What authentication and authorization requirements exist?" },
-    { text: "Are there specific data models or database preferences?" },
+    {
+      text: 'What architectural style do you prefer? (e.g., REST, GraphQL, gRPC)',
+    },
+    {
+      text: 'Do you have preferred cloud providers or infrastructure requirements?',
+    },
+    { text: 'What are the expected scale and performance requirements?' },
+    {
+      text: 'Do you need real-time features, and if so, what kind? (e.g., websockets, server-sent events)',
+    },
+    { text: 'What authentication and authorization requirements exist?' },
+    { text: 'Are there specific data models or database preferences?' },
   ],
   stories: [
-    { text: "What is your preferred sprint or iteration length?" },
-    { text: "Are there features that must be in the MVP versus nice-to-have?" },
-    { text: "Do you have any user research or personas to share?" },
-    { text: "What edge cases or error states should be handled?" },
+    { text: 'What is your preferred sprint or iteration length?' },
+    { text: 'Are there features that must be in the MVP versus nice-to-have?' },
+    { text: 'Do you have any user research or personas to share?' },
+    { text: 'What edge cases or error states should be handled?' },
   ],
   artifacts: [
-    { text: "What additional artifacts do you need beyond the standard deliverables?" },
-    { text: "Do you need API documentation, database schemas, or deployment guides?" },
+    {
+      text: 'What additional artifacts do you need beyond the standard deliverables?',
+    },
+    {
+      text: 'Do you need API documentation, database schemas, or deployment guides?',
+    },
   ],
   handoff: [
-    { text: "Who are the developers or team members receiving this handoff?" },
-    { text: "Are there specific coding standards or conventions to follow?" },
-    { text: "What environment setup or credentials need to be documented?" },
+    { text: 'Who are the developers or team members receiving this handoff?' },
+    { text: 'Are there specific coding standards or conventions to follow?' },
+    { text: 'What environment setup or credentials need to be documented?' },
   ],
 };
 
@@ -79,11 +107,13 @@ export function buildQuestionPrompt(params: {
   phaseId: string;
   range: { min: number; max: number };
 }): string {
-  return `Generate ${params.range.min}-${params.range.max} specific, high-value questions for the "${params.phaseId}" phase.\n\n` +
+  return (
+    `Generate ${params.range.min}-${params.range.max} specific, high-value questions for the "${params.phaseId}" phase.\n\n` +
     `Project Title: ${params.title}\n` +
     `Project Description: ${params.description}\n\n` +
     `Return JSON only in this shape:\n` +
-    `{\"questions\":[{\"text\":\"...\",\"required\":true}]}`;
+    `{\"questions\":[{\"text\":\"...\",\"required\":true}]}`
+  );
 }
 
 export function normalizeQuestions(
@@ -99,7 +129,10 @@ export function selectQuestions(
   aiQuestions: Array<{ text: string; required?: boolean }>,
   baseQuestions: Array<{ text: string; required?: boolean }>,
   range: { min: number; max: number }
-): { questions: Array<{ text: string; required?: boolean }>; aiGenerated: boolean } {
+): {
+  questions: Array<{ text: string; required?: boolean }>;
+  aiGenerated: boolean;
+} {
   if (aiQuestions.length >= range.min) {
     return { questions: aiQuestions.slice(0, range.max), aiGenerated: true };
   }
@@ -112,17 +145,15 @@ function parseQuestionsResponse(
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.map((text) =>
-        typeof text === "string" ? { text } : text
-      );
+      return parsed.map((text) => (typeof text === 'string' ? { text } : text));
     }
     if (parsed && Array.isArray(parsed.questions)) {
       return parsed.questions;
     }
   } catch {
     // Try to recover JSON object from a wrapped response
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
     if (start >= 0 && end > start) {
       try {
         const parsed = JSON.parse(raw.slice(start, end + 1));
@@ -138,19 +169,26 @@ function parseQuestionsResponse(
 }
 
 export const generateQuestions = action({
-  args: { projectId: v.id("projects"), phaseId: v.string() },
+  args: { projectId: v.id('projects'), phaseId: v.string() },
   handler: async (ctx: ActionCtx, args) => {
-    const project = await ctx.runQuery(api.projects.getProject, { projectId: args.projectId });
-    if (!project) throw new Error("Project not found");
+    const project = await ctx.runQuery(api.projects.getProject, {
+      projectId: args.projectId,
+    });
+    if (!project) throw new Error('Project not found');
 
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+    if (!identity || project.userId !== identity.subject)
+      throw new Error('Forbidden');
 
     const userId = identity.tokenIdentifier;
-    await rateLimiter.limit(ctx, "generateQuestions", { key: userId, throws: true });
+    await rateLimiter.limit(ctx, 'generateQuestions', {
+      key: userId,
+      throws: true,
+    });
 
     const range = PHASE_QUESTION_RANGE[args.phaseId] || { min: 5, max: 8 };
-    const baseQuestions = PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS["brief"];
+    const baseQuestions =
+      PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS['brief'];
 
     let aiQuestions: Array<{ text: string; required?: boolean }> = [];
     let aiGenerated = false;
@@ -172,36 +210,37 @@ export const generateQuestions = action({
         systemCredentialsMap = {};
       }
 
-      credentials = resolveCredentials(
-        userConfig,
-        new Map(Object.entries(systemCredentialsMap || {}))
-      );
-
       const enabledModelsFromDb = await ctx.runQuery(
         internalApi.llmModels.listEnabledModelsInternal
       );
       const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
 
+      credentials = resolveCredentials(
+        userConfig,
+        new Map(Object.entries(systemCredentialsMap || {})),
+        enabledModels
+      );
+
       let model: LlmModel;
       const provider = credentials?.provider;
-      if (credentials?.modelId && credentials.modelId !== "") {
+      if (credentials?.modelId && credentials.modelId !== '') {
         model = getModelById(credentials.modelId) ?? getFallbackModel();
       } else if (provider && enabledModels.length > 0) {
         const providerModel = enabledModels.find(
-          (m: Doc<"llmModels">) => m.provider === provider
+          (m: Doc<'llmModels'>) => m.provider === provider
         );
         if (providerModel) {
           model = {
             id: providerModel.modelId,
             provider: providerModel.provider as
-              | "openai"
-              | "openrouter"
-              | "deepseek"
-              | "anthropic"
-              | "mistral"
-              | "zai"
-              | "minimax"
-              | "other",
+              | 'openai'
+              | 'openrouter'
+              | 'deepseek'
+              | 'anthropic'
+              | 'mistral'
+              | 'zai'
+              | 'minimax'
+              | 'other',
             contextTokens: providerModel.contextTokens,
             maxOutputTokens: providerModel.maxOutputTokens,
             defaultMax: providerModel.defaultMax,
@@ -238,7 +277,7 @@ export const generateQuestions = action({
           { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
         );
         const durationMs = Date.now() - startedAt;
-        logTelemetry("info", {
+        logTelemetry('info', {
           provider: telemetryProvider,
           model: telemetryModel,
           durationMs,
@@ -256,11 +295,11 @@ export const generateQuestions = action({
         );
       }
     } catch {
-      logTelemetry("warn", {
-        provider: credentials?.provider ?? "unknown",
-        model: "unknown",
+      logTelemetry('warn', {
+        provider: credentials?.provider ?? 'unknown',
+        model: 'unknown',
         success: false,
-        error: "generateQuestions failed",
+        error: 'generateQuestions failed',
       });
       aiQuestions = [];
     }

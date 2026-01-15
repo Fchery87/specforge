@@ -9,6 +9,8 @@ import {
   getModelById,
   getFallbackModel,
   resolveCredentials,
+  validateProviderModelMatch,
+  getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import type { LlmModel, ProviderCredentials } from '../../lib/llm/types';
@@ -76,14 +78,36 @@ export const generateAllQuestionAnswers = action({
     const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
     const credentials = resolveCredentials(
       userConfig,
-      new Map(Object.entries(systemCredentialsMap || {}))
+      new Map(Object.entries(systemCredentialsMap || {})),
+      enabledModels
     );
 
     let model: LlmModel;
     if (credentials?.modelId) {
       model = getModelById(credentials.modelId) ?? getFallbackModel();
+    } else if (credentials?.provider) {
+      // Fallback to first enabled model for provider
+      const modelId = getFirstEnabledModelForProvider(
+        credentials.provider,
+        enabledModels
+      );
+      model = getModelById(modelId) ?? getFallbackModel();
     } else {
       model = getFallbackModel();
+    }
+
+    // Validate provider-model match
+    if (credentials) {
+      const validation = validateProviderModelMatch(
+        credentials.provider,
+        model.id
+      );
+      if (!validation.valid) {
+        console.error(
+          `[generateAllQuestionAnswers] Provider-model mismatch: ${validation.error}`
+        );
+        throw new Error(`Configuration error: ${validation.error}`);
+      }
     }
 
     // Initialize the background task

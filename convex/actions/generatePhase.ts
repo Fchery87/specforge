@@ -18,6 +18,8 @@ import {
   getFallbackModel,
   validateModelForArtifact,
   resolveCredentials,
+  validateProviderModelMatch,
+  getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import type {
@@ -94,7 +96,8 @@ export const generatePhase = action({
     const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
     const credentials = resolveCredentials(
       userConfig,
-      new Map(Object.entries(systemCredentialsMap || {}))
+      new Map(Object.entries(systemCredentialsMap || {})),
+      enabledModels
     );
 
     let model: LlmModel;
@@ -102,8 +105,29 @@ export const generatePhase = action({
       model = getModelById(args.modelId) ?? getFallbackModel();
     } else if (credentials?.modelId) {
       model = getModelById(credentials.modelId) ?? getFallbackModel();
+    } else if (credentials?.provider) {
+      // Fallback to first enabled model for provider
+      const modelId = getFirstEnabledModelForProvider(
+        credentials.provider,
+        enabledModels
+      );
+      model = getModelById(modelId) ?? getFallbackModel();
     } else {
       model = getFallbackModel();
+    }
+
+    // Validate provider-model match
+    if (credentials) {
+      const validation = validateProviderModelMatch(
+        credentials.provider,
+        model.id
+      );
+      if (!validation.valid) {
+        console.error(
+          `[generatePhase] Provider-model mismatch: ${validation.error}`
+        );
+        throw new Error(`Configuration error: ${validation.error}`);
+      }
     }
 
     const artifactType = getArtifactTypeForPhase(args.phaseId);

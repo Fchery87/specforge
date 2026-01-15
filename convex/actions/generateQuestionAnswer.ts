@@ -9,6 +9,8 @@ import {
   getModelById,
   getFallbackModel,
   resolveCredentials,
+  validateProviderModelMatch,
+  getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import type { LlmModel, ProviderCredentials } from '../../lib/llm/types';
@@ -50,7 +52,7 @@ export const generateQuestionAnswer = action({
     const userId = identity.tokenIdentifier;
 
     // Rate limiting - per-user limit
-    await rateLimiter.limit(ctx, "generateQuestionAnswer", {
+    await rateLimiter.limit(ctx, 'generateQuestionAnswer', {
       key: userId,
       throws: true,
     });
@@ -94,16 +96,17 @@ export const generateQuestionAnswer = action({
       systemCredentialsMap = {};
     }
 
-    const credentials = resolveCredentials(
-      userConfig,
-      new Map(Object.entries(systemCredentialsMap || {}))
-    );
-
     // Get model
     const enabledModelsFromDb = await ctx.runQuery(
       internalApi.llmModels.listEnabledModelsInternal
     );
     const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
+
+    const credentials = resolveCredentials(
+      userConfig,
+      new Map(Object.entries(systemCredentialsMap || {})),
+      enabledModels
+    );
 
     let model: LlmModel;
     if (credentials?.modelId && credentials.modelId !== '') {
@@ -116,14 +119,14 @@ export const generateQuestionAnswer = action({
         model = {
           id: providerModel.modelId,
           provider: providerModel.provider as
-            | "openai"
-            | "openrouter"
-            | "deepseek"
-            | "anthropic"
-            | "mistral"
-            | "zai"
-            | "minimax"
-            | "other",
+            | 'openai'
+            | 'openrouter'
+            | 'deepseek'
+            | 'anthropic'
+            | 'mistral'
+            | 'zai'
+            | 'minimax'
+            | 'other',
           contextTokens: providerModel.contextTokens,
           maxOutputTokens: providerModel.maxOutputTokens,
           defaultMax: providerModel.defaultMax,
