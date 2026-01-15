@@ -57,7 +57,7 @@ export function BatchAiModal({
         <ScrollArea className="max-h-[50vh] pr-4">
           <div className="space-y-6">
             {questions.map((question, idx) => {
-              const batchAnswer = batchAnswers.find(
+              const batchAnswer = batchAnswers?.find(
                 (ba) => ba.questionId === question.id
               );
               const isProcessed = idx < currentProgress;
@@ -98,7 +98,7 @@ export function BatchAiModal({
           </Button>
           <Button
             onClick={onAcceptAll}
-            disabled={isGenerating || batchAnswers.length === 0}
+            disabled={isGenerating || (batchAnswers?.length ?? 0) === 0}
           >
             {isGenerating ? (
               <>

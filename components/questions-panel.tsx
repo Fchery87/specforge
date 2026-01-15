@@ -283,7 +283,7 @@ export function QuestionsPanel({
             variant="outline"
             size="sm"
             onClick={handleBatchAiGenerate}
-            disabled={isBatchGenerating || questions.length === 0}
+            disabled={isBatchGenerating || (questions?.length ?? 0) === 0}
           >
             <Sparkles className="w-4 h-4 mr-2" />
             Let AI answer all

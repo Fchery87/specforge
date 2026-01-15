@@ -187,3 +187,22 @@ export const appendSectionToArtifactInternal = internalMutation({
     }
   },
 });
+
+export const getPhaseInternal = internalQuery({
+  args: { projectId: v.id('projects'), phaseId: v.string() },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    const artifacts = await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .collect();
+
+    return { ...(phase ?? { questions: [] }), artifacts };
+  },
+});

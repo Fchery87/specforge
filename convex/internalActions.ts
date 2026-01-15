@@ -196,7 +196,7 @@ export const generateQuestionsWorker = internalAction({
     const llmClient = createLlmClient(credentials);
 
     try {
-      const phase = await ctx.runQuery(api.projects.getPhase, {
+      const phase = await ctx.runQuery(internal.internal.getPhaseInternal, {
         projectId,
         phaseId,
       });
