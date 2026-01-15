@@ -106,3 +106,15 @@ const TOAST_MESSAGES: Record<ToastEvent, ToastMessage> = {
 export function getToastMessage(event: ToastEvent): ToastMessage {
   return TOAST_MESSAGES[event];
 }
+
+export function getPhaseProgressMessage(
+  currentStep: number,
+  totalSteps: number
+): ToastMessage {
+  const safeTotal = Math.max(totalSteps, 1);
+  const safeStep = Math.min(Math.max(currentStep, 1), safeTotal);
+  return {
+    title: TOAST_MESSAGES.phase_start.title,
+    description: `Generating sections ${safeStep} of ${safeTotal}`,
+  };
+}

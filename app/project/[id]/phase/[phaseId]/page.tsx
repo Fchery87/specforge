@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useQuery, useAction, useConvex } from "convex/react";
@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Loader2, Download, Archive, ArrowLeft, Sparkles, FileText, Layers, Code, Package } from "lucide-react";
 import { toast } from "sonner";
-import { getToastMessage } from "@/lib/notifications";
+import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
   brief: { label: "Brief", icon: FileText, description: "Define your project scope and goals" },
@@ -51,26 +51,40 @@ export default function PhasePage() {
   const generateZipAction = (api as any)["actions/generateProjectZip"]?.generateProjectZip as any;
   const generatePhase = useAction(generatePhaseAction);
   const generateZip = useAction(generateZipAction);
+  const getGenerationTaskQuery: any = (api as any)?.projects?.getGenerationTask;
   const convex = useConvex();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPhaseStarting, setIsPhaseStarting] = useState(false);
+  const [phaseTaskId, setPhaseTaskId] = useState<string | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const phaseToastIdRef = useRef<string | number | null>(null);
+  const phaseStatusRef = useRef<string | null>(null);
+  const phaseProgressRef = useRef<number | null>(null);
+  const generationTask = useQuery(
+    getGenerationTaskQuery,
+    phaseTaskId ? { taskId: phaseTaskId as any } : "skip"
+  );
+  const isGenerating =
+    isPhaseStarting || generationTask?.status === "in_progress";
 
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
 
   async function handleGeneratePhase() {
-    setIsGenerating(true);
+    setIsPhaseStarting(true);
+    setPhaseTaskId(null);
+    phaseStatusRef.current = null;
+    phaseProgressRef.current = null;
     const startToast = getToastMessage("phase_start");
     const toastId = toast.message(startToast.title, {
       description: startToast.description,
     });
+    phaseToastIdRef.current = toastId;
     try {
       const result = await generatePhase({ projectId: projectId as any, phaseId });
-      const doneToast = getToastMessage("phase_done");
-      toast.success(doneToast.title, {
-        id: toastId,
-        description: doneToast.description,
-      });
+      setPhaseTaskId(result?.taskId ?? null);
+      if (!result?.taskId) {
+        throw new Error("Phase generation did not return a task id.");
+      }
       if (result?.continuedSections) {
         const continuedToast = getToastMessage("phase_continued");
         toast.message(continuedToast.title, {
@@ -83,8 +97,8 @@ export default function PhasePage() {
         id: toastId,
         description: errorToast.description,
       });
+      setIsPhaseStarting(false);
     } finally {
-      setIsGenerating(false);
     }
   }
 
@@ -128,6 +142,50 @@ export default function PhasePage() {
       setIsDownloadingZip(false);
     }
   }
+
+  useEffect(() => {
+    if (!generationTask || !phaseTaskId) return;
+    if (generationTask.status === phaseStatusRef.current) {
+      if (generationTask.status !== "in_progress") return;
+    }
+
+    const toastId = phaseToastIdRef.current ?? undefined;
+    if (generationTask.status === "in_progress") {
+      const progress =
+        (generationTask.currentStep ?? 0) + 1;
+      if (phaseProgressRef.current !== progress) {
+        phaseProgressRef.current = progress;
+        const message = getPhaseProgressMessage(
+          progress,
+          generationTask.totalSteps ?? 1
+        );
+        toast.message(message.title, {
+          id: toastId,
+          description: message.description,
+        });
+      }
+    } else if (generationTask.status === "completed") {
+      const doneToast = getToastMessage("phase_done");
+      toast.success(doneToast.title, {
+        id: toastId,
+        description: doneToast.description,
+      });
+      phaseStatusRef.current = generationTask.status;
+    } else if (generationTask.status === "failed") {
+      const errorToast = getToastMessage("phase_error");
+      toast.error(errorToast.title, {
+        id: toastId,
+        description: errorToast.description,
+      });
+      phaseStatusRef.current = generationTask.status;
+    }
+  }, [generationTask, phaseTaskId]);
+
+  useEffect(() => {
+    if (generationTask && isPhaseStarting) {
+      setIsPhaseStarting(false);
+    }
+  }, [generationTask, isPhaseStarting]);
 
   // Loading state
   if (!phase || !project) {
