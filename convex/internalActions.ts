@@ -226,7 +226,7 @@ Provide a clear, concise answer based on the project context and maintain consis
         temperature: 0.7,
       });
 
-      await ctx.runMutation(api.projects.saveAnswer, {
+      await ctx.runMutation(internal.internal.saveAnswerInternal, {
         projectId,
         phaseId,
         questionId: question.id,

@@ -207,8 +207,8 @@ export function QuestionsPanel({
         phaseId,
       });
 
-      setBatchAnswers(result.answers);
-      setBatchProgress(result.answers.length);
+      setBatchAnswers(result?.answers ?? []);
+      setBatchProgress(result?.answers?.length ?? 0);
       const doneToast = getToastMessage("ai_batch_done");
       toast.success(doneToast.title, {
         id: toastId,

@@ -206,3 +206,36 @@ export const getPhaseInternal = internalQuery({
     return { ...(phase ?? { questions: [] }), artifacts };
   },
 });
+
+export const saveAnswerInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    questionId: v.string(),
+    answer: v.string(),
+    aiGenerated: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) throw new Error('Phase not found');
+
+    const updatedQuestions = (phase.questions || []).map((q: any) =>
+      q.id === args.questionId
+        ? {
+            ...q,
+            answer: args.answer,
+            ...(args.aiGenerated !== undefined
+              ? { aiGenerated: args.aiGenerated }
+              : {}),
+          }
+        : q
+    );
+
+    await ctx.db.patch(phase._id, { questions: updatedQuestions });
+  },
+});
