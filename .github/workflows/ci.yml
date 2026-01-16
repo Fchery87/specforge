@@ -18,4 +18,4 @@ jobs:
           CONVEX_OVERRIDE_ACCESS_TOKEN: ${{ secrets.CONVEX_OVERRIDE_ACCESS_TOKEN }}
       - run: bun run lint
       - run: bun run typecheck
-      - run: bun test
+      - run: bun run test -- --run
