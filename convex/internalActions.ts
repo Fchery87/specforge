@@ -9,7 +9,7 @@ import { createLlmClient } from '../lib/llm/client-factory';
 import { renderPreviewHtml } from '../lib/markdown-render';
 import { estimateTokenCount } from '../lib/llm/chunking';
 import {
-  generateSectionContent,
+  generateSectionContentStreaming,
   getSectionInstructions,
 } from './actions/generatePhase';
 
@@ -108,7 +108,70 @@ export const generatePhaseWorker = internalAction({
     const llmClient = createLlmClient(credentials);
 
     try {
-      const response = await generateSectionContent({
+      // Initialize streaming state (creates placeholder artifact if missing)
+      if (currentStep === 0) {
+        await ctx.runMutation(internal.internal.setArtifactStreamStatusInternal, {
+          projectId,
+          phaseId,
+          streamStatus: 'streaming',
+          sectionsCompleted: 0,
+          sectionsTotal: task.totalSteps,
+          currentSection: section.name,
+        });
+      } else {
+        await ctx.runMutation(internal.internal.setArtifactStreamStatusInternal, {
+          projectId,
+          phaseId,
+          streamStatus: 'streaming',
+          sectionsCompleted: currentStep,
+          sectionsTotal: task.totalSteps,
+          currentSection: section.name,
+        });
+      }
+
+      let sectionTokens = 0;
+      let bufferedDelta = '';
+      let bufferedTokens = 0;
+      let lastCancelCheckAt = 0;
+      const flushBuffer = async (force: boolean) => {
+        if (!force && bufferedTokens < 120 && bufferedDelta.length < 600) {
+          return;
+        }
+
+        const now = Date.now();
+        if (now - lastCancelCheckAt > 1000) {
+          lastCancelCheckAt = now;
+          const artifact = await ctx.runQuery(
+            internal.internal.getArtifactByPhaseInternal,
+            { projectId, phaseId }
+          );
+          if (artifact?.streamStatus === 'cancelled') {
+            throw new Error('Generation cancelled');
+          }
+        }
+
+        const deltaToFlush = bufferedDelta;
+        const tokensToFlush = bufferedTokens;
+        bufferedDelta = '';
+        bufferedTokens = 0;
+
+        await ctx.runMutation(
+          internal.internal.appendPartialContentToArtifactInternal,
+          {
+            projectId,
+            phaseId,
+            deltaContent: deltaToFlush,
+            tokensGeneratedDelta: tokensToFlush,
+            recomputePreview: force,
+            currentSection: section.name,
+            sectionsCompleted: currentStep,
+            sectionsTotal: task.totalSteps,
+            streamStatus: 'streaming',
+          }
+        );
+      };
+
+      const response = await generateSectionContentStreaming({
         projectContext,
         sectionName: section.name,
         sectionInstructions: getSectionInstructions(phaseId, section.name),
@@ -116,26 +179,35 @@ export const generatePhaseWorker = internalAction({
         previousSections: [],
         model,
         maxTokens: section.maxTokens,
+        chunkMaxTokens: 300,
+        maxTurns: 16,
         llmClient,
         providerInfo: `Worker step ${currentStep + 1}`,
         phaseId,
-      });
-
-      const previewHtml = renderPreviewHtml(response.content);
-
-      // Append to artifact (using internal mutation for system context)
-      await ctx.runMutation(internal.internal.appendSectionToArtifactInternal, {
-        projectId,
-        phaseId,
-        section: {
-          name: section.name,
-          content: response.content,
-          previewHtml,
-          tokens: estimateTokenCount(response.content),
-          model: model.id,
+        onChunk: async (delta) => {
+          const deltaTokens = estimateTokenCount(delta);
+          sectionTokens += deltaTokens;
+          bufferedDelta += delta;
+          bufferedTokens += deltaTokens;
+          await flushBuffer(false);
         },
-        isFirst: currentStep === 0,
       });
+
+      await flushBuffer(true);
+
+      // Record section metadata at end (content already appended via streaming)
+      await ctx.runMutation(
+        internal.internal.appendSectionMetadataToArtifactInternal,
+        {
+          projectId,
+          phaseId,
+          section: {
+            name: section.name,
+            tokens: sectionTokens || estimateTokenCount(response.content),
+            model: model.id,
+          },
+        }
+      );
 
       const nextStep = currentStep + 1;
       if (nextStep < task.totalSteps) {
@@ -160,12 +232,24 @@ export const generatePhaseWorker = internalAction({
           phaseId,
           status: 'ready',
         });
+        await ctx.runMutation(internal.internal.setArtifactStreamStatusInternal, {
+          projectId,
+          phaseId,
+          streamStatus: 'complete',
+          sectionsCompleted: task.totalSteps,
+          sectionsTotal: task.totalSteps,
+        });
       }
     } catch (error: any) {
       console.error(
         `[generatePhaseWorker] Error at step ${currentStep}:`,
         error
       );
+
+      const isCancelled =
+        typeof error?.message === 'string' &&
+        error.message.toLowerCase().includes('cancelled');
+
       await ctx.runMutation(internal.internal.updateGenerationTask, {
         taskId: args.taskId,
         currentStep,
@@ -175,7 +259,15 @@ export const generatePhaseWorker = internalAction({
       await ctx.runMutation(internal.internal.updatePhaseStatus, {
         projectId,
         phaseId,
-        status: 'error',
+        status: isCancelled ? 'ready' : 'error',
+      });
+      await ctx.runMutation(internal.internal.setArtifactStreamStatusInternal, {
+        projectId,
+        phaseId,
+        streamStatus: isCancelled ? 'cancelled' : 'paused',
+        sectionsCompleted: currentStep,
+        sectionsTotal: task.totalSteps,
+        currentSection: section?.name,
       });
     }
   },

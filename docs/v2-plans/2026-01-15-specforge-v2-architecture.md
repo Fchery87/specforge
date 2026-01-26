@@ -6,6 +6,8 @@
 **Status:** Production-Ready Design  
 **Based On:** SpecForge v2.0 PRD (2026-01-15)
 
+> **Implementation note (Jan 2026):** The current repository implements streaming as **incremental persistence** (chunked continuation calls + periodic DB flushes) surfaced via Convex reactive queries. True provider-native streaming adapters are not required for the current “live preview” UX.
+
 ---
 
 ## 1. Executive Overview

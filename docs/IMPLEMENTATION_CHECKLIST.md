@@ -1,14 +1,14 @@
 # SpecForge Implementation Checklist
 
-**Last Updated:** January 10, 2026  
-**Status:** ALL COMPLETE
+**Last Updated:** January 26, 2026  
+**Status:** Core MVP complete (streaming + cancel implemented)
 
 ---
 
 ## Completed Items
 
 - [x] Next.js 16.1.1 + React 19.2.0 + Convex 1.22.0 + Clerk 6.36.7 setup
-- [x] Convex schema: projects, phases, artifacts, llmModels, userLlmConfigs
+- [x] Convex schema: projects, phases, artifacts, llmModels, userLlmConfigs (+ streaming fields/indexes on artifacts)
 - [x] Clerk middleware (middleware.ts) for auth protection
 - [x] Dashboard auth fix (async auth() for Clerk v6)
 - [x] Convex dev server running at localhost:3000
@@ -19,6 +19,8 @@
 - [x] Basic project/[id] page stubs
 - [x] Basic dashboard/admin/settings pages stubs
 - [x] **Week 1 Complete:** Project intake form, questions generation, questions UI, interactive phase page, answer mutations
+- [x] Real-time UX (pseudo-streaming): incremental persistence + reactive live preview during generation
+- [x] Cancel generation: stops worker and preserves partial output (`streamStatus='cancelled'`)
 
 ---
 
@@ -134,12 +136,14 @@ adm-zip@0.5.14
 ## Quick Start Commands
 
 ```bash
-# Start Convex dev server (in one terminal)
-bunx convex dev
+# Terminal 1: Convex backend
+npm run convex
 
-# Start Next.js dev server (in another terminal)
-bun dev
+# Terminal 2: Next.js frontend
+npm run dev
 
-# Deploy to Convex production
-bunx convex deploy
+# Typecheck / lint / tests
+npm run typecheck
+npm run lint
+npm run test -- --run --testTimeout=20000
 ```

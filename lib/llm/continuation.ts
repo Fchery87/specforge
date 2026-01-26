@@ -4,6 +4,7 @@ export async function continueIfTruncated({
   continuationPrompt,
   maxTurns,
   deadline,
+  onTurn,
 }: {
   prompt: string;
   complete: (prompt: string) => Promise<{
@@ -13,6 +14,12 @@ export async function continueIfTruncated({
   continuationPrompt: (soFar: string) => string;
   maxTurns: number;
   deadline?: number;
+  onTurn?: (args: {
+    turn: number;
+    delta: string;
+    aggregated: string;
+    finishReason?: string;
+  }) => Promise<void> | void;
 }): Promise<{ content: string; continued: boolean; turns: number }> {
   let content = '';
   let currentPrompt = prompt;
@@ -25,7 +32,15 @@ export async function continueIfTruncated({
     }
 
     const response = await complete(currentPrompt);
-    content = content ? `${content}\n\n${response.content}` : response.content;
+    const delta = response.content;
+    content = content ? `${content}\n\n${delta}` : delta;
+
+    await onTurn?.({
+      turn: i + 1,
+      delta,
+      aggregated: content,
+      finishReason: response.finishReason,
+    });
 
     if (response.finishReason !== 'length') {
       return { content, continued, turns: i + 1 };

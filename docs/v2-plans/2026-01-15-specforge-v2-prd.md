@@ -5,6 +5,8 @@
 **Author:** SpecForge Product Team  
 **Status:** Draft for Review
 
+> **Note (Jan 2026):** Some of the “real-time streaming” work described here is implemented in the current codebase as **pseudo-streaming** (frequent incremental persistence + reactive queries), not true provider-native token streaming. Cancellation is implemented as a controlled stop that preserves partial output.
+
 ---
 
 ## 1. Executive Summary

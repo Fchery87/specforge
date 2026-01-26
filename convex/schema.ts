@@ -43,10 +43,27 @@ export default defineSchema({
     title: v.string(),
     content: v.string(),
     previewHtml: v.string(),
+    previewHtmlUpdatedAt: v.optional(v.number()),
     sections: v.array(
       v.object({ name: v.string(), tokens: v.number(), model: v.string() })
     ),
-  }).index('by_project', ['projectId']),
+    // v2 streaming fields (optional for backward compatibility)
+    streamStatus: v.optional(
+      v.union(
+        v.literal('idle'),
+        v.literal('streaming'),
+        v.literal('paused'),
+        v.literal('complete'),
+        v.literal('cancelled')
+      )
+    ),
+    currentSection: v.optional(v.string()),
+    sectionsCompleted: v.optional(v.number()),
+    sectionsTotal: v.optional(v.number()),
+    tokensGenerated: v.optional(v.number()),
+  })
+    .index('by_project', ['projectId'])
+    .index('by_phase', ['projectId', 'phaseId']),
 
   llmModels: defineTable({
     provider: v.string(),

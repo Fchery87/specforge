@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery, useAction, useConvex } from "convex/react";
+import { useQuery, useAction, useConvex, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { FunctionReference } from "convex/server";
 import { PhaseStatusIndicator } from "@/components/phase-status";
 import { ArtifactPreview } from "@/components/artifact-preview";
 import { QuestionsPanel } from "@/components/questions-panel";
+import { ArtifactsHeader } from "@/components/artifacts-header";
+import { StreamingArtifactPreview } from "@/components/streaming-artifact-preview";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,9 +53,11 @@ export default function PhasePage() {
   const generateZipAction = (api as any)["actions/generateProjectZip"]?.generateProjectZip as any;
   const generatePhase = useAction(generatePhaseAction);
   const generateZip = useAction(generateZipAction);
+  const cancelArtifactStreaming = useMutation(api.artifacts.cancelArtifactStreaming as any);
   const getGenerationTaskQuery: any = (api as any)?.projects?.getGenerationTask;
   const convex = useConvex();
   const [isPhaseStarting, setIsPhaseStarting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [phaseTaskId, setPhaseTaskId] = useState<string | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const phaseToastIdRef = useRef<string | number | null>(null);
@@ -63,8 +67,17 @@ export default function PhasePage() {
     getGenerationTaskQuery,
     phaseTaskId ? { taskId: phaseTaskId as any } : "skip"
   );
+  const getArtifactByPhaseQuery: any = (api as any)?.artifacts?.getArtifactByPhase;
+  const streamingArtifact = useQuery(
+    getArtifactByPhaseQuery,
+    isLoaded && isSignedIn ? { projectId: projectId as any, phaseId } : "skip"
+  );
   const isGenerating =
     isPhaseStarting || generationTask?.status === "in_progress";
+  const hasStreamingPreview =
+    !!(streamingArtifact as any)?.streamStatus ||
+    !!(streamingArtifact as any)?.previewHtml ||
+    !!(streamingArtifact as any)?.content;
 
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
@@ -99,6 +112,28 @@ export default function PhasePage() {
       });
       setIsPhaseStarting(false);
     } finally {
+    }
+  }
+
+  async function handleCancelGeneration() {
+    if (!projectId || !phaseId) return;
+    setIsCancelling(true);
+    const toastId = toast.message("Cancelling generation...", {
+      description: "Stopping the AI and preserving partial output.",
+    });
+    try {
+      await cancelArtifactStreaming({ projectId: projectId as any, phaseId });
+      toast.success("Cancelled", {
+        id: toastId,
+        description: "Partial output preserved. You can regenerate when ready.",
+      });
+    } catch (error) {
+      toast.error("Cancel failed", {
+        id: toastId,
+        description: "Please try again.",
+      });
+    } finally {
+      setIsCancelling(false);
     }
   }
 
@@ -267,26 +302,34 @@ export default function PhasePage() {
               questions={phase.questions}
               onGeneratePhase={handleGeneratePhase}
               isGenerating={isGenerating}
+              onCancelGeneration={handleCancelGeneration}
+              isCancelling={isCancelling}
             />
           </div>
 
           {/* Right Column: Artifacts */}
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
-                Artifacts
-              </h2>
-              {phase.artifacts && phase.artifacts.length > 0 && (
-                <Button variant="outline" size="sm" onClick={handleDownloadZip} disabled={isDownloadingZip}>
-                  {isDownloadingZip && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  <Download className="w-4 h-4 mr-2" />
-                  Download All
-                </Button>
-              )}
-            </div>
+            <ArtifactsHeader
+              streamStatus={(streamingArtifact as any)?.streamStatus}
+              hasArtifacts={!!phase.artifacts && phase.artifacts.length > 0}
+              onDownloadAll={handleDownloadZip}
+              isDownloading={isDownloadingZip}
+            />
 
             <Card variant="static">
               <CardContent className="p-6">
+                {hasStreamingPreview && (
+                  <div className="mb-4">
+                    <StreamingArtifactPreview
+                      title={(streamingArtifact as any)?.title ?? "Generating…"}
+                      previewHtml={(streamingArtifact as any)?.previewHtml ?? ""}
+                      streamStatus={(streamingArtifact as any)?.streamStatus}
+                      currentSection={(streamingArtifact as any)?.currentSection}
+                      sectionsCompleted={(streamingArtifact as any)?.sectionsCompleted}
+                      sectionsTotal={(streamingArtifact as any)?.sectionsTotal}
+                    />
+                  </div>
+                )}
                 {(phase.artifacts ?? []).length > 0 ? (
                   <div className="space-y-4">
                     {phase.artifacts.map((a: any) => (

@@ -1,31 +1,40 @@
-import { continueIfTruncated } from "../continuation";
+import { describe, expect, test, vi } from 'vitest';
+import { continueIfTruncated } from '../continuation';
 
-test("continues when finishReason is length", async () => {
-  const calls: string[] = [];
-  const complete = async (prompt: string) => {
-    calls.push(prompt);
-    if (calls.length === 1) {
-      return {
-        content: "Part 1",
-        usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-        finishReason: "length",
-      };
-    }
-    return {
-      content: "Part 2",
-      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
-      finishReason: "stop",
-    };
-  };
+describe('continueIfTruncated', () => {
+  test('calls onTurn with each delta and aggregates content', async () => {
+    const complete = vi
+      .fn()
+      .mockResolvedValueOnce({ content: 'a', finishReason: 'length' })
+      .mockResolvedValueOnce({ content: 'b', finishReason: 'stop' });
 
-  const result = await continueIfTruncated({
-    prompt: "Generate",
-    complete,
-    maxTurns: 3,
-    continuationPrompt: (soFar) => `Continue from: ${soFar}`,
+    const onTurn = vi.fn();
+
+    const result = await continueIfTruncated({
+      prompt: 'p',
+      complete,
+      continuationPrompt: (soFar) => `continue: ${soFar}`,
+      maxTurns: 3,
+      onTurn,
+    });
+
+    expect(result.content).toBe('a\n\nb');
+    expect(result.continued).toBe(true);
+    expect(result.turns).toBe(2);
+
+    expect(onTurn).toHaveBeenCalledTimes(2);
+    expect(onTurn).toHaveBeenNthCalledWith(1, {
+      turn: 1,
+      delta: 'a',
+      aggregated: 'a',
+      finishReason: 'length',
+    });
+    expect(onTurn).toHaveBeenNthCalledWith(2, {
+      turn: 2,
+      delta: 'b',
+      aggregated: 'a\n\nb',
+      finishReason: 'stop',
+    });
   });
-
-  expect(result.content).toBe("Part 1\n\nPart 2");
-  expect(result.continued).toBe(true);
-  expect(calls.length).toBe(2);
 });
+

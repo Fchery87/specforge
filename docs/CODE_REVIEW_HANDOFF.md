@@ -53,6 +53,7 @@ Review `convex/schema.ts` against `docs/ARCHITECTURE.md`:
 
 - [ ] `projects` table matches documented schema
 - [ ] `artifacts` table has all required fields
+- [ ] `artifacts` supports streaming fields + indexes (`streamStatus`, `currentSection`, `by_phase`, etc.)
 - [ ] `userLlmConfigs` implements encrypted storage
 - [ ] `systemLlmConfigs` / `systemCredentials` properly defined
 - [ ] Phase structure matches documented workflow
@@ -104,6 +105,8 @@ For each route, verify:
 - [ ] Loading states implemented
 - [ ] Error handling present
 - [ ] UI matches design system
+- [ ] Live preview updates during generation (reactive streaming)
+- [ ] Cancel preserves partial output and marks artifact `cancelled`
 
 ### 5. Authentication & Security
 

@@ -1,9 +1,9 @@
-# SpecForge Scaffold
+# SpecForge Scaffold (Historical)
 
 **Version:** 1.0  
-**Purpose:** Exact folder structure + file stubs for MVP implementation  
+**Purpose:** Historical scaffold reference (folder structure + stubs)  
 **Generated:** January 10, 2026  
-**Next Step:** Copy this structure → `npx create-next-app spec-forge-ai`
+**Note:** The current repository has evolved beyond this file. For repo-current instructions, see `README.md` and `docs/HANDOFF.md`.
 
 ---
 
@@ -118,8 +118,9 @@ npx create-next-app@latest spec-forge-ai --typescript --tailwind --eslint --app 
 
 # 2. Install dependencies
 cd spec-forge-ai
-npm i convex react-query @clerk/nextjs @clerk/clerk-react
-npm i -D @types/node jszip adm-zip
+npm i convex @tanstack/react-query @clerk/nextjs @clerk/clerk-react
+npm i jszip adm-zip
+npm i -D @types/node
 
 # 3. Initialize Convex
 npx convex init
@@ -133,7 +134,6 @@ npx convex deploy
 
 # 7. Run dev
 npm run dev
-File-by-File Implementation Order
 ```
 
 ---
@@ -190,7 +190,8 @@ SYSTEM_ANTHROPIC_API_KEY="..."
 - [ ] npm run dev → Landing + auth working
 - [ ] Create project → Redirects to phase/brief
 - [ ] Answer questions → Phase advances
-- [ ] Generate Phase 1 → PRD appears in preview
+- [ ] Generate Phase → Live preview updates while generating
+- [ ] Cancel generation → Partial output preserved and marked cancelled
 - [ ] Download MD → Correct content
 - [ ] Storage dashboard → <10% usage
 

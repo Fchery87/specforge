@@ -13,6 +13,7 @@ import { getToastMessage } from "@/lib/notifications";
 import { collectBatchAnswers } from "@/lib/batch-answers";
 import { Loader2, Check, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { GenerationControls } from "@/components/generation-controls";
 
 type Question = {
   id: string;
@@ -28,6 +29,8 @@ interface QuestionsPanelProps {
   questions: Question[];
   onGeneratePhase?: () => void;
   isGenerating?: boolean;
+  onCancelGeneration?: () => void;
+  isCancelling?: boolean;
 }
 
 // Debounce hook
@@ -48,6 +51,8 @@ export function QuestionsPanel({
   questions,
   onGeneratePhase,
   isGenerating = false,
+  onCancelGeneration,
+  isCancelling = false,
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
   const generateQuestionsAction: any = (api as any)["actions/generateQuestions"]?.generateQuestions;
@@ -423,24 +428,13 @@ export function QuestionsPanel({
         )}
 
         {questions.length > 0 && (
-          <div className="flex items-center justify-between pt-6 border-t border-border">
-            <p className="text-sm text-muted-foreground">
-              {allAnswered ? "All required questions answered" : `${unansweredRequired} required question${unansweredRequired !== 1 ? 's' : ''} remaining`}
-            </p>
-            <Button
-              onClick={onGeneratePhase}
-              disabled={!allAnswered || isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                "Generate Phase"
-              )}
-            </Button>
-          </div>
+          <GenerationControls
+            isGenerating={isGenerating}
+            canGenerate={allAnswered}
+            onGenerate={() => onGeneratePhase?.()}
+            onCancel={onCancelGeneration}
+            isCancelling={isCancelling}
+          />
         )}
       </CardContent>
       <BatchAiModal

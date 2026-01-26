@@ -1,7 +1,7 @@
 # SpecForge Architecture
 
-**Version:** 1.1  
-**Date:** January 10, 2026  
+**Version:** 1.2  
+**Date:** January 26, 2026  
 **Tech Stack:** Next.js 16 (App Router) · Convex (Free Tier) · Clerk Auth · Multi‑LLM Backend
 
 ---
@@ -18,7 +18,7 @@ Brief → PRD → Specs/Architecture → Stories → Artifacts → Handoff + ZIP
 
 - **No truncation:** Chunked generation with model‑aware `max_tokens` per model.
 - **Multi‑tenant:** System vs. user LLM/MCP credentials.
-- **Real‑time UX:** Convex queries and mutations for live updates.
+- **Real‑time UX (pseudo-streaming):** incremental persistence + reactive queries for a live preview during generation.
 - **Free‑tier friendly:** Text content in Convex DB; one ZIP per project in Convex file storage.
 
 ---
@@ -45,10 +45,10 @@ Brief → PRD → Specs/Architecture → Stories → Artifacts → Handoff + ZIP
 
 ## 3. Data model (Convex schema)
 
-> Conceptual example for clarity — adjust types/fields as your implementation evolves.
+This reflects the current repo’s schema at a high level (see `convex/schema.ts` for source of truth).
 
 ```ts
-// convex/schema.ts (conceptual)
+// convex/schema.ts (high level)
 
 export default schema({
   projects: table({
@@ -84,11 +84,11 @@ export default schema({
   artifacts: table({
     projectId: v.id("projects"),
     phaseId: v.string(),
-    storyId: v.optional(v.string()),
     type: v.string(), // "brief", "prd", "spec", "story", "doc", "handoff"
     title: v.string(),
     content: v.string(), // Full Markdown (DB text)
     previewHtml: v.string(), // Rendered HTML for UI
+    previewHtmlUpdatedAt: v.optional(v.number()),
     sections: v.array(
       v.object({
         name: v.string(),
@@ -96,6 +96,20 @@ export default schema({
         model: v.string(),
       })
     ),
+    // Streaming fields (optional for backward compatibility)
+    streamStatus: v.optional(
+      v.union(
+        v.literal("idle"),
+        v.literal("streaming"),
+        v.literal("paused"),
+        v.literal("complete"),
+        v.literal("cancelled")
+      )
+    ),
+    currentSection: v.optional(v.string()),
+    sectionsCompleted: v.optional(v.number()),
+    sectionsTotal: v.optional(v.number()),
+    tokensGenerated: v.optional(v.number()),
   }),
 
   userLlmConfigs: table({
@@ -189,6 +203,24 @@ This approach avoids relying on a single long LLM response and stays robust acro
 
 ---
 
+### 4.3 Live generation (pseudo-streaming) + cancel
+
+**Goal:** show a live preview while generation is running, and allow the user to cancel while preserving partial output.
+
+**How it works:**
+
+1. The phase worker runs in **short continuation turns** (small `maxTokens` per request) to produce frequent deltas.
+2. The worker periodically flushes buffered deltas into the phase artifact (`content`) via internal mutations.
+3. The UI subscribes to the “phase artifact” (`projectId + phaseId`) and renders `previewHtml` reactively.
+4. Cancel sets `streamStatus='cancelled'`; the worker checks this between flushes and stops.
+
+**Important implementation notes:**
+
+- This is not provider-native token streaming; it’s incremental persistence that yields the same UX.
+- `previewHtml` recomputation is throttled to avoid O(n²) re-render costs on every flush.
+
+---
+
 ## 5. Frontend architecture (Next.js 16)
 
 ### 5.1 Routes
@@ -217,6 +249,8 @@ app/
   - “AI answer this question”
   - “AI answer all unanswered questions in this phase”
 - **Bottom:** artifacts list with inline preview and “Download Markdown”.
+
+**Live preview:** phase pages also show a “Live” preview card while generation is running (and keep it visible after cancellation).
 
 #### Downloads
 

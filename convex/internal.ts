@@ -2,6 +2,7 @@ import { internalMutation, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { getNextUpdatedAt } from './projects';
+import { renderPreviewHtml } from '../lib/markdown-render';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },
@@ -93,6 +94,18 @@ export const getPhaseArtifactsInternal = internalQuery({
       .query('artifacts')
       .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
       .collect();
+  },
+});
+
+export const getArtifactByPhaseInternal = internalQuery({
+  args: { projectId: v.id('projects'), phaseId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('artifacts')
+      .withIndex('by_phase', (q) =>
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+      )
+      .first();
   },
 });
 
@@ -260,6 +273,149 @@ export const appendSectionToArtifactInternal = internalMutation({
         updatedAt: getNextUpdatedAt(project.updatedAt, now),
       });
     }
+  },
+});
+
+export const appendSectionMetadataToArtifactInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    section: v.object({
+      name: v.string(),
+      tokens: v.number(),
+      model: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const artifact = await ctx.db
+      .query('artifacts')
+      .withIndex('by_phase', (q) =>
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+      )
+      .first();
+    if (!artifact) return;
+
+    const sections = artifact.sections ?? [];
+    const existingIdx = sections.findIndex((s) => s.name === args.section.name);
+    const nextSections =
+      existingIdx >= 0
+        ? sections.map((s, i) => (i === existingIdx ? args.section : s))
+        : [...sections, args.section];
+
+    await ctx.db.patch(artifact._id, { sections: nextSections });
+  },
+});
+
+export const appendPartialContentToArtifactInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    deltaContent: v.string(),
+    tokensGeneratedDelta: v.number(),
+    recomputePreview: v.optional(v.boolean()),
+    currentSection: v.optional(v.string()),
+    sectionsCompleted: v.optional(v.number()),
+    sectionsTotal: v.optional(v.number()),
+    streamStatus: v.optional(
+      v.union(
+        v.literal('idle'),
+        v.literal('streaming'),
+        v.literal('paused'),
+        v.literal('complete'),
+        v.literal('cancelled')
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('artifacts')
+      .withIndex('by_phase', (q) =>
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+      )
+      .first();
+
+    const now = Date.now();
+    const project = await ctx.db.get(args.projectId);
+
+    const nextContent = `${existing?.content ?? ''}${args.deltaContent}`;
+    const nextTokensGenerated =
+      (existing?.tokensGenerated ?? 0) + args.tokensGeneratedDelta;
+
+    const shouldRecomputePreview =
+      args.recomputePreview === true ||
+      !existing?.previewHtml ||
+      !existing?.previewHtmlUpdatedAt ||
+      now - existing.previewHtmlUpdatedAt > 2000;
+
+    if (!existing) {
+      await ctx.db.insert('artifacts', {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        type: args.phaseId,
+        title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} Document`,
+        content: nextContent,
+        previewHtml: renderPreviewHtml(nextContent),
+        previewHtmlUpdatedAt: now,
+        sections: [],
+        streamStatus: args.streamStatus ?? 'streaming',
+        currentSection: args.currentSection,
+        sectionsCompleted: args.sectionsCompleted,
+        sectionsTotal: args.sectionsTotal,
+        tokensGenerated: nextTokensGenerated,
+      });
+    } else {
+      await ctx.db.patch(existing._id, {
+        content: nextContent,
+        ...(shouldRecomputePreview && {
+          previewHtml: renderPreviewHtml(nextContent),
+          previewHtmlUpdatedAt: now,
+        }),
+        streamStatus: args.streamStatus ?? existing.streamStatus,
+        currentSection: args.currentSection ?? existing.currentSection,
+        sectionsCompleted: args.sectionsCompleted ?? existing.sectionsCompleted,
+        sectionsTotal: args.sectionsTotal ?? existing.sectionsTotal,
+        tokensGenerated: nextTokensGenerated,
+      });
+    }
+
+    if (project) {
+      await ctx.db.patch(args.projectId, {
+        updatedAt: getNextUpdatedAt(project.updatedAt, now),
+      });
+    }
+  },
+});
+
+export const setArtifactStreamStatusInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    streamStatus: v.union(
+      v.literal('idle'),
+      v.literal('streaming'),
+      v.literal('paused'),
+      v.literal('complete'),
+      v.literal('cancelled')
+    ),
+    currentSection: v.optional(v.string()),
+    sectionsCompleted: v.optional(v.number()),
+    sectionsTotal: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const artifact = await ctx.db
+      .query('artifacts')
+      .withIndex('by_phase', (q) =>
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+      )
+      .first();
+    if (!artifact) return;
+
+    await ctx.db.patch(artifact._id, {
+      streamStatus: args.streamStatus,
+      currentSection: args.currentSection,
+      sectionsCompleted: args.sectionsCompleted,
+      sectionsTotal: args.sectionsTotal,
+    });
   },
 });
 

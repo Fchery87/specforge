@@ -383,6 +383,112 @@ Generate the "${params.sectionName}" section now:`;
   }
 }
 
+export async function generateSectionContentStreaming(params: {
+  projectContext: { title: string; description: string; questions: string };
+  sectionName: string;
+  sectionInstructions: string;
+  sectionQuestions: string[];
+  previousSections: Array<{ name: string; content: string }>;
+  model: LlmModel;
+  maxTokens: number;
+  chunkMaxTokens: number;
+  maxTurns: number;
+  llmClient: ReturnType<typeof createLlmClient>;
+  providerInfo: string;
+  phaseId: string;
+  onChunk: (delta: string, finishReason?: string) => Promise<void>;
+}): Promise<{ content: string; continued: boolean }> {
+  const { llmClient, model } = params;
+
+  if (!llmClient) {
+    return {
+      content: `## ${formatSectionName(params.sectionName)}\n\n_Content generation requires LLM configuration. Please configure your API keys in Settings._`,
+      continued: false,
+    };
+  }
+
+  const systemPrompt = `You are an expert technical writer creating project documentation.
+Generate the "${params.sectionName}" section for a ${params.phaseId} document.
+
+Project: ${params.projectContext.title}
+Description: ${params.projectContext.description}
+
+${params.sectionInstructions}
+
+Requirements:
+- Use markdown formatting
+- Be thorough and detailed
+- Include specific, actionable content
+- Reference the project context throughout`;
+
+  const userPrompt = `${
+    params.previousSections.length > 0
+      ? `Previous sections for context:\n${params.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n')}\n\n`
+      : ''
+  }
+${
+  params.sectionQuestions.length > 0
+    ? `Address these points:\n${params.sectionQuestions.map((q) => `- ${q}`).join('\n')}\n\n`
+    : ''
+}
+Generate the "${params.sectionName}" section now:`;
+
+  const basePrompt = `${systemPrompt}\n\n${userPrompt}`;
+
+  const startedAt = Date.now();
+  try {
+    const response = await continueIfTruncated({
+      prompt: basePrompt,
+      maxTurns: params.maxTurns,
+      continuationPrompt: (soFar) =>
+        `${systemPrompt}\n\nContinue from the last sentence. Do not repeat content. Use markdown and continue exactly where you left off.\n\nCurrent content:\n${soFar}`,
+      complete: (prompt) =>
+        retryWithBackoff(
+          () =>
+            llmClient.complete(prompt, {
+              model: model.id,
+              maxTokens: Math.min(
+                params.chunkMaxTokens,
+                params.maxTokens,
+                model.maxOutputTokens
+              ),
+              temperature: 0.7,
+            }),
+          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
+        ),
+      onTurn: async ({ delta, finishReason }) => {
+        await params.onChunk(delta, finishReason);
+      },
+    });
+
+    const durationMs = Date.now() - startedAt;
+    logTelemetry('info', {
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: true,
+    });
+
+    return { content: response.content, continued: response.continued };
+  } catch (error: any) {
+    const durationMs = Date.now() - startedAt;
+    logTelemetry('warn', {
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: false,
+      error: error?.message ?? String(error),
+    });
+    console.error(
+      `[generateSectionContentStreaming] LLM call failed:`,
+      error?.message
+    );
+    throw new Error(
+      `Failed to generate ${params.sectionName}: ${error?.message}`
+    );
+  }
+}
+
 async function selfCritiqueSection(params: {
   content: string;
   sectionName: string;

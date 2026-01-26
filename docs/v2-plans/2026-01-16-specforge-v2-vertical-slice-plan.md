@@ -6,6 +6,11 @@
 **Status:** Ready for Implementation  
 **Based On:** PRD | Architecture | PRP  
 
+> **Implementation note (Jan 2026):** This repo now has an end-to-end vertical slice for live generation:
+> - Artifacts support `streamStatus`, `currentSection`, `sectionsCompleted`, `sectionsTotal`, and incremental persistence.
+> - The UI shows a live preview fed by `api.artifacts.getArtifactByPhase`.
+> - Cancel stops generation and preserves partial output (`streamStatus='cancelled'`).
+
 ---
 
 ## 1. Executive Summary

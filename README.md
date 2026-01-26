@@ -17,7 +17,8 @@ SpecForge is a high-performance scaffold designed for building **repo-native**, 
 
 - **Phase-Based Workflow**: Structured project generation across multiple phases (Brief → PRD → Specs → Stories → Artifacts → Handoff)
 - **Chained Worker Architecture**: Long-running LLM generations are broken into sequential background tasks, bypassing the 600s Convex timeout.
-- **Incremental Persistence**: Artifacts are forged section-by-section and saved in real-time to prevent data loss.
+- **Live Generation (Pseudo-Streaming)**: Artifacts are persisted incrementally during generation and rendered live via Convex reactive queries.
+- **Cancel + Preserve Output**: Users can cancel generation; partial output is preserved and marked `streamStatus='cancelled'`.
 - **Provider-Model Intelligence**: Automatic matching of LLM providers (DeepSeek, OpenAI, etc.) with their specific enabled models.
 - **Multi-LLM Support**: DeepSeek (V3.2), OpenAI (GPT-4o), Anthropic (Claude 3.5), Mistral, Z.AI, and Minimax.
 - **Artifact Management**: Real-time preview with high-fidelity markdown rendering.
@@ -44,13 +45,13 @@ SpecForge uses a **Coordinator-Worker** pattern to handle complex generation tas
 
 ### Prerequisites
 
-- Bun 1.0+ (`curl -fsSL https://bun.sh/install | bash`)
 - Node.js 18+
+- (Optional) Bun
 
 ### Installation
 
 ```bash
-bun install
+npm install
 ```
 
 ### Environment Setup
@@ -74,10 +75,10 @@ Start both servers in separate terminals:
 
 ```bash
 # Terminal 1: Convex backend
-bunx convex dev
+npm run convex
 
 # Terminal 2: Next.js frontend
-bun run dev
+npm run dev
 ```
 
 Visit `http://localhost:3000`
@@ -86,10 +87,10 @@ Visit `http://localhost:3000`
 
 ```bash
 # Production build
-bun run build
+npm run build
 
 # Deploy Convex
-bunx convex deploy
+npx convex deploy
 ```
 
 ## Project Structure
@@ -132,13 +133,13 @@ specforge/
 
 | Command               | Description                      |
 | --------------------- | -------------------------------- |
-| `bun run dev`         | Start Next.js development server |
-| `bunx convex dev`     | Start Convex development server  |
-| `bun run build`       | Production build                 |
-| `bun run lint`        | Run ESLint                       |
-| `bun run typecheck`   | TypeScript type checking         |
-| `bun test`            | Run unit tests                   |
-| `bun test --coverage` | Run tests with coverage          |
+| `npm run dev`         | Start Next.js development server |
+| `npm run convex`      | Start Convex development server  |
+| `npm run build`       | Production build                 |
+| `npm run lint`        | Run ESLint                       |
+| `npm run typecheck`   | TypeScript type checking         |
+| `npm run test`        | Run unit tests                   |
+| `npm run test:coverage` | Run tests with coverage        |
 
 ---
 
