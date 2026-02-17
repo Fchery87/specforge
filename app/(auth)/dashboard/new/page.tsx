@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -106,9 +107,17 @@ export default function NewProjectPage() {
 
               {/* Description Textarea */}
               <div className="space-y-3">
-                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                  Project Description
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                    Project Description
+                  </label>
+                  <PromptEnhanceButton
+                    prompt={description}
+                    onEnhance={setDescription}
+                    disabled={isCreating}
+                    minLength={10}
+                  />
+                </div>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value.slice(0, 5000))}

@@ -43,6 +43,13 @@ const RATE_LIMIT_CONFIG = {
     period: MINUTE,
     rate: 30,
   },
+  // Prompt enhancement: 10 per minute per user
+  enhancePrompt: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 10,
+    capacity: 15,
+  },
 };
 
 // Initialize rate limiter with Convex components
