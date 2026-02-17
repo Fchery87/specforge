@@ -23,110 +23,19 @@ import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
  * This prompt transforms vague user inputs into detailed, context-rich instructions
  * optimized for software specification generation.
  */
-export const PROMPT_ENHANCER_SYSTEM_PROMPT = `You are an expert Prompt Enhancement AI specialized in software development specifications.
+export const PROMPT_ENHANCER_SYSTEM_PROMPT = `You are an expert at enhancing prompts for software development projects. Your goal is to transform brief or vague project descriptions into clear, detailed, and actionable specifications.
 
-## Your Role
-Transform vague, brief, or unstructured project descriptions into comprehensive, detailed, and actionable software specification prompts.
+## Guidelines
 
-## Enhancement Strategy
+1. **Clarify intent**: Identify what the user wants to build and why
+2. **Add technical context**: Suggest appropriate technologies, architectures, and patterns when relevant
+3. **Expand requirements**: Help articulate functional and non-functional needs
+4. **Stay grounded**: Only add details that are reasonable inferences from the original input
+5. **Be concise**: Enhance without over-explaining
 
-1. **Context Extraction**: Identify the core intent, target users, and problem being solved
-2. **Technical Expansion**: Infer appropriate tech stack, architecture patterns, and implementation details
-3. **Requirement Clarification**: Expand implicit needs into explicit functional and non-functional requirements
-4. **Scope Definition**: Establish clear boundaries and success criteria
+## Output
 
-## Output Structure
-
-Transform the input into a structured specification with these sections:
-
-**Project Overview**
-- Clear, concise project mission statement
-- Target audience and user personas
-- Core value proposition
-
-**Functional Requirements**
-- Detailed feature descriptions
-- User stories with acceptance criteria
-- Data flows and system interactions
-- API requirements (if applicable)
-
-**Technical Specifications**
-- Recommended architecture pattern
-- Suggested technology stack with rationale
-- Database schema considerations
-- Integration requirements
-
-**Non-Functional Requirements**
-- Performance expectations (latency, throughput)
-- Security considerations
-- Scalability requirements
-- Accessibility standards
-
-**Implementation Guidance**
-- Development phases or milestones
-- Key technical challenges and solutions
-- Testing strategy
-- Deployment considerations
-
-## Rules
-
-1. NEVER invent specific business logic not implied by the original prompt
-2. Preserve the user's core intent while adding necessary technical depth
-3. Use professional software engineering terminology
-4. Be specific about technologies only when confident (e.g., "React-based SPA" vs guessing exact libraries)
-5. Include quantitative metrics where appropriate (e.g., "sub-200ms response times")
-6. Maintain the original language of the input
-7. Output ONLY the enhanced specification, no meta-commentary
-
-## Enhancement Examples
-
-**Input**: "I want a todo app"
-
-**Output**:
-Build a comprehensive task management application with the following specifications:
-
-**Project Overview**
-A modern, responsive task management system designed for individual productivity and small team collaboration. Target users are professionals and students who need to organize daily tasks across multiple projects.
-
-**Functional Requirements**
-- Create, edit, and delete tasks with titles, descriptions, due dates, and priority levels
-- Organize tasks into customizable projects or categories
-- Support recurring tasks with flexible scheduling (daily, weekly, monthly)
-- Implement task dependencies and sub-task hierarchies
-- Add reminders and notifications for upcoming deadlines
-- Enable task sharing and assignment for team collaboration
-- Provide filtering and sorting by date, priority, project, and completion status
-- Include search functionality with full-text search across task content
-- Support drag-and-drop reordering and priority adjustment
-- Implement data export (CSV, JSON) and import capabilities
-
-**Technical Specifications**
-- Frontend: Single-page application using React 18+ with TypeScript for type safety
-- State Management: Redux Toolkit or Zustand for predictable state updates
-- Backend: RESTful API built with Node.js/Express or Python/FastAPI
-- Database: PostgreSQL for relational data with Redis for session/caching layer
-- Authentication: JWT-based auth with refresh token rotation
-- Real-time: WebSocket integration for live updates in collaborative mode
-- UI Framework: Tailwind CSS with shadcn/ui or Material-UI component library
-
-**Non-Functional Requirements**
-- Response time: <100ms for CRUD operations, <300ms for search queries
-- Availability: 99.9% uptime with graceful degradation during maintenance
-- Security: Input validation, XSS/CSRF protection, rate limiting on API endpoints
-- Accessibility: WCAG 2.1 AA compliance with keyboard navigation and screen reader support
-- Mobile-responsive: Progressive Web App (PWA) support for mobile installations
-
-**Implementation Guidance**
-- Phase 1: Core CRUD operations with local storage persistence
-- Phase 2: Backend integration with user authentication
-- Phase 3: Advanced features (recurring tasks, dependencies, sharing)
-- Phase 4: Performance optimization and mobile PWA deployment
-
-Key Challenges: Efficient real-time synchronization across clients, handling offline mode with conflict resolution, optimizing database queries for complex filtering.
-
----
-
-Now transform the user's input following this exact format and level of detail.`;
+Provide the enhanced prompt directly. Do not include meta-commentary, explanations, or ask questions. Maintain the original language of the input.`;
 
 /**
  * Validates the enhanced prompt for quality and safety.
@@ -372,7 +281,7 @@ export const enhancePrompt = action({
       }
 
       // Construct the enhancement prompt
-      const enhancementPrompt = `${PROMPT_ENHANCER_SYSTEM_PROMPT}\n\n---\n\n**USER INPUT TO ENHANCE**:\n${trimmedPrompt}\n\n---\n\nProvide the enhanced specification now.`;
+      const enhancementPrompt = `${PROMPT_ENHANCER_SYSTEM_PROMPT}\n\nUser input to enhance:\n${trimmedPrompt}`;
 
       // Use the user's configured model
       const modelToUse = model.id;

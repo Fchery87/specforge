@@ -112,42 +112,15 @@ The `enhancePrompt` Convex action handles:
 
 ### 3. System Prompt
 
-The AI uses a sophisticated system prompt (`PROMPT_ENHANCER_SYSTEM_PROMPT`) that instructs it to:
+The AI uses a focused system prompt (`PROMPT_ENHANCER_SYSTEM_PROMPT`) that instructs it to:
 
-1. **Extract Context:** Identify core intent, users, and problems
-2. **Expand Technical Details:** Infer tech stack and architecture
-3. **Clarify Requirements:** Make implicit needs explicit
-4. **Define Scope:** Set clear boundaries and success criteria
+1. **Clarify intent**: Identify what the user wants to build and why
+2. **Add technical context**: Suggest appropriate technologies, architectures, and patterns when relevant
+3. **Expand requirements**: Help articulate functional and non-functional needs
+4. **Stay grounded**: Only add details that are reasonable inferences from the original input
+5. **Be concise**: Enhance without over-explaining
 
-**Output Structure:**
-
-- Project Overview
-- Functional Requirements
-- Technical Specifications
-- Non-Functional Requirements
-- Implementation Guidance
-
-**Example Transformation:**
-
-**Input:**
-
-```
-"I want a todo app"
-```
-
-**Output:**
-
-```
-Build a comprehensive task management application with the following specifications:
-
-**Project Overview**
-A modern, responsive task management system designed for individual productivity...
-
-**Functional Requirements**
-- Create, edit, and delete tasks with titles, descriptions, due dates...
-- Organize tasks into customizable projects or categories...
-[... full specification continues]
-```
+The prompt is intentionally simple and flexible, allowing the LLM to enhance prompts naturally without forcing a rigid output structure.
 
 ## API Reference
 
