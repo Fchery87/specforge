@@ -20,6 +20,7 @@ import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff, sleep } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
+import { fetchModelDirectory } from '../../lib/llm/model-directory';
 
 interface Question {
   id: string;
@@ -84,14 +85,14 @@ export const generateAllQuestionAnswers = action({
 
     let model: LlmModel;
     if (credentials?.modelId) {
-      model = getModelById(credentials.modelId) ?? getFallbackModel();
+      model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
     } else if (credentials?.provider) {
       // Fallback to first enabled model for provider
       const modelId = getFirstEnabledModelForProvider(
         credentials.provider,
         enabledModels
       );
-      model = getModelById(modelId) ?? getFallbackModel();
+      model = getModelById(modelId, enabledModelsFromDb || []) ?? getFallbackModel();
     } else {
       model = getFallbackModel();
     }
@@ -100,13 +101,26 @@ export const generateAllQuestionAnswers = action({
     if (credentials) {
       const validation = validateProviderModelMatch(
         credentials.provider,
-        model.id
+        model.id,
+        enabledModelsFromDb || []
       );
       if (!validation.valid) {
         console.error(
           `[generateAllQuestionAnswers] Provider-model mismatch: ${validation.error}`
         );
         throw new Error(`Configuration error: ${validation.error}`);
+      }
+    }
+
+    // Fetch provider API endpoint from models.dev
+    let providerApiEndpoint: string | null = null;
+    if (credentials?.provider) {
+      try {
+        const providers = await fetchModelDirectory();
+        const provider = providers.find(p => p.id === credentials.provider);
+        providerApiEndpoint = provider?.api || null;
+      } catch (err) {
+        console.warn(`[generateAllQuestionAnswers] Failed to fetch provider API endpoint: ${err}`);
       }
     }
 
@@ -122,6 +136,7 @@ export const generateAllQuestionAnswers = action({
         metadata: {
           credentials,
           model,
+          providerApiEndpoint,
           projectContext: {
             title: project.title,
             description: project.description,

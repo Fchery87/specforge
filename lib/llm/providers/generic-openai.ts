@@ -1,0 +1,142 @@
+import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
+import {
+  normalizeOpenAIResponse,
+  fetchWithTimeout,
+} from '../response-normalizer';
+
+/**
+ * Generic OpenAI-compatible client
+ * Works with any provider that implements the OpenAI API format
+ * (NVIDIA, Groq, Fireworks, Together, etc.)
+ */
+export class GenericOpenAIClient implements LlmProvider {
+  private apiKey: string;
+  private baseUrl: string;
+  private provider: string;
+
+  constructor(apiKey: string, baseUrl: string, provider: string) {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}`;
+    this.provider = provider;
+  }
+
+  async complete(
+    prompt: string,
+    options: {
+      model: string;
+      maxTokens?: number;
+      temperature?: number;
+    }
+  ): Promise<LlmResponse> {
+    const response = await fetchWithTimeout(
+      `${this.baseUrl}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: options.model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: options.maxTokens ?? 4096,
+          temperature: options.temperature ?? 0.7,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`${this.provider} API error: ${error}`);
+    }
+
+    const data = await response.json();
+    return normalizeOpenAIResponse(data);
+  }
+
+  async generateSection(
+    request: LlmSectionRequest
+  ): Promise<{ content: string; tokens: number }> {
+    const systemPrompt = this.buildSystemPrompt(request);
+    const userPrompt = this.buildUserPrompt(request);
+
+    const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
+      model: request.modelId,
+      maxTokens: request.maxTokens,
+      temperature: 0.7,
+    });
+
+    return {
+      content: response.content,
+      tokens: response.usage.completionTokens,
+    };
+  }
+
+  private buildSystemPrompt(request: LlmSectionRequest): string {
+    return `You are an expert technical writer creating a ${request.artifactType} document.
+Your task is to generate the "${request.sectionName}" section.
+
+Context from previous sections:
+${request.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n') || 'No previous sections.'}
+
+Current section requirements:
+${request.sectionInstructions || 'Generate comprehensive, detailed content for this section.'}
+
+Guidelines:
+- Use markdown formatting
+- Be thorough and detailed
+- Include code examples where appropriate
+- Maintain consistent style throughout
+- Focus on actionable, technical content`;
+  }
+
+  private buildUserPrompt(request: LlmSectionRequest): string {
+    return `Please generate the "${request.sectionName}" section for this ${request.artifactType}.
+
+Project: ${request.projectContext.title}
+Description: ${request.projectContext.description}
+
+${
+  request.sectionQuestions.length > 0
+    ? `Answer these questions based on the project context:\n${request.sectionQuestions.map((q) => `- ${q}`).join('\n')}`
+    : ''
+}
+
+Generate the section now:`;
+  }
+
+  isAvailable(): boolean {
+    return !!this.apiKey && this.apiKey.length > 0;
+  }
+}
+
+export function createGenericOpenAIClient(
+  apiKey: string,
+  baseUrl: string,
+  provider: string
+): GenericOpenAIClient {
+  return new GenericOpenAIClient(apiKey, baseUrl, provider);
+}
+
+// Provider-specific base URLs from models.dev
+// These are OpenAI-compatible endpoints
+export const PROVIDER_BASE_URLS: Record<string, string> = {
+  nvidia: 'https://integrate.api.nvidia.com/v1',
+  groq: 'https://api.groq.com/openai/v1',
+  fireworks: 'https://api.fireworks.ai/inference/v1',
+  together: 'https://api.together.xyz/v1',
+  replicate: 'https://api.replicate.com/v1',
+  cerebras: 'https://api.cerebras.ai/v1',
+  ai21: 'https://api.ai21.com/studio/v1',
+  cohere: 'https://api.cohere.com/v1',
+  github: 'https://models.inference.ai.azure.com',
+  vercel: 'https://ai-gateway.vercel.com/v1',
+  azure: 'https://api.openai.com/v1', // Azure has custom endpoint handling
+  google: 'https://generativelanguage.googleapis.com/v1', // Gemini
+  chutes: 'https://llm.chutes.ai/v1', // CHUTES AI
+  // Add more as needed from models.dev
+};
+
+export function getProviderBaseUrl(provider: string): string | null {
+  return PROVIDER_BASE_URLS[provider] || null;
+}

@@ -40,6 +40,7 @@ const getProviderIcon = (providerId: string) => {
     github: Layers,
     vercel: Triangle,
     cerebras: Cpu,
+    chutes: Layers,
   };
   return iconMap[providerId] || Globe;
 };
@@ -64,6 +65,7 @@ const getProviderDescription = (providerId: string): string => {
     replicate: "API for running machine learning models",
     github: "AI models for coding assistance via GitHub Copilot",
     vercel: "Unified access to AI models with smart routing",
+    chutes: "Decentralized AI inference at competitive prices",
   };
   return descriptions[providerId] || `AI models via ${providerId}`;
 };

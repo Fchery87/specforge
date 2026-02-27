@@ -20,6 +20,7 @@ import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
+import { fetchModelDirectory } from '../../lib/llm/model-directory';
 
 interface Question {
   id: string;
@@ -110,7 +111,7 @@ export const generateQuestionAnswer = action({
 
     let model: LlmModel;
     if (credentials?.modelId && credentials.modelId !== '') {
-      model = getModelById(credentials.modelId) ?? getFallbackModel();
+      model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
     } else if (credentials?.provider && enabledModels.length > 0) {
       const providerModel = enabledModels.find(
         (m: Doc<'llmModels'>) => m.provider === credentials.provider
@@ -139,6 +140,18 @@ export const generateQuestionAnswer = action({
       model = getFallbackModel();
     }
 
+    // Fetch provider API endpoint from models.dev
+    let providerApiEndpoint: string | null = null;
+    if (credentials?.provider) {
+      try {
+        const providers = await fetchModelDirectory();
+        const provider = providers.find(p => p.id === credentials.provider);
+        providerApiEndpoint = provider?.api || null;
+      } catch (err) {
+        console.warn(`[generateQuestionAnswer] Failed to fetch provider API endpoint: ${err}`);
+      }
+    }
+
     // Build prompt
     const prompt = buildQuestionPrompt({
       projectTitle: project.title,
@@ -147,8 +160,8 @@ export const generateQuestionAnswer = action({
       previousQuestions,
     });
 
-    // Generate answer using LLM
-    const llmClient = createLlmClient(credentials);
+    // Generate answer using LLM with dynamic API endpoint
+    const llmClient = createLlmClient(credentials, providerApiEndpoint);
     const suggestedAnswer = await generateAnswer({
       prompt,
       model,

@@ -17,6 +17,7 @@ import type { LlmModel } from '../../lib/llm/types';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
+import { fetchModelDirectory } from '../../lib/llm/model-directory';
 
 /**
  * System prompt for the prompt enhancement AI.
@@ -231,22 +232,33 @@ export const enhancePrompt = action({
       // This ensures we use the user's configured model
       let model: LlmModel;
       if (credentials?.modelId) {
-        model = getModelById(credentials.modelId) ?? getFallbackModel();
+        model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
       } else if (credentials?.provider) {
         // Fallback to first enabled model for provider
         const modelId = getFirstEnabledModelForProvider(
           credentials.provider,
           enabledModels,
         );
-        model = getModelById(modelId) ?? getFallbackModel();
+        model = getModelById(modelId, enabledModelsFromDb || []) ?? getFallbackModel();
       } else {
         model = getFallbackModel();
+      }
+
+      // Fetch provider API endpoint from models.dev
+      let providerApiEndpoint: string | null = null;
+      try {
+        const providers = await fetchModelDirectory();
+        const provider = providers.find(p => p.id === credentials.provider);
+        providerApiEndpoint = provider?.api || null;
+      } catch (err) {
+        console.warn(`[enhancePrompt] Failed to fetch provider API endpoint: ${err}`);
       }
 
       // Validate provider-model match
       const providerValidation = validateProviderModelMatch(
         credentials.provider,
         model.id,
+        enabledModelsFromDb || [],
       );
       if (!providerValidation.valid) {
         console.error(
@@ -259,8 +271,8 @@ export const enhancePrompt = action({
         };
       }
 
-      // Create LLM client
-      const client = createLlmClient(credentials);
+      // Create LLM client with dynamic API endpoint
+      const client = createLlmClient(credentials, providerApiEndpoint);
       if (!client) {
         return {
           success: false,

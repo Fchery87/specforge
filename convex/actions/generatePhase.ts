@@ -28,6 +28,7 @@ import type {
   LlmModel,
 } from '../../lib/llm/types';
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
+import { fetchModelDirectory } from '../../lib/llm/model-directory';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import { retryWithBackoff } from '../../lib/llm/retry';
@@ -102,16 +103,16 @@ export const generatePhase = action({
 
     let model: LlmModel;
     if (args.modelId) {
-      model = getModelById(args.modelId) ?? getFallbackModel();
+      model = getModelById(args.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
     } else if (credentials?.modelId) {
-      model = getModelById(credentials.modelId) ?? getFallbackModel();
+      model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
     } else if (credentials?.provider) {
       // Fallback to first enabled model for provider
       const modelId = getFirstEnabledModelForProvider(
         credentials.provider,
         enabledModels
       );
-      model = getModelById(modelId) ?? getFallbackModel();
+      model = getModelById(modelId, enabledModelsFromDb || []) ?? getFallbackModel();
     } else {
       model = getFallbackModel();
     }
@@ -120,7 +121,8 @@ export const generatePhase = action({
     if (credentials) {
       const validation = validateProviderModelMatch(
         credentials.provider,
-        model.id
+        model.id,
+        enabledModelsFromDb || []
       );
       if (!validation.valid) {
         console.error(
@@ -146,6 +148,19 @@ export const generatePhase = action({
       model,
     });
 
+    // Fetch provider API endpoint from models.dev
+    let providerApiEndpoint: string | null = null;
+    if (credentials?.provider) {
+      try {
+        const providers = await fetchModelDirectory();
+        const provider = providers.find(p => p.id === credentials.provider);
+        providerApiEndpoint = provider?.api || null;
+        console.log(`[generatePhase] Provider ${credentials.provider} API endpoint: ${providerApiEndpoint || 'not found in models.dev'}`);
+      } catch (err) {
+        console.warn(`[generatePhase] Failed to fetch provider API endpoint: ${err}`);
+      }
+    }
+
     // Initialize the background task
     const taskId = await ctx.runMutation(
       internalApi.internal.initGenerationTask,
@@ -159,6 +174,7 @@ export const generatePhase = action({
           credentials,
           model,
           artifactType,
+          providerApiEndpoint,
           projectContext: {
             title: project.title,
             description: project.description,

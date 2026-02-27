@@ -66,6 +66,7 @@ export default function LlmConfigPage() {
       replicate: Terminal,
       github: Layers,
       vercel: Triangle,
+      chutes: Layers,
     };
     return iconMap[providerId] || Globe;
   };
@@ -90,6 +91,7 @@ export default function LlmConfigPage() {
       replicate: "API for running machine learning models",
       github: "AI models for coding assistance via GitHub Copilot",
       vercel: "Unified access to AI models with smart routing",
+      chutes: "Decentralized AI inference at competitive prices",
     };
     return descriptions[providerId] || `AI models via ${providerId}`;
   };

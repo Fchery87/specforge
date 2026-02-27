@@ -103,9 +103,10 @@ export const generatePhaseWorker = internalAction({
 
     const { currentStep, plan, metadata, projectId, phaseId } = task;
     const section = plan[currentStep];
-    const { model, credentials, artifactType, projectContext } = metadata;
+    const { model, credentials, artifactType, projectContext, providerApiEndpoint } = metadata;
 
-    const llmClient = createLlmClient(credentials);
+    // Create LLM client with dynamic API endpoint from models.dev
+    const llmClient = createLlmClient(credentials, providerApiEndpoint);
 
     try {
       // Initialize streaming state (creates placeholder artifact if missing)
@@ -283,9 +284,10 @@ export const generateQuestionsWorker = internalAction({
 
     const { currentStep, plan, metadata, projectId, phaseId } = task;
     const question = plan[currentStep];
-    const { model, credentials, projectContext } = metadata;
+    const { model, credentials, projectContext, providerApiEndpoint } = metadata;
 
-    const llmClient = createLlmClient(credentials);
+    // Create LLM client with dynamic API endpoint from models.dev
+    const llmClient = createLlmClient(credentials, providerApiEndpoint);
 
     try {
       const phase = await ctx.runQuery(internal.internal.getPhaseInternal, {

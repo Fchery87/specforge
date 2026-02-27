@@ -249,9 +249,30 @@ export const MODEL_REGISTRY: RegistryEntry[] = [
   },
 ];
 
-export function getModelById(modelId: string): LlmModel | null {
+export function getModelById(
+  modelId: string,
+  dbModels?: Array<{ provider: string; modelId: string; contextTokens: number; maxOutputTokens: number; defaultMax: number }>
+): LlmModel | null {
+  // First check hardcoded registry
   const entry = MODEL_REGISTRY.find((e) => e.model.id === modelId);
-  return entry?.model ?? null;
+  if (entry) return entry.model;
+  
+  // Then check database models if provided
+  if (dbModels) {
+    const dbModel = dbModels.find((m) => m.modelId === modelId);
+    if (dbModel) {
+      return {
+        id: dbModel.modelId,
+        provider: dbModel.provider,
+        contextTokens: dbModel.contextTokens,
+        maxOutputTokens: dbModel.maxOutputTokens,
+        defaultMax: dbModel.defaultMax,
+        enabled: true,
+      };
+    }
+  }
+  
+  return null;
 }
 
 export function getModelsByProvider(provider: string): RegistryEntry[] {
@@ -304,14 +325,16 @@ export function getFirstEnabledModelForProvider(
 
 /**
  * Validate that a model matches its provider.
+ * Checks both hardcoded registry and database models.
  */
 export function validateProviderModelMatch(
   provider: string,
-  modelId: string
+  modelId: string,
+  dbModels?: Array<{ provider: string; modelId: string; contextTokens: number; maxOutputTokens: number; defaultMax: number }>
 ): { valid: boolean; error?: string } {
   if (!modelId) return { valid: false, error: 'No model specified' };
 
-  const model = getModelById(modelId);
+  const model = getModelById(modelId, dbModels);
   if (!model) {
     return { valid: false, error: `Unknown model: ${modelId}` };
   }

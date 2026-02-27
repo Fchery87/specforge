@@ -20,6 +20,7 @@ import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
+import { fetchModelDirectory } from '../../lib/llm/model-directory';
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -224,7 +225,7 @@ export const generateQuestions = action({
       let model: LlmModel;
       const provider = credentials?.provider;
       if (credentials?.modelId && credentials.modelId !== '') {
-        model = getModelById(credentials.modelId) ?? getFallbackModel();
+        model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
       } else if (provider && enabledModels.length > 0) {
         const providerModel = enabledModels.find(
           (m: Doc<'llmModels'>) => m.provider === provider
@@ -255,7 +256,20 @@ export const generateQuestions = action({
         model = getFallbackModel();
       }
 
-      const llmClient = createLlmClient(credentials);
+      // Fetch provider API endpoint from models.dev
+      let providerApiEndpoint: string | null = null;
+      const providerId = credentials?.provider;
+      if (providerId) {
+        try {
+          const providers = await fetchModelDirectory();
+          const provider = providers.find(p => p.id === providerId);
+          providerApiEndpoint = provider?.api || null;
+        } catch (err) {
+          console.warn(`[generateQuestions] Failed to fetch provider API endpoint: ${err}`);
+        }
+      }
+
+      const llmClient = createLlmClient(credentials, providerApiEndpoint);
       if (llmClient) {
         const prompt = buildQuestionPrompt({
           title: project.title,
