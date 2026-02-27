@@ -12,6 +12,10 @@ import { ArtifactPreview } from "@/components/artifact-preview";
 import { QuestionsPanel } from "@/components/questions-panel";
 import { ArtifactsHeader } from "@/components/artifacts-header";
 import { StreamingArtifactPreview } from "@/components/streaming-artifact-preview";
+import { ExportOptionsPanel } from "@/components/export-options";
+import { SectionPlanPreview, SectionPlanPreviewSkeleton } from "@/components/section-plan-preview";
+import { getSectionPlansForPhase } from "@/lib/llm/section-plans";
+import type { UserSectionPreference } from "@/lib/llm/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -60,6 +64,12 @@ export default function PhasePage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [phaseTaskId, setPhaseTaskId] = useState<string | null>(null);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  
+  // Interactive section planning state (Phase 4 P2)
+  const [showSectionPlan, setShowSectionPlan] = useState(false);
+  const [sectionPreferences, setSectionPreferences] = useState<UserSectionPreference[]>([]);
+  const sectionPlans = getSectionPlansForPhase(phaseId);
+  
   const phaseToastIdRef = useRef<string | number | null>(null);
   const phaseStatusRef = useRef<string | null>(null);
   const phaseProgressRef = useRef<number | null>(null);
@@ -72,6 +82,11 @@ export default function PhasePage() {
     getArtifactByPhaseQuery,
     isLoaded && isSignedIn ? { projectId: projectId as any, phaseId } : "skip"
   );
+  const getAllProjectArtifactsQuery: any = (api as any)?.artifacts?.getAllProjectArtifacts;
+  const allArtifacts = useQuery(
+    getAllProjectArtifactsQuery,
+    isLoaded && isSignedIn && phaseId === "handoff" ? { projectId: projectId as any } : "skip"
+  );
   const isGenerating =
     isPhaseStarting || generationTask?.status === "in_progress";
   const hasStreamingPreview =
@@ -82,18 +97,37 @@ export default function PhasePage() {
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
 
-  async function handleGeneratePhase() {
+  // Handle initiate generation (shows section plan preview first)
+  function handleInitiateGenerate() {
+    // Show section plan preview
+    setShowSectionPlan(true);
+    setSectionPreferences([]);
+  }
+
+  // Handle generation with preferences from section plan
+  async function handleGenerateWithPreferences(preferences: UserSectionPreference[]) {
+    setShowSectionPlan(false);
+    setSectionPreferences(preferences);
+    
+    // TODO: Save preferences to backend
+    // await saveSectionPreferences({ projectId, phaseId, preferences });
+    
     setIsPhaseStarting(true);
     setPhaseTaskId(null);
     phaseStatusRef.current = null;
     phaseProgressRef.current = null;
     const startToast = getToastMessage("phase_start");
     const toastId = toast.message(startToast.title, {
-      description: startToast.description,
+      description: `${startToast.description} (${preferences.filter(p => p.enabled).length} sections)`,
     });
     phaseToastIdRef.current = toastId;
     try {
-      const result = await generatePhase({ projectId: projectId as any, phaseId });
+      const result = await generatePhase({ 
+        projectId: projectId as any, 
+        phaseId,
+        // TODO: Pass preferences to generation when backend supports it
+        // sectionPreferences: preferences,
+      });
       setPhaseTaskId(result?.taskId ?? null);
       if (!result?.taskId) {
         throw new Error("Phase generation did not return a task id.");
@@ -296,15 +330,25 @@ export default function PhasePage() {
             <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
               Clarifications
             </h2>
-            <QuestionsPanel
-              projectId={projectId}
-              phaseId={phaseId}
-              questions={phase.questions}
-              onGeneratePhase={handleGeneratePhase}
-              isGenerating={isGenerating}
-              onCancelGeneration={handleCancelGeneration}
-              isCancelling={isCancelling}
-            />
+            {showSectionPlan ? (
+              <SectionPlanPreview
+                phaseId={phaseId}
+                phaseName={phaseConfig.label}
+                sectionPlans={sectionPlans}
+                onGenerate={handleGenerateWithPreferences}
+                isGenerating={isGenerating}
+              />
+            ) : (
+              <QuestionsPanel
+                projectId={projectId}
+                phaseId={phaseId}
+                questions={phase.questions}
+                onGeneratePhase={handleInitiateGenerate}
+                isGenerating={isGenerating}
+                onCancelGeneration={handleCancelGeneration}
+                isCancelling={isCancelling}
+              />
+            )}
           </div>
 
           {/* Right Column: Artifacts */}
@@ -351,22 +395,27 @@ export default function PhasePage() {
               </CardContent>
             </Card>
 
-            {/* Download ZIP button for handoff phase */}
-            {phaseId === "handoff" && (
-              <div className="mt-6">
-                <Button 
-                  onClick={handleDownloadZip} 
-                  disabled={isDownloadingZip}
-                  className="w-full h-16 text-lg"
-                >
-                  {isDownloadingZip ? (
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  ) : (
-                    <Archive className="w-5 h-5 mr-2" />
-                  )}
-                  Download Project ZIP
-                </Button>
-              </div>
+            {/* Export options for handoff phase */}
+            {phaseId === "handoff" && project && (
+              <ExportOptionsPanel
+                project={{
+                  _id: project._id,
+                  title: project.title,
+                  description: project.description,
+                  createdAt: project.createdAt,
+                  zipStorageId: project.zipStorageId,
+                }}
+                artifacts={{
+                  brief: allArtifacts?.find((a: any) => a.type === "brief")?.content,
+                  constitution: allArtifacts?.find((a: any) => a.type === "constitution")?.content,
+                  prd: allArtifacts?.find((a: any) => a.type === "prd")?.content,
+                  techSpec: allArtifacts?.find((a: any) => a.type === "techSpec")?.content,
+                  userStories: allArtifacts?.find((a: any) => a.type === "userStories")?.content,
+                  handoff: allArtifacts?.find((a: any) => a.type === "handoff")?.content,
+                }}
+                onDownloadZip={handleDownloadZip}
+                isDownloadingZip={isDownloadingZip}
+              />
             )}
           </div>
         </div>

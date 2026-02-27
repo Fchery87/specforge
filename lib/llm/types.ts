@@ -71,3 +71,102 @@ export interface ProviderCredentials {
   zaiEndpointType?: "paid" | "coding";
   zaiIsChina?: boolean;
 }
+
+// ============================================================================
+// Critique / Self-Critique Types (Phase 2 P1 - Recursive Self-Critique)
+// ============================================================================
+
+/**
+ * Result of a critique operation
+ */
+export interface CritiqueResult {
+  passes: boolean;
+  score: number; // 0-100
+  summary: string;
+  violations: Violation[];
+  refinedSection?: string;
+}
+
+/**
+ * Individual violation found during critique
+ */
+export interface Violation {
+  category: 'accessibility' | 'performance' | 'security' | 'architecture' | 'completeness';
+  severity: 'critical' | 'warning' | 'info';
+  criterion: string;
+  issue: string;
+  location?: string;
+  suggestion: string;
+}
+
+/**
+ * Configuration for critique behavior
+ */
+export interface CritiqueConfig {
+  enabled: boolean;
+  maxRetries: number;
+  passThreshold: number; // Minimum score to pass (0-100)
+  categories: {
+    accessibility: boolean;
+    performance: boolean;
+    security: boolean;
+    architecture: boolean;
+    completeness: boolean;
+  };
+}
+
+/**
+ * Default critique configuration
+ */
+export const DEFAULT_CRITIQUE_CONFIG: CritiqueConfig = {
+  enabled: true,
+  maxRetries: 2,
+  passThreshold: 80,
+  categories: {
+    accessibility: true,
+    performance: true,
+    security: true,
+    architecture: true,
+    completeness: true,
+  },
+};
+
+// ============================================================================
+// Section Plan / Interactive Planning Types (Phase 4 P2)
+// ============================================================================
+
+/**
+ * Extended section plan with UI metadata for interactive planning
+ */
+export interface SectionPlanConfig {
+  id: string;
+  title: string;
+  description: string;
+  estimatedTokens: number;
+  required: boolean;
+  phaseId: string;
+  sectionType: 'documentation' | 'technical' | 'implementation' | 'planning';
+}
+
+/**
+ * User preferences for a section
+ */
+export interface UserSectionPreference {
+  sectionId: string;
+  enabled: boolean;
+  customInstructions?: string;
+}
+
+/**
+ * Complete section plan with user preferences applied
+ */
+export interface SectionPlanWithPreferences {
+  section: SectionPlanConfig;
+  preference: UserSectionPreference;
+  totalEstimatedTokens: number;
+}
+
+/**
+ * Section plans organized by phase
+ */
+export type SectionPlansByPhase = Record<string, SectionPlanConfig[]>;

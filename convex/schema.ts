@@ -9,7 +9,7 @@ export default defineSchema({
     status: v.union(
       v.literal('draft'),
       v.literal('active'),
-      v.literal('complete')
+      v.literal('complete'),
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -23,7 +23,7 @@ export default defineSchema({
       v.literal('pending'),
       v.literal('generating'),
       v.literal('ready'),
-      v.literal('error')
+      v.literal('error'),
     ),
     questions: v.array(
       v.object({
@@ -32,20 +32,30 @@ export default defineSchema({
         answer: v.optional(v.string()),
         aiGenerated: v.boolean(),
         required: v.optional(v.boolean()),
-      })
+      }),
     ),
   }).index('by_project', ['projectId']),
 
+  // Artifact types supported by the system
+  // Note: 'constitution' is a hidden artifact type used for internal consistency
   artifacts: defineTable({
     projectId: v.id('projects'),
     phaseId: v.string(),
-    type: v.string(),
+    type: v.union(
+      v.literal('brief'),
+      v.literal('constitution'), // Hidden artifact for project standards
+      v.literal('prd'),
+      v.literal('spec'), // Legacy type for specs phase
+      v.literal('techSpec'),
+      v.literal('userStories'),
+      v.literal('handoff'),
+    ),
     title: v.string(),
     content: v.string(),
     previewHtml: v.string(),
     previewHtmlUpdatedAt: v.optional(v.number()),
     sections: v.array(
-      v.object({ name: v.string(), tokens: v.number(), model: v.string() })
+      v.object({ name: v.string(), tokens: v.number(), model: v.string() }),
     ),
     // v2 streaming fields (optional for backward compatibility)
     streamStatus: v.optional(
@@ -54,13 +64,41 @@ export default defineSchema({
         v.literal('streaming'),
         v.literal('paused'),
         v.literal('complete'),
-        v.literal('cancelled')
-      )
+        v.literal('cancelled'),
+      ),
     ),
     currentSection: v.optional(v.string()),
     sectionsCompleted: v.optional(v.number()),
     sectionsTotal: v.optional(v.number()),
     tokensGenerated: v.optional(v.number()),
+    // Constitution feature fields
+    isHidden: v.optional(v.boolean()), // Hide from user exports (e.g., constitution)
+    // Critique feature fields
+    critique: v.optional(
+      v.object({
+        passes: v.boolean(),
+        score: v.number(),
+        violations: v.array(
+          v.object({
+            category: v.union(
+              v.literal('accessibility'),
+              v.literal('performance'),
+              v.literal('security'),
+              v.literal('architecture'),
+              v.literal('completeness'),
+            ),
+            severity: v.union(
+              v.literal('critical'),
+              v.literal('warning'),
+              v.literal('info'),
+            ),
+            issue: v.string(),
+            suggestion: v.string(),
+          }),
+        ),
+        refinedSection: v.optional(v.string()),
+      }),
+    ),
   })
     .index('by_project', ['projectId'])
     .index('by_phase', ['projectId', 'phaseId']),
@@ -81,7 +119,7 @@ export default defineSchema({
     isEnabled: v.boolean(), // Whether this credential is active
     // Z.AI specific settings
     zaiEndpointType: v.optional(
-      v.union(v.literal('paid'), v.literal('coding'))
+      v.union(v.literal('paid'), v.literal('coding')),
     ),
     zaiIsChina: v.optional(v.boolean()),
     // Metadata
@@ -97,7 +135,7 @@ export default defineSchema({
     useSystem: v.boolean(),
     systemKeyId: v.optional(v.string()),
     zaiEndpointType: v.optional(
-      v.union(v.literal('paid'), v.literal('coding'))
+      v.union(v.literal('paid'), v.literal('coding')),
     ),
     zaiIsChina: v.optional(v.boolean()),
   }).index('by_user', ['userId']),
@@ -109,7 +147,7 @@ export default defineSchema({
     status: v.union(
       v.literal('in_progress'),
       v.literal('completed'),
-      v.literal('failed')
+      v.literal('failed'),
     ),
     currentStep: v.number(),
     totalSteps: v.number(),
@@ -118,4 +156,18 @@ export default defineSchema({
     error: v.optional(v.string()),
     updatedAt: v.number(),
   }).index('by_project_phase', ['projectId', 'phaseId']),
+
+  // Section preferences for interactive planning feature
+  // Stores user preferences for which sections to generate and custom instructions
+  sectionPreferences: defineTable({
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    sectionId: v.string(),
+    enabled: v.boolean(),
+    customInstructions: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_project_phase', ['projectId', 'phaseId'])
+    .index('by_section', ['projectId', 'phaseId', 'sectionId']),
 });

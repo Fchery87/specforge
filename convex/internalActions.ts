@@ -11,7 +11,12 @@ import { estimateTokenCount } from '../lib/llm/chunking';
 import {
   generateSectionContentStreaming,
   getSectionInstructions,
+  generateConstitution,
+  generateSectionWithCritique,
+  fetchConstitutionForProject,
+  isCritiqueEnabled,
 } from './actions/generatePhase';
+import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
 
 // Internal action to get all decrypted system credentials (for use in Convex actions only)
 export const getAllDecryptedSystemCredentials = internalAction({
@@ -22,7 +27,7 @@ export const getAllDecryptedSystemCredentials = internalAction({
     let configs: any[];
     try {
       configs = (await ctx.runQuery(
-        internal.systemCredentials.getAllSystemCredentialsInternal
+        internal.systemCredentials.getAllSystemCredentialsInternal,
       )) as any[];
     } catch {
       return {};
@@ -70,7 +75,7 @@ export const getAllDecryptedSystemCredentials = internalAction({
         } catch {
           // Log error without exposing sensitive data
           console.error(
-            `[getAllDecryptedSystemCredentials] Failed to decrypt credential for provider: ${config.provider}`
+            `[getAllDecryptedSystemCredentials] Failed to decrypt credential for provider: ${config.provider}`,
           );
           continue;
         }
@@ -103,31 +108,60 @@ export const generatePhaseWorker = internalAction({
 
     const { currentStep, plan, metadata, projectId, phaseId } = task;
     const section = plan[currentStep];
-    const { model, credentials, artifactType, projectContext, providerApiEndpoint } = metadata;
+    const {
+      model,
+      credentials,
+      artifactType,
+      projectContext,
+      providerApiEndpoint,
+      sectionPreferences,
+    } = metadata;
 
     // Create LLM client with dynamic API endpoint from models.dev
     const llmClient = createLlmClient(credentials, providerApiEndpoint);
 
+    // Get custom instructions for this section from preferences (Phase 4 P2)
+    const sectionPref = sectionPreferences?.find(
+      (p: {
+        sectionId: string;
+        enabled: boolean;
+        customInstructions?: string;
+      }) => p.sectionId === section.name,
+    );
+    const customInstructions = sectionPref?.customInstructions;
+
+    // Build section instructions with custom instructions if provided
+    let sectionInstructions = getSectionInstructions(phaseId, section.name);
+    if (customInstructions) {
+      sectionInstructions = `${sectionInstructions}\n\n## CUSTOM INSTRUCTIONS\n${customInstructions}`;
+    }
+
     try {
       // Initialize streaming state (creates placeholder artifact if missing)
       if (currentStep === 0) {
-        await ctx.runMutation(internal.internal.setArtifactStreamStatusInternal, {
-          projectId,
-          phaseId,
-          streamStatus: 'streaming',
-          sectionsCompleted: 0,
-          sectionsTotal: task.totalSteps,
-          currentSection: section.name,
-        });
+        await ctx.runMutation(
+          internal.internal.setArtifactStreamStatusInternal,
+          {
+            projectId,
+            phaseId,
+            streamStatus: 'streaming',
+            sectionsCompleted: 0,
+            sectionsTotal: task.totalSteps,
+            currentSection: section.name,
+          },
+        );
       } else {
-        await ctx.runMutation(internal.internal.setArtifactStreamStatusInternal, {
-          projectId,
-          phaseId,
-          streamStatus: 'streaming',
-          sectionsCompleted: currentStep,
-          sectionsTotal: task.totalSteps,
-          currentSection: section.name,
-        });
+        await ctx.runMutation(
+          internal.internal.setArtifactStreamStatusInternal,
+          {
+            projectId,
+            phaseId,
+            streamStatus: 'streaming',
+            sectionsCompleted: currentStep,
+            sectionsTotal: task.totalSteps,
+            currentSection: section.name,
+          },
+        );
       }
 
       let sectionTokens = 0;
@@ -144,7 +178,7 @@ export const generatePhaseWorker = internalAction({
           lastCancelCheckAt = now;
           const artifact = await ctx.runQuery(
             internal.internal.getArtifactByPhaseInternal,
-            { projectId, phaseId }
+            { projectId, phaseId },
           );
           if (artifact?.streamStatus === 'cancelled') {
             throw new Error('Generation cancelled');
@@ -168,33 +202,93 @@ export const generatePhaseWorker = internalAction({
             sectionsCompleted: currentStep,
             sectionsTotal: task.totalSteps,
             streamStatus: 'streaming',
-          }
+          },
         );
       };
 
-      const response = await generateSectionContentStreaming({
-        projectContext,
-        sectionName: section.name,
-        sectionInstructions: getSectionInstructions(phaseId, section.name),
-        sectionQuestions: [],
-        previousSections: [],
-        model,
-        maxTokens: section.maxTokens,
-        chunkMaxTokens: 300,
-        maxTurns: 16,
-        llmClient,
-        providerInfo: `Worker step ${currentStep + 1}`,
-        phaseId,
-        onChunk: async (delta) => {
-          const deltaTokens = estimateTokenCount(delta);
-          sectionTokens += deltaTokens;
-          bufferedDelta += delta;
-          bufferedTokens += deltaTokens;
-          await flushBuffer(false);
-        },
-      });
+      // Check if critique is enabled for this phase
+      const critiqueEnabled =
+        isCritiqueEnabled() &&
+        ['specs', 'techSpec', 'stories', 'artifacts'].includes(phaseId);
 
-      await flushBuffer(true);
+      let finalContent: string;
+      let critiqueResult:
+        | Awaited<ReturnType<typeof generateSectionWithCritique>>
+        | undefined;
+
+      if (critiqueEnabled) {
+        // Fetch constitution for critique
+        const constitution = await fetchConstitutionForProject(ctx, projectId);
+
+        // Use critique-enabled generation (non-streaming for critique)
+        console.log(
+          `[generatePhaseWorker] Running with critique for section: ${section.name}`,
+        );
+        critiqueResult = await generateSectionWithCritique({
+          projectContext,
+          sectionName: section.name,
+          sectionInstructions,
+          sectionQuestions: [],
+          previousSections: [],
+          model,
+          maxTokens: section.maxTokens,
+          llmClient,
+          providerInfo: `Worker step ${currentStep + 1}`,
+          phaseId,
+          constitution,
+        });
+
+        finalContent = critiqueResult.content;
+        sectionTokens = estimateTokenCount(finalContent);
+
+        // Stream the final content for UI updates
+        const chunkSize = 600;
+        for (let i = 0; i < finalContent.length; i += chunkSize) {
+          const chunk = finalContent.slice(i, i + chunkSize);
+          bufferedDelta += chunk;
+          bufferedTokens += estimateTokenCount(chunk);
+          await flushBuffer(false);
+        }
+        await flushBuffer(true);
+
+        // Log critique results
+        if (critiqueResult.critique) {
+          console.log(
+            `[generatePhaseWorker] Critique score: ${critiqueResult.critique.score}/100, passes: ${critiqueResult.critique.passes}`,
+          );
+          if (critiqueResult.refined) {
+            console.log(
+              `[generatePhaseWorker] Section was refined based on critique feedback`,
+            );
+          }
+        }
+      } else {
+        // Use standard streaming generation (no critique)
+        const response = await generateSectionContentStreaming({
+          projectContext,
+          sectionName: section.name,
+          sectionInstructions,
+          sectionQuestions: [],
+          previousSections: [],
+          model,
+          maxTokens: section.maxTokens,
+          chunkMaxTokens: 300,
+          maxTurns: 16,
+          llmClient,
+          providerInfo: `Worker step ${currentStep + 1}`,
+          phaseId,
+          onChunk: async (delta) => {
+            const deltaTokens = estimateTokenCount(delta);
+            sectionTokens += deltaTokens;
+            bufferedDelta += delta;
+            bufferedTokens += deltaTokens;
+            await flushBuffer(false);
+          },
+        });
+
+        finalContent = response.content;
+        await flushBuffer(true);
+      }
 
       // Record section metadata at end (content already appended via streaming)
       await ctx.runMutation(
@@ -204,10 +298,17 @@ export const generatePhaseWorker = internalAction({
           phaseId,
           section: {
             name: section.name,
-            tokens: sectionTokens || estimateTokenCount(response.content),
+            tokens: sectionTokens || estimateTokenCount(finalContent),
             model: model.id,
+            ...(critiqueResult?.critique && {
+              critique: {
+                passes: critiqueResult.critique.passes,
+                score: critiqueResult.critique.score,
+                violations: critiqueResult.critique.violations.slice(0, 5), // Limit stored violations
+              },
+            }),
           },
-        }
+        },
       );
 
       const nextStep = currentStep + 1;
@@ -220,7 +321,7 @@ export const generatePhaseWorker = internalAction({
         await ctx.scheduler.runAfter(
           0,
           internal.internalActions.generatePhaseWorker,
-          { taskId: args.taskId }
+          { taskId: args.taskId },
         );
       } else {
         await ctx.runMutation(internal.internal.updateGenerationTask, {
@@ -233,18 +334,104 @@ export const generatePhaseWorker = internalAction({
           phaseId,
           status: 'ready',
         });
-        await ctx.runMutation(internal.internal.setArtifactStreamStatusInternal, {
-          projectId,
-          phaseId,
-          streamStatus: 'complete',
-          sectionsCompleted: task.totalSteps,
-          sectionsTotal: task.totalSteps,
-        });
+        await ctx.runMutation(
+          internal.internal.setArtifactStreamStatusInternal,
+          {
+            projectId,
+            phaseId,
+            streamStatus: 'complete',
+            sectionsCompleted: task.totalSteps,
+            sectionsTotal: task.totalSteps,
+          },
+        );
+
+        // Generate Constitution for Brief phase (Phase 1 P0)
+        if (phaseId === 'brief') {
+          let constitutionSuccess = false;
+          let constitutionError: string | undefined;
+          
+          try {
+            console.log(
+              '[generatePhaseWorker] Generating Constitution for Brief phase...',
+            );
+
+            // Get the generated brief content
+            const briefArtifact = await ctx.runQuery(
+              internal.internal.getArtifactByPhaseInternal,
+              { projectId, phaseId },
+            );
+
+            if (briefArtifact && briefArtifact.content) {
+              // Use full brief content up to a reasonable limit (12000 chars ~ 3000 tokens)
+              // This preserves more context while staying within LLM context limits
+              const maxBriefLength = 12000;
+              const briefContent =
+                briefArtifact.content.length > maxBriefLength
+                  ? briefArtifact.content.substring(0, maxBriefLength) +
+                    '\n\n[Content truncated for constitution generation...]'
+                  : briefArtifact.content;
+
+              const constitutionResult = await generateConstitution({
+                ctx,
+                projectId,
+                projectContext: {
+                  title: projectContext.title || 'Project',
+                  description: briefContent,
+                  questions: '',
+                },
+                model,
+                llmClient,
+                providerInfo: providerApiEndpoint || 'default',
+              });
+
+              if (constitutionResult.success && constitutionResult.content) {
+                // Save constitution as hidden artifact
+                await ctx.runMutation(internal.internal.createArtifact, {
+                  projectId,
+                  phaseId: 'brief', // Store with brief phase
+                  type: 'constitution',
+                  title: 'Project Constitution',
+                  content: constitutionResult.content,
+                  previewHtml: renderPreviewHtml(constitutionResult.content),
+                  sections: [],
+                  isHidden: true,
+                });
+                constitutionSuccess = true;
+                console.log(
+                  '[generatePhaseWorker] Constitution generated and saved successfully',
+                );
+              } else {
+                constitutionError = 'Constitution generation returned empty or failed';
+                console.warn(
+                  `[generatePhaseWorker] ${constitutionError}`,
+                );
+              }
+            } else {
+              constitutionError = 'No brief content available for constitution generation';
+              console.warn(`[generatePhaseWorker] ${constitutionError}`);
+            }
+          } catch (error) {
+            constitutionError = error instanceof Error ? error.message : String(error);
+            console.error(
+              '[generatePhaseWorker] Error generating Constitution:',
+              constitutionError,
+            );
+            // Don't fail the whole phase if constitution generation fails
+          }
+          
+          // Store constitution generation status in artifact metadata for visibility
+          if (!constitutionSuccess) {
+            console.warn(
+              `[generatePhaseWorker] Constitution generation failed: ${constitutionError}. ` +
+              'Subsequent phases may lack cross-phase consistency.'
+            );
+          }
+        }
       }
     } catch (error: any) {
       console.error(
         `[generatePhaseWorker] Error at step ${currentStep}:`,
-        error
+        error,
       );
 
       const isCancelled =
@@ -284,7 +471,8 @@ export const generateQuestionsWorker = internalAction({
 
     const { currentStep, plan, metadata, projectId, phaseId } = task;
     const question = plan[currentStep];
-    const { model, credentials, projectContext, providerApiEndpoint } = metadata;
+    const { model, credentials, projectContext, providerApiEndpoint } =
+      metadata;
 
     // Create LLM client with dynamic API endpoint from models.dev
     const llmClient = createLlmClient(credentials, providerApiEndpoint);
@@ -338,7 +526,7 @@ Provide a clear, concise answer based on the project context and maintain consis
         await ctx.scheduler.runAfter(
           0,
           internal.internalActions.generateQuestionsWorker,
-          { taskId: args.taskId }
+          { taskId: args.taskId },
         );
       } else {
         await ctx.runMutation(internal.internal.updateGenerationTask, {
@@ -350,7 +538,7 @@ Provide a clear, concise answer based on the project context and maintain consis
     } catch (error: any) {
       console.error(
         `[generateQuestionsWorker] Error at step ${currentStep}:`,
-        error
+        error,
       );
       await ctx.runMutation(internal.internal.updateGenerationTask, {
         taskId: args.taskId,

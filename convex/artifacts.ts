@@ -43,7 +43,15 @@ export const upsertArtifact = mutation({
   args: {
     projectId: v.id("projects"),
     phaseId: v.string(),
-    type: v.string(),
+    type: v.union(
+      v.literal('brief'),
+      v.literal('constitution'),
+      v.literal('prd'),
+      v.literal('spec'),
+      v.literal('techSpec'),
+      v.literal('userStories'),
+      v.literal('handoff')
+    ),
     title: v.string(),
     content: v.string(),
     previewHtml: v.string(),
@@ -140,6 +148,26 @@ export const getArtifactsByPhase = query({
       .query("artifacts")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .filter((q) => q.eq(q.field("phaseId"), args.phaseId))
+      .collect();
+  },
+});
+
+/**
+ * Gets all artifacts for a project across all phases.
+ * Used for export functionality (SKILL.md, AGENTS.md generation).
+ */
+export const getAllProjectArtifacts = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx: QueryCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) return [];
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+
+    return await ctx.db
+      .query("artifacts")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
   },
 });

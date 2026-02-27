@@ -4,12 +4,43 @@ import { v } from 'convex/values';
 import { getNextUpdatedAt } from './projects';
 import { renderPreviewHtml } from '../lib/markdown-render';
 
+/**
+ * Maps phaseId to artifact type for database storage
+ */
+function mapPhaseToArtifactType(
+  phaseId: string,
+):
+  | 'brief'
+  | 'constitution'
+  | 'prd'
+  | 'spec'
+  | 'techSpec'
+  | 'userStories'
+  | 'handoff' {
+  switch (phaseId) {
+    case 'brief':
+      return 'brief';
+    case 'prd':
+      return 'prd';
+    case 'specs':
+      return 'techSpec';
+    case 'stories':
+      return 'userStories';
+    case 'artifacts':
+      return 'handoff';
+    case 'handoff':
+      return 'handoff';
+    default:
+      return 'handoff';
+  }
+}
+
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },
 >(artifacts: T[], projectId: string, phaseId: string): T[] {
   return artifacts.filter(
     (artifact) =>
-      artifact.projectId === projectId && artifact.phaseId === phaseId
+      artifact.projectId === projectId && artifact.phaseId === phaseId,
   );
 }
 
@@ -17,13 +48,22 @@ export const createArtifact = internalMutation({
   args: {
     projectId: v.id('projects'),
     phaseId: v.string(),
-    type: v.string(),
+    type: v.union(
+      v.literal('brief'),
+      v.literal('constitution'),
+      v.literal('prd'),
+      v.literal('spec'),
+      v.literal('techSpec'),
+      v.literal('userStories'),
+      v.literal('handoff'),
+    ),
     title: v.string(),
     content: v.string(),
     previewHtml: v.string(),
     sections: v.array(
-      v.object({ name: v.string(), tokens: v.number(), model: v.string() })
+      v.object({ name: v.string(), tokens: v.number(), model: v.string() }),
     ),
+    isHidden: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existingArtifacts = await ctx.db
@@ -33,12 +73,15 @@ export const createArtifact = internalMutation({
     const toDelete = filterArtifactsByPhase(
       existingArtifacts,
       args.projectId,
-      args.phaseId
+      args.phaseId,
     );
     for (const artifact of toDelete) {
       await ctx.db.delete(artifact._id);
     }
-    return await ctx.db.insert('artifacts', { ...args });
+    return await ctx.db.insert('artifacts', {
+      ...args,
+      isHidden: args.type === 'constitution',
+    });
   },
 });
 
@@ -57,7 +100,7 @@ export const updatePhaseStatus = internalMutation({
       v.literal('pending'),
       v.literal('generating'),
       v.literal('ready'),
-      v.literal('error')
+      v.literal('error'),
     ),
   },
   handler: async (ctx, args) => {
@@ -103,8 +146,34 @@ export const getArtifactByPhaseInternal = internalQuery({
     return await ctx.db
       .query('artifacts')
       .withIndex('by_phase', (q) =>
-        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId),
       )
+      .first();
+  },
+});
+
+/**
+ * Gets an artifact by its type for a project.
+ * Used to fetch hidden artifacts like constitution by type.
+ */
+export const getArtifactByTypeInternal = internalQuery({
+  args: {
+    projectId: v.id('projects'),
+    type: v.union(
+      v.literal('brief'),
+      v.literal('constitution'),
+      v.literal('prd'),
+      v.literal('spec'),
+      v.literal('techSpec'),
+      v.literal('userStories'),
+      v.literal('handoff'),
+    ),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('type'), args.type))
       .first();
   },
 });
@@ -120,7 +189,7 @@ export const updatePhaseQuestionsInternal = internalMutation({
         answer: v.optional(v.string()),
         aiGenerated: v.boolean(),
         required: v.optional(v.boolean()),
-      })
+      }),
     ),
   },
   handler: async (ctx, args) => {
@@ -159,13 +228,23 @@ export const initGenerationTask = internalMutation({
     totalSteps: v.number(),
     plan: v.any(),
     metadata: v.any(),
+    // Phase 4 P2: Section preferences for interactive planning
+    sectionPreferences: v.optional(
+      v.array(
+        v.object({
+          sectionId: v.string(),
+          enabled: v.boolean(),
+          customInstructions: v.optional(v.string()),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     // Delete any existing tasks for this phase
     const existing = await ctx.db
       .query('generationTasks')
       .withIndex('by_project_phase', (q) =>
-        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId),
       )
       .collect();
     for (const t of existing) await ctx.db.delete(t._id);
@@ -186,7 +265,7 @@ export const updateGenerationTask = internalMutation({
     status: v.union(
       v.literal('in_progress'),
       v.literal('completed'),
-      v.literal('failed')
+      v.literal('failed'),
     ),
     error: v.optional(v.string()),
   },
@@ -236,7 +315,7 @@ export const appendSectionToArtifactInternal = internalMutation({
       await ctx.db.insert('artifacts', {
         projectId: args.projectId,
         phaseId: args.phaseId,
-        type: args.phaseId, // Placeholder, usually resolved by caller
+        type: mapPhaseToArtifactType(args.phaseId),
         title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} Document`,
         content: args.section.content,
         previewHtml: args.section.previewHtml,
@@ -284,13 +363,38 @@ export const appendSectionMetadataToArtifactInternal = internalMutation({
       name: v.string(),
       tokens: v.number(),
       model: v.string(),
+      critique: v.optional(
+        v.object({
+          passes: v.boolean(),
+          score: v.number(),
+          violations: v.array(
+            v.object({
+              category: v.union(
+                v.literal('accessibility'),
+                v.literal('performance'),
+                v.literal('security'),
+                v.literal('architecture'),
+                v.literal('completeness'),
+              ),
+              severity: v.union(
+                v.literal('critical'),
+                v.literal('warning'),
+                v.literal('info'),
+              ),
+              criterion: v.optional(v.string()),
+              issue: v.string(),
+              suggestion: v.string(),
+            }),
+          ),
+        }),
+      ),
     }),
   },
   handler: async (ctx, args) => {
     const artifact = await ctx.db
       .query('artifacts')
       .withIndex('by_phase', (q) =>
-        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId),
       )
       .first();
     if (!artifact) return;
@@ -322,15 +426,15 @@ export const appendPartialContentToArtifactInternal = internalMutation({
         v.literal('streaming'),
         v.literal('paused'),
         v.literal('complete'),
-        v.literal('cancelled')
-      )
+        v.literal('cancelled'),
+      ),
     ),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('artifacts')
       .withIndex('by_phase', (q) =>
-        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId),
       )
       .first();
 
@@ -351,19 +455,20 @@ export const appendPartialContentToArtifactInternal = internalMutation({
       await ctx.db.insert('artifacts', {
         projectId: args.projectId,
         phaseId: args.phaseId,
-        type: args.phaseId,
+        type: mapPhaseToArtifactType(args.phaseId),
         title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} Document`,
         content: nextContent,
         previewHtml: renderPreviewHtml(nextContent),
-        previewHtmlUpdatedAt: now,
         sections: [],
-        streamStatus: args.streamStatus ?? 'streaming',
-        currentSection: args.currentSection,
-        sectionsCompleted: args.sectionsCompleted,
         sectionsTotal: args.sectionsTotal,
+        sectionsCompleted: args.sectionsCompleted,
         tokensGenerated: nextTokensGenerated,
+        streamStatus: args.streamStatus,
+        currentSection: args.currentSection,
+        previewHtmlUpdatedAt: now,
       });
     } else {
+      // Update existing artifact with streaming progress
       await ctx.db.patch(existing._id, {
         content: nextContent,
         ...(shouldRecomputePreview && {
@@ -395,7 +500,7 @@ export const setArtifactStreamStatusInternal = internalMutation({
       v.literal('streaming'),
       v.literal('paused'),
       v.literal('complete'),
-      v.literal('cancelled')
+      v.literal('cancelled'),
     ),
     currentSection: v.optional(v.string()),
     sectionsCompleted: v.optional(v.number()),
@@ -405,7 +510,7 @@ export const setArtifactStreamStatusInternal = internalMutation({
     const artifact = await ctx.db
       .query('artifacts')
       .withIndex('by_phase', (q) =>
-        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId),
       )
       .first();
     if (!artifact) return;
@@ -466,7 +571,7 @@ export const saveAnswerInternal = internalMutation({
               ? { aiGenerated: args.aiGenerated }
               : {}),
           }
-        : q
+        : q,
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });

@@ -56,6 +56,7 @@ describe("generatePhase helpers", () => {
       llmClient,
       providerInfo: "",
       phaseId: "brief",
+      constitution: null,
     });
 
     expect(result.content).toContain("Part 1");

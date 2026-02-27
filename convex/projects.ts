@@ -13,6 +13,37 @@ const DEFAULT_PHASES = [
   'handoff',
 ];
 
+/**
+ * Maps phaseId to artifact type for database storage
+ */
+function mapPhaseToArtifactType(
+  phaseId: string,
+):
+  | 'brief'
+  | 'constitution'
+  | 'prd'
+  | 'spec'
+  | 'techSpec'
+  | 'userStories'
+  | 'handoff' {
+  switch (phaseId) {
+    case 'brief':
+      return 'brief';
+    case 'prd':
+      return 'prd';
+    case 'specs':
+      return 'techSpec';
+    case 'stories':
+      return 'userStories';
+    case 'handoff':
+      return 'handoff';
+    case 'artifacts':
+      return 'handoff'; // Artifacts phase produces handoff artifacts
+    default:
+      return 'handoff';
+  }
+}
+
 export const createProject = mutation({
   args: { title: v.string(), description: v.string() },
   handler: async (ctx: MutationCtx, args) => {
@@ -194,7 +225,7 @@ export const saveAnswer = mutation({
       phase.questions,
       args.questionId,
       args.answer,
-      args.aiGenerated
+      args.aiGenerated,
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
@@ -210,7 +241,7 @@ export function applyAnswerUpdate<
   questions: T[],
   questionId: string,
   answer: string,
-  aiGenerated?: boolean
+  aiGenerated?: boolean,
 ): T[] {
   return questions.map((q) =>
     q.id === questionId
@@ -219,7 +250,7 @@ export function applyAnswerUpdate<
           answer,
           ...(aiGenerated !== undefined ? { aiGenerated } : {}),
         }
-      : q
+      : q,
   );
 }
 
@@ -272,7 +303,7 @@ export const updatePhaseQuestions = mutation({
         answer: v.optional(v.string()),
         aiGenerated: v.boolean(),
         required: v.optional(v.boolean()),
-      })
+      }),
     ),
   },
   handler: async (ctx: MutationCtx, args) => {
@@ -341,7 +372,7 @@ export const appendSectionToArtifact = mutation({
       await ctx.db.insert('artifacts', {
         projectId: args.projectId,
         phaseId: args.phaseId,
-        type: args.phaseId, // Placeholder, usually resolved by caller
+        type: mapPhaseToArtifactType(args.phaseId),
         title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} Document`,
         content: args.section.content,
         previewHtml: args.section.previewHtml,
