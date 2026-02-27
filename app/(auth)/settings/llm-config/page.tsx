@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,29 +8,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, AlertCircle, Shield, Info } from "lucide-react";
+import { Loader2, Check, AlertCircle, Shield, Info, Search, Sparkles, Zap, Brain, Cpu, Globe, GitBranch, Layers, Box, Hexagon, Triangle, Circle, Square, Star, Command, Hash, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { resolveSystemKeyId } from "@/lib/user-config";
-import { getModelById, getModelDisplayName } from "@/lib/llm/registry";
 import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/providers/zai";
-
-const PROVIDERS = [
-  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4o-mini"] },
-  { id: "deepseek", name: "DeepSeek", models: ["deepseek-chat"] },
-  { id: "anthropic", name: "Anthropic", models: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-haiku-4-5"] },
-  { id: "mistral", name: "Mistral AI", models: ["mistral-large-3", "mistral-medium-3-1", "mistral-small-3-2"] },
-  { id: "zai", name: "Z.AI (GLM)", models: ["glm-4.7", "glm-4.6", "glm-4.5", "glm-4.5-air", "glm-4.5-flash"] },
-  { id: "minimax", name: "Minimax", models: ["minimax-m2.1", "minimax-m2.1-lightning", "minimax-m2", "minimax-01"] },
-];
+import { ModelSelector } from "@/components/ModelSelector";
+import { useModelDirectory } from "@/lib/hooks/useModelDirectory";
 
 export default function LlmConfigPage() {
   const getUserConfig = useAction(api.userConfigActions.getUserConfig);
   const saveConfig = useAction(api.userConfigActions.saveUserConfig);
   const deleteConfig = useAction(api.userConfigActions.deleteUserConfig);
 
+  const { providers, getProviderInfo, getModelById } = useModelDirectory({ suitableForSpecs: true });
+
   const [provider, setProvider] = useState("anthropic");
   const [apiKey, setApiKey] = useState("");
-  const [defaultModel, setDefaultModel] = useState("claude-sonnet-4-5");
+  const [defaultModel, setDefaultModel] = useState("claude-sonnet-4");
   const [useSystem, setUseSystem] = useState(true);
   const [systemKeyId, setSystemKeyId] = useState<string | null>(null);
   const [zaiEndpointType, setZaiEndpointType] = useState<ZAIEndpointType>("paid");
@@ -40,6 +34,85 @@ export default function LlmConfigPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [userConfig, setUserConfig] = useState<any>(null);
+  const [providerSearch, setProviderSearch] = useState("");
+  const [showAllProviders, setShowAllProviders] = useState(false);
+
+  // Filter providers based on search query
+  const filteredProviders = providerSearch.trim()
+    ? providers.filter((p) =>
+        p.name.toLowerCase().includes(providerSearch.toLowerCase()) ||
+        p.id.toLowerCase().includes(providerSearch.toLowerCase())
+      )
+    : providers;
+
+  // Provider metadata for UI display
+  const getProviderIcon = (providerId: string) => {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      anthropic: Brain,
+      openai: Sparkles,
+      google: Globe,
+      deepseek: Zap,
+      mistral: Cpu,
+      openrouter: GitBranch,
+      groq: Layers,
+      zai: Hexagon,
+      minimax: Triangle,
+      cerebras: Circle,
+      ai21: Box,
+      cohere: Square,
+      stability: Star,
+      fireworks: Command,
+      together: Hash,
+      replicate: Terminal,
+      github: Layers,
+      vercel: Triangle,
+    };
+    return iconMap[providerId] || Globe;
+  };
+
+  const getProviderDescription = (providerId: string): string => {
+    const descriptions: Record<string, string> = {
+      anthropic: "Direct access to Claude models, including Pro and Max",
+      openai: "GPT models for fast, capable general AI tasks",
+      google: "Gemini models for fast, structured responses",
+      deepseek: "Advanced reasoning models at competitive pricing",
+      mistral: "European AI models with excellent performance",
+      openrouter: "Access all supported models from one provider",
+      groq: "Ultra-fast inference for popular open source models",
+      zai: "Curated models including Claude, GPT, Gemini and more",
+      minimax: "Multilingual models optimized for long context",
+      cerebras: "High-performance inference with CS-3 systems",
+      ai21: "Jamba models for enterprise applications",
+      cohere: "Command models for natural language tasks",
+      stability: "Image generation and creative AI models",
+      fireworks: "Fast inference for open source models",
+      together: "Inference platform for open source LLMs",
+      replicate: "API for running machine learning models",
+      github: "AI models for coding assistance via GitHub Copilot",
+      vercel: "Unified access to AI models with smart routing",
+    };
+    return descriptions[providerId] || `AI models via ${providerId}`;
+  };
+
+  // Popular providers shown by default (matching opencode screenshot)
+  const popularProviderIds = ["zai", "anthropic", "github", "openai", "google", "openrouter", "vercel"];
+  
+  // Get popular providers that are available in the directory
+  const popularProviders = popularProviderIds
+    .map(id => providers.find(p => p.id === id))
+    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+  
+  // Get remaining providers (excluding popular ones)
+  const remainingProviders = filteredProviders.filter(
+    p => !popularProviderIds.includes(p.id)
+  );
+  
+  // Determine which providers to show
+  const providersToShow = providerSearch.trim()
+    ? filteredProviders // Show all when searching
+    : showAllProviders
+    ? [...popularProviders, ...remainingProviders] // Show all when expanded
+    : popularProviders; // Show only popular by default
 
   useEffect(() => {
     async function loadConfig() {
@@ -69,7 +142,7 @@ export default function LlmConfigPage() {
     loadConfig();
   }, [getUserConfig]);
 
-  const currentProvider = PROVIDERS.find((p) => p.id === provider);
+  const currentProvider = getProviderInfo(provider);
 
   async function handleSave() {
     setSaving(true);
@@ -161,41 +234,118 @@ export default function LlmConfigPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>LLM Provider</Label>
-            <div className="flex flex-wrap gap-2">
-              {PROVIDERS.map((p) => (
-                <Button
-                  key={p.id}
-                  variant={provider === p.id ? "default" : "outline"}
-                  onClick={() => {
-                    setProvider(p.id);
-                    setDefaultModel(p.models[0]);
-                    if (useSystem) {
-                      setSystemKeyId(p.id);
-                    }
-                  }}
-                  className="flex-1"
-                >
-                  {p.name}
-                </Button>
-              ))}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">LLM Provider</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search providers..."
+                value={providerSearch}
+                onChange={(e) => setProviderSearch(e.target.value)}
+                className="pl-10"
+              />
             </div>
+            
+            {/* Popular Providers Section Header */}
+            {!providerSearch && !showAllProviders && (
+              <div className="mb-2">
+                <div className="text-sm text-muted-foreground mb-2">Popular providers</div>
+              </div>
+            )}
+            
+            <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+              {providersToShow.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-2">
+                  No providers found matching "{providerSearch}"
+                </div>
+              ) : (
+                providersToShow.map((p) => {
+                  const IconComponent = getProviderIcon(p.id);
+                  const isPopular = popularProviderIds.includes(p.id);
+                  const isSelected = provider === p.id;
+                  
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => {
+                        setProvider(p.id);
+                        setDefaultModel(""); // Reset model when provider changes
+                        if (useSystem) {
+                          setSystemKeyId(p.id);
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center gap-4 p-4 rounded-lg border transition-all cursor-pointer",
+                        isSelected
+                          ? "border-accent bg-accent/10"
+                          : "border-border bg-card hover:border-accent/50 hover:bg-accent/5"
+                      )}
+                    >
+                      {/* Icon */}
+                      <div className={cn(
+                        "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                        isSelected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
+                      )}>
+                        <IconComponent className="w-5 h-5" />
+                      </div>
+                      
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{p.name}</span>
+                          {isPopular && (
+                            <Badge variant="secondary" className="text-xs font-normal">
+                              Popular
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground truncate">
+                          {getProviderDescription(p.id)}
+                        </div>
+                      </div>
+                      
+                      {/* Select Button */}
+                      <div className="flex-shrink-0">
+                        {isSelected ? (
+                          <div className="flex items-center gap-1 text-accent text-sm font-medium">
+                            <Check className="w-4 h-4" />
+                            <span>Selected</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center justify-center whitespace-nowrap rounded-none text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 py-2">
+                            Select
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            
+            {/* Show more button */}
+            {!providerSearch && !showAllProviders && remainingProviders.length > 0 && (
+              <button
+                onClick={() => setShowAllProviders(true)}
+                className="w-full py-3 text-sm text-muted-foreground hover:text-foreground transition-colors border border-dashed border-border rounded-lg hover:border-accent/50 hover:bg-accent/5"
+              >
+                Show {remainingProviders.length} more providers
+              </button>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label>Default Model</Label>
-            <select
+            <ModelSelector
               value={defaultModel}
-              onChange={(e) => setDefaultModel(e.target.value)}
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              {currentProvider?.models.map((m) => (
-                <option key={m} value={m}>
-                  {getModelDisplayName(m) || m}
-                </option>
-              ))}
-            </select>
+              onChange={(modelId, providerId) => {
+                setDefaultModel(modelId);
+                setProvider(providerId);
+              }}
+              provider={provider}
+              suitableForSpecs={true}
+              placeholder={defaultModel ? "Select a model..." : `Select a ${provider} model...`}
+            />
             {(() => {
               const modelInfo = getModelById(defaultModel);
               if (modelInfo) {
@@ -203,18 +353,33 @@ export default function LlmConfigPage() {
                   <div className="flex items-start gap-2 p-3 bg-background/50 rounded-lg border border-border">
                     <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                     <div className="text-xs text-white/80 space-y-1">
-                      <p className="font-medium text-white">{getModelDisplayName(defaultModel)} Capabilities:</p>
+                      <p className="font-medium text-white">{modelInfo.displayName} Capabilities:</p>
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" className="text-xs">
-                          Context: {(modelInfo.contextTokens / 1000).toLocaleString()}K tokens
+                          Context: {modelInfo.formattedLimits.context} tokens
                         </Badge>
                         <Badge variant="outline" className="text-xs">
-                          Max Output: {(modelInfo.maxOutputTokens / 1000).toLocaleString()}K tokens
+                          Max Output: {modelInfo.formattedLimits.output} tokens
                         </Badge>
                         <Badge variant="outline" className="text-xs">
                           Default Gen: {(modelInfo.defaultMax / 1000).toLocaleString()}K tokens
                         </Badge>
                       </div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          Cost: {modelInfo.formattedCost.input} → {modelInfo.formattedCost.output}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (!defaultModel) {
+                return (
+                  <div className="flex items-start gap-2 p-3 bg-background/50 rounded-lg border border-border">
+                    <Info className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <div className="text-xs text-muted-foreground">
+                      Click the dropdown above to select a model from {provider}.
                     </div>
                   </div>
                 );
