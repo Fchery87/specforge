@@ -3,25 +3,73 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Trash2, Check, X, Sparkles, Shield, Key, Settings } from "lucide-react";
+import { 
+  Loader2, Plus, Trash2, Check, X, Sparkles, Shield, Key, Settings, 
+  Search, Brain, Globe, Zap, Cpu, GitBranch, Layers, Hexagon, Triangle, 
+  Box, Square, Star, Command, Hash, Terminal, ChevronDown, ChevronUp 
+} from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { MODEL_REGISTRY, getModelById, getModelsByProvider } from "@/lib/llm/registry";
 import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/providers/zai";
+import { useModelDirectory } from "@/lib/hooks/useModelDirectory";
+import type { ModelDirectoryEntry } from "@/lib/hooks/useModelDirectory";
 
-const PROVIDERS = [
-  { id: "openai", name: "OpenAI" },
-  { id: "openrouter", name: "OpenRouter" },
-  { id: "deepseek", name: "DeepSeek" },
-  { id: "anthropic", name: "Anthropic" },
-  { id: "mistral", name: "Mistral AI" },
-  { id: "zai", name: "Z.AI (GLM)" },
-  { id: "minimax", name: "Minimax" },
-];
+// Provider metadata for UI display
+const getProviderIcon = (providerId: string) => {
+  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+    anthropic: Brain,
+    openai: Sparkles,
+    google: Globe,
+    deepseek: Zap,
+    mistral: Cpu,
+    openrouter: GitBranch,
+    groq: Layers,
+    zai: Hexagon,
+    minimax: Triangle,
+    ai21: Box,
+    cohere: Square,
+    stability: Star,
+    fireworks: Command,
+    together: Hash,
+    replicate: Terminal,
+    github: Layers,
+    vercel: Triangle,
+    cerebras: Cpu,
+  };
+  return iconMap[providerId] || Globe;
+};
+
+const getProviderDescription = (providerId: string): string => {
+  const descriptions: Record<string, string> = {
+    anthropic: "Direct access to Claude models, including Pro and Max",
+    openai: "GPT models for fast, capable general AI tasks",
+    google: "Gemini models for fast, structured responses",
+    deepseek: "Advanced reasoning models at competitive pricing",
+    mistral: "European AI models with excellent performance",
+    openrouter: "Access all supported models from one provider",
+    groq: "Ultra-fast inference for popular open source models",
+    zai: "Curated models including Claude, GPT, Gemini and more",
+    minimax: "Multilingual models optimized for long context",
+    cerebras: "High-performance inference with CS-3 systems",
+    ai21: "Jamba models for enterprise applications",
+    cohere: "Command models for natural language tasks",
+    stability: "Image generation and creative AI models",
+    fireworks: "Fast inference for open source models",
+    together: "Inference platform for open source LLMs",
+    replicate: "API for running machine learning models",
+    github: "AI models for coding assistance via GitHub Copilot",
+    vercel: "Unified access to AI models with smart routing",
+  };
+  return descriptions[providerId] || `AI models via ${providerId}`;
+};
+
+// Popular providers
+const popularProviderIds = ["zai", "anthropic", "github", "openai", "google", "openrouter", "vercel"];
 
 export default function LlmModelsPage() {
   // Model management queries/mutations
@@ -35,7 +83,10 @@ export default function LlmModelsPage() {
   const setSystemCredential = useAction((api as any).systemCredentialActions?.setSystemCredential);
   const deleteSystemCredential = useAction((api as any).systemCredentialActions?.deleteSystemCredential);
 
-  const [activeTab, setActiveTab] = useState<"models" | "credentials">("models");
+  // Models.dev integration
+  const { providers, models: allModels, getModelById: getModelFromDirectory } = useModelDirectory({ suitableForSpecs: true });
+
+  const [activeTab, setActiveTab] = useState<"models" | "credentials" | "browse">("models");
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCredential, setEditingCredential] = useState<string | null>(null);
   const [credentialForm, setCredentialForm] = useState({
@@ -44,6 +95,11 @@ export default function LlmModelsPage() {
     zaiEndpointType: "paid" as ZAIEndpointType,
     zaiIsChina: false,
   });
+
+  // Browse models.dev state
+  const [browseProvider, setBrowseProvider] = useState<string>("");
+  const [showAllBrowseProviders, setShowAllBrowseProviders] = useState(false);
+  const [modelSearch, setModelSearch] = useState("");
 
   // New model form state
   const [newModel, setNewModel] = useState({
@@ -84,6 +140,27 @@ export default function LlmModelsPage() {
     setSuggestedModels(models.map(m => ({ id: m.model.id, displayName: m.displayName })));
   }, [newModel.provider]);
 
+  // Filter providers for browse tab
+  const popularProviders = popularProviderIds
+    .map(id => providers.find(p => p.id === id))
+    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+  
+  const remainingProviders = providers.filter(
+    p => !popularProviderIds.includes(p.id)
+  );
+
+  // Filter models for browse tab
+  const filteredModels = browseProvider
+    ? allModels.filter(m => m.provider === browseProvider)
+    : [];
+
+  const searchedModels = modelSearch.trim()
+    ? filteredModels.filter(m =>
+        m.displayName.toLowerCase().includes(modelSearch.toLowerCase()) ||
+        m.id.toLowerCase().includes(modelSearch.toLowerCase())
+      )
+    : filteredModels;
+
   async function handleAddModel() {
     if (!newModel.modelId) {
       setError("Model ID is required");
@@ -113,6 +190,26 @@ export default function LlmModelsPage() {
     }
   }
 
+  async function handleAddFromDirectory(model: ModelDirectoryEntry) {
+    setAdding(true);
+    setError(null);
+
+    try {
+      await addModel({
+        provider: model.provider,
+        modelId: model.id,
+        contextTokens: model.contextTokens,
+        maxOutputTokens: model.maxOutputTokens,
+        defaultMax: model.defaultMax,
+        enabled: true,
+      });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setAdding(false);
+    }
+  }
+
   async function handleToggleEnabled(modelId: string, currentEnabled: boolean) {
     try {
       await updateModel({
@@ -135,9 +232,7 @@ export default function LlmModelsPage() {
   }
 
   // Credential management functions
-  // Note: Uses systemCredentials data that's already loaded from listSystemCredentials query
   function startEditingCredential(provider: string) {
-    // Find existing credential if any
     const existing = systemCredentials?.find((c: any) => c.provider === provider);
     setCredentialForm({
       apiKey: "",
@@ -228,6 +323,18 @@ export default function LlmModelsPage() {
         >
           <Sparkles className="w-4 h-4 inline mr-2" />
           Models
+        </button>
+        <button
+          onClick={() => setActiveTab("browse")}
+          className={cn(
+            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            activeTab === "browse"
+              ? "border-accent text-accent"
+              : "border-transparent text-white/60 hover:text-white"
+          )}
+        >
+          <Globe className="w-4 h-4 inline mr-2" />
+          Browse models.dev
         </button>
         <button
           onClick={() => setActiveTab("credentials")}
@@ -474,10 +581,247 @@ export default function LlmModelsPage() {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Your First Model
                 </Button>
+                <p className="text-sm text-muted-foreground mt-4">
+                  Or browse <button onClick={() => setActiveTab("browse")} className="text-accent hover:underline">models.dev</button> to add models from 75+ providers
+                </p>
               </CardContent>
             </Card>
           )}
         </>
+      )}
+
+      {/* Browse models.dev Tab */}
+      {activeTab === "browse" && (
+        <div className="space-y-6">
+          <Card className="border border-border bg-card">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Globe className="w-5 h-5 text-accent" />
+                <CardTitle>Browse models.dev Directory</CardTitle>
+              </div>
+              <CardDescription>
+                Browse 75+ AI providers and 1000+ models from the models.dev community directory. 
+                Click on a provider to see their available models, then add them to your system.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
+                  <p className="text-sm text-red-400">{error}</p>
+                </div>
+              )}
+
+              {/* Provider Selection */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Select a Provider</Label>
+                
+                {!browseProvider && (
+                  <div className="text-sm text-muted-foreground mb-2">Popular providers</div>
+                )}
+
+                {/* Popular Providers */}
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {popularProviders.map((p) => {
+                    const IconComponent = getProviderIcon(p.id);
+                    const isSelected = browseProvider === p.id;
+                    
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => {
+                          setBrowseProvider(p.id);
+                          setModelSearch("");
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all",
+                          isSelected
+                            ? "border-accent bg-accent/10"
+                            : "border-border bg-card hover:border-accent/50 hover:bg-accent/5"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                          isSelected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
+                        )}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm">{p.name}</span>
+                            <Badge variant="secondary" className="text-xs">Popular</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {getProviderDescription(p.id)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Show More/Less Toggle */}
+                {remainingProviders.length > 0 && (
+                  <button
+                    onClick={() => setShowAllBrowseProviders(!showAllBrowseProviders)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showAllBrowseProviders ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        Show less providers
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        Show {remainingProviders.length} more providers
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* Additional Providers */}
+                {showAllBrowseProviders && (
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {remainingProviders.map((p) => {
+                      const IconComponent = getProviderIcon(p.id);
+                      const isSelected = browseProvider === p.id;
+                      
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => {
+                            setBrowseProvider(p.id);
+                            setModelSearch("");
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all",
+                            isSelected
+                              ? "border-accent bg-accent/10"
+                              : "border-border bg-card hover:border-accent/50 hover:bg-accent/5"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                            isSelected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            <IconComponent className="w-5 h-5" />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <span className="font-semibold text-sm">{p.name}</span>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {getProviderDescription(p.id)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Provider Models */}
+              {browseProvider && (
+                <div className="space-y-3 border-t border-border pt-6">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">
+                      {providers.find(p => p.id === browseProvider)?.name} Models
+                    </Label>
+                    <Button variant="outline" size="sm" onClick={() => setBrowseProvider("")}>
+                      Change Provider
+                    </Button>
+                  </div>
+
+                  {/* Model Search */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder={`Search ${browseProvider} models...`}
+                      value={modelSearch}
+                      onChange={(e) => setModelSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  {/* Models List */}
+                  <div className="grid gap-3 max-h-[500px] overflow-y-auto pr-2">
+                    {searchedModels.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No models found matching "{modelSearch}"
+                      </div>
+                    ) : (
+                      searchedModels.map((model) => {
+                        const isAlreadyAdded = models.some((m: any) => m.modelId === model.id);
+                        
+                        return (
+                          <Card key={model.id} className="border border-border bg-card">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-semibold">{model.displayName}</span>
+                                    {isAlreadyAdded && (
+                                      <Badge variant="default" className="text-xs">
+                                        <Check className="w-3 h-3 mr-1" />
+                                        Added
+                                      </Badge>
+                                    )}
+                                    {model.capabilities.reasoning && (
+                                      <Badge variant="outline" className="text-xs">Reasoning</Badge>
+                                    )}
+                                    {model.capabilities.toolCall && (
+                                      <Badge variant="outline" className="text-xs">Tools</Badge>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="text-sm text-muted-foreground mb-2">
+                                    {model.id}
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    <Badge variant="secondary" className="text-xs">
+                                      <Cpu className="w-3 h-3 mr-1 inline" />
+                                      {model.formattedLimits.context} context
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {model.formattedLimits.output} output
+                                    </Badge>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {model.formattedCost.input} → {model.formattedCost.output}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                <div className="flex-shrink-0">
+                                  {isAlreadyAdded ? (
+                                    <Button variant="outline" size="sm" disabled>
+                                      Added
+                                    </Button>
+                                  ) : (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handleAddFromDirectory(model)}
+                                      disabled={adding}
+                                    >
+                                      {adding && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      Add
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* System Credentials Tab */}
@@ -503,7 +847,8 @@ export default function LlmModelsPage() {
               )}
 
               <div className="grid gap-4">
-                {PROVIDERS.map((provider) => {
+                {/* Provider credentials list - keep existing code */}
+                {providers.map((provider: any) => {
                   const credentialStatus = getCredentialStatus(provider.id);
                   const isEditing = editingCredential === provider.id;
 
@@ -559,65 +904,6 @@ export default function LlmModelsPage() {
                               </div>
                             </div>
                           </div>
-
-                          {/* Z.AI specific settings */}
-                          {provider.id === "zai" && (
-                            <div className="p-4 bg-background/50 rounded-lg space-y-4">
-                              <h5 className="text-sm font-medium">Z.AI Endpoint Settings</h5>
-
-                              <div className="space-y-2">
-                                <Label>Endpoint Type</Label>
-                                <div className="flex gap-2">
-                                  {(["paid", "coding"] as ZAIEndpointType[]).map((type) => {
-                                    const endpoints = credentialForm.zaiIsChina
-                                      ? ZAI_ENDPOINTS_CN
-                                      : ZAI_ENDPOINTS;
-                                    return (
-                                      <Button
-                                        key={type}
-                                        variant={credentialForm.zaiEndpointType === type ? "default" : "outline"}
-                                        onClick={() =>
-                                          setCredentialForm({ ...credentialForm, zaiEndpointType: type })
-                                        }
-                                        size="sm"
-                                      >
-                                        {endpoints[type].label}
-                                      </Button>
-                                    );
-                                  })}
-                                </div>
-                                <p className="text-xs text-white/60">
-                                  {credentialForm.zaiIsChina
-                                    ? ZAI_ENDPOINTS_CN[credentialForm.zaiEndpointType].description
-                                    : ZAI_ENDPOINTS[credentialForm.zaiEndpointType].description}
-                                </p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label>Region</Label>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant={!credentialForm.zaiIsChina ? "default" : "outline"}
-                                    onClick={() =>
-                                      setCredentialForm({ ...credentialForm, zaiIsChina: false })
-                                    }
-                                    size="sm"
-                                  >
-                                    International
-                                  </Button>
-                                  <Button
-                                    variant={credentialForm.zaiIsChina ? "default" : "outline"}
-                                    onClick={() =>
-                                      setCredentialForm({ ...credentialForm, zaiIsChina: true })
-                                    }
-                                    size="sm"
-                                  >
-                                    China
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
 
                           <div className="flex gap-2">
                             <Button onClick={() => handleSaveCredential(provider.id)} disabled={savingCredential}>
