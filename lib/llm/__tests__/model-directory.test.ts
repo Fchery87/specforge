@@ -178,13 +178,20 @@ describe('model-directory', () => {
     });
 
     it('should throw on API error', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
       });
 
-      await expect(fetchModelDirectory()).rejects.toThrow('Failed to fetch models.dev data');
+      await expect(fetchModelDirectory()).rejects.toThrow(
+        'Failed to fetch models.dev data',
+      );
+
+      consoleSpy.mockRestore();
     });
 
     it('should use stale cache on error if available', async () => {

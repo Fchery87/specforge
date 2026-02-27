@@ -36,8 +36,6 @@ export default defineSchema({
     ),
   }).index('by_project', ['projectId']),
 
-  // Artifact types supported by the system
-  // Note: 'constitution' is a hidden artifact type used for internal consistency
   artifacts: defineTable({
     projectId: v.id('projects'),
     phaseId: v.string(),
