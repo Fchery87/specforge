@@ -99,6 +99,7 @@ export default function LlmModelsPage() {
   // Browse models.dev state
   const [browseProvider, setBrowseProvider] = useState<string>("");
   const [showAllBrowseProviders, setShowAllBrowseProviders] = useState(false);
+  const [providerSearch, setProviderSearch] = useState("");
   const [modelSearch, setModelSearch] = useState("");
 
   // New model form state
@@ -140,12 +141,24 @@ export default function LlmModelsPage() {
     setSuggestedModels(models.map(m => ({ id: m.model.id, displayName: m.displayName })));
   }, [newModel.provider]);
 
-  // Filter providers for browse tab
+  // Filter providers for browse tab based on search
+  const filteredAllProviders = providerSearch.trim()
+    ? providers.filter((p) =>
+        p.name.toLowerCase().includes(providerSearch.toLowerCase()) ||
+        p.id.toLowerCase().includes(providerSearch.toLowerCase())
+      )
+    : providers;
+
   const popularProviders = popularProviderIds
     .map(id => providers.find(p => p.id === id))
-    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+    .filter((p): p is NonNullable<typeof p> => p !== undefined)
+    .filter((p) =>
+      !providerSearch.trim() ||
+      p.name.toLowerCase().includes(providerSearch.toLowerCase()) ||
+      p.id.toLowerCase().includes(providerSearch.toLowerCase())
+    );
   
-  const remainingProviders = providers.filter(
+  const remainingProviders = filteredAllProviders.filter(
     p => !popularProviderIds.includes(p.id)
   );
 
@@ -615,7 +628,34 @@ export default function LlmModelsPage() {
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Select a Provider</Label>
                 
+                {/* Provider Search */}
                 {!browseProvider && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search providers..."
+                      value={providerSearch}
+                      onChange={(e) => {
+                        setProviderSearch(e.target.value);
+                        setShowAllBrowseProviders(!!e.target.value.trim());
+                      }}
+                      className="pl-10"
+                    />
+                    {providerSearch && (
+                      <button
+                        onClick={() => {
+                          setProviderSearch("");
+                          setShowAllBrowseProviders(false);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {!browseProvider && !providerSearch && (
                   <div className="text-sm text-muted-foreground mb-2">Popular providers</div>
                 )}
 
@@ -660,8 +700,8 @@ export default function LlmModelsPage() {
                   })}
                 </div>
 
-                {/* Show More/Less Toggle */}
-                {remainingProviders.length > 0 && (
+                {/* Show More/Less Toggle - only show when not searching */}
+                {!providerSearch && remainingProviders.length > 0 && (
                   <button
                     onClick={() => setShowAllBrowseProviders(!showAllBrowseProviders)}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -678,6 +718,13 @@ export default function LlmModelsPage() {
                       </>
                     )}
                   </button>
+                )}
+
+                {/* No results message when searching */}
+                {providerSearch && popularProviders.length === 0 && remainingProviders.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No providers found matching "{providerSearch}"
+                  </div>
                 )}
 
                 {/* Additional Providers */}
