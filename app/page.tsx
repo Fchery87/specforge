@@ -23,31 +23,35 @@ import { useRef } from "react";
 const features = [
   {
     icon: Layers,
-    title: "Multi-Phase Generation",
-    description: "Brief → PRD → Specs → Stories → Artifacts → Handoff.",
+    title: "Recursive Consistency",
+    description: "Constitution → Domain Model → Specs. A rigorous, zero-drift pipeline.",
   },
   {
     icon: Cpu,
-    title: "Any LLM Logic",
-    description: "GPT-4, Claude 3, Gemini, or Local Llama.",
+    title: "Agent-Native Handoff",
+    description: "SKILL.md and AGENTS.md exports prepared for seamless AI collaboration.",
   },
   {
     icon: Archive,
     title: "Zero Truncation",
-    description: "Full outputs. ZIP export. No cutoffs.",
+    description: "Mandatory critique loops guarantee comprehensive, un-cut artifact generation.",
   },
   {
     icon: Terminal,
-    title: "Git-Ready",
-    description: "Repo structures pre-built for commit.",
+    title: "Immutable Constraints",
+    description: "State invariants and security protocols locked securely at Phase 0.",
   },
 ];
 
 const workflowSteps = [
-  { step: "01", title: "Brief", bg: "bg-background" },
-  { step: "02", title: "Specs", bg: "bg-background" },
-  { step: "03", title: "Stories", bg: "bg-background" },
-  { step: "04", title: "Code", bg: "bg-primary text-black" },
+  { step: "00", title: "Const.", subtitle: "Project Constitution", bg: "bg-background" },
+  { step: "01", title: "Brief", subtitle: "Project Scope", bg: "bg-background" },
+  { step: "02", title: "PRD", subtitle: "Requirements", bg: "bg-background" },
+  { step: "03", title: "Domain", subtitle: "Data Entities", bg: "bg-background" },
+  { step: "04", title: "Specs", subtitle: "Architecture", bg: "bg-background" },
+  { step: "05", title: "Stories", subtitle: "Task Breakdown", bg: "bg-background" },
+  { step: "06", title: "Assets", subtitle: "Code Models", bg: "bg-background" },
+  { step: "07", title: "Handoff", subtitle: "Agent ZIP export", bg: "bg-primary text-black" },
 ];
 
 const techStack = [
@@ -101,12 +105,12 @@ export default function HomePage() {
              style={{ skewX }}
              className="text-v-hero font-bold leading-[0.8] uppercase tracking-tighter text-foreground text-center"
            >
-             Forging <br /> <span className="text-primary">Reality</span>
+             Forging <br /> <span className="text-primary">Truth</span>
            </motion.h1>
            
-          <p className="mt-8 text-xl md:text-3xl text-muted-foreground uppercase tracking-tight max-w-3xl mx-auto px-4">
-            From Request to Repository. <br />
-            The Ultimate Agentic Workflow Engine.
+          <p className="mt-8 text-xl md:text-3xl text-muted-foreground uppercase tracking-tight max-w-4xl mx-auto px-4">
+            Specification Engineering Aligned. <br />
+            From Constitution to Agent-Native Handoff.
           </p>
           <div className="mt-12 flex flex-col md:flex-row gap-6 justify-center items-center">
             <Button size="lg" className="text-xl h-20 px-12" asChild>
@@ -132,15 +136,15 @@ export default function HomePage() {
       {/* Stats Marquee */}
       <div className="border-b-2 border-border bg-primary text-black py-4 overflow-hidden">
         <Marquee speed={100} className="font-bold text-4xl uppercase tracking-tighter">
-          <span className="mx-8">Zero Truncation</span>
+          <span className="mx-8">Specification Engineering</span>
           <span className="mx-8">•</span>
-          <span className="mx-8">Multi-Agent Core</span>
+          <span className="mx-8">Agent-Native Handoff</span>
           <span className="mx-8">•</span>
-          <span className="mx-8">Instant Specs</span>
+          <span className="mx-8">Immutable Truths</span>
           <span className="mx-8">•</span>
-          <span className="mx-8">Context Awareness</span>
+          <span className="mx-8">Domain Modeling</span>
           <span className="mx-8">•</span>
-          <span className="mx-8">Live Preview</span>
+          <span className="mx-8">Recursive Consistency</span>
           <span className="mx-8">•</span>
         </Marquee>
       </div>
@@ -191,9 +195,14 @@ export default function HomePage() {
                   {step.step}
                 </div>
                 <div className="z-10 mt-auto">
-                  <h3 className="text-4xl font-bold uppercase tracking-tight">
+                  <h3 className="text-4xl font-bold uppercase tracking-tight mb-2">
                     {step.title}
                   </h3>
+                  {step.subtitle && (
+                    <p className="text-lg uppercase tracking-widest font-bold text-muted-foreground group-hover:text-black/70">
+                      {step.subtitle}
+                    </p>
+                  )}
                   <div className="h-1 w-12 bg-primary mt-4 group-hover:bg-black" />
                 </div>
               </div>
