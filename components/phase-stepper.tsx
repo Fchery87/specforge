@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 
 const PHASES = [
+  { id: "constitution", label: "Constitution" },
   { id: "brief", label: "Brief" },
   { id: "prd", label: "PRD" },
+  { id: "domainModel", label: "Domain Model" },
   { id: "specs", label: "Spec & Architecture" },
   { id: "stories", label: "Tasks/Stories" },
   { id: "artifacts", label: "Artifacts" },

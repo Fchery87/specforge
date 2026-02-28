@@ -10,13 +10,25 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Loader2, Trash2, Edit, Download, ChevronDown, ChevronUp, FileText, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type CritiqueResult = {
+  passes: boolean;
+  score: number;
+  summary: string;
+  violations: Array<{
+    category: string;
+    severity: string;
+    issue: string;
+    suggestion: string;
+  }>;
+};
+
 type Artifact = {
   _id: string;
   title: string;
   type: string;
   content: string;
   previewHtml: string;
-  sections: Array<{ name: string; tokens: number; model: string }>;
+  sections: Array<{ name: string; tokens: number; model: string; critique?: CritiqueResult }>;
   createdAt?: number;
 };
 
@@ -125,17 +137,38 @@ export function ArtifactPreview({ artifact, onDelete, onEdit }: ArtifactPreviewP
               </h4>
               <div className="grid gap-2">
                 {artifact.sections.map((section, idx) => (
-                  <div 
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-secondary/30 border border-border text-sm"
-                  >
-                    <span className="font-medium">{section.name}</span>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <Badge variant="secondary" className="text-xs">
-                        {section.tokens.toLocaleString()} tokens
-                      </Badge>
-                      <span>{section.model}</span>
+                  <div key={idx} className="border border-border bg-secondary/30 rounded-md overflow-hidden">
+                    <div className="flex items-center justify-between p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{section.name}</span>
+                        {section.critique && (
+                          <Badge variant="outline" className={cn(
+                            "text-xs border",
+                            section.critique.passes ? "border-success text-success" : "border-destructive text-destructive"
+                          )}>
+                            {section.critique.score}/100
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <Badge variant="secondary" className="text-xs">
+                          {section.tokens.toLocaleString()} tokens
+                        </Badge>
+                        <span>{section.model}</span>
+                      </div>
                     </div>
+                    {section.critique && !section.critique.passes && section.critique.violations?.length > 0 && (
+                      <div className="px-3 pb-3 pt-1 border-t border-border/50 bg-destructive/5 space-y-2">
+                        <p className="text-xs font-semibold text-destructive">Critique Violations:</p>
+                        <ul className="text-xs text-muted-foreground flex flex-col gap-1 pl-4 list-disc">
+                          {section.critique.violations.map((v, i) => (
+                            <li key={i}>
+                              <span className="font-medium text-foreground">[{v.category}]</span> {v.issue}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

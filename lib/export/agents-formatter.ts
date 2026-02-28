@@ -55,6 +55,38 @@ export function generateAgentsMd(input: AgentsMdInput): string {
   sections.push(project.description || 'No description available.');
   sections.push('');
 
+  if (constitution?.lockedConstraints) {
+    sections.push('## 🔒 Locked Constraints (Zero-Drift Rules)');
+    sections.push(
+      '**CRITICAL: You must NEVER violate these rules under any circumstance.**',
+    );
+    sections.push('');
+
+    if (constitution.lockedConstraints.stateInvariants?.length) {
+      sections.push('### State Invariants');
+      constitution.lockedConstraints.stateInvariants.forEach((rule) => {
+        sections.push(`- ${rule}`);
+      });
+      sections.push('');
+    }
+
+    if (constitution.lockedConstraints.domainRules?.length) {
+      sections.push('### Domain Rules');
+      constitution.lockedConstraints.domainRules.forEach((rule) => {
+        sections.push(`- ${rule}`);
+      });
+      sections.push('');
+    }
+
+    if (constitution.lockedConstraints.securityProtocols?.length) {
+      sections.push('### Security Protocols');
+      constitution.lockedConstraints.securityProtocols.forEach((rule) => {
+        sections.push(`- ${rule}`);
+      });
+      sections.push('');
+    }
+  }
+
   if (constitution?.architecture) {
     sections.push('### Architecture');
     sections.push(`**Pattern:** ${constitution.architecture.pattern}`);
@@ -221,6 +253,11 @@ export function generateAgentsMd(input: AgentsMdInput): string {
  * Parsed constitution structure (simplified version)
  */
 interface ParsedConstitution {
+  lockedConstraints?: {
+    stateInvariants?: string[];
+    domainRules?: string[];
+    securityProtocols?: string[];
+  };
   architecture?: {
     pattern?: string;
     stateManagement?: string;

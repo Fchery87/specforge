@@ -25,8 +25,10 @@ import { toast } from "sonner";
 import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
+  constitution: { label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
   brief: { label: "Brief", icon: FileText, description: "Define your project scope and goals" },
   prd: { label: "PRD", icon: FileText, description: "Product requirements and user needs" },
+  domainModel: { label: "Domain Model", icon: Layers, description: "Entities, rules, and state transitions" },
   specs: { label: "Specifications", icon: Layers, description: "Technical specifications and architecture" },
   stories: { label: "User Stories", icon: Code, description: "User stories and task breakdown" },
   artifacts: { label: "Artifacts", icon: Archive, description: "Supporting technical artifacts and docs" },

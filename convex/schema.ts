@@ -43,6 +43,7 @@ export default defineSchema({
       v.literal('brief'),
       v.literal('constitution'), // Hidden artifact for project standards
       v.literal('prd'),
+      v.literal('domainModel'),
       v.literal('spec'), // Legacy type for specs phase
       v.literal('techSpec'),
       v.literal('userStories'),
@@ -69,8 +70,16 @@ export default defineSchema({
     sectionsCompleted: v.optional(v.number()),
     sectionsTotal: v.optional(v.number()),
     tokensGenerated: v.optional(v.number()),
-    // Constitution feature fields
+    // Constitution/Objective Layer fields
     isHidden: v.optional(v.boolean()), // Hide from user exports (e.g., constitution)
+    lockedConstraints: v.optional(
+      v.object({
+        architecture: v.optional(v.string()),
+        stateManagement: v.optional(v.string()),
+        apiDesign: v.optional(v.string()),
+        securityProtocols: v.optional(v.array(v.string())),
+      }),
+    ),
     // Critique feature fields
     critique: v.optional(
       v.object({

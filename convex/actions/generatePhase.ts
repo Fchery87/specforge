@@ -646,6 +646,16 @@ export function getSectionInstructions(
   sectionName: string,
 ): string {
   const instructions: Record<string, string> = {
+    // Constitution sections
+    'locked-constraints':
+      'Define immutable truths including state invariants, domain rules, and non-negotiable security protocols.',
+    'architecture-decisions':
+      'Outline high-level architecture patterns, state management approaches, and API design principles.',
+    'tech-stack':
+      'Specify frameworks, runtimes, databases, ORMs, and styling approaches with strict version constraints.',
+    'quality-and-standards':
+      'Set non-negotiable requirements for accessibility (WCAG), performance, security, and test coverage.',
+
     // Brief sections
     'problem-and-objectives':
       'Clearly articulate the problem this project solves and define specific, measurable goals with success criteria.',
@@ -665,6 +675,14 @@ export function getSectionInstructions(
       'List all functional and non-functional requirements, organized by priority and category.',
     'success-metrics':
       'Define key performance indicators (KPIs), metrics for success, and how they will be measured and tracked.',
+
+    // Domain Model sections
+    'entity-definitions':
+      'Define core domain entities, their purpose, attributes, and invariants.',
+    'entity-relationships':
+      'Describe cardinality and ownership relationships between entities.',
+    'state-transitions':
+      'Map entity lifecycle states, transitions, and governing business guards.',
 
     // Specs sections
     'architecture-overview':
@@ -711,8 +729,10 @@ function formatSectionName(name: string): string {
 
 function getPhaseTitle(phaseId: string): string {
   const titles: Record<string, string> = {
+    constitution: 'Project Constitution',
     brief: 'Project Brief',
     prd: 'Product Requirements Document',
+    domainModel: 'Domain Model',
     specs: 'Technical Specifications',
     stories: 'User Stories & Tasks',
     artifacts: 'Technical Artifacts',
@@ -834,9 +854,9 @@ export async function fetchConstitutionForProject(
  * Constitution is generated during Brief phase and used for all subsequent phases.
  */
 export function shouldInjectConstitution(phaseId: string): boolean {
-  // Constitution is generated during Brief phase, so we don't inject it during Brief
+  // Constitution is generated during Constitution phase, so we don't inject it there
   // For all other phases, we inject the constitution
-  return phaseId !== 'brief';
+  return phaseId !== 'constitution';
 }
 
 // ============================================================================
@@ -1066,12 +1086,10 @@ Please address ALL the issues above in your revision. The section must achieve a
 
 /**
  * Determines if critique should be enabled based on feature flags and configuration.
+ * For SpecForge 2026 Verification Layer, this is MANDATORY for all generating phases.
  */
 export function isCritiqueEnabled(): boolean {
-  // Check environment variable for feature flag
-  return (
-    process.env.FEATURE_CRITIQUE === 'true' || DEFAULT_CRITIQUE_CONFIG.enabled
-  );
+  return true; // Mandatory Generation -> Critique -> Refine loop
 }
 
 /**

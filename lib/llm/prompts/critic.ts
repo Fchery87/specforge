@@ -1,16 +1,16 @@
 /**
  * Critic Prompt for Recursive Self-Critique
- * 
+ *
  * This prompt implements a Code Reviewer / QA expert that validates generated
  * content against the Project Constitution and Definition of Done (DoD) criteria.
- * 
+ *
  * Used by: Phase 2 (P1) - Recursive Self-Critique feature
  */
 
 export const CRITIC_PROMPT = `You are a Senior Code Reviewer and Quality Assurance expert with expertise in:
-- WCAG 2.1 accessibility standards
+- WCAG 2.2 accessibility standards
 - Web performance optimization
-- Security best practices
+- Security best practices (OWASP 2026)
 - Software architecture patterns
 - Technical documentation quality
 
@@ -33,9 +33,9 @@ Your task: Critique the following section against the Project Constitution and D
 
 Evaluate the section against these criteria. Mark each as PASS or FAIL with justification:
 
-### Accessibility (WCAG 2.1 AA Compliance)
+### Accessibility (WCAG 2.2 Strict Compliance)
 - [ ] **ARIA Labels**: All UI components include proper ARIA labels and roles
-- [ ] **Color Contrast**: Color contrast ratios meet WCAG AA standards (4.5:1 for text)
+- [ ] **Color Contrast**: Color contrast ratios meet WCAG AAA standards (7:1 for text)
 - [ ] **Keyboard Navigation**: Full keyboard navigation support is addressed
 - [ ] **Screen Readers**: Screen reader compatibility and announcements are defined
 - [ ] **Focus Management**: Focus states and tab order are specified
@@ -47,20 +47,20 @@ Evaluate the section against these criteria. Mark each as PASS or FAIL with just
 - [ ] **Caching**: Caching strategy is defined where applicable (HTTP, memory, etc.)
 - [ ] **Rendering**: Server-side vs client-side rendering decisions are justified
 
-### Security
+### Security (OWASP 2026 Standards)
 - [ ] **Input Validation**: Input validation and sanitization are explicitly mentioned
 - [ ] **Authentication**: Authentication patterns are defined (JWT, sessions, OAuth)
-- [ ] **Authorization**: Authorization and role-based access control are specified
-- [ ] **XSS Prevention**: XSS prevention measures are included (escaping, CSP)
+- [ ] **Authorization**: Strict RBAC and zero-trust authorization are specified
+- [ ] **LLM Vulnerabilities**: Prevention of prompt injection and insecure output handling
 - [ ] **Data Protection**: Sensitive data handling (encryption, masking) is addressed
-- [ ] **CSRF Protection**: CSRF tokens or SameSite cookies for state-changing operations
+- [ ] **CSRF/XSS Protection**: Modern security controls for state-changing operations
 
-### Architecture Alignment
-- [ ] **Pattern Compliance**: Follows constitution-defined architecture pattern
+### Architecture Alignment (Zero Deviation allowed)
+- [ ] **Pattern Compliance**: Strictly follows constitution-defined architecture pattern
+- [ ] **State Invariants**: No violations of core domain rules or state invariants
 - [ ] **Tech Stack**: Uses approved tech stack only (no forbidden technologies)
 - [ ] **Naming Conventions**: Adheres to naming conventions from constitution
 - [ ] **Patterns**: Uses approved patterns (no forbidden patterns)
-- [ ] **Consistency**: Consistent with previous sections and overall architecture
 
 ### Completeness
 - [ ] **Requirements Coverage**: All requirements from the phase are addressed
@@ -169,8 +169,7 @@ export function buildCriticPrompt(params: {
   sectionType: string;
   phaseId: string;
 }): string {
-  return CRITIC_PROMPT
-    .replace('{{CONSTITUTION}}', params.constitution)
+  return CRITIC_PROMPT.replace('{{CONSTITUTION}}', params.constitution)
     .replace('{{SECTION_CONTENT}}', params.sectionContent)
     .replace('{{SECTION_NAME}}', params.sectionName)
     .replace('{{SECTION_TYPE}}', params.sectionType)
@@ -224,7 +223,12 @@ export interface CritiqueResult {
  * Individual violation found during critique
  */
 export interface Violation {
-  category: 'accessibility' | 'performance' | 'security' | 'architecture' | 'completeness';
+  category:
+    | 'accessibility'
+    | 'performance'
+    | 'security'
+    | 'architecture'
+    | 'completeness';
   severity: 'critical' | 'warning' | 'info';
   criterion: string;
   issue: string;
@@ -247,12 +251,18 @@ export function shouldCritiquePhase(phaseId: string): boolean {
 export function shouldEvaluateCategory(
   category: keyof CritiqueConfig['categories'],
   sectionName: string,
-  phaseId: string
+  phaseId: string,
 ): boolean {
   // Skip accessibility for non-UI sections
   if (category === 'accessibility') {
-    const nonUiSections = ['database', 'data-model', 'api-schema', 'deployment', 'infrastructure'];
-    if (nonUiSections.some(s => sectionName.toLowerCase().includes(s))) {
+    const nonUiSections = [
+      'database',
+      'data-model',
+      'api-schema',
+      'deployment',
+      'infrastructure',
+    ];
+    if (nonUiSections.some((s) => sectionName.toLowerCase().includes(s))) {
       return false;
     }
   }
@@ -260,7 +270,7 @@ export function shouldEvaluateCategory(
   // Skip security for purely documentation sections
   if (category === 'security') {
     const docSections = ['overview', 'summary', 'introduction', 'glossary'];
-    if (docSections.some(s => sectionName.toLowerCase().includes(s))) {
+    if (docSections.some((s) => sectionName.toLowerCase().includes(s))) {
       return false;
     }
   }
@@ -277,14 +287,17 @@ export function parseCritiqueResult(responseContent: string): CritiqueResult {
     // Try to extract JSON from markdown code blocks
     const jsonMatch = responseContent.match(/```(?:json)?\s*([\s\S]*?)```/);
     const jsonString = jsonMatch ? jsonMatch[1] : responseContent;
-    
+
     const result = JSON.parse(jsonString.trim());
-    
+
     // Validate required fields
-    if (typeof result.passes !== 'boolean' || typeof result.score !== 'number') {
+    if (
+      typeof result.passes !== 'boolean' ||
+      typeof result.score !== 'number'
+    ) {
       throw new Error('Missing required fields: passes or score');
     }
-    
+
     return {
       passes: result.passes,
       score: Math.max(0, Math.min(100, result.score)),
@@ -299,13 +312,16 @@ export function parseCritiqueResult(responseContent: string): CritiqueResult {
       passes: false,
       score: 0,
       summary: 'Failed to parse critique result',
-      violations: [{
-        category: 'completeness',
-        severity: 'critical',
-        criterion: 'Valid Output Format',
-        issue: 'Critique result could not be parsed as valid JSON',
-        suggestion: 'Review the critique prompt and ensure the LLM returns valid JSON',
-      }],
+      violations: [
+        {
+          category: 'completeness',
+          severity: 'critical',
+          criterion: 'Valid Output Format',
+          issue: 'Critique result could not be parsed as valid JSON',
+          suggestion:
+            'Review the critique prompt and ensure the LLM returns valid JSON',
+        },
+      ],
       refinedSection: undefined,
     };
   }

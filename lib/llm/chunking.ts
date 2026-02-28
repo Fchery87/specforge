@@ -2,17 +2,32 @@ import type { LlmModel, SectionPlan } from './types';
 
 export function getSectionPlan(
   artifactType: string,
-  phaseId?: string
+  phaseId?: string,
 ): string[] {
   // NOTE: Reduced section counts to 3 max to fit within Convex action timeout
   // Reasoning models (GLM-4.7, etc.) need significant time per section
   // Generating more sections can be done in subsequent iterations
   switch (artifactType) {
+    case 'constitution':
+      return [
+        'locked-constraints',
+        'architecture-decisions',
+        'tech-stack',
+        'quality-and-standards',
+      ];
     case 'brief':
       return [
         'executive-summary',
         'problem-and-objectives',
         'features-and-requirements',
+      ];
+    case 'prd':
+      return ['executive-summary', 'requirements', 'success-metrics'];
+    case 'domainModel':
+      return [
+        'entity-definitions',
+        'entity-relationships',
+        'state-transitions',
       ];
     case 'prd':
       return ['executive-summary', 'requirements', 'success-metrics'];
@@ -39,7 +54,7 @@ export function getSectionPlan(
 export function planSections(
   model: LlmModel,
   sectionNames: string[],
-  safetyRatio = 0.5
+  safetyRatio = 0.5,
 ): SectionPlan[] {
   const cap = Math.max(256, Math.floor(model.maxOutputTokens * safetyRatio));
   const per = Math.max(256, Math.floor(cap / Math.max(1, sectionNames.length)));
@@ -63,7 +78,7 @@ export function expandSectionsForBudget({
   if (needed === 1) return sectionNames;
   return Array.from(
     { length: needed },
-    (_, i) => `${sectionNames[0]}-part-${i + 1}`
+    (_, i) => `${sectionNames[0]}-part-${i + 1}`,
   );
 }
 
@@ -75,7 +90,7 @@ export function estimateTokenCount(text: string): number {
 export function splitLargeSection(
   content: string,
   maxTokens: number,
-  model: LlmModel
+  model: LlmModel,
 ): string[] {
   const estimatedTokens = estimateTokenCount(content);
 
@@ -113,7 +128,7 @@ export function calculateOptimalChunkSize(
   totalContentTokens: number,
   model: LlmModel,
   sectionCount: number,
-  safetyRatio = 0.4
+  safetyRatio = 0.4,
 ): number {
   const availableTokens = model.maxOutputTokens * safetyRatio;
   const tokensPerSection = Math.floor(availableTokens / sectionCount);
@@ -122,7 +137,7 @@ export function calculateOptimalChunkSize(
 
 export function mergeSectionContent(
   sections: Array<{ name: string; content: string }>,
-  separator = '\n\n'
+  separator = '\n\n',
 ): string {
   return sections
     .map((s) => `## ${formatSectionName(s.name)}\n\n${s.content}`)
@@ -138,7 +153,7 @@ function formatSectionName(name: string): string {
 
 export function validateSectionPlan(
   plan: SectionPlan[],
-  model: LlmModel
+  model: LlmModel,
 ): SectionPlan[] {
   return plan.map((section) => ({
     ...section,

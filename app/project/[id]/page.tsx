@@ -11,9 +11,11 @@ import { ProjectPhaseCard } from "@/components/project-phase-card";
 import { ArrowLeft, Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
 
 const PHASES = [
+  { id: "constitution", label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
   { id: "brief", label: "Brief", icon: FileText, description: "Define your project scope and requirements" },
   { id: "prd", label: "PRD", icon: Target, description: "Formal product requirements and goals" },
-  { id: "specs", label: "Spec & Architecture", icon: Layers, description: "Technical specifications and design" },
+  { id: "domainModel", label: "Domain Model", icon: Layers, description: "Entities, rules, and state transitions" },
+  { id: "specs", label: "Spec & Architecture", icon: Code, description: "Technical specifications and design" },
   { id: "stories", label: "Tasks/Stories", icon: ClipboardList, description: "User stories and task breakdown" },
   { id: "artifacts", label: "Artifacts", icon: Sparkles, description: "Generated assets and codebase models" },
   { id: "handoff", label: "Handoff + ZIP", icon: Package, description: "Final deliverables and documentation" },
@@ -111,7 +113,7 @@ export default function ProjectPage() {
       <section className="page-container pb-8 relative z-10">
         <PhaseStepper
           projectId={params.id}
-          currentPhase="brief"
+          currentPhase="constitution"
           phaseStatuses={Object.fromEntries(phaseStatusMap)}
         />
       </section>
