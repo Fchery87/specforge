@@ -15,8 +15,10 @@ import {
   generateSectionWithCritique,
   fetchConstitutionForProject,
   isCritiqueEnabled,
+  detectPrdDrift,
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
+import { ConstitutionSchema } from '../lib/validation/constitution-schema';
 
 // Internal action to get all decrypted system credentials (for use in Convex actions only)
 export const getAllDecryptedSystemCredentials = internalAction({
@@ -220,6 +222,13 @@ export const generatePhaseWorker = internalAction({
         // Fetch constitution for critique
         const constitution = await fetchConstitutionForProject(ctx, projectId);
 
+        // Extract relevant questions for this section from project context
+        const sectionQuestions = extractRelevantQuestionsForSection(
+          projectContext.questions,
+          section.name,
+          phaseId,
+        );
+
         // Use critique-enabled generation (non-streaming for critique)
         console.log(
           `[generatePhaseWorker] Running with critique for section: ${section.name}`,
@@ -228,7 +237,7 @@ export const generatePhaseWorker = internalAction({
           projectContext,
           sectionName: section.name,
           sectionInstructions,
-          sectionQuestions: [],
+          sectionQuestions,
           previousSections: [],
           model,
           maxTokens: section.maxTokens,
@@ -264,11 +273,18 @@ export const generatePhaseWorker = internalAction({
         }
       } else {
         // Use standard streaming generation (no critique)
+        // Extract relevant questions for this section from project context
+        const sectionQuestions = extractRelevantQuestionsForSection(
+          projectContext.questions,
+          section.name,
+          phaseId,
+        );
+        
         const response = await generateSectionContentStreaming({
           projectContext,
           sectionName: section.name,
           sectionInstructions,
-          sectionQuestions: [],
+          sectionQuestions,
           previousSections: [],
           model,
           maxTokens: section.maxTokens,
@@ -345,39 +361,50 @@ export const generatePhaseWorker = internalAction({
           },
         );
 
-        // Generate Constitution for Brief phase (Phase 1 P0)
-        if (phaseId === 'brief') {
+        // Generate JSON Constitution for Constitution phase (Phase 0)
+        if (phaseId === 'constitution') {
           let constitutionSuccess = false;
           let constitutionError: string | undefined;
-          
+
           try {
             console.log(
-              '[generatePhaseWorker] Generating Constitution for Brief phase...',
+              '[generatePhaseWorker] Generating JSON Constitution for Constitution phase...',
             );
 
-            // Get the generated brief content
-            const briefArtifact = await ctx.runQuery(
+            // Get the generated constitution content
+            const constitutionArtifact = await ctx.runQuery(
               internal.internal.getArtifactByPhaseInternal,
-              { projectId, phaseId },
+              { projectId, phaseId: 'constitution' },
             );
 
-            if (briefArtifact && briefArtifact.content) {
-              // Use full brief content up to a reasonable limit (12000 chars ~ 3000 tokens)
-              // This preserves more context while staying within LLM context limits
-              const maxBriefLength = 12000;
-              const briefContent =
-                briefArtifact.content.length > maxBriefLength
-                  ? briefArtifact.content.substring(0, maxBriefLength) +
-                    '\n\n[Content truncated for constitution generation...]'
-                  : briefArtifact.content;
+            // Fetch the actual phase data to get user question answers
+            const phaseData = await ctx.runQuery(internal.internal.getPhaseInternal, {
+              projectId,
+              phaseId: 'constitution',
+            });
+            
+            // Build questions text from actual user answers
+            const answeredQuestions = (phaseData?.questions || [])
+              .filter((q: Question) => q.answer)
+              .map((q: Question) => `${q.text}: ${q.answer}`)
+              .join('\n');
+
+            if (constitutionArtifact && constitutionArtifact.content) {
+              // Use full constitution content up to a reasonable limit
+              const maxContentLength = 12000;
+              const content =
+                constitutionArtifact.content.length > maxContentLength
+                  ? constitutionArtifact.content.substring(0, maxContentLength) +
+                    '\n\n[Content truncated for JSON generation...]'
+                  : constitutionArtifact.content;
 
               const constitutionResult = await generateConstitution({
                 ctx,
                 projectId,
                 projectContext: {
                   title: projectContext.title || 'Project',
-                  description: briefContent,
-                  questions: '',
+                  description: content,
+                  questions: answeredQuestions, // PASS ACTUAL USER ANSWERS
                 },
                 model,
                 llmClient,
@@ -385,45 +412,134 @@ export const generatePhaseWorker = internalAction({
               });
 
               if (constitutionResult.success && constitutionResult.content) {
-                // Save constitution as hidden artifact
-                await ctx.runMutation(internal.internal.createArtifact, {
-                  projectId,
-                  phaseId: 'brief', // Store with brief phase
-                  type: 'constitution',
-                  title: 'Project Constitution',
-                  content: constitutionResult.content,
-                  previewHtml: renderPreviewHtml(constitutionResult.content),
-                  sections: [],
-                  isHidden: true,
-                });
-                constitutionSuccess = true;
-                console.log(
-                  '[generatePhaseWorker] Constitution generated and saved successfully',
+                // Parse the markdown string to extract potential JSON
+                const jsonMatch = constitutionResult.content.match(
+                  /```(?:json)?\s*([\s\S]*?)\s*```/,
                 );
+                const rawContent = jsonMatch
+                  ? jsonMatch[1].trim()
+                  : constitutionResult.content.trim();
+
+                let parsedConstitution = rawContent;
+
+                try {
+                  const jsonObj = JSON.parse(rawContent);
+                  ConstitutionSchema.parse(jsonObj);
+                  parsedConstitution = JSON.stringify(jsonObj, null, 2);
+                  constitutionSuccess = true;
+                } catch (err: any) {
+                  constitutionError = `Schema validation failed: ${err.message}`;
+                  console.error(
+                    '[generatePhaseWorker] Constitution schema error:',
+                    err,
+                  );
+                  throw new Error(
+                    `Constitution JSON generation failed structural validation: ${err.message}`,
+                  );
+                }
+
+                if (constitutionSuccess) {
+                  await ctx.runMutation(internal.internal.createArtifact, {
+                    projectId,
+                    phaseId: 'constitution',
+                    type: 'hidden_constitution',
+                    title: 'JSON Constitution',
+                    content: `\`\`\`json\n${parsedConstitution}\n\`\`\``,
+                    previewHtml: renderPreviewHtml(
+                      `\`\`\`json\n${parsedConstitution}\n\`\`\``,
+                    ),
+                    sections: [],
+                    isHidden: true,
+                  });
+                  console.log(
+                    '[generatePhaseWorker] JSON Constitution generated, validated, and saved successfully',
+                  );
+                }
               } else {
-                constitutionError = 'Constitution generation returned empty or failed';
-                console.warn(
-                  `[generatePhaseWorker] ${constitutionError}`,
-                );
+                constitutionError =
+                  'Constitution JSON generation returned empty or failed';
+                console.warn(`[generatePhaseWorker] ${constitutionError}`);
               }
             } else {
-              constitutionError = 'No brief content available for constitution generation';
+              constitutionError =
+                'No constitution markdown content available for JSON generation';
               console.warn(`[generatePhaseWorker] ${constitutionError}`);
             }
           } catch (error) {
-            constitutionError = error instanceof Error ? error.message : String(error);
+            constitutionError =
+              error instanceof Error ? error.message : String(error);
             console.error(
-              '[generatePhaseWorker] Error generating Constitution:',
+              '[generatePhaseWorker] Error generating JSON Constitution:',
               constitutionError,
             );
-            // Don't fail the whole phase if constitution generation fails
+            // Re-throw if it failed validation so the phase errors out
+            if (
+              error instanceof Error &&
+              error.message.includes('validation')
+            ) {
+              throw error;
+            }
           }
-          
+
           // Store constitution generation status in artifact metadata for visibility
           if (!constitutionSuccess) {
             console.warn(
-              `[generatePhaseWorker] Constitution generation failed: ${constitutionError}. ` +
-              'Subsequent phases may lack cross-phase consistency.'
+              `[generatePhaseWorker] JSON Constitution generation failed: ${constitutionError}. ` +
+                'Subsequent phases may lack cross-phase consistency.',
+            );
+          }
+        }
+
+        // Living Spec back-propagation for Handoff phase
+        if (phaseId === 'handoff') {
+          try {
+            console.log(
+              '[generatePhaseWorker] Running Living Spec / PRD drift detection for Handoff phase...',
+            );
+            const constitution = await fetchConstitutionForProject(
+              ctx,
+              projectId,
+            );
+
+            if (constitution) {
+              const driftResult = await detectPrdDrift({
+                ctx,
+                projectId,
+                projectContext,
+                model,
+                llmClient,
+                providerInfo: providerApiEndpoint || 'default',
+                constitution,
+              });
+
+              if (driftResult.hasDrift && driftResult.content) {
+                console.log(
+                  '[generatePhaseWorker] PRD Drift detected. Creating Living Spec artifact.',
+                );
+                await ctx.runMutation(internal.internal.createArtifact, {
+                  projectId,
+                  phaseId: 'handoff',
+                  type: 'handoff',
+                  title: 'PRD Update Suggestion (Living Spec)',
+                  content: driftResult.content,
+                  previewHtml: renderPreviewHtml(driftResult.content),
+                  sections: [],
+                  isHidden: false,
+                });
+              } else {
+                console.log(
+                  '[generatePhaseWorker] No significant PRD drift detected.',
+                );
+              }
+            } else {
+              console.log(
+                '[generatePhaseWorker] No Constitution found for Living Spec check.',
+              );
+            }
+          } catch (error) {
+            console.error(
+              '[generatePhaseWorker] Error detecting PRD drift:',
+              error,
             );
           }
         }
@@ -469,25 +585,50 @@ export const generateQuestionsWorker = internalAction({
     });
     if (!task || task.status !== 'in_progress') return;
 
-    const { currentStep, plan, metadata, projectId, phaseId } = task;
-    const question = plan[currentStep];
+    const { plan, metadata, projectId, phaseId } = task;
     const { model, credentials, projectContext, providerApiEndpoint } =
       metadata;
 
     // Create LLM client with dynamic API endpoint from models.dev
     const llmClient = createLlmClient(credentials, providerApiEndpoint);
+    if (!llmClient) {
+      await ctx.runMutation(internal.internal.updateGenerationTask, {
+        taskId: args.taskId,
+        currentStep: task.currentStep,
+        status: 'failed',
+        error: 'No LLM client available',
+      });
+      return;
+    }
 
     try {
-      const phase = await ctx.runQuery(internal.internal.getPhaseInternal, {
-        projectId,
-        phaseId,
-      });
-      const previousAnswers = (phase?.questions || [])
-        .filter((q: Question) => q.answer && q.id !== question.id)
-        .map((q: Question) => `${q.text}\nAnswer: ${q.answer}`)
-        .join('\n\n');
+      const CONCURRENCY_LIMIT = 3;
+      let currentStep = task.currentStep;
 
-      const prompt = `You are helping answer questions for a software project.
+      while (currentStep < task.totalSteps) {
+        const chunk = plan.slice(currentStep, currentStep + CONCURRENCY_LIMIT);
+
+        await Promise.all(
+          chunk.map(async (question: any) => {
+            let attempts = 0;
+            let success = false;
+            let lastError;
+
+            while (attempts < 3 && !success) {
+              try {
+                const phase = await ctx.runQuery(
+                  internal.internal.getPhaseInternal,
+                  {
+                    projectId,
+                    phaseId,
+                  },
+                );
+                const previousAnswers = (phase?.questions || [])
+                  .filter((q: Question) => q.answer && q.id !== question.id)
+                  .map((q: Question) => `${q.text}\nAnswer: ${q.answer}`)
+                  .join('\n\n');
+
+                const prompt = `You are helping answer questions for a software project.
 
 Project Title: ${projectContext.title}
 Project Description: ${projectContext.description}
@@ -498,54 +639,271 @@ Question: ${question.text}
 
 Provide a clear, concise answer based on the project context and maintain consistency with previous answers. Be specific and actionable.`;
 
-      if (!llmClient) {
-        throw new Error('No LLM client available');
-      }
+                const response = await llmClient.complete(prompt, {
+                  model: model.id,
+                  maxTokens: Math.min(model.maxOutputTokens || 2000, 2000),
+                  temperature: 0.7,
+                });
 
-      const response = await llmClient.complete(prompt, {
-        model: model.id,
-        maxTokens: Math.min(model.maxOutputTokens || 2000, 2000),
-        temperature: 0.7,
-      });
-
-      await ctx.runMutation(internal.internal.saveAnswerInternal, {
-        projectId,
-        phaseId,
-        questionId: question.id,
-        answer: response.content.trim(),
-        aiGenerated: true,
-      });
-
-      const nextStep = currentStep + 1;
-      if (nextStep < task.totalSteps) {
-        await ctx.runMutation(internal.internal.updateGenerationTask, {
-          taskId: args.taskId,
-          currentStep: nextStep,
-          status: 'in_progress',
-        });
-        await ctx.scheduler.runAfter(
-          0,
-          internal.internalActions.generateQuestionsWorker,
-          { taskId: args.taskId },
+                await ctx.runMutation(internal.internal.saveAnswerInternal, {
+                  projectId,
+                  phaseId,
+                  questionId: question.id,
+                  answer: response.content.trim(),
+                  aiGenerated: true,
+                });
+                success = true;
+              } catch (err: any) {
+                attempts++;
+                lastError = err;
+                if (
+                  err.message?.includes('429') ||
+                  err.message?.includes('rate limit')
+                ) {
+                  // Rate limit, backoff
+                  await new Promise((resolve) =>
+                    setTimeout(resolve, 1000 * Math.pow(2, attempts)),
+                  );
+                } else if (attempts >= 3) {
+                  throw err; // max retries reached
+                }
+              }
+            }
+            if (!success) throw lastError;
+          }),
         );
-      } else {
+
+        currentStep += chunk.length;
+
+        // Update task progress after chunk
         await ctx.runMutation(internal.internal.updateGenerationTask, {
           taskId: args.taskId,
-          currentStep: nextStep,
-          status: 'completed',
+          currentStep,
+          status: currentStep < task.totalSteps ? 'in_progress' : 'completed',
         });
       }
     } catch (error: any) {
-      console.error(
-        `[generateQuestionsWorker] Error at step ${currentStep}:`,
-        error,
-      );
+      console.error(`[generateQuestionsWorker] Error:`, error);
       await ctx.runMutation(internal.internal.updateGenerationTask, {
         taskId: args.taskId,
-        currentStep,
+        currentStep: task.currentStep,
         status: 'failed',
         error: error.message,
       });
     }
   },
 });
+
+// ============================================================================
+// HELPER FUNCTIONS - Data Flow Integration
+// ============================================================================
+
+/**
+ * Extracts relevant questions for a specific section based on keywords.
+ * This ensures user answers flow into the correct artifact sections.
+ *
+ * @param questionsText - The concatenated questions and answers text from projectContext
+ * @param sectionName - The name of the section being generated
+ * @param phaseId - The current phase ID
+ * @returns Array of relevant question/answer strings
+ */
+function extractRelevantQuestionsForSection(
+  questionsText: string,
+  sectionName: string,
+  phaseId: string,
+): string[] {
+  if (!questionsText || questionsText.trim().length === 0) {
+    return [];
+  }
+
+  // Parse the questions text into individual Q&A pairs
+  // Format: "Question text: Answer text\nQuestion text: Answer text"
+  const qaPairs = questionsText
+    .split('\n')
+    .filter((line) => line.includes(':'))
+    .map((line) => {
+      const colonIndex = line.indexOf(':');
+      return {
+        question: line.substring(0, colonIndex).trim(),
+        answer: line.substring(colonIndex + 1).trim(),
+      };
+    })
+    .filter((qa) => qa.question && qa.answer);
+
+  // Define keywords for each section type
+  const sectionKeywords: Record<string, string[]> = {
+    // Constitution sections
+    'locked-constraints': [
+      'constraint', 'security', 'invariant', 'rule', 'protocol', 'strict',
+      'immutable', 'non-negotiable', 'must never', 'forbidden',
+    ],
+    'architecture-decisions': [
+      'architecture', 'state', 'api', 'pattern', 'decision', 'system',
+      'design', 'structure', 'framework', 'approach',
+    ],
+    'tech-stack': [
+      'tech', 'stack', 'framework', 'database', 'language', 'tool',
+      'library', 'runtime', 'version', 'dependency', 'npm', 'package',
+    ],
+    'quality-and-standards': [
+      'quality', 'standard', 'accessibility', 'performance', 'test',
+      'wcag', 'coverage', 'metric', 'compliance', 'audit',
+    ],
+
+    // Brief sections
+    'problem-and-objectives': [
+      'goal', 'problem', 'objective', 'solve', 'purpose', 'aim',
+      'target', 'outcome', 'deliverable',
+    ],
+    'features-and-requirements': [
+      'feature', 'requirement', 'constraint', 'functionality', 'capability',
+      'specification', 'scope', 'include', 'support',
+    ],
+    'target-audience': [
+      'user', 'audience', 'customer', 'stakeholder', 'persona', 'target',
+      'demographic', 'market', 'segment',
+    ],
+
+    // PRD sections
+    'executive-summary': [
+      'summary', 'overview', 'brief', 'high-level', 'executive', 'elevator',
+    ],
+    'problem-statement': [
+      'problem', 'challenge', 'pain', 'issue', 'difficulty', 'frustration',
+      'current state', 'as-is',
+    ],
+    'goals-and-objectives': [
+      'goal', 'objective', 'success', 'kpi', 'metric', 'achieve',
+      'measurable', 'smart', 'outcome',
+    ],
+    'user-personas': [
+      'persona', 'user type', 'role', 'archetype', 'user story',
+    ],
+    'requirements': [
+      'requirement', 'functional', 'non-functional', 'must', 'should',
+      'shall', 'needs to', 'expected to',
+    ],
+    'success-metrics': [
+      'metric', 'kpi', 'measure', 'track', 'analytics', 'indicator',
+      'success criteria', 'measurement',
+    ],
+
+    // Domain Model sections
+    'entity-definitions': [
+      'entity', 'model', 'domain', 'object', 'class', 'type',
+      'data structure', 'schema', 'attribute', 'field', 'property',
+    ],
+    'entity-relationships': [
+      'relationship', 'relation', 'association', 'connection', 'link',
+      'reference', 'foreign key', 'cardinality', 'one-to', 'many-to',
+    ],
+    'state-transitions': [
+      'state', 'transition', 'lifecycle', 'status', 'workflow', 'stage',
+      'process', 'flow', 'change', 'event', 'trigger',
+    ],
+
+    // Specs sections
+    'architecture-overview': [
+      'architecture', 'system design', 'high-level', 'component', 'module',
+      'layer', 'tier', 'service', 'microservice', 'monolith',
+    ],
+    'data-models': [
+      'data model', 'schema', 'database', 'entity', 'table', 'collection',
+      'field', 'column', 'type', 'orm', 'prisma',
+    ],
+    'api-design': [
+      'api', 'endpoint', 'rest', 'graphql', 'rpc', 'request', 'response',
+      'method', 'route', 'url', 'path', 'resource',
+    ],
+    'component-architecture': [
+      'component', 'ui', 'view', 'screen', 'page', 'widget', 'element',
+      'composition', 'hierarchy', 'tree', 'parent', 'child',
+    ],
+    'security-considerations': [
+      'security', 'auth', 'authentication', 'authorization', 'permission',
+      'role', 'encrypt', 'protect', 'vulnerability', 'owasp', 'secure',
+    ],
+    'deployment-strategy': [
+      'deploy', 'deployment', 'infrastructure', 'hosting', 'platform',
+      'vercel', 'aws', 'cloud', 'pipeline', 'ci/cd', 'production',
+    ],
+
+    // Stories sections
+    'epic-overview': [
+      'epic', 'theme', 'initiative', 'program', 'major feature',
+    ],
+    'user-stories': [
+      'story', 'as a', 'i want', 'so that', 'acceptance', 'criteria',
+      'given', 'when', 'then',
+    ],
+    'technical-tasks': [
+      'task', 'implementation', 'development', 'coding', 'build', 'create',
+      'implement', 'develop', 'program', 'write',
+    ],
+    'acceptance-criteria': [
+      'acceptance', 'criteria', 'given', 'when', 'then', 'scenario',
+      'test case', 'validation', 'verify',
+    ],
+
+    // Artifacts sections
+    'api-documentation': [
+      'documentation', 'api doc', 'swagger', 'openapi', 'reference',
+    ],
+    'database-schema': [
+      'schema', 'database', 'erd', 'diagram', 'migration', 'ddl',
+    ],
+    'environment-config': [
+      'environment', 'config', 'variable', 'env', 'setting', 'configuration',
+      '.env', 'secret', 'credential',
+    ],
+    'deployment-scripts': [
+      'script', 'deploy', 'automation', 'pipeline', 'github actions',
+      'dockerfile', 'kubernetes', 'k8s', 'helm',
+    ],
+
+    // Handoff sections
+    'project-summary': [
+      'summary', 'overview', 'introduction', 'getting started', 'about',
+    ],
+    'setup-guide': [
+      'setup', 'install', 'configure', 'getting started', 'prerequisite',
+      'requirement', 'dependency', 'npm install', 'clone',
+    ],
+    'implementation-guide': [
+      'implementation', 'guide', 'how to', 'tutorial', 'step by step',
+      'instructions', 'procedure', 'process',
+    ],
+    'next-steps': [
+      'next', 'roadmap', 'future', 'upcoming', 'planned', 'backlog',
+      'milestone', 'phase', 'iteration',
+    ],
+  };
+
+  const keywords = sectionKeywords[sectionName] || [];
+  if (keywords.length === 0) {
+    // If no specific keywords, return all questions for this phase
+    return qaPairs.map((qa) => `${qa.question}: ${qa.answer}`);
+  }
+
+  // Score and filter questions based on keyword relevance
+  const scoredQuestions = qaPairs.map((qa) => {
+    const text = `${qa.question} ${qa.answer}`.toLowerCase();
+    const score = keywords.reduce((acc, keyword) => {
+      return acc + (text.includes(keyword.toLowerCase()) ? 1 : 0);
+    }, 0);
+    return { ...qa, score };
+  });
+
+  // Return questions with at least one keyword match, sorted by relevance
+  const relevantQuestions = scoredQuestions
+    .filter((qa) => qa.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((qa) => `${qa.question}: ${qa.answer}`);
+
+  // If no matches, return all questions (don't lose data)
+  if (relevantQuestions.length === 0) {
+    return qaPairs.map((qa) => `${qa.question}: ${qa.answer}`);
+  }
+
+  return relevantQuestions;
+}

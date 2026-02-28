@@ -420,13 +420,15 @@ Generate the "${params.sectionName}" section for a ${params.phaseId} document.
 Project: ${params.projectContext.title}
 Description: ${params.projectContext.description}
 
+${params.projectContext.questions ? `User Requirements & Clarifications:\n${params.projectContext.questions}\n` : ''}
 ${params.sectionInstructions}
 
 Requirements:
 - Use markdown formatting
 - Be thorough and detailed
 - Include specific, actionable content
-- Reference the project context throughout`;
+- Reference the project context throughout
+- Output ONLY document content — no reasoning, analysis, or meta-commentary`;
 
   // Inject constitution context if available and phase requires it
   if (constitution && shouldInjectConstitution(params.phaseId)) {
@@ -452,8 +454,10 @@ Generate the "${params.sectionName}" section now:`;
     const response = await continueIfTruncated({
       prompt: basePrompt,
       maxTurns: 3,
-      continuationPrompt: (soFar) =>
-        `${systemPrompt}\n\nContinue from the last sentence. Do not repeat content. Use markdown and continue exactly where you left off.\n\nCurrent content:\n${soFar}`,
+      continuationPrompt: (soFar) => {
+        const tail = soFar.length > 1500 ? soFar.slice(-1500) : soFar;
+        return `${systemPrompt}\n\nYou are continuing a document that was cut off. Output ONLY the next part of the document content. Do NOT analyze, plan, summarize, or describe what you are doing. Do NOT output any reasoning or meta-commentary. Write markdown document content ONLY.\n\n===DOCUMENT SO FAR===\n${tail}\n===END===\n\nContinue the document from exactly where it left off:`;
+      },
       complete: (prompt) =>
         retryWithBackoff(
           () =>
@@ -475,7 +479,7 @@ Generate the "${params.sectionName}" section now:`;
     });
 
     return {
-      content: response.content,
+      content: sanitizeGeneratedContent(response.content),
       continued: response.continued,
     };
   } catch (error: any) {
@@ -524,13 +528,15 @@ Generate the "${params.sectionName}" section for a ${params.phaseId} document.
 Project: ${params.projectContext.title}
 Description: ${params.projectContext.description}
 
+${params.projectContext.questions ? `User Requirements & Clarifications:\n${params.projectContext.questions}\n` : ''}
 ${params.sectionInstructions}
 
 Requirements:
 - Use markdown formatting
 - Be thorough and detailed
 - Include specific, actionable content
-- Reference the project context throughout`;
+- Reference the project context throughout
+- Output ONLY document content — no reasoning, analysis, or meta-commentary`;
 
   const userPrompt = `${
     params.previousSections.length > 0
@@ -551,8 +557,10 @@ Generate the "${params.sectionName}" section now:`;
     const response = await continueIfTruncated({
       prompt: basePrompt,
       maxTurns: params.maxTurns,
-      continuationPrompt: (soFar) =>
-        `${systemPrompt}\n\nContinue from the last sentence. Do not repeat content. Use markdown and continue exactly where you left off.\n\nCurrent content:\n${soFar}`,
+      continuationPrompt: (soFar) => {
+        const tail = soFar.length > 1500 ? soFar.slice(-1500) : soFar;
+        return `${systemPrompt}\n\nYou are continuing a document that was cut off. Output ONLY the next part of the document content. Do NOT analyze, plan, summarize, or describe what you are doing. Do NOT output any reasoning or meta-commentary. Write markdown document content ONLY.\n\n===DOCUMENT SO FAR===\n${tail}\n===END===\n\nContinue the document from exactly where it left off:`;
+      },
       complete: (prompt) =>
         retryWithBackoff(
           () =>
@@ -580,7 +588,10 @@ Generate the "${params.sectionName}" section now:`;
       success: true,
     });
 
-    return { content: response.content, continued: response.continued };
+    return {
+      content: sanitizeGeneratedContent(response.content),
+      continued: response.continued,
+    };
   } catch (error: any) {
     const durationMs = Date.now() - startedAt;
     logTelemetry('warn', {
@@ -600,24 +611,100 @@ Generate the "${params.sectionName}" section now:`;
   }
 }
 
+/**
+ * Strips chain-of-thought meta-reasoning that leaked into generated content.
+ * Common patterns: numbered analysis steps, "Draft thought", "Analyze the Request", etc.
+ */
+export function sanitizeGeneratedContent(content: string): string {
+  const cotPatterns = [
+    // Numbered bold analysis headers (e.g. "1. **Analyze the Request:**")
+    /^\d+\.\s+\*\*[A-Z][^*]+:\*\*[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
+    // "Draft thought" blocks
+    /^\*?Draft thought\*?[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
+    // Self-referential reasoning lines
+    /^(?:The user wants me to|I need to|Let me (?:think|analyze|consider|break)|Looking at this|If I (?:look|think|consider))\b[^\n]*\n?/gm,
+    // Internal checklist / confidence blocks
+    /^\*\*(?:Constraint Checklist|Mental Sandbox|Confidence Score|Analysis|My approach)\*\*[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
+    // "Okay, " or "Alright, " reasoning preambles
+    /^(?:Okay|Alright|So|Now),?\s+(?:let's|I'll|I will|here's what|based on)[^\n]*\n?/gim,
+  ];
+
+  let cleaned = content;
+  for (const pattern of cotPatterns) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+
+  // Collapse excessive blank lines left by removals
+  cleaned = cleaned.replace(/\n{4,}/g, '\n\n\n');
+  return cleaned.trim();
+}
+
 export function extractRelevantQuestions(
   questions: Question[],
   sectionName: string,
 ): string[] {
   const keywords: Record<string, string[]> = {
+    // Constitution
+    'locked-constraints': [
+      'constraint',
+      'security',
+      'invariant',
+      'rule',
+      'protocol',
+      'strict',
+    ],
+    'architecture-decisions': [
+      'architecture',
+      'state',
+      'api',
+      'pattern',
+      'decision',
+      'system',
+    ],
+    'tech-stack': [
+      'tech',
+      'stack',
+      'framework',
+      'database',
+      'language',
+      'tool',
+    ],
+    'quality-and-standards': [
+      'quality',
+      'standard',
+      'accessibility',
+      'performance',
+      'test',
+      'wcag',
+    ],
+
+    // Brief
     'executive-summary': ['goal', 'problem', 'success'],
     'problem-and-objectives': ['goal', 'problem', 'objective'],
     'features-and-requirements': ['feature', 'requirement', 'constraint'],
+
+    // PRD
     'problem-statement': ['problem', 'challenge', 'pain'],
     'goals-and-objectives': ['goal', 'objective', 'success'],
     'user-personas': ['user', 'persona', 'audience'],
     requirements: ['requirement', 'feature', 'constraint'],
     'success-metrics': ['metric', 'kpi', 'success'],
+
+    // Domain Model
+    'entity-definitions': ['entity', 'data', 'model', 'attribute', 'domain'],
+    'entity-relationships': ['relationship', 'owner', 'relation', 'connection'],
+    'state-transitions': ['state', 'transition', 'lifecycle', 'status'],
+
+    // Specs
     'architecture-overview': ['architecture', 'cloud', 'infrastructure'],
     'data-models-and-api': ['data', 'database', 'schema', 'api'],
     'deployment-and-security': ['deployment', 'security', 'auth'],
+
+    // Stories
     'user-stories': ['user', 'persona', 'feature'],
     'technical-tasks': ['task', 'dependency', 'implementation'],
+
+    // Artifacts & Handoff
     documentation: ['documentation', 'api', 'schema'],
     configuration: ['configuration', 'environment', 'setup'],
     'deployment-guide': ['deployment', 'release', 'infrastructure'],
@@ -828,11 +915,11 @@ export async function fetchConstitutionForProject(
   projectId: Id<'projects'>,
 ): Promise<string | null> {
   try {
-    // Query by type='constitution' to get the constitution artifact
-    // Constitution is stored as a hidden artifact with type='constitution'
+    // Query by type='hidden_constitution' to get the constitution artifact
+    // Constitution is stored as a hidden artifact with type='hidden_constitution'
     const artifact = await ctx.runQuery(
       internalApi.internal.getArtifactByTypeInternal,
-      { projectId, type: 'constitution' },
+      { projectId, type: 'hidden_constitution' },
     );
 
     if (artifact && artifact.content) {
@@ -1116,4 +1203,79 @@ export function getCritiqueConfig(): CritiqueConfig {
       completeness: process.env.CRITIQUE_COMPLETENESS !== 'false',
     },
   };
+}
+
+/**
+ * Detects if the generated Technical Specs or Constitution differ fundamentally from the original PRD/Brief.
+ * If significant drift is found, generates a "PRD Update Suggestion" (Living Spec).
+ */
+export async function detectPrdDrift(params: {
+  ctx: ActionCtx;
+  projectId: Id<'projects'>;
+  projectContext: {
+    title: string;
+    description: string;
+    questions: string;
+  };
+  model: LlmModel;
+  llmClient: ReturnType<typeof createLlmClient>;
+  providerInfo: string;
+  constitution: string;
+}): Promise<{ content: string; hasDrift: boolean }> {
+  const { llmClient, model, projectContext, constitution } = params;
+
+  if (!llmClient) {
+    return { content: '', hasDrift: false };
+  }
+
+  const prompt = `You are a Principal AI Architect maintaining the "Living Spec" of a software project.
+Your job is to compare the Original Project Brief/PRD against the finalized Project Constitution (the technical truth).
+If the Constitution contains architectural decisions, tech stack choices, or constraints that fundamentally alter or expand upon the original Brief, you must document this drift.
+
+## Original Project Brief
+Title: ${projectContext.title}
+Description: ${projectContext.description}
+
+## Finalized Project Constitution
+${constitution}
+
+Analyze the two documents. If the Constitution introduces significant technical constraints, new patterns, or shifts in scope not present in the brief, return a JSON object with:
+{
+  "hasDrift": true,
+  "driftSummary": "Markdown formatted string describing the new technical realities, constraints, and suggesting specific updates to the PRD."
+}
+If they are perfectly aligned and no PRD updates are needed, return:
+{
+  "hasDrift": false,
+  "driftSummary": ""
+}
+
+Return ONLY valid JSON. Nothing else.`;
+
+  try {
+    const response = await retryWithBackoff(
+      () =>
+        llmClient.complete(prompt, {
+          model: model.id,
+          maxTokens: 1500,
+          temperature: 0.2, // Low temp for analytical task
+        }),
+      { retries: 2, minDelayMs: 500, maxDelayMs: 2000 },
+    );
+
+    // Extract JSON from response
+    const jsonMatch = response.content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const rawContent = jsonMatch
+      ? jsonMatch[1].trim()
+      : response.content.trim();
+
+    const result = JSON.parse(rawContent);
+    return {
+      hasDrift: result.hasDrift === true,
+      content: result.driftSummary || '',
+    };
+  } catch (error) {
+    console.error('[detectPrdDrift] Error:', error);
+    return { content: '', hasDrift: false };
+  }
 }

@@ -1,4 +1,5 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
+import { buildTransformedPrompts } from '../prompt-transformer';
 import {
   normalizeOpenAIResponse,
   fetchWithTimeout,
@@ -47,7 +48,7 @@ export class MinimaxClient implements LlmProvider {
       model: string;
       maxTokens?: number;
       temperature?: number;
-    }
+    },
   ): Promise<LlmResponse> {
     const modelConfig =
       MINIMAX_MODELS[options.model] || MINIMAX_MODELS['minimax-m2'];
@@ -67,7 +68,7 @@ export class MinimaxClient implements LlmProvider {
             options.maxTokens ?? Math.min(modelConfig.maxOutputTokens, 4096),
           temperature: options.temperature ?? 0.7,
         }),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -80,10 +81,12 @@ export class MinimaxClient implements LlmProvider {
   }
 
   async generateSection(
-    request: LlmSectionRequest
+    request: LlmSectionRequest,
   ): Promise<{ content: string; tokens: number }> {
-    const systemPrompt = this.buildSystemPrompt(request);
-    const userPrompt = this.buildUserPrompt(request);
+    const { systemPrompt, userPrompt } = buildTransformedPrompts(
+      request,
+      'minimax',
+    );
 
     const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
       model: request.modelId,
@@ -95,39 +98,6 @@ export class MinimaxClient implements LlmProvider {
       content: response.content,
       tokens: response.usage.completionTokens,
     };
-  }
-
-  private buildSystemPrompt(request: LlmSectionRequest): string {
-    return `You are an expert technical writer creating a ${request.artifactType} document.
-Your task is to generate the "${request.sectionName}" section.
-
-Context from previous sections:
-${request.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n') || 'No previous sections.'}
-
-Current section requirements:
-${request.sectionInstructions || 'Generate comprehensive, detailed content for this section.'}
-
-Guidelines:
-- Use markdown formatting
-- Be thorough and detailed
-- Include code examples where appropriate
-- Maintain consistent style throughout
-- Focus on actionable, technical content`;
-  }
-
-  private buildUserPrompt(request: LlmSectionRequest): string {
-    return `Please generate the "${request.sectionName}" section for this ${request.artifactType}.
-
-Project: ${request.projectContext.title}
-Description: ${request.projectContext.description}
-
-${
-  request.sectionQuestions.length > 0
-    ? `Answer these questions based on the project context:\n${request.sectionQuestions.map((q) => `- ${q}`).join('\n')}`
-    : ''
-}
-
-Generate the section now:`;
   }
 
   isAvailable(): boolean {

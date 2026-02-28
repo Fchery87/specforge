@@ -1,4 +1,5 @@
 import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
+import { buildTransformedPrompts } from '../prompt-transformer';
 import {
   normalizeOpenAIResponse,
   fetchWithTimeout,
@@ -81,7 +82,7 @@ export class ZAIClient implements LlmProvider {
   constructor(
     apiKey: string,
     endpointType: ZAIEndpointType = 'paid',
-    isChina: boolean = false
+    isChina: boolean = false,
   ) {
     this.apiKey = apiKey;
     const endpoints = isChina ? ZAI_ENDPOINTS_CN : ZAI_ENDPOINTS;
@@ -94,7 +95,7 @@ export class ZAIClient implements LlmProvider {
       model: string;
       maxTokens?: number;
       temperature?: number;
-    }
+    },
   ): Promise<LlmResponse> {
     const modelConfig = ZAI_MODELS[options.model] || ZAI_MODELS['glm-4.5'];
 
@@ -112,7 +113,7 @@ export class ZAIClient implements LlmProvider {
           max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
           temperature: options.temperature ?? 0.6,
         }),
-      }
+      },
     );
 
     if (!response.ok) {
@@ -127,10 +128,12 @@ export class ZAIClient implements LlmProvider {
   }
 
   async generateSection(
-    request: LlmSectionRequest
+    request: LlmSectionRequest,
   ): Promise<{ content: string; tokens: number }> {
-    const systemPrompt = this.buildSystemPrompt(request);
-    const userPrompt = this.buildUserPrompt(request);
+    const { systemPrompt, userPrompt } = buildTransformedPrompts(
+      request,
+      'zai',
+    );
 
     const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
       model: request.modelId,
@@ -144,39 +147,6 @@ export class ZAIClient implements LlmProvider {
     };
   }
 
-  private buildSystemPrompt(request: LlmSectionRequest): string {
-    return `You are an expert technical writer creating a ${request.artifactType} document.
-Your task is to generate the "${request.sectionName}" section.
-
-Context from previous sections:
-${request.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n') || 'No previous sections.'}
-
-Current section requirements:
-${request.sectionInstructions || 'Generate comprehensive, detailed content for this section.'}
-
-Guidelines:
-- Use markdown formatting
-- Be thorough and detailed
-- Include code examples where appropriate
-- Maintain consistent style throughout
-- Focus on actionable, technical content`;
-  }
-
-  private buildUserPrompt(request: LlmSectionRequest): string {
-    return `Please generate the "${request.sectionName}" section for this ${request.artifactType}.
-
-Project: ${request.projectContext.title}
-Description: ${request.projectContext.description}
-
-${
-  request.sectionQuestions.length > 0
-    ? `Answer these questions based on the project context:\n${request.sectionQuestions.map((q) => `- ${q}`).join('\n')}`
-    : ''
-}
-
-Generate the section now:`;
-  }
-
   isAvailable(): boolean {
     return !!this.apiKey && this.apiKey.length > 0;
   }
@@ -185,7 +155,7 @@ Generate the section now:`;
 export function createZAIClient(
   apiKey: string,
   endpointType: ZAIEndpointType = 'paid',
-  isChina: boolean = false
+  isChina: boolean = false,
 ): ZAIClient {
   return new ZAIClient(apiKey, endpointType, isChina);
 }

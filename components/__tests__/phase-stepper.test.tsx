@@ -4,6 +4,7 @@ import { PhaseStepper } from "../phase-stepper";
 
 describe("PhaseStepper", () => {
   it("replaces the number with status icons for non-pending phases", () => {
+    // PHASES: constitution(1), brief(2), prd(3), domainModel(4), specs(5), stories(6), artifacts(7), handoff(8)
     render(
       <PhaseStepper
         {...({
@@ -14,8 +15,14 @@ describe("PhaseStepper", () => {
       />
     );
 
-    expect(screen.queryByText("1")).not.toBeInTheDocument();
-    expect(screen.queryByText("3")).not.toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
+    // "brief" (badge 2) has status "ready" → icon replaces number
+    expect(screen.queryByText("2")).not.toBeInTheDocument();
+    // "specs" (badge 5) has status "error" → icon replaces number
+    expect(screen.queryByText("5")).not.toBeInTheDocument();
+    // "prd" (badge 3) has status "pending" → renders number
+    expect(screen.getByText("3")).toBeInTheDocument();
+    // "constitution" (badge 1) has no status → defaults to pending → renders number
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 });
+

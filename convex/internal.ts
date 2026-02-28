@@ -13,15 +13,20 @@ function mapPhaseToArtifactType(
   | 'brief'
   | 'constitution'
   | 'prd'
+  | 'domainModel'
   | 'spec'
   | 'techSpec'
   | 'userStories'
   | 'handoff' {
   switch (phaseId) {
+    case 'constitution':
+      return 'constitution';
     case 'brief':
       return 'brief';
     case 'prd':
       return 'prd';
+    case 'domainModel':
+      return 'domainModel';
     case 'specs':
       return 'techSpec';
     case 'stories':
@@ -51,7 +56,9 @@ export const createArtifact = internalMutation({
     type: v.union(
       v.literal('brief'),
       v.literal('constitution'),
+      v.literal('hidden_constitution'),
       v.literal('prd'),
+      v.literal('domainModel'),
       v.literal('spec'),
       v.literal('techSpec'),
       v.literal('userStories'),
@@ -80,7 +87,7 @@ export const createArtifact = internalMutation({
     }
     return await ctx.db.insert('artifacts', {
       ...args,
-      isHidden: args.type === 'constitution',
+      isHidden: args.isHidden ?? false,
     });
   },
 });
@@ -162,7 +169,9 @@ export const getArtifactByTypeInternal = internalQuery({
     type: v.union(
       v.literal('brief'),
       v.literal('constitution'),
+      v.literal('hidden_constitution'),
       v.literal('prd'),
+      v.literal('domainModel'),
       v.literal('spec'),
       v.literal('techSpec'),
       v.literal('userStories'),

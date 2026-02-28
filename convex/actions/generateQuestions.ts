@@ -26,6 +26,24 @@ const PHASE_QUESTIONS: Record<
   string,
   Array<{ text: string; required?: boolean }>
 > = {
+  constitution: [
+    {
+      text: 'What are the absolute immutable truths and constraints of this project?',
+      required: true,
+    },
+    {
+      text: 'What high-level architecture pattern must be followed?',
+      required: true,
+    },
+    {
+      text: 'What is the exact tech stack and version requirements?',
+      required: true,
+    },
+    { text: 'What are the non-negotiable security protocols?' },
+    {
+      text: 'What defines the quality metrics and accessibility standards (e.g. WCAG)?',
+    },
+  ],
   brief: [
     {
       text: 'What is the primary goal of this project? What problem does it solve?',
@@ -57,6 +75,17 @@ const PHASE_QUESTIONS: Record<
     { text: 'What are the key user journeys or workflows?' },
     { text: 'What are the must-have vs nice-to-have requirements?' },
     { text: 'How will success be measured (KPIs/metrics)?' },
+  ],
+  domainModel: [
+    {
+      text: 'What are the core entities that make up this domain?',
+      required: true,
+    },
+    {
+      text: 'How do these entities relate to each other (ownership, cardinality)?',
+    },
+    { text: 'What are the primary state transitions for the core entities?' },
+    { text: 'Are there any strict invariants that data must always respect?' },
   ],
   specs: [
     {
@@ -94,8 +123,10 @@ const PHASE_QUESTIONS: Record<
 };
 
 const PHASE_QUESTION_RANGE: Record<string, { min: number; max: number }> = {
+  constitution: { min: 4, max: 6 },
   brief: { min: 5, max: 8 },
   prd: { min: 5, max: 8 },
+  domainModel: { min: 4, max: 6 },
   specs: { min: 5, max: 8 },
   stories: { min: 4, max: 6 },
   artifacts: { min: 3, max: 5 },
@@ -120,7 +151,7 @@ export function buildQuestionPrompt(params: {
 export function normalizeQuestions(
   questions: Array<{ text: string; required?: boolean }>,
   phaseId: string,
-  range: { min: number; max: number }
+  range: { min: number; max: number },
 ): Array<{ text: string; required?: boolean }> {
   const filtered = questions.filter((q) => q.text?.trim().length);
   return filtered.slice(0, range.max);
@@ -129,7 +160,7 @@ export function normalizeQuestions(
 export function selectQuestions(
   aiQuestions: Array<{ text: string; required?: boolean }>,
   baseQuestions: Array<{ text: string; required?: boolean }>,
-  range: { min: number; max: number }
+  range: { min: number; max: number },
 ): {
   questions: Array<{ text: string; required?: boolean }>;
   aiGenerated: boolean;
@@ -141,7 +172,7 @@ export function selectQuestions(
 }
 
 function parseQuestionsResponse(
-  raw: string
+  raw: string,
 ): Array<{ text: string; required?: boolean }> {
   try {
     const parsed = JSON.parse(raw);
@@ -172,9 +203,12 @@ function parseQuestionsResponse(
 export const generateQuestions = action({
   args: { projectId: v.id('projects'), phaseId: v.string() },
   handler: async (ctx: ActionCtx, args) => {
-    const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
-      projectId: args.projectId,
-    });
+    const project = await ctx.runQuery(
+      internalApi.internal.getProjectInternal,
+      {
+        projectId: args.projectId,
+      },
+    );
     if (!project) throw new Error('Project not found');
 
     const identity = await ctx.auth.getUserIdentity();
@@ -198,37 +232,39 @@ export const generateQuestions = action({
       // Resolve credentials for AI question generation
       const userConfig = await ctx.runAction(
         api.userConfigActions.getUserConfig,
-        {}
+        {},
       );
 
       let systemCredentialsMap: Record<string, SystemCredential>;
       try {
         systemCredentialsMap = await ctx.runAction(
           internalApi.internalActions.getAllDecryptedSystemCredentials,
-          {}
+          {},
         );
       } catch {
         systemCredentialsMap = {};
       }
 
       const enabledModelsFromDb = await ctx.runQuery(
-        internalApi.llmModels.listEnabledModelsInternal
+        internalApi.llmModels.listEnabledModelsInternal,
       );
       const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
 
       credentials = resolveCredentials(
         userConfig,
         new Map(Object.entries(systemCredentialsMap || {})),
-        enabledModels
+        enabledModels,
       );
 
       let model: LlmModel;
       const provider = credentials?.provider;
       if (credentials?.modelId && credentials.modelId !== '') {
-        model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
+        model =
+          getModelById(credentials.modelId, enabledModelsFromDb || []) ??
+          getFallbackModel();
       } else if (provider && enabledModels.length > 0) {
         const providerModel = enabledModels.find(
-          (m: Doc<'llmModels'>) => m.provider === provider
+          (m: Doc<'llmModels'>) => m.provider === provider,
         );
         if (providerModel) {
           model = {
@@ -262,10 +298,12 @@ export const generateQuestions = action({
       if (providerId) {
         try {
           const providers = await fetchModelDirectory();
-          const provider = providers.find(p => p.id === providerId);
+          const provider = providers.find((p) => p.id === providerId);
           providerApiEndpoint = provider?.api || null;
         } catch (err) {
-          console.warn(`[generateQuestions] Failed to fetch provider API endpoint: ${err}`);
+          console.warn(
+            `[generateQuestions] Failed to fetch provider API endpoint: ${err}`,
+          );
         }
       }
 
@@ -288,7 +326,7 @@ export const generateQuestions = action({
               maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
               temperature: 0.4,
             }),
-          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }
+          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
         );
         const durationMs = Date.now() - startedAt;
         logTelemetry('info', {
@@ -305,7 +343,7 @@ export const generateQuestions = action({
         aiQuestions = normalizeQuestions(
           parseQuestionsResponse(response.content),
           args.phaseId,
-          range
+          range,
         );
       }
     } catch {

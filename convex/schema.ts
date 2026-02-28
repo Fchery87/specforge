@@ -41,7 +41,8 @@ export default defineSchema({
     phaseId: v.string(),
     type: v.union(
       v.literal('brief'),
-      v.literal('constitution'), // Hidden artifact for project standards
+      v.literal('constitution'), // Markdown Phase artifact
+      v.literal('hidden_constitution'), // Hidden JSON artifact for project standards
       v.literal('prd'),
       v.literal('domainModel'),
       v.literal('spec'), // Legacy type for specs phase

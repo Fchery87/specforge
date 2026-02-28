@@ -17,7 +17,7 @@ export interface SectionPlanConfig {
   estimatedTokens: number;
   required: boolean;
   phaseId: string;
-  sectionType: "documentation" | "technical" | "implementation" | "planning";
+  sectionType: 'documentation' | 'technical' | 'implementation' | 'planning';
 }
 
 /**
@@ -48,35 +48,120 @@ export type SectionPlansByPhase = Record<string, SectionPlanConfig[]>;
 // ============================================================================
 
 /**
+ * Constitution phase sections
+ */
+export const CONSTITUTION_SECTIONS: SectionPlanConfig[] = [
+  {
+    id: 'locked-constraints',
+    title: 'Locked Constraints',
+    description:
+      'Define immutable truths including state invariants, domain rules, and non-negotiable security protocols.',
+    estimatedTokens: 1500,
+    required: true,
+    phaseId: 'constitution',
+    sectionType: 'planning',
+  },
+  {
+    id: 'architecture-decisions',
+    title: 'Architecture Decisions',
+    description:
+      'Outline high-level architecture patterns, state management approaches, and API design principles.',
+    estimatedTokens: 1200,
+    required: true,
+    phaseId: 'constitution',
+    sectionType: 'technical',
+  },
+  {
+    id: 'tech-stack',
+    title: 'Tech Stack',
+    description:
+      'Specify frameworks, runtimes, databases, ORMs, and styling approaches with strict version constraints.',
+    estimatedTokens: 800,
+    required: true,
+    phaseId: 'constitution',
+    sectionType: 'technical',
+  },
+  {
+    id: 'quality-and-standards',
+    title: 'Quality & Standards',
+    description:
+      'Set non-negotiable requirements for accessibility (WCAG), performance, security, and test coverage.',
+    estimatedTokens: 1000,
+    required: true,
+    phaseId: 'constitution',
+    sectionType: 'documentation',
+  },
+];
+
+/**
+ * Domain Model phase sections
+ */
+export const DOMAIN_MODEL_SECTIONS: SectionPlanConfig[] = [
+  {
+    id: 'entity-definitions',
+    title: 'Entity Definitions',
+    description:
+      'Define core domain entities, their purpose, attributes, and invariants.',
+    estimatedTokens: 1500,
+    required: true,
+    phaseId: 'domainModel',
+    sectionType: 'technical',
+  },
+  {
+    id: 'entity-relationships',
+    title: 'Entity Relationships',
+    description:
+      'Describe cardinality and ownership relationships between entities.',
+    estimatedTokens: 1200,
+    required: false,
+    phaseId: 'domainModel',
+    sectionType: 'technical',
+  },
+  {
+    id: 'state-transitions',
+    title: 'State Transitions',
+    description:
+      'Map entity lifecycle states, transitions, and governing business guards.',
+    estimatedTokens: 1500,
+    required: true,
+    phaseId: 'domainModel',
+    sectionType: 'implementation',
+  },
+];
+
+/**
  * Brief phase sections
  */
 export const BRIEF_SECTIONS: SectionPlanConfig[] = [
   {
-    id: "problem-and-objectives",
-    title: "Problem & Objectives",
-    description: "Clearly articulate the problem this project solves and define specific, measurable goals with success criteria.",
+    id: 'problem-and-objectives',
+    title: 'Problem & Objectives',
+    description:
+      'Clearly articulate the problem this project solves and define specific, measurable goals with success criteria.',
     estimatedTokens: 1500,
     required: true,
-    phaseId: "brief",
-    sectionType: "planning",
+    phaseId: 'brief',
+    sectionType: 'planning',
   },
   {
-    id: "features-and-requirements",
-    title: "Features & Requirements",
-    description: "Outline the core features, functionality required, and any technical constraints or compliance requirements.",
+    id: 'features-and-requirements',
+    title: 'Features & Requirements',
+    description:
+      'Outline the core features, functionality required, and any technical constraints or compliance requirements.',
     estimatedTokens: 2000,
     required: true,
-    phaseId: "brief",
-    sectionType: "planning",
+    phaseId: 'brief',
+    sectionType: 'planning',
   },
   {
-    id: "target-audience",
-    title: "Target Audience",
-    description: "Define who will use this product and their key characteristics.",
+    id: 'target-audience',
+    title: 'Target Audience',
+    description:
+      'Define who will use this product and their key characteristics.',
     estimatedTokens: 800,
     required: false,
-    phaseId: "brief",
-    sectionType: "planning",
+    phaseId: 'brief',
+    sectionType: 'planning',
   },
 ];
 
@@ -85,58 +170,64 @@ export const BRIEF_SECTIONS: SectionPlanConfig[] = [
  */
 export const PRD_SECTIONS: SectionPlanConfig[] = [
   {
-    id: "executive-summary",
-    title: "Executive Summary",
-    description: "Provide a concise overview of the project goals, target users, and key deliverables.",
+    id: 'executive-summary',
+    title: 'Executive Summary',
+    description:
+      'Provide a concise overview of the project goals, target users, and key deliverables.',
     estimatedTokens: 1000,
     required: true,
-    phaseId: "prd",
-    sectionType: "documentation",
+    phaseId: 'prd',
+    sectionType: 'documentation',
   },
   {
-    id: "problem-statement",
-    title: "Problem Statement",
-    description: "Clearly articulate the problem space, current challenges, pain points, and why this project is necessary.",
+    id: 'problem-statement',
+    title: 'Problem Statement',
+    description:
+      'Clearly articulate the problem space, current challenges, pain points, and why this project is necessary.',
     estimatedTokens: 1500,
     required: true,
-    phaseId: "prd",
-    sectionType: "documentation",
+    phaseId: 'prd',
+    sectionType: 'documentation',
   },
   {
-    id: "goals-and-objectives",
-    title: "Goals & Objectives",
-    description: "Define specific, measurable, achievable, relevant, and time-bound (SMART) goals and success criteria.",
+    id: 'goals-and-objectives',
+    title: 'Goals & Objectives',
+    description:
+      'Define specific, measurable, achievable, relevant, and time-bound (SMART) goals and success criteria.',
     estimatedTokens: 1200,
     required: true,
-    phaseId: "prd",
-    sectionType: "planning",
+    phaseId: 'prd',
+    sectionType: 'planning',
   },
   {
-    id: "user-personas",
-    title: "User Personas",
-    description: "Describe the target user personas, their characteristics, goals, pain points, and how they will interact with the product.",
+    id: 'user-personas',
+    title: 'User Personas',
+    description:
+      'Describe the target user personas, their characteristics, goals, pain points, and how they will interact with the product.',
     estimatedTokens: 1800,
     required: false,
-    phaseId: "prd",
-    sectionType: "planning",
+    phaseId: 'prd',
+    sectionType: 'planning',
   },
   {
-    id: "requirements",
-    title: "Requirements",
-    description: "List all functional and non-functional requirements, organized by priority and category.",
+    id: 'requirements',
+    title: 'Requirements',
+    description:
+      'List all functional and non-functional requirements, organized by priority and category.',
     estimatedTokens: 2500,
     required: true,
-    phaseId: "prd",
-    sectionType: "documentation",
+    phaseId: 'prd',
+    sectionType: 'documentation',
   },
   {
-    id: "success-metrics",
-    title: "Success Metrics",
-    description: "Define key performance indicators (KPIs), metrics for success, and how they will be measured and tracked.",
+    id: 'success-metrics',
+    title: 'Success Metrics',
+    description:
+      'Define key performance indicators (KPIs), metrics for success, and how they will be measured and tracked.',
     estimatedTokens: 1000,
     required: false,
-    phaseId: "prd",
-    sectionType: "planning",
+    phaseId: 'prd',
+    sectionType: 'planning',
   },
 ];
 
@@ -145,67 +236,74 @@ export const PRD_SECTIONS: SectionPlanConfig[] = [
  */
 export const SPECIFICATIONS_SECTIONS: SectionPlanConfig[] = [
   {
-    id: "architecture-overview",
-    title: "Architecture Overview",
-    description: "Describe the high-level system architecture, design patterns, and technology choices.",
+    id: 'architecture-overview',
+    title: 'Architecture Overview',
+    description:
+      'Describe the high-level system architecture, design patterns, and technology choices.',
     estimatedTokens: 2000,
     required: true,
-    phaseId: "specs",
-    sectionType: "technical",
+    phaseId: 'specs',
+    sectionType: 'technical',
   },
   {
-    id: "tech-stack",
-    title: "Tech Stack",
-    description: "Detail the technologies, frameworks, libraries, and versions to be used.",
+    id: 'tech-stack',
+    title: 'Tech Stack',
+    description:
+      'Detail the technologies, frameworks, libraries, and versions to be used.',
     estimatedTokens: 1500,
     required: true,
-    phaseId: "specs",
-    sectionType: "technical",
+    phaseId: 'specs',
+    sectionType: 'technical',
   },
   {
-    id: "data-models",
-    title: "Data Models",
-    description: "Define core data structures, entities, relationships, and database schema.",
+    id: 'data-models',
+    title: 'Data Models',
+    description:
+      'Define core data structures, entities, relationships, and database schema.',
     estimatedTokens: 2000,
     required: false,
-    phaseId: "specs",
-    sectionType: "technical",
+    phaseId: 'specs',
+    sectionType: 'technical',
   },
   {
-    id: "api-design",
-    title: "API Design",
-    description: "Document REST/GraphQL endpoints, request/response schemas, and authentication.",
+    id: 'api-design',
+    title: 'API Design',
+    description:
+      'Document REST/GraphQL endpoints, request/response schemas, and authentication.',
     estimatedTokens: 2500,
     required: false,
-    phaseId: "specs",
-    sectionType: "technical",
+    phaseId: 'specs',
+    sectionType: 'technical',
   },
   {
-    id: "component-architecture",
-    title: "Component Architecture",
-    description: "Define the component hierarchy, composition patterns, and state management approach.",
+    id: 'component-architecture',
+    title: 'Component Architecture',
+    description:
+      'Define the component hierarchy, composition patterns, and state management approach.',
     estimatedTokens: 1800,
     required: false,
-    phaseId: "specs",
-    sectionType: "technical",
+    phaseId: 'specs',
+    sectionType: 'technical',
   },
   {
-    id: "security-considerations",
-    title: "Security Considerations",
-    description: "Describe authentication, authorization, data protection, and security best practices.",
+    id: 'security-considerations',
+    title: 'Security Considerations',
+    description:
+      'Describe authentication, authorization, data protection, and security best practices.',
     estimatedTokens: 1500,
     required: true,
-    phaseId: "specs",
-    sectionType: "technical",
+    phaseId: 'specs',
+    sectionType: 'technical',
   },
   {
-    id: "deployment-strategy",
-    title: "Deployment Strategy",
-    description: "Outline infrastructure, CI/CD pipeline, and deployment procedures.",
+    id: 'deployment-strategy',
+    title: 'Deployment Strategy',
+    description:
+      'Outline infrastructure, CI/CD pipeline, and deployment procedures.',
     estimatedTokens: 1200,
     required: false,
-    phaseId: "specs",
-    sectionType: "technical",
+    phaseId: 'specs',
+    sectionType: 'technical',
   },
 ];
 
@@ -214,40 +312,43 @@ export const SPECIFICATIONS_SECTIONS: SectionPlanConfig[] = [
  */
 export const USER_STORIES_SECTIONS: SectionPlanConfig[] = [
   {
-    id: "epic-overview",
-    title: "Epic Overview",
-    description: "Provide an overview of the main epics and how they relate to project goals.",
+    id: 'epic-overview',
+    title: 'Epic Overview',
+    description:
+      'Provide an overview of the main epics and how they relate to project goals.',
     estimatedTokens: 1000,
     required: true,
-    phaseId: "stories",
-    sectionType: "planning",
+    phaseId: 'stories',
+    sectionType: 'planning',
   },
   {
-    id: "user-stories",
-    title: "User Stories",
-    description: "List user stories with acceptance criteria in proper format (As a... I want... So that...).",
+    id: 'user-stories',
+    title: 'User Stories',
+    description:
+      'List user stories with acceptance criteria in proper format (As a... I want... So that...).',
     estimatedTokens: 3000,
     required: true,
-    phaseId: "stories",
-    sectionType: "implementation",
+    phaseId: 'stories',
+    sectionType: 'implementation',
   },
   {
-    id: "technical-tasks",
-    title: "Technical Tasks",
-    description: "Break down user stories into technical implementation tasks with dependencies.",
+    id: 'technical-tasks',
+    title: 'Technical Tasks',
+    description:
+      'Break down user stories into technical implementation tasks with dependencies.',
     estimatedTokens: 2500,
     required: true,
-    phaseId: "stories",
-    sectionType: "implementation",
+    phaseId: 'stories',
+    sectionType: 'implementation',
   },
   {
-    id: "acceptance-criteria",
-    title: "Acceptance Criteria",
-    description: "Define detailed acceptance criteria for each user story.",
+    id: 'acceptance-criteria',
+    title: 'Acceptance Criteria',
+    description: 'Define detailed acceptance criteria for each user story.',
     estimatedTokens: 2000,
     required: false,
-    phaseId: "stories",
-    sectionType: "implementation",
+    phaseId: 'stories',
+    sectionType: 'implementation',
   },
 ];
 
@@ -256,40 +357,42 @@ export const USER_STORIES_SECTIONS: SectionPlanConfig[] = [
  */
 export const ARTIFACTS_SECTIONS: SectionPlanConfig[] = [
   {
-    id: "api-documentation",
-    title: "API Documentation",
-    description: "Generate comprehensive API documentation with examples.",
+    id: 'api-documentation',
+    title: 'API Documentation',
+    description: 'Generate comprehensive API documentation with examples.',
     estimatedTokens: 2500,
     required: false,
-    phaseId: "artifacts",
-    sectionType: "documentation",
+    phaseId: 'artifacts',
+    sectionType: 'documentation',
   },
   {
-    id: "database-schema",
-    title: "Database Schema",
-    description: "Document the database schema with tables, columns, indexes, and relationships.",
+    id: 'database-schema',
+    title: 'Database Schema',
+    description:
+      'Document the database schema with tables, columns, indexes, and relationships.',
     estimatedTokens: 2000,
     required: false,
-    phaseId: "artifacts",
-    sectionType: "technical",
+    phaseId: 'artifacts',
+    sectionType: 'technical',
   },
   {
-    id: "environment-config",
-    title: "Environment Configuration",
-    description: "Document environment variables, configuration files, and setup instructions.",
+    id: 'environment-config',
+    title: 'Environment Configuration',
+    description:
+      'Document environment variables, configuration files, and setup instructions.',
     estimatedTokens: 1500,
     required: true,
-    phaseId: "artifacts",
-    sectionType: "technical",
+    phaseId: 'artifacts',
+    sectionType: 'technical',
   },
   {
-    id: "deployment-scripts",
-    title: "Deployment Scripts",
-    description: "Provide deployment scripts and infrastructure as code.",
+    id: 'deployment-scripts',
+    title: 'Deployment Scripts',
+    description: 'Provide deployment scripts and infrastructure as code.',
     estimatedTokens: 1800,
     required: false,
-    phaseId: "artifacts",
-    sectionType: "implementation",
+    phaseId: 'artifacts',
+    sectionType: 'implementation',
   },
 ];
 
@@ -298,40 +401,42 @@ export const ARTIFACTS_SECTIONS: SectionPlanConfig[] = [
  */
 export const HANDOFF_SECTIONS: SectionPlanConfig[] = [
   {
-    id: "project-summary",
-    title: "Project Summary",
-    description: "Summarize the project structure, key files, and architecture.",
+    id: 'project-summary',
+    title: 'Project Summary',
+    description:
+      'Summarize the project structure, key files, and architecture.',
     estimatedTokens: 1500,
     required: true,
-    phaseId: "handoff",
-    sectionType: "documentation",
+    phaseId: 'handoff',
+    sectionType: 'documentation',
   },
   {
-    id: "setup-guide",
-    title: "Setup Guide",
-    description: "Provide environment setup and development guide instructions.",
+    id: 'setup-guide',
+    title: 'Setup Guide',
+    description:
+      'Provide environment setup and development guide instructions.',
     estimatedTokens: 2000,
     required: true,
-    phaseId: "handoff",
-    sectionType: "documentation",
+    phaseId: 'handoff',
+    sectionType: 'documentation',
   },
   {
-    id: "implementation-guide",
-    title: "Implementation Guide",
-    description: "Step-by-step guide for implementing the project.",
+    id: 'implementation-guide',
+    title: 'Implementation Guide',
+    description: 'Step-by-step guide for implementing the project.',
     estimatedTokens: 2500,
     required: true,
-    phaseId: "handoff",
-    sectionType: "implementation",
+    phaseId: 'handoff',
+    sectionType: 'implementation',
   },
   {
-    id: "next-steps",
-    title: "Next Steps",
-    description: "List recommended next steps and priorities for development.",
+    id: 'next-steps',
+    title: 'Next Steps',
+    description: 'List recommended next steps and priorities for development.',
     estimatedTokens: 1000,
     required: false,
-    phaseId: "handoff",
-    sectionType: "planning",
+    phaseId: 'handoff',
+    sectionType: 'planning',
   },
 ];
 
@@ -339,8 +444,10 @@ export const HANDOFF_SECTIONS: SectionPlanConfig[] = [
  * All section plans organized by phase
  */
 export const SECTION_PLANS_BY_PHASE: SectionPlansByPhase = {
+  constitution: CONSTITUTION_SECTIONS,
   brief: BRIEF_SECTIONS,
   prd: PRD_SECTIONS,
+  domainModel: DOMAIN_MODEL_SECTIONS,
   specs: SPECIFICATIONS_SECTIONS,
   stories: USER_STORIES_SECTIONS,
   artifacts: ARTIFACTS_SECTIONS,
@@ -364,7 +471,9 @@ export function calculateTotalTokens(plans: SectionPlanConfig[]): number {
 /**
  * Creates default user preferences for a set of section plans
  */
-export function createDefaultPreferences(plans: SectionPlanConfig[]): UserSectionPreference[] {
+export function createDefaultPreferences(
+  plans: SectionPlanConfig[],
+): UserSectionPreference[] {
   return plans.map((plan) => ({
     sectionId: plan.id,
     enabled: plan.required, // Required sections are enabled by default
@@ -377,7 +486,7 @@ export function createDefaultPreferences(plans: SectionPlanConfig[]): UserSectio
  */
 export function filterSectionsByPreferences(
   plans: SectionPlanConfig[],
-  preferences: UserSectionPreference[]
+  preferences: UserSectionPreference[],
 ): SectionPlanConfig[] {
   const preferenceMap = new Map(preferences.map((p) => [p.sectionId, p]));
 
