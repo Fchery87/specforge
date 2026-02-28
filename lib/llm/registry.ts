@@ -19,7 +19,11 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   minimax: 'Minimax',
 };
 
-export const MODEL_REGISTRY: RegistryEntry[] = [
+/**
+ * FALLBACK_REGISTRY - Hardcoded models for bootstrapping
+ * Renamed from MODEL_REGISTRY to indicate it's the last resort
+ */
+const FALLBACK_REGISTRY: RegistryEntry[] = [
   // OpenAI Models (Current as of 2026)
   {
     model: {
@@ -249,15 +253,59 @@ export const MODEL_REGISTRY: RegistryEntry[] = [
   },
 ];
 
+/**
+ * Backward compatibility: MODEL_REGISTRY is now an alias to FALLBACK_REGISTRY
+ * @deprecated Use resolveModel() for DB-first resolution or FALLBACK_REGISTRY for hardcoded models
+ */
+export const MODEL_REGISTRY = FALLBACK_REGISTRY;
+
+/**
+ * Model resolution priority:
+ * 1. Database (llmModels table) - admin-managed, always authoritative
+ * 2. Hardcoded FALLBACK_REGISTRY - last resort for bootstrapping
+ */
+export async function resolveModel(
+  modelId: string,
+  dbModels?: Array<{
+    provider: string;
+    modelId: string;
+    contextTokens: number;
+    maxOutputTokens: number;
+    defaultMax: number;
+    enabled: boolean;
+  }>,
+): Promise<LlmModel | null> {
+  // 1. DB lookup (admin-managed)
+  if (dbModels) {
+    const dbModel = dbModels.find((m) => m.modelId === modelId && m.enabled);
+    if (dbModel) {
+      return {
+        id: dbModel.modelId,
+        provider: dbModel.provider,
+        contextTokens: dbModel.contextTokens,
+        maxOutputTokens: dbModel.maxOutputTokens,
+        defaultMax: dbModel.defaultMax,
+        enabled: dbModel.enabled,
+      };
+    }
+  }
+
+  // 2. Hardcoded fallback
+  const fallback = FALLBACK_REGISTRY.find((e) => e.model.id === modelId);
+  if (fallback) return fallback.model;
+
+  return null;
+}
+
+/**
+ * Backward compatibility: Sync version of getModelById
+ * Checks DB models first, then falls back to hardcoded registry
+ */
 export function getModelById(
   modelId: string,
   dbModels?: Array<{ provider: string; modelId: string; contextTokens: number; maxOutputTokens: number; defaultMax: number }>
 ): LlmModel | null {
-  // First check hardcoded registry
-  const entry = MODEL_REGISTRY.find((e) => e.model.id === modelId);
-  if (entry) return entry.model;
-  
-  // Then check database models if provided
+  // Check database models first if provided
   if (dbModels) {
     const dbModel = dbModels.find((m) => m.modelId === modelId);
     if (dbModel) {
@@ -272,19 +320,23 @@ export function getModelById(
     }
   }
   
+  // Fallback to hardcoded registry
+  const entry = FALLBACK_REGISTRY.find((e: RegistryEntry) => e.model.id === modelId);
+  if (entry) return entry.model;
+  
   return null;
 }
 
 export function getModelsByProvider(provider: string): RegistryEntry[] {
-  return MODEL_REGISTRY.filter((e) => e.provider === provider);
+  return FALLBACK_REGISTRY.filter((e: RegistryEntry) => e.provider === provider);
 }
 
 export function getAllModels(): RegistryEntry[] {
-  return MODEL_REGISTRY;
+  return FALLBACK_REGISTRY;
 }
 
 export function getEnabledModels(): RegistryEntry[] {
-  return MODEL_REGISTRY.filter((e) => e.model.enabled !== false);
+  return FALLBACK_REGISTRY.filter((e: RegistryEntry) => e.model.enabled !== false);
 }
 
 export function getProviderDisplayName(provider: string): string {
@@ -292,7 +344,7 @@ export function getProviderDisplayName(provider: string): string {
 }
 
 export function getModelDisplayName(modelId: string): string {
-  const entry = MODEL_REGISTRY.find((e) => e.model.id === modelId);
+  const entry = FALLBACK_REGISTRY.find((e: RegistryEntry) => e.model.id === modelId);
   return entry?.displayName ?? modelId;
 }
 
@@ -317,8 +369,8 @@ export function getFirstEnabledModelForProvider(
   }
 
   // Fallback to registry
-  const registryModel = MODEL_REGISTRY.find(
-    (e) => e.provider === provider && e.model.enabled
+  const registryModel = FALLBACK_REGISTRY.find(
+    (e: RegistryEntry) => e.provider === provider && e.model.enabled
   );
   return registryModel?.model.id ?? '';
 }

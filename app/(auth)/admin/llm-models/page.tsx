@@ -104,6 +104,9 @@ export default function LlmModelsPage() {
   const [providerSearch, setProviderSearch] = useState("");
   const [modelSearch, setModelSearch] = useState("");
 
+  // System credentials search state
+  const [credentialSearch, setCredentialSearch] = useState("");
+
   // New model form state
   const [newModel, setNewModel] = useState({
     provider: "openai",
@@ -175,6 +178,14 @@ export default function LlmModelsPage() {
         m.id.toLowerCase().includes(modelSearch.toLowerCase())
       )
     : filteredModels;
+
+  // Filter providers for credentials tab
+  const filteredCredentialProviders = credentialSearch.trim()
+    ? providers.filter(p =>
+        p.name.toLowerCase().includes(credentialSearch.toLowerCase()) ||
+        p.id.toLowerCase().includes(credentialSearch.toLowerCase())
+      )
+    : providers;
 
   async function handleAddModel() {
     if (!newModel.modelId) {
@@ -895,9 +906,33 @@ export default function LlmModelsPage() {
                 </div>
               )}
 
+              {/* Credentials Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search providers..."
+                  value={credentialSearch}
+                  onChange={(e) => setCredentialSearch(e.target.value)}
+                  className="pl-10"
+                />
+                {credentialSearch && (
+                  <button
+                    onClick={() => setCredentialSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
               <div className="grid gap-4">
-                {/* Provider credentials list - keep existing code */}
-                {providers.map((provider: any) => {
+                {/* Provider credentials list */}
+                {filteredCredentialProviders.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No providers found matching "{credentialSearch}"
+                  </div>
+                )}
+                {filteredCredentialProviders.map((provider: any) => {
                   const credentialStatus = getCredentialStatus(provider.id);
                   const isEditing = editingCredential === provider.id;
 

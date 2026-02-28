@@ -71,6 +71,18 @@ export const createArtifact = internalMutation({
       v.object({ name: v.string(), tokens: v.number(), model: v.string() }),
     ),
     isHidden: v.optional(v.boolean()),
+    provenance: v.optional(
+      v.object({
+        constitutionHash: v.optional(v.string()),
+        modelId: v.string(),
+        modelProvider: v.string(),
+        promptHash: v.string(),
+        temperature: v.number(),
+        generatedAt: v.number(),
+        specforgeVersion: v.string(),
+        parentArtifactIds: v.optional(v.array(v.id('artifacts'))),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     const existingArtifacts = await ctx.db
@@ -82,7 +94,47 @@ export const createArtifact = internalMutation({
       args.projectId,
       args.phaseId,
     );
+    
+    // Snapshot existing artifact before deletion (versioning)
     for (const artifact of toDelete) {
+      // Only snapshot if artifact has content (not empty/placeholder)
+      if (artifact.content && artifact.content.length > 100) {
+        const { computeContentHash } = await import('../lib/llm/provenance');
+        
+        // Get current max version
+        const latestVersion = await ctx.db
+          .query('artifactVersions')
+          .withIndex('by_artifact', (q) => q.eq('artifactId', artifact._id))
+          .order('desc')
+          .first();
+        
+        const nextVersion = (latestVersion?.version ?? 0) + 1;
+        
+        await ctx.db.insert('artifactVersions', {
+          artifactId: artifact._id,
+          version: nextVersion,
+          content: artifact.content,
+          contentHash: computeContentHash(artifact.content),
+          previewHtml: artifact.previewHtml,
+          provenance: artifact.provenance,
+          createdAt: Date.now(),
+          createdBy: 'system',
+          changeReason: 'Artifact regenerated',
+        });
+        
+        // Cleanup old versions (keep last 10)
+        const allVersions = await ctx.db
+          .query('artifactVersions')
+          .withIndex('by_artifact', (q) => q.eq('artifactId', artifact._id))
+          .order('desc')
+          .collect();
+        
+        const versionsToDelete = allVersions.slice(10);
+        for (const version of versionsToDelete) {
+          await ctx.db.delete(version._id);
+        }
+      }
+      
       await ctx.db.delete(artifact._id);
     }
     return await ctx.db.insert('artifacts', {
@@ -124,6 +176,44 @@ export const updatePhaseStatus = internalMutation({
         const now = Date.now();
         await ctx.db.patch(args.projectId, {
           updatedAt: getNextUpdatedAt(project.updatedAt, now),
+        });
+      }
+
+      // When a phase becomes ready, propagate staleness to downstream phases
+      if (args.status === 'ready') {
+        const { getAffectedPhases } = await import('../lib/specification/dependency-graph');
+        const affectedPhases = getAffectedPhases(args.phaseId);
+        
+        for (const phaseId of affectedPhases) {
+          const downstreamPhase = await ctx.db
+            .query('phases')
+            .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+            .filter((q) => q.eq(q.field('phaseId'), phaseId))
+            .first();
+          
+          if (downstreamPhase) {
+            const upstreamChanges = downstreamPhase.upstreamChanges || [];
+            if (!upstreamChanges.includes(args.phaseId)) {
+              upstreamChanges.push(args.phaseId);
+            }
+            
+            await ctx.db.patch(downstreamPhase._id, {
+              isStale: true,
+              staleReason: `Upstream phase "${args.phaseId}" was regenerated`,
+              staleSince: Date.now(),
+              upstreamChanges,
+            });
+          }
+        }
+      }
+
+      // When a phase is regenerated, clear its staleness
+      if (args.status === 'generating') {
+        await ctx.db.patch(phase._id, {
+          isStale: false,
+          staleReason: undefined,
+          staleSince: undefined,
+          upstreamChanges: [],
         });
       }
     }
@@ -235,18 +325,54 @@ export const initGenerationTask = internalMutation({
     phaseId: v.string(),
     type: v.union(v.literal('artifact'), v.literal('questions')),
     totalSteps: v.number(),
-    plan: v.any(),
-    metadata: v.any(),
-    // Phase 4 P2: Section preferences for interactive planning
-    sectionPreferences: v.optional(
-      v.array(
+    plan: v.array(
+      v.union(
         v.object({
-          sectionId: v.string(),
-          enabled: v.boolean(),
-          customInstructions: v.optional(v.string()),
+          name: v.string(),
+          maxTokens: v.number(),
+          sectionType: v.optional(v.string()),
+        }),
+        v.object({
+          id: v.string(),
+          text: v.string(),
         }),
       ),
     ),
+    metadata: v.object({
+      model: v.object({
+        id: v.string(),
+        provider: v.string(),
+        contextTokens: v.number(),
+        maxOutputTokens: v.number(),
+        defaultMax: v.number(),
+        enabled: v.optional(v.boolean()),
+      }),
+      credentials: v.object({
+        provider: v.string(),
+        apiKey: v.string(),
+        modelId: v.string(),
+        zaiEndpointType: v.optional(
+          v.union(v.literal('paid'), v.literal('coding')),
+        ),
+        zaiIsChina: v.optional(v.boolean()),
+      }),
+      artifactType: v.string(),
+      projectContext: v.object({
+        title: v.string(),
+        description: v.string(),
+        questions: v.string(),
+      }),
+      providerApiEndpoint: v.optional(v.string()),
+      sectionPreferences: v.optional(
+        v.array(
+          v.object({
+            sectionId: v.string(),
+            enabled: v.boolean(),
+            customInstructions: v.optional(v.string()),
+          }),
+        ),
+      ),
+    }),
   },
   handler: async (ctx, args) => {
     // Delete any existing tasks for this phase
@@ -587,6 +713,356 @@ export const saveAnswerInternal = internalMutation({
     if (project) {
       await ctx.db.patch(args.projectId, {
         updatedAt: getNextUpdatedAt(project.updatedAt, now),
+      });
+    }
+  },
+});
+
+// ============================================================================
+// ARTIFACT VERSIONING
+// ============================================================================
+
+export const snapshotArtifactVersion = internalMutation({
+  args: {
+    artifactId: v.id('artifacts'),
+    changeReason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const artifact = await ctx.db.get(args.artifactId);
+    if (!artifact) return null;
+
+    // Get current max version
+    const latestVersion = await ctx.db
+      .query('artifactVersions')
+      .withIndex('by_artifact', (q) => q.eq('artifactId', args.artifactId))
+      .order('desc')
+      .first();
+
+    const nextVersion = (latestVersion?.version ?? 0) + 1;
+
+    // Import computeContentHash from provenance utilities
+    const { computeContentHash } = await import('../lib/llm/provenance');
+
+    await ctx.db.insert('artifactVersions', {
+      artifactId: args.artifactId,
+      version: nextVersion,
+      content: artifact.content,
+      contentHash: computeContentHash(artifact.content),
+      previewHtml: artifact.previewHtml,
+      provenance: artifact.provenance,
+      createdAt: Date.now(),
+      createdBy: 'system',
+      changeReason: args.changeReason,
+    });
+
+    return nextVersion;
+  },
+});
+
+export const getArtifactVersions = internalQuery({
+  args: { artifactId: v.id('artifacts') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('artifactVersions')
+      .withIndex('by_artifact', (q) => q.eq('artifactId', args.artifactId))
+      .order('desc')
+      .collect();
+  },
+});
+
+export const getArtifactVersion = internalQuery({
+  args: {
+    artifactId: v.id('artifacts'),
+    version: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('artifactVersions')
+      .withIndex('by_artifact_version', (q) =>
+        q.eq('artifactId', args.artifactId).eq('version', args.version),
+      )
+      .first();
+  },
+});
+
+// Retention policy: Keep only the last N versions per artifact
+export const cleanupOldArtifactVersions = internalMutation({
+  args: {
+    artifactId: v.id('artifacts'),
+    keepLast: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const versions = await ctx.db
+      .query('artifactVersions')
+      .withIndex('by_artifact', (q) => q.eq('artifactId', args.artifactId))
+      .order('desc')
+      .collect();
+
+    // Delete versions beyond the keep limit
+    const toDelete = versions.slice(args.keepLast);
+    for (const version of toDelete) {
+      await ctx.db.delete(version._id);
+    }
+
+    return { deleted: toDelete.length, kept: Math.min(versions.length, args.keepLast) };
+  },
+});
+
+// ============================================================================
+// PHASE DEPENDENCY & STALENESS
+// ============================================================================
+
+export const markPhaseStale = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    upstreamPhase: v.string(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) return;
+
+    const now = Date.now();
+    const upstreamChanges = phase.upstreamChanges || [];
+    
+    // Add upstream phase to changes list if not already present
+    if (!upstreamChanges.includes(args.upstreamPhase)) {
+      upstreamChanges.push(args.upstreamPhase);
+    }
+
+    await ctx.db.patch(phase._id, {
+      isStale: true,
+      staleReason: args.reason || `Upstream phase "${args.upstreamPhase}" was regenerated`,
+      staleSince: now,
+      upstreamChanges,
+    });
+  },
+});
+
+export const clearPhaseStaleness = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) return;
+
+    await ctx.db.patch(phase._id, {
+      isStale: false,
+      staleReason: undefined,
+      staleSince: undefined,
+      upstreamChanges: [],
+    });
+  },
+});
+
+export const propagateStaleness = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    changedPhase: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Import dependency graph functions
+    const { getAffectedPhases } = await import('../lib/specification/dependency-graph');
+    
+    const affectedPhases = getAffectedPhases(args.changedPhase);
+    
+    for (const phaseId of affectedPhases) {
+      const downstreamPhase = await ctx.db
+        .query('phases')
+        .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+        .filter((q) => q.eq(q.field('phaseId'), phaseId))
+        .first();
+      
+      if (downstreamPhase) {
+        const upstreamChanges = downstreamPhase.upstreamChanges || [];
+        
+        // Add upstream phase to changes list if not already present
+        if (!upstreamChanges.includes(args.changedPhase)) {
+          upstreamChanges.push(args.changedPhase);
+        }
+
+        await ctx.db.patch(downstreamPhase._id, {
+          isStale: true,
+          staleReason: `Upstream phase "${args.changedPhase}" was regenerated`,
+          staleSince: Date.now(),
+          upstreamChanges,
+        });
+      }
+    }
+
+    return { affectedCount: affectedPhases.length, affectedPhases };
+  },
+});
+
+export const getPhaseWithStaleness = internalQuery({
+  args: { projectId: v.id('projects'), phaseId: v.string() },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) return null;
+
+    const artifacts = await ctx.db
+      .query('artifacts')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .collect();
+
+    return { 
+      ...phase, 
+      artifacts,
+      isStale: phase.isStale || false,
+      staleReason: phase.staleReason,
+      staleSince: phase.staleSince,
+      upstreamChanges: phase.upstreamChanges || [],
+    };
+  },
+});
+
+// ============================================================================
+// DRIFT DETECTION
+// ============================================================================
+
+export const saveDriftReport = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    driftDetected: v.boolean(),
+    driftSummary: v.string(),
+    comparedAgainst: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) return;
+
+    await ctx.db.patch(phase._id, {
+      driftReport: {
+        driftDetected: args.driftDetected,
+        driftSummary: args.driftSummary,
+        comparedAgainst: args.comparedAgainst,
+        checkedAt: Date.now(),
+        dismissed: false,
+      },
+    });
+  },
+});
+
+export const dismissDriftReport = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase || !phase.driftReport) return;
+
+    await ctx.db.patch(phase._id, {
+      driftReport: {
+        ...phase.driftReport,
+        dismissed: true,
+      },
+    });
+  },
+});
+
+export const getDriftReport = internalQuery({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    return phase?.driftReport || null;
+  },
+});
+
+// ============================================================================
+// CRON JOB SUPPORT - Internal queries and mutations for scheduled tasks
+// ============================================================================
+
+/**
+ * Get all artifacts for cleanup processing
+ */
+export const getAllArtifacts = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query('artifacts').collect();
+  },
+});
+
+/**
+ * Delete a specific artifact version
+ */
+export const deleteArtifactVersion = internalMutation({
+  args: {
+    versionId: v.id('artifactVersions'),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.versionId);
+  },
+});
+
+/**
+ * Set a cache entry in modelDirectoryCache (insert or update)
+ */
+export const setModelDirectoryCache = internalMutation({
+  args: {
+    cacheKey: v.string(),
+    data: v.any(),
+    expiresAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('modelDirectoryCache')
+      .withIndex('by_key', (q) => q.eq('cacheKey', args.cacheKey))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        data: args.data,
+        fetchedAt: Date.now(),
+        expiresAt: args.expiresAt,
+        version: (existing.version || 0) + 1,
+      });
+      return existing._id;
+    } else {
+      return await ctx.db.insert('modelDirectoryCache', {
+        cacheKey: args.cacheKey,
+        data: args.data,
+        fetchedAt: Date.now(),
+        expiresAt: args.expiresAt,
+        version: 1,
       });
     }
   },

@@ -54,19 +54,34 @@ describe('PromptTransformer', () => {
     expect(userPrompt).toContain('Generate the section now:');
   });
 
-  it('formats Default (OpenAI/Mistral) prompts with standard markdown paragraphs', () => {
+  it('formats OpenAI prompts with markdown structure (prefersMarkdownStructure=true)', () => {
     const { systemPrompt, userPrompt } = buildTransformedPrompts(
       mockRequest,
       'openai',
     );
 
-    expect(systemPrompt).toContain('Context from previous sections:');
+    // OpenAI prefers markdown structure
+    expect(systemPrompt).toContain('# Context from previous sections');
     expect(systemPrompt).toContain('We use PostgreSQL.');
-    expect(systemPrompt).toContain('Current section requirements:');
-    expect(systemPrompt).toContain('Guidelines:');
+    expect(systemPrompt).toContain('# Current section requirements');
+    expect(systemPrompt).toContain('# Guidelines');
 
     expect(userPrompt).toContain('Project: SpecForge');
     expect(userPrompt).toContain('- What about caching?');
+  });
+
+  it('formats Mistral prompts with markdown structure (same capabilities as OpenAI)', () => {
+    const { systemPrompt, userPrompt } = buildTransformedPrompts(
+      mockRequest,
+      'mistral',
+    );
+
+    // Mistral has same capabilities as OpenAI
+    expect(systemPrompt).toContain('# Context from previous sections');
+    expect(systemPrompt).toContain('# Current section requirements');
+    expect(systemPrompt).toContain('# Guidelines');
+
+    expect(userPrompt).toContain('Project: SpecForge');
   });
 
   it('handles empty previous sections gracefully', () => {

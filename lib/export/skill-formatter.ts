@@ -9,7 +9,8 @@
  * Spec: https://agentskills.io
  */
 
-import type { Doc } from '@/convex/_generated/dataModel';
+// Note: Doc type not needed for this implementation
+// import type { Doc } from '../../convex/_generated/dataModel';
 
 /**
  * Input type for SKILL.md generation

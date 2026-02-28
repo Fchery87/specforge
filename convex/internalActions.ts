@@ -16,6 +16,7 @@ import {
   fetchConstitutionForProject,
   isCritiqueEnabled,
   detectPrdDrift,
+  detectPhaseDrift,
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
@@ -100,6 +101,11 @@ interface Question {
   required?: boolean;
 }
 
+// Type guard to check if plan item is a section (for artifact generation)
+function isSectionPlan(item: { name?: string; maxTokens?: number; sectionType?: string; id?: string; text?: string }): item is { name: string; maxTokens: number; sectionType?: string } {
+  return 'name' in item && 'maxTokens' in item;
+}
+
 export const generatePhaseWorker = internalAction({
   args: { taskId: v.id('generationTasks') },
   handler: async (ctx, args) => {
@@ -109,7 +115,16 @@ export const generatePhaseWorker = internalAction({
     if (!task || task.status !== 'in_progress') return;
 
     const { currentStep, plan, metadata, projectId, phaseId } = task;
-    const section = plan[currentStep];
+    const planItem = plan[currentStep];
+    
+    // Type guard: generatePhaseWorker only handles artifact generation (sections)
+    if (!isSectionPlan(planItem)) {
+      throw new Error('generatePhaseWorker can only process section plans, not question plans');
+    }
+    
+    // After type guard, we know this is a section plan
+    const section = planItem as { name: string; maxTokens: number; sectionType?: string };
+    
     const {
       model,
       credentials,
@@ -490,11 +505,11 @@ export const generatePhaseWorker = internalAction({
           }
         }
 
-        // Living Spec back-propagation for Handoff phase
-        if (phaseId === 'handoff') {
+        // Living Spec drift detection for all post-constitution phases
+        if (!['constitution', 'brief'].includes(phaseId)) {
           try {
             console.log(
-              '[generatePhaseWorker] Running Living Spec / PRD drift detection for Handoff phase...',
+              `[generatePhaseWorker] Running drift detection for ${phaseId} phase...`,
             );
             const constitution = await fetchConstitutionForProject(
               ctx,
@@ -502,43 +517,67 @@ export const generatePhaseWorker = internalAction({
             );
 
             if (constitution) {
-              const driftResult = await detectPrdDrift({
-                ctx,
-                projectId,
-                projectContext,
-                model,
-                llmClient,
-                providerInfo: providerApiEndpoint || 'default',
-                constitution,
-              });
+              // Get the generated artifact content for this phase
+              const artifact = await ctx.runQuery(
+                internal.internal.getArtifactByPhaseInternal,
+                { projectId, phaseId },
+              );
 
-              if (driftResult.hasDrift && driftResult.content) {
-                console.log(
-                  '[generatePhaseWorker] PRD Drift detected. Creating Living Spec artifact.',
-                );
-                await ctx.runMutation(internal.internal.createArtifact, {
+              if (artifact?.content) {
+                // Use generalized drift detection for all phases
+                const driftResult = await detectPhaseDrift({
+                  ctx,
                   projectId,
-                  phaseId: 'handoff',
-                  type: 'handoff',
-                  title: 'PRD Update Suggestion (Living Spec)',
-                  content: driftResult.content,
-                  previewHtml: renderPreviewHtml(driftResult.content),
-                  sections: [],
-                  isHidden: false,
+                  phaseId,
+                  phaseContent: artifact.content,
+                  projectContext,
+                  model,
+                  llmClient,
+                  constitution,
+                  featureFlag: true, // Can be disabled via env var to control costs
                 });
-              } else {
-                console.log(
-                  '[generatePhaseWorker] No significant PRD drift detected.',
-                );
+
+                // Save drift report to phase
+                await ctx.runMutation(internal.internal.saveDriftReport, {
+                  projectId,
+                  phaseId,
+                  driftDetected: driftResult.hasDrift,
+                  driftSummary: driftResult.content,
+                  comparedAgainst: 'constitution',
+                });
+
+                if (driftResult.hasDrift && driftResult.content) {
+                  console.log(
+                    `[generatePhaseWorker] Drift detected in ${phaseId}. Report saved.`,
+                  );
+                } else {
+                  console.log(
+                    `[generatePhaseWorker] No drift detected in ${phaseId}.`,
+                  );
+                }
+
+                // For handoff phase, also create the legacy Living Spec artifact
+                if (phaseId === 'handoff' && driftResult.hasDrift) {
+                  await ctx.runMutation(internal.internal.createArtifact, {
+                    projectId,
+                    phaseId: 'handoff',
+                    type: 'handoff',
+                    title: 'PRD Update Suggestion (Living Spec)',
+                    content: driftResult.content,
+                    previewHtml: renderPreviewHtml(driftResult.content),
+                    sections: [],
+                    isHidden: false,
+                  });
+                }
               }
             } else {
               console.log(
-                '[generatePhaseWorker] No Constitution found for Living Spec check.',
+                '[generatePhaseWorker] No Constitution found for drift detection.',
               );
             }
           } catch (error) {
             console.error(
-              '[generatePhaseWorker] Error detecting PRD drift:',
+              `[generatePhaseWorker] Error detecting drift for ${phaseId}:`,
               error,
             );
           }

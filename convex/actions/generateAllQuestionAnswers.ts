@@ -83,10 +83,15 @@ export const generateAllQuestionAnswers = action({
       enabledModels
     );
 
+    // Validate credentials are available
+    if (!credentials) {
+      throw new Error('No LLM credentials configured. Please configure your API keys in Settings.');
+    }
+
     let model: LlmModel;
-    if (credentials?.modelId) {
+    if (credentials.modelId) {
       model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
-    } else if (credentials?.provider) {
+    } else if (credentials.provider) {
       // Fallback to first enabled model for provider
       const modelId = getFirstEnabledModelForProvider(
         credentials.provider,
@@ -98,7 +103,7 @@ export const generateAllQuestionAnswers = action({
     }
 
     // Validate provider-model match
-    if (credentials) {
+    {
       const validation = validateProviderModelMatch(
         credentials.provider,
         model.id,
@@ -114,7 +119,7 @@ export const generateAllQuestionAnswers = action({
 
     // Fetch provider API endpoint from models.dev
     let providerApiEndpoint: string | null = null;
-    if (credentials?.provider) {
+    if (credentials.provider) {
       try {
         const providers = await fetchModelDirectory();
         const provider = providers.find(p => p.id === credentials.provider);
@@ -123,6 +128,12 @@ export const generateAllQuestionAnswers = action({
         console.warn(`[generateAllQuestionAnswers] Failed to fetch provider API endpoint: ${err}`);
       }
     }
+
+    // Build questions text from project context
+    const questionsText = questions
+      .filter((q: { answer?: string }) => q.answer)
+      .map((q: { text: string; answer?: string }) => `${q.text}: ${q.answer}`)
+      .join('\n');
 
     // Initialize the background task
     const taskId = await ctx.runMutation(
@@ -136,10 +147,12 @@ export const generateAllQuestionAnswers = action({
         metadata: {
           credentials,
           model,
-          providerApiEndpoint,
+          artifactType: 'questions',
+          providerApiEndpoint: providerApiEndpoint ?? undefined,
           projectContext: {
             title: project.title,
             description: project.description,
+            questions: questionsText,
           },
         },
       }

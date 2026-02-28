@@ -6,7 +6,8 @@
  * AGENTS.md is for ongoing development and maintenance of existing projects.
  */
 
-import type { Doc } from '@/convex/_generated/dataModel';
+// Note: Doc type not needed for this implementation
+// import type { Doc } from '../../convex/_generated/dataModel';
 
 /**
  * Input type for AGENTS.md generation

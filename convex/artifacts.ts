@@ -171,3 +171,51 @@ export const getAllProjectArtifacts = query({
       .collect();
   },
 });
+
+// ============================================================================
+// ARTIFACT VERSION QUERIES
+// ============================================================================
+
+export const getArtifactVersions = query({
+  args: { artifactId: v.id("artifacts") },
+  handler: async (ctx: QueryCtx, args) => {
+    const artifact = await ctx.db.get(args.artifactId);
+    if (!artifact) return [];
+
+    const project = await ctx.db.get(artifact.projectId);
+    if (!project) return [];
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+
+    return await ctx.db
+      .query("artifactVersions")
+      .withIndex("by_artifact", (q) => q.eq("artifactId", args.artifactId))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const getArtifactVersion = query({
+  args: {
+    artifactId: v.id("artifacts"),
+    version: v.number(),
+  },
+  handler: async (ctx: QueryCtx, args) => {
+    const artifact = await ctx.db.get(args.artifactId);
+    if (!artifact) return null;
+
+    const project = await ctx.db.get(artifact.projectId);
+    if (!project) return null;
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+
+    return await ctx.db
+      .query("artifactVersions")
+      .withIndex("by_artifact_version", (q) =>
+        q.eq("artifactId", args.artifactId).eq("version", args.version),
+      )
+      .first();
+  },
+});

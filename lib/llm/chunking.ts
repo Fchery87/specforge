@@ -29,8 +29,6 @@ export function getSectionPlan(
         'entity-relationships',
         'state-transitions',
       ];
-    case 'prd':
-      return ['executive-summary', 'requirements', 'success-metrics'];
     case 'spec':
     case 'specs':
       return [
@@ -163,24 +161,27 @@ export function validateSectionPlan(
 
 export const FALLBACK_MODELS: LlmModel[] = [
   {
-    id: 'openai-gpt-4o',
+    id: 'gpt-4o',
     provider: 'openai',
     contextTokens: 128000,
     maxOutputTokens: 16384,
     defaultMax: 8000,
+    enabled: true,
   },
   {
-    id: 'anthropic-claude-3-5-sonnet',
+    id: 'claude-sonnet-4-5',
     provider: 'anthropic',
     contextTokens: 200000,
     maxOutputTokens: 8192,
     defaultMax: 4000,
+    enabled: true,
   },
   {
-    id: 'mistral-large',
+    id: 'mistral-large-3',
     provider: 'mistral',
-    contextTokens: 32000,
-    maxOutputTokens: 4096,
-    defaultMax: 2000,
+    contextTokens: 256000,
+    maxOutputTokens: 8192,
+    defaultMax: 4000,
+    enabled: true,
   },
 ];

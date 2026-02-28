@@ -49,6 +49,16 @@ import {
   type CritiqueConfig,
   DEFAULT_CRITIQUE_CONFIG,
 } from '../../lib/llm/prompts/critic';
+import {
+  getStructuredOutputMode,
+  applyStructuredOutput,
+  extractJsonFromResponse,
+} from '../../lib/llm/structured-output';
+import { ConstitutionSchema } from '../../lib/validation/constitution-schema';
+import {
+  validateSemantics,
+  hasBlockingErrors,
+} from '../../lib/validation/semantic-validator';
 
 interface Question {
   id: string;
@@ -130,16 +140,21 @@ export const generatePhase = action({
       enabledModels,
     );
 
+    // Validate credentials are available
+    if (!credentials) {
+      throw new Error('No LLM credentials configured. Please configure your API keys in Settings.');
+    }
+
     let model: LlmModel;
     if (args.modelId) {
       model =
         getModelById(args.modelId, enabledModelsFromDb || []) ??
         getFallbackModel();
-    } else if (credentials?.modelId) {
+    } else if (credentials.modelId) {
       model =
         getModelById(credentials.modelId, enabledModelsFromDb || []) ??
         getFallbackModel();
-    } else if (credentials?.provider) {
+    } else if (credentials.provider) {
       // Fallback to first enabled model for provider
       const modelId = getFirstEnabledModelForProvider(
         credentials.provider,
@@ -152,7 +167,7 @@ export const generatePhase = action({
     }
 
     // Validate provider-model match
-    if (credentials) {
+    {
       const validation = validateProviderModelMatch(
         credentials.provider,
         model.id,
@@ -184,7 +199,7 @@ export const generatePhase = action({
 
     // Fetch provider API endpoint from models.dev
     let providerApiEndpoint: string | null = null;
-    if (credentials?.provider) {
+    if (credentials.provider) {
       try {
         const providers = await fetchModelDirectory();
         const provider = providers.find((p) => p.id === credentials.provider);
@@ -227,7 +242,7 @@ export const generatePhase = action({
           credentials,
           model,
           artifactType,
-          providerApiEndpoint,
+          providerApiEndpoint: providerApiEndpoint ?? undefined,
           projectContext: {
             title: project.title,
             description: project.description,
@@ -843,7 +858,7 @@ export async function generateConstitution(params: {
   model: LlmModel;
   llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
-}): Promise<{ content: string; success: boolean }> {
+}): Promise<{ content: string; success: boolean; parseError?: boolean; semanticWarnings?: import('../../lib/validation/semantic-validator').SemanticWarning[]; hasSemanticErrors?: boolean }> {
   const { llmClient, model, projectContext } = params;
 
   // Guard: No LLM client available
@@ -867,15 +882,78 @@ Generate the Project Constitution now:`;
 
   const startedAt = Date.now();
   try {
+    // Convert Zod schema to JSON Schema for structured output
+    let jsonSchema: object = {};
+    try {
+      const { zodToJsonSchema } = await import('zod-to-json-schema');
+      // @ts-expect-error - zod-to-json-schema types may not match Zod v4 exactly
+      jsonSchema = zodToJsonSchema(ConstitutionSchema, {
+        name: 'ProjectConstitution',
+        $refStrategy: 'none',
+      });
+    } catch (importError) {
+      console.warn('[generateConstitution] Failed to import zod-to-json-schema, falling back to regex extraction');
+    }
+
+    // Get the best structured output mode for this provider
+    const structuredMode = getStructuredOutputMode(model.provider, jsonSchema);
+    
+    console.log(`[generateConstitution] Using structured output mode: ${structuredMode.type} for provider: ${model.provider}`);
+
+    // Build request body with structured output if supported
+    const requestBody: Record<string, unknown> = {
+      model: model.id,
+      maxTokens: Math.min(4000, model.maxOutputTokens),
+      temperature: 0.3, // Lower temperature for consistency
+    };
+
+    // Apply structured output configuration
+    const enhancedRequestBody = applyStructuredOutput(requestBody, structuredMode);
+
     const response = await retryWithBackoff(
       () =>
         llmClient.complete(constitutionPrompt, {
-          model: model.id,
-          maxTokens: Math.min(4000, model.maxOutputTokens),
-          temperature: 0.3, // Lower temperature for consistency
+          model: requestBody.model as string,
+          maxTokens: requestBody.maxTokens as number,
+          temperature: requestBody.temperature as number,
         }),
       { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
     );
+
+    // Extract JSON based on the structured output mode used
+    const extractedContent = extractJsonFromResponse(response.content, structuredMode);
+
+    // Parse and validate the constitution
+    let parsedConstitution;
+    try {
+      parsedConstitution = JSON.parse(extractedContent);
+    } catch (parseError) {
+      console.warn('[generateConstitution] Failed to parse constitution JSON:', parseError);
+      // Return the raw content for manual review
+      const durationMs = Date.now() - startedAt;
+      logTelemetry('warn', {
+        provider: model.provider,
+        model: model.id,
+        durationMs,
+        success: false,
+        error: 'Failed to parse constitution JSON',
+      });
+      return {
+        content: extractedContent,
+        success: true, // Still return success with raw content
+        parseError: true,
+      };
+    }
+
+    // Run semantic validation
+    const semanticWarnings = validateSemantics(parsedConstitution);
+    const hasErrors = hasBlockingErrors(semanticWarnings);
+
+    if (semanticWarnings.length > 0) {
+      console.log(`[generateConstitution] Semantic validation found ${semanticWarnings.length} issues:`,
+        semanticWarnings.map(w => `${w.severity}: ${w.message}`)
+      );
+    }
 
     const durationMs = Date.now() - startedAt;
     logTelemetry('info', {
@@ -883,11 +961,16 @@ Generate the Project Constitution now:`;
       model: model.id,
       durationMs,
       success: true,
+      structuredOutputMode: structuredMode.type,
+      semanticWarnings: semanticWarnings.length,
+      semanticErrors: semanticWarnings.filter(w => w.severity === 'error').length,
     });
 
     return {
-      content: response.content,
+      content: extractedContent,
       success: true,
+      semanticWarnings: hasErrors ? semanticWarnings : undefined,
+      hasSemanticErrors: hasErrors,
     };
   } catch (error: any) {
     const durationMs = Date.now() - startedAt;
@@ -1276,6 +1359,99 @@ Return ONLY valid JSON. Nothing else.`;
     };
   } catch (error) {
     console.error('[detectPrdDrift] Error:', error);
+    return { content: '', hasDrift: false };
+  }
+}
+
+/**
+ * Generalized drift detection for any phase against the constitution.
+ * Runs after every phase completion to catch drift early.
+ */
+export async function detectPhaseDrift(params: {
+  ctx: ActionCtx;
+  projectId: Id<'projects'>;
+  phaseId: string;
+  phaseContent: string;
+  projectContext: {
+    title: string;
+    description: string;
+    questions: string;
+  };
+  model: LlmModel;
+  llmClient: ReturnType<typeof createLlmClient>;
+  constitution: string;
+  featureFlag?: boolean; // Allow disabling to control costs
+}): Promise<{ content: string; hasDrift: boolean }> {
+  const { llmClient, model, phaseId, phaseContent, constitution, featureFlag = true } = params;
+
+  // Skip if feature flag is disabled (cost control)
+  if (!featureFlag) {
+    return { content: '', hasDrift: false };
+  }
+
+  if (!llmClient) {
+    return { content: '', hasDrift: false };
+  }
+
+  // Skip for early phases that don't have meaningful content yet
+  if (['constitution', 'brief'].includes(phaseId)) {
+    return { content: '', hasDrift: false };
+  }
+
+  const prompt = `You are a Principal AI Architect maintaining the "Living Spec" of a software project.
+Your job is to compare the generated ${phaseId} phase artifact against the Project Constitution (the technical truth).
+If the artifact contains content that contradicts, deviates from, or expands beyond the constraints defined in the Constitution, you must document this drift.
+
+## Project Constitution (Technical Truth)
+${constitution}
+
+## Generated ${phaseId} Phase Content
+${phaseContent.slice(0, 3000)} ${phaseContent.length > 3000 ? '... (truncated)' : ''}
+
+Analyze the two documents. If the ${phaseId} phase introduces content that:
+1. Contradicts the Constitution's constraints or tech stack
+2. Uses patterns or technologies not allowed by forbiddenPatterns
+3. Violates quality standards defined in the Constitution
+4. Significantly expands scope beyond what's defined
+
+Return a JSON object with:
+{
+  "hasDrift": true,
+  "driftSummary": "Markdown formatted string describing the drift, specific contradictions, and recommendations for alignment."
+}
+
+If the content is perfectly aligned with the Constitution, return:
+{
+  "hasDrift": false,
+  "driftSummary": ""
+}
+
+Return ONLY valid JSON. Nothing else.`;
+
+  try {
+    const response = await retryWithBackoff(
+      () =>
+        llmClient.complete(prompt, {
+          model: model.id,
+          maxTokens: 1000,
+          temperature: 0.2,
+        }),
+      { retries: 2, minDelayMs: 500, maxDelayMs: 2000 },
+    );
+
+    // Extract JSON from response
+    const jsonMatch = response.content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const rawContent = jsonMatch
+      ? jsonMatch[1].trim()
+      : response.content.trim();
+
+    const result = JSON.parse(rawContent);
+    return {
+      hasDrift: result.hasDrift === true,
+      content: result.driftSummary || '',
+    };
+  } catch (error) {
+    console.error('[detectPhaseDrift] Error:', error);
     return { content: '', hasDrift: false };
   }
 }

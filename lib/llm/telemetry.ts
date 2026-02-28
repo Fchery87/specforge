@@ -9,6 +9,9 @@ type TelemetryInput = {
   error?: string;
   prompt?: string;
   apiKey?: string;
+  structuredOutputMode?: string;
+  semanticWarnings?: number;
+  semanticErrors?: number;
 };
 
 type TelemetryLevel = "info" | "warn";

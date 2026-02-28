@@ -5,10 +5,15 @@
  *
  * Provides Convex actions for fetching and caching AI model data
  * from models.dev API. Used by the frontend for dynamic model selection.
+ *
+ * Uses a two-tier caching strategy:
+ * 1. In-memory cache (30 min) for fast repeated access within same function instance
+ * 2. Database cache (24 hours) for persistence across deployments
  */
 
-import { action, internalAction } from '../_generated/server';
+import { action, internalAction, query, mutation } from '../_generated/server';
 import { v } from 'convex/values';
+import type { ActionCtx } from '../_generated/server';
 import {
   fetchModelDirectory,
   getAllModels,
@@ -23,25 +28,28 @@ import {
   type ModelsDevModel,
 } from '../../lib/llm/model-directory';
 
-// Simple in-memory cache for Convex actions (per-invocation only)
-// For persistent caching, consider using Convex's built-in caching or external cache
+// In-memory cache for Convex actions (per-instance only, lost on redeploy)
 let actionCache: {
   data: ModelsDevProvider[];
   timestamp: number;
 } | null = null;
 
-const CACHE_DURATION_MS = 1000 * 60 * 30; // 30 minutes
+const MEMORY_CACHE_DURATION_MS = 1000 * 60 * 30; // 30 minutes
 
 /**
  * Helper to get cached or fresh data
+ * Uses in-memory cache only - DB cache is managed by scheduled cron job
  */
 async function getCachedOrFresh(): Promise<ModelsDevProvider[]> {
-  if (actionCache && Date.now() - actionCache.timestamp < CACHE_DURATION_MS) {
+  // Check in-memory cache (fastest)
+  if (actionCache && Date.now() - actionCache.timestamp < MEMORY_CACHE_DURATION_MS) {
     return actionCache.data;
   }
 
+  // Fetch fresh data from API
   const data = await fetchModelDirectory();
   actionCache = { data, timestamp: Date.now() };
+
   return data;
 }
 
