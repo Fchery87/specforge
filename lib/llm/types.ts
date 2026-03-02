@@ -1,11 +1,18 @@
 export interface LlmProvider {
-  complete(prompt: string, options: {
-    model: string;
-    maxTokens?: number;
-    temperature?: number;
-  }): Promise<LlmResponse>;
-  
-  generateSection(request: LlmSectionRequest): Promise<{ content: string; tokens: number }>;
+  complete(
+    prompt: string,
+    options: {
+      model: string;
+      maxTokens?: number;
+      temperature?: number;
+      /** When provided, sent as role:system message. prompt becomes role:user only. */
+      systemPrompt?: string;
+    },
+  ): Promise<LlmResponse>;
+
+  generateSection(
+    request: LlmSectionRequest,
+  ): Promise<{ content: string; tokens: number }>;
   isAvailable(): boolean;
 }
 
@@ -60,7 +67,7 @@ export interface UserConfig {
   defaultModel: string;
   useSystem: boolean;
   systemKeyId?: string;
-  zaiEndpointType?: "paid" | "coding";
+  zaiEndpointType?: 'paid' | 'coding';
   zaiIsChina?: boolean;
 }
 
@@ -68,7 +75,7 @@ export interface ProviderCredentials {
   provider: string;
   apiKey: string;
   modelId: string;
-  zaiEndpointType?: "paid" | "coding";
+  zaiEndpointType?: 'paid' | 'coding';
   zaiIsChina?: boolean;
 }
 
@@ -91,7 +98,12 @@ export interface CritiqueResult {
  * Individual violation found during critique
  */
 export interface Violation {
-  category: 'accessibility' | 'performance' | 'security' | 'architecture' | 'completeness';
+  category:
+    | 'accessibility'
+    | 'performance'
+    | 'security'
+    | 'architecture'
+    | 'completeness';
   severity: 'critical' | 'warning' | 'info';
   criterion: string;
   issue: string;

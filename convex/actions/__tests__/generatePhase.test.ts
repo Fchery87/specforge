@@ -132,4 +132,62 @@ describe('sanitizeGeneratedContent', () => {
     expect(result).not.toMatch(/\n{4,}/);
     expect(result).toContain('## Section');
   });
+
+  // ── Provider-specific patterns ──
+
+  it('strips Claude/DeepSeek <thinking> XML blocks', () => {
+    const content = `<thinking>Let me analyze what the user needs for this architecture section. I should consider the constraints and tech stack requirements.</thinking>\n\n## Architecture Overview\n\nThe system uses Clean Architecture with a hexagonal design pattern.`;
+    const result = sanitizeGeneratedContent(content);
+    expect(result).toContain('## Architecture Overview');
+    expect(result).toContain('Clean Architecture');
+    expect(result).not.toContain('<thinking>');
+    expect(result).not.toContain('</thinking>');
+    expect(result).not.toContain('Let me analyze');
+  });
+
+  it('strips <think> tags (DeepSeek R1 style)', () => {
+    const content = `<think>I need to structure this as a proper tech spec document with all the required sections.</think>\n\n## Tech Stack\n\n- React 19\n- TypeScript 5.3`;
+    const result = sanitizeGeneratedContent(content);
+    expect(result).toContain('## Tech Stack');
+    expect(result).not.toContain('<think>');
+  });
+
+  it('strips **Thinking:** bold header blocks', () => {
+    const content = `**Thinking:**\nI should focus on the security aspects first, then move to performance requirements.\n\n## Quality Standards\n\nWCAG 2.2 AA compliance is required.`;
+    const result = sanitizeGeneratedContent(content);
+    expect(result).toContain('## Quality Standards');
+    expect(result).not.toContain('**Thinking:**');
+    expect(result).not.toContain('I should focus on');
+  });
+
+  it('strips "Here\'s my plan:" meta-commentary preambles', () => {
+    const content = `Here's my plan:\n\n## Deployment Strategy\n\nThe application will be deployed to Vercel.`;
+    const result = sanitizeGeneratedContent(content);
+    expect(result).toContain('## Deployment Strategy');
+    expect(result).not.toContain("Here's my plan:");
+  });
+
+  it('strips numbered reasoning steps (Step 1: Analyze...)', () => {
+    const content = `Step 1: Analyze the project requirements carefully.\nStep 2: Consider the tech stack constraints.\n\n## Data Models\n\nThe core entities are User, Project, and Artifact.`;
+    const result = sanitizeGeneratedContent(content);
+    expect(result).toContain('## Data Models');
+    expect(result).not.toContain('Step 1: Analyze');
+    expect(result).not.toContain('Step 2: Consider');
+  });
+
+  it('strips [Internal] bracketed reasoning markers', () => {
+    const content = `[Internal] This section needs to cover security protocols thoroughly.\n\n## Security Requirements\n\nAll data must be encrypted at rest.`;
+    const result = sanitizeGeneratedContent(content);
+    expect(result).toContain('## Security Requirements');
+    expect(result).not.toContain('[Internal]');
+  });
+
+  it('strips expanded self-referential patterns', () => {
+    const content = `I'll structure this as a comprehensive overview of the architecture.\nI should focus on the key components.\nBased on the analysis above, here are the results.\n\n## Architecture\n\nMicroservices pattern.`;
+    const result = sanitizeGeneratedContent(content);
+    expect(result).toContain('## Architecture');
+    expect(result).not.toContain("I'll structure this");
+    expect(result).not.toContain('I should focus');
+    expect(result).not.toContain('Based on the analysis');
+  });
 });

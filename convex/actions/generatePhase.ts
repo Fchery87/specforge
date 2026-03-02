@@ -142,7 +142,9 @@ export const generatePhase = action({
 
     // Validate credentials are available
     if (!credentials) {
-      throw new Error('No LLM credentials configured. Please configure your API keys in Settings.');
+      throw new Error(
+        'No LLM credentials configured. Please configure your API keys in Settings.',
+      );
     }
 
     let model: LlmModel;
@@ -443,7 +445,11 @@ Requirements:
 - Be thorough and detailed
 - Include specific, actionable content
 - Reference the project context throughout
-- Output ONLY document content — no reasoning, analysis, or meta-commentary`;
+- Output ONLY document content — no reasoning, analysis, or meta-commentary
+- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
+- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
+- Do NOT include internal checklists, confidence scores, or analysis headers
+- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
 
   // Inject constitution context if available and phase requires it
   if (constitution && shouldInjectConstitution(params.phaseId)) {
@@ -551,7 +557,11 @@ Requirements:
 - Be thorough and detailed
 - Include specific, actionable content
 - Reference the project context throughout
-- Output ONLY document content — no reasoning, analysis, or meta-commentary`;
+- Output ONLY document content — no reasoning, analysis, or meta-commentary
+- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
+- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
+- Do NOT include internal checklists, confidence scores, or analysis headers
+- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
 
   const userPrompt = `${
     params.previousSections.length > 0
@@ -565,17 +575,16 @@ ${
 }
 Generate the "${params.sectionName}" section now:`;
 
-  const basePrompt = `${systemPrompt}\n\n${userPrompt}`;
-
   const startedAt = Date.now();
   try {
     const response = await continueIfTruncated({
-      prompt: basePrompt,
+      prompt: userPrompt,
       maxTurns: params.maxTurns,
       continuationPrompt: (soFar) => {
         const tail = soFar.length > 1500 ? soFar.slice(-1500) : soFar;
-        return `${systemPrompt}\n\nYou are continuing a document that was cut off. Output ONLY the next part of the document content. Do NOT analyze, plan, summarize, or describe what you are doing. Do NOT output any reasoning or meta-commentary. Write markdown document content ONLY.\n\n===DOCUMENT SO FAR===\n${tail}\n===END===\n\nContinue the document from exactly where it left off:`;
+        return `You are continuing a document that was cut off. Output ONLY the next part of the document content. Do NOT analyze, plan, summarize, or describe what you are doing. Do NOT output any reasoning or meta-commentary. Write markdown document content ONLY.\n\n===DOCUMENT SO FAR===\n${tail}\n===END===\n\nContinue the document from exactly where it left off:`;
       },
+      sanitizeDelta: sanitizeGeneratedContent,
       complete: (prompt) =>
         retryWithBackoff(
           () =>
@@ -587,6 +596,7 @@ Generate the "${params.sectionName}" section now:`;
                 model.maxOutputTokens,
               ),
               temperature: 0.7,
+              systemPrompt,
             }),
           { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
         ),
@@ -628,20 +638,46 @@ Generate the "${params.sectionName}" section now:`;
 
 /**
  * Strips chain-of-thought meta-reasoning that leaked into generated content.
- * Common patterns: numbered analysis steps, "Draft thought", "Analyze the Request", etc.
+ * Covers all major LLM providers: OpenAI, Anthropic/Claude, DeepSeek, Gemini, Mistral, etc.
+ * This is the LAST LINE OF DEFENSE — prompts should prevent CoT, but this catches leaks.
  */
 export function sanitizeGeneratedContent(content: string): string {
   const cotPatterns = [
-    // Numbered bold analysis headers (e.g. "1. **Analyze the Request:**")
+    // ── Provider-specific XML reasoning blocks ──
+    // Claude <thinking>...</thinking>, DeepSeek <think>...</think>
+    /<(?:thinking|think|reasoning|reflection|inner_monologue)>[\s\S]*?<\/(?:thinking|think|reasoning|reflection|inner_monologue)>/gi,
+
+    // ── Bold/header reasoning blocks ──
+    // "1. **Analyze the Request:**" (numbered bold analysis)
     /^\d+\.\s+\*\*[A-Z][^*]+:\*\*[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
-    // "Draft thought" blocks
+    // "**Thinking:**", "**Analysis:**", "**My Approach:**", "**Planning:**"
+    /^\*\*(?:Thinking|Analysis|Planning|Reasoning|My [Aa]pproach|Internal [Nn]otes?|Chain of [Tt]hought|Constraint Checklist|Mental Sandbox|Confidence Score)(?::?\s*)\*\*[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
+    // "### Thinking", "## Analysis" (heading-style reasoning)
+    /^#{1,4}\s+(?:Thinking|Analysis|Planning|Reasoning|My Approach|Internal Notes?|Chain of Thought)\s*\n[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
+
+    // ── "Draft thought" blocks ──
     /^\*?Draft thought\*?[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
-    // Self-referential reasoning lines
-    /^(?:The user wants me to|I need to|Let me (?:think|analyze|consider|break)|Looking at this|If I (?:look|think|consider))\b[^\n]*\n?/gm,
-    // Internal checklist / confidence blocks
-    /^\*\*(?:Constraint Checklist|Mental Sandbox|Confidence Score|Analysis|My approach)\*\*[\s\S]*?(?=^#{1,3}\s|\n\n---|$)/gm,
-    // "Okay, " or "Alright, " reasoning preambles
-    /^(?:Okay|Alright|So|Now),?\s+(?:let's|I'll|I will|here's what|based on)[^\n]*\n?/gim,
+
+    // ── Self-referential reasoning lines (single-line) ──
+    /^(?:The user wants me to|I need to|Let me (?:think|analyze|consider|break|plan|draft|approach|structure|organize|start|look)|Looking at this|If I (?:look|think|consider)|I should (?:focus|start|begin|consider|address)|I'll (?:structure|organize|start|begin|approach|break|analyze|create|draft)|I will (?:now )?(?:generate|create|write|draft|produce|structure)|First,? (?:let me|I need to|I'll|I will)|Based on (?:the|this|my) (?:analysis|review|assessment))\b[^\n]*\n?/gm,
+
+    // ── Preambles and meta-commentary ──
+    // "Okay, let's...", "Alright, here's what..."
+    /^(?:Okay|Alright|So|Now|Right|Well|Sure),?\s+(?:let's|I'll|I will|here's what|based on|let me)[^\n]*\n?/gim,
+    // "Here's my plan:", "Here is what I will do:", "Here's how I'll approach this:"
+    /^(?:Here(?:'s| is) (?:my |what |how )[^\n]*:)\s*\n?/gim,
+
+    // ── Numbered plain-text reasoning steps ──
+    // "Step 1: Analyze..." / "Step 2: Consider..." (but NOT "Step 1:" inside actual document steps with content below)
+    /^Step \d+:\s*(?:Analyz|Consider|Think|Plan|Review|Assess|Evaluat|Determin|Identif|Understand|Examin|Break down|First|Now)[^\n]*\n?/gim,
+
+    // ── Bracketed internal markers ──
+    // "[Internal]", "[Note to self]", "[Planning]", "[Reasoning]"
+    /^\[(?:Internal|Note to self|Planning|Reasoning|Thinking|Analysis|Draft)\][^\n]*\n?/gim,
+
+    // ── Fenced reasoning blocks (divider-enclosed) ──
+    // "---\nThinking about this...\n---"
+    /^---\n(?:(?!#{1,3}\s)[\s\S])*?(?:thinking|reasoning|analysis|my approach|let me|I need to)[\s\S]*?\n---\n?/gim,
   ];
 
   let cleaned = content;
@@ -858,7 +894,13 @@ export async function generateConstitution(params: {
   model: LlmModel;
   llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
-}): Promise<{ content: string; success: boolean; parseError?: boolean; semanticWarnings?: import('../../lib/validation/semantic-validator').SemanticWarning[]; hasSemanticErrors?: boolean }> {
+}): Promise<{
+  content: string;
+  success: boolean;
+  parseError?: boolean;
+  semanticWarnings?: import('../../lib/validation/semantic-validator').SemanticWarning[];
+  hasSemanticErrors?: boolean;
+}> {
   const { llmClient, model, projectContext } = params;
 
   // Guard: No LLM client available
@@ -892,13 +934,17 @@ Generate the Project Constitution now:`;
         $refStrategy: 'none',
       });
     } catch (importError) {
-      console.warn('[generateConstitution] Failed to import zod-to-json-schema, falling back to regex extraction');
+      console.warn(
+        '[generateConstitution] Failed to import zod-to-json-schema, falling back to regex extraction',
+      );
     }
 
     // Get the best structured output mode for this provider
     const structuredMode = getStructuredOutputMode(model.provider, jsonSchema);
-    
-    console.log(`[generateConstitution] Using structured output mode: ${structuredMode.type} for provider: ${model.provider}`);
+
+    console.log(
+      `[generateConstitution] Using structured output mode: ${structuredMode.type} for provider: ${model.provider}`,
+    );
 
     // Build request body with structured output if supported
     const requestBody: Record<string, unknown> = {
@@ -908,7 +954,10 @@ Generate the Project Constitution now:`;
     };
 
     // Apply structured output configuration
-    const enhancedRequestBody = applyStructuredOutput(requestBody, structuredMode);
+    const enhancedRequestBody = applyStructuredOutput(
+      requestBody,
+      structuredMode,
+    );
 
     const response = await retryWithBackoff(
       () =>
@@ -921,14 +970,20 @@ Generate the Project Constitution now:`;
     );
 
     // Extract JSON based on the structured output mode used
-    const extractedContent = extractJsonFromResponse(response.content, structuredMode);
+    const extractedContent = extractJsonFromResponse(
+      response.content,
+      structuredMode,
+    );
 
     // Parse and validate the constitution
     let parsedConstitution;
     try {
       parsedConstitution = JSON.parse(extractedContent);
     } catch (parseError) {
-      console.warn('[generateConstitution] Failed to parse constitution JSON:', parseError);
+      console.warn(
+        '[generateConstitution] Failed to parse constitution JSON:',
+        parseError,
+      );
       // Return the raw content for manual review
       const durationMs = Date.now() - startedAt;
       logTelemetry('warn', {
@@ -950,8 +1005,9 @@ Generate the Project Constitution now:`;
     const hasErrors = hasBlockingErrors(semanticWarnings);
 
     if (semanticWarnings.length > 0) {
-      console.log(`[generateConstitution] Semantic validation found ${semanticWarnings.length} issues:`,
-        semanticWarnings.map(w => `${w.severity}: ${w.message}`)
+      console.log(
+        `[generateConstitution] Semantic validation found ${semanticWarnings.length} issues:`,
+        semanticWarnings.map((w) => `${w.severity}: ${w.message}`),
       );
     }
 
@@ -963,7 +1019,8 @@ Generate the Project Constitution now:`;
       success: true,
       structuredOutputMode: structuredMode.type,
       semanticWarnings: semanticWarnings.length,
-      semanticErrors: semanticWarnings.filter(w => w.severity === 'error').length,
+      semanticErrors: semanticWarnings.filter((w) => w.severity === 'error')
+        .length,
     });
 
     return {
@@ -1382,7 +1439,14 @@ export async function detectPhaseDrift(params: {
   constitution: string;
   featureFlag?: boolean; // Allow disabling to control costs
 }): Promise<{ content: string; hasDrift: boolean }> {
-  const { llmClient, model, phaseId, phaseContent, constitution, featureFlag = true } = params;
+  const {
+    llmClient,
+    model,
+    phaseId,
+    phaseContent,
+    constitution,
+    featureFlag = true,
+  } = params;
 
   // Skip if feature flag is disabled (cost control)
   if (!featureFlag) {

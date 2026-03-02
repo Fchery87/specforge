@@ -94,22 +94,22 @@ export const createArtifact = internalMutation({
       args.projectId,
       args.phaseId,
     );
-    
+
     // Snapshot existing artifact before deletion (versioning)
     for (const artifact of toDelete) {
       // Only snapshot if artifact has content (not empty/placeholder)
       if (artifact.content && artifact.content.length > 100) {
         const { computeContentHash } = await import('../lib/llm/provenance');
-        
+
         // Get current max version
         const latestVersion = await ctx.db
           .query('artifactVersions')
           .withIndex('by_artifact', (q) => q.eq('artifactId', artifact._id))
           .order('desc')
           .first();
-        
+
         const nextVersion = (latestVersion?.version ?? 0) + 1;
-        
+
         await ctx.db.insert('artifactVersions', {
           artifactId: artifact._id,
           version: nextVersion,
@@ -121,20 +121,20 @@ export const createArtifact = internalMutation({
           createdBy: 'system',
           changeReason: 'Artifact regenerated',
         });
-        
+
         // Cleanup old versions (keep last 10)
         const allVersions = await ctx.db
           .query('artifactVersions')
           .withIndex('by_artifact', (q) => q.eq('artifactId', artifact._id))
           .order('desc')
           .collect();
-        
+
         const versionsToDelete = allVersions.slice(10);
         for (const version of versionsToDelete) {
           await ctx.db.delete(version._id);
         }
       }
-      
+
       await ctx.db.delete(artifact._id);
     }
     return await ctx.db.insert('artifacts', {
@@ -181,22 +181,23 @@ export const updatePhaseStatus = internalMutation({
 
       // When a phase becomes ready, propagate staleness to downstream phases
       if (args.status === 'ready') {
-        const { getAffectedPhases } = await import('../lib/specification/dependency-graph');
+        const { getAffectedPhases } =
+          await import('../lib/specification/dependency-graph');
         const affectedPhases = getAffectedPhases(args.phaseId);
-        
+
         for (const phaseId of affectedPhases) {
           const downstreamPhase = await ctx.db
             .query('phases')
             .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
             .filter((q) => q.eq(q.field('phaseId'), phaseId))
             .first();
-          
+
           if (downstreamPhase) {
             const upstreamChanges = downstreamPhase.upstreamChanges || [];
             if (!upstreamChanges.includes(args.phaseId)) {
               upstreamChanges.push(args.phaseId);
             }
-            
+
             await ctx.db.patch(downstreamPhase._id, {
               isStale: true,
               staleReason: `Upstream phase "${args.phaseId}" was regenerated`,
@@ -626,6 +627,37 @@ export const appendPartialContentToArtifactInternal = internalMutation({
   },
 });
 
+/**
+ * Replaces an artifact's content with a sanitized version.
+ * Called after streaming finishes to clean up any CoT reasoning that
+ * leaked through individual delta chunks during streaming.
+ */
+export const sanitizeArtifactContentInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    sanitizedContent: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const artifact = await ctx.db
+      .query('artifacts')
+      .withIndex('by_phase', (q) =>
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId),
+      )
+      .first();
+    if (!artifact) return;
+
+    // Only patch if content actually changed (avoid unnecessary writes)
+    if (artifact.content !== args.sanitizedContent) {
+      await ctx.db.patch(artifact._id, {
+        content: args.sanitizedContent,
+        previewHtml: renderPreviewHtml(args.sanitizedContent),
+        previewHtmlUpdatedAt: Date.now(),
+      });
+    }
+  },
+});
+
 export const setArtifactStreamStatusInternal = internalMutation({
   args: {
     projectId: v.id('projects'),
@@ -804,7 +836,10 @@ export const cleanupOldArtifactVersions = internalMutation({
       await ctx.db.delete(version._id);
     }
 
-    return { deleted: toDelete.length, kept: Math.min(versions.length, args.keepLast) };
+    return {
+      deleted: toDelete.length,
+      kept: Math.min(versions.length, args.keepLast),
+    };
   },
 });
 
@@ -830,7 +865,7 @@ export const markPhaseStale = internalMutation({
 
     const now = Date.now();
     const upstreamChanges = phase.upstreamChanges || [];
-    
+
     // Add upstream phase to changes list if not already present
     if (!upstreamChanges.includes(args.upstreamPhase)) {
       upstreamChanges.push(args.upstreamPhase);
@@ -838,7 +873,8 @@ export const markPhaseStale = internalMutation({
 
     await ctx.db.patch(phase._id, {
       isStale: true,
-      staleReason: args.reason || `Upstream phase "${args.upstreamPhase}" was regenerated`,
+      staleReason:
+        args.reason || `Upstream phase "${args.upstreamPhase}" was regenerated`,
       staleSince: now,
       upstreamChanges,
     });
@@ -875,20 +911,21 @@ export const propagateStaleness = internalMutation({
   },
   handler: async (ctx, args) => {
     // Import dependency graph functions
-    const { getAffectedPhases } = await import('../lib/specification/dependency-graph');
-    
+    const { getAffectedPhases } =
+      await import('../lib/specification/dependency-graph');
+
     const affectedPhases = getAffectedPhases(args.changedPhase);
-    
+
     for (const phaseId of affectedPhases) {
       const downstreamPhase = await ctx.db
         .query('phases')
         .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
         .filter((q) => q.eq(q.field('phaseId'), phaseId))
         .first();
-      
+
       if (downstreamPhase) {
         const upstreamChanges = downstreamPhase.upstreamChanges || [];
-        
+
         // Add upstream phase to changes list if not already present
         if (!upstreamChanges.includes(args.changedPhase)) {
           upstreamChanges.push(args.changedPhase);
@@ -924,8 +961,8 @@ export const getPhaseWithStaleness = internalQuery({
       .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .collect();
 
-    return { 
-      ...phase, 
+    return {
+      ...phase,
       artifacts,
       isStale: phase.isStale || false,
       staleReason: phase.staleReason,

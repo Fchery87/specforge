@@ -19,8 +19,16 @@ export class DeepSeekClient implements LlmProvider {
       model: string;
       maxTokens?: number;
       temperature?: number;
+      systemPrompt?: string;
     },
   ): Promise<LlmResponse> {
+    const messages = options.systemPrompt
+      ? [
+          { role: 'system' as const, content: options.systemPrompt },
+          { role: 'user' as const, content: prompt },
+        ]
+      : [{ role: 'user' as const, content: prompt }];
+
     const response = await fetchWithTimeout(
       `${this.baseUrl}/chat/completions`,
       {
@@ -31,7 +39,7 @@ export class DeepSeekClient implements LlmProvider {
         },
         body: JSON.stringify({
           model: options.model,
-          messages: [{ role: 'user', content: prompt }],
+          messages,
           max_tokens: options.maxTokens,
           temperature: options.temperature ?? 0.7,
         }),

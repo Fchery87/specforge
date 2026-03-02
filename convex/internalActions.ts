@@ -17,9 +17,33 @@ import {
   isCritiqueEnabled,
   detectPrdDrift,
   detectPhaseDrift,
+  sanitizeGeneratedContent,
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
+
+/**
+ * Heuristic to detect reasoning/thinking models by model ID.
+ * These models use internal chain-of-thought and need more output tokens
+ * per turn so they can finish thinking AND produce actual content.
+ */
+function isReasoningModel(modelId: string): boolean {
+  const id = modelId.toLowerCase();
+  return (
+    id.includes('qwq') ||
+    id.includes('thinking') ||
+    id.includes('deepseek-r1') ||
+    id.includes('deepseek-reasoner') ||
+    /glm-4\.[7-9]/.test(id) ||
+    /glm-[5-9]/.test(id) ||
+    /\bo[134]-/.test(id) ||
+    id.includes('o1-mini') ||
+    id.includes('o1-preview') ||
+    id.includes('o3-mini') ||
+    id.includes('mimo') ||
+    id.includes('hermes-4')
+  );
+}
 
 // Internal action to get all decrypted system credentials (for use in Convex actions only)
 export const getAllDecryptedSystemCredentials = internalAction({
@@ -102,7 +126,13 @@ interface Question {
 }
 
 // Type guard to check if plan item is a section (for artifact generation)
-function isSectionPlan(item: { name?: string; maxTokens?: number; sectionType?: string; id?: string; text?: string }): item is { name: string; maxTokens: number; sectionType?: string } {
+function isSectionPlan(item: {
+  name?: string;
+  maxTokens?: number;
+  sectionType?: string;
+  id?: string;
+  text?: string;
+}): item is { name: string; maxTokens: number; sectionType?: string } {
   return 'name' in item && 'maxTokens' in item;
 }
 
@@ -116,15 +146,21 @@ export const generatePhaseWorker = internalAction({
 
     const { currentStep, plan, metadata, projectId, phaseId } = task;
     const planItem = plan[currentStep];
-    
+
     // Type guard: generatePhaseWorker only handles artifact generation (sections)
     if (!isSectionPlan(planItem)) {
-      throw new Error('generatePhaseWorker can only process section plans, not question plans');
+      throw new Error(
+        'generatePhaseWorker can only process section plans, not question plans',
+      );
     }
-    
+
     // After type guard, we know this is a section plan
-    const section = planItem as { name: string; maxTokens: number; sectionType?: string };
-    
+    const section = planItem as {
+      name: string;
+      maxTokens: number;
+      sectionType?: string;
+    };
+
     const {
       model,
       credentials,
@@ -294,7 +330,7 @@ export const generatePhaseWorker = internalAction({
           section.name,
           phaseId,
         );
-        
+
         const response = await generateSectionContentStreaming({
           projectContext,
           sectionName: section.name,
@@ -303,7 +339,11 @@ export const generatePhaseWorker = internalAction({
           previousSections: [],
           model,
           maxTokens: section.maxTokens,
-          chunkMaxTokens: 300,
+          // Reasoning models (QwQ, R1, GLM, etc.) need more tokens per turn
+          // so they can finish thinking AND produce actual content.
+          // 300 tokens is fine for non-reasoning models but catastrophically
+          // small for reasoning models — they exhaust it all on thinking.
+          chunkMaxTokens: isReasoningModel(model.id) ? 2000 : 300,
           maxTurns: 16,
           llmClient,
           providerInfo: `Worker step ${currentStep + 1}`,
@@ -320,6 +360,15 @@ export const generatePhaseWorker = internalAction({
         finalContent = response.content;
         await flushBuffer(true);
       }
+
+      // Post-streaming sanitization: the deltas flushed to the DB are raw.
+      // Replace the artifact's content with the sanitized final version.
+      // `finalContent` is already sanitized by generateSectionContent[Streaming].
+      await ctx.runMutation(internal.internal.sanitizeArtifactContentInternal, {
+        projectId,
+        phaseId,
+        sanitizedContent: sanitizeGeneratedContent(finalContent),
+      });
 
       // Record section metadata at end (content already appended via streaming)
       await ctx.runMutation(
@@ -393,11 +442,14 @@ export const generatePhaseWorker = internalAction({
             );
 
             // Fetch the actual phase data to get user question answers
-            const phaseData = await ctx.runQuery(internal.internal.getPhaseInternal, {
-              projectId,
-              phaseId: 'constitution',
-            });
-            
+            const phaseData = await ctx.runQuery(
+              internal.internal.getPhaseInternal,
+              {
+                projectId,
+                phaseId: 'constitution',
+              },
+            );
+
             // Build questions text from actual user answers
             const answeredQuestions = (phaseData?.questions || [])
               .filter((q: Question) => q.answer)
@@ -409,8 +461,10 @@ export const generatePhaseWorker = internalAction({
               const maxContentLength = 12000;
               const content =
                 constitutionArtifact.content.length > maxContentLength
-                  ? constitutionArtifact.content.substring(0, maxContentLength) +
-                    '\n\n[Content truncated for JSON generation...]'
+                  ? constitutionArtifact.content.substring(
+                      0,
+                      maxContentLength,
+                    ) + '\n\n[Content truncated for JSON generation...]'
                   : constitutionArtifact.content;
 
               const constitutionResult = await generateConstitution({
@@ -444,13 +498,12 @@ export const generatePhaseWorker = internalAction({
                   constitutionSuccess = true;
                 } catch (err: any) {
                   constitutionError = `Schema validation failed: ${err.message}`;
-                  console.error(
-                    '[generatePhaseWorker] Constitution schema error:',
-                    err,
+                  console.warn(
+                    '[generatePhaseWorker] Constitution schema validation failed (non-fatal):',
+                    err.message,
                   );
-                  throw new Error(
-                    `Constitution JSON generation failed structural validation: ${err.message}`,
-                  );
+                  // Non-fatal: the markdown Constitution artifact is already saved.
+                  // JSON version is a best-effort enhancement for downstream phases.
                 }
 
                 if (constitutionSuccess) {
@@ -483,17 +536,12 @@ export const generatePhaseWorker = internalAction({
           } catch (error) {
             constitutionError =
               error instanceof Error ? error.message : String(error);
-            console.error(
-              '[generatePhaseWorker] Error generating JSON Constitution:',
+            console.warn(
+              '[generatePhaseWorker] JSON Constitution generation failed (non-fatal):',
               constitutionError,
             );
-            // Re-throw if it failed validation so the phase errors out
-            if (
-              error instanceof Error &&
-              error.message.includes('validation')
-            ) {
-              throw error;
-            }
+            // Never re-throw: Constitution JSON is best-effort.
+            // The markdown artifact is already saved and the phase is complete.
           }
 
           // Store constitution generation status in artifact metadata for visibility
@@ -773,148 +821,391 @@ function extractRelevantQuestionsForSection(
   const sectionKeywords: Record<string, string[]> = {
     // Constitution sections
     'locked-constraints': [
-      'constraint', 'security', 'invariant', 'rule', 'protocol', 'strict',
-      'immutable', 'non-negotiable', 'must never', 'forbidden',
+      'constraint',
+      'security',
+      'invariant',
+      'rule',
+      'protocol',
+      'strict',
+      'immutable',
+      'non-negotiable',
+      'must never',
+      'forbidden',
     ],
     'architecture-decisions': [
-      'architecture', 'state', 'api', 'pattern', 'decision', 'system',
-      'design', 'structure', 'framework', 'approach',
+      'architecture',
+      'state',
+      'api',
+      'pattern',
+      'decision',
+      'system',
+      'design',
+      'structure',
+      'framework',
+      'approach',
     ],
     'tech-stack': [
-      'tech', 'stack', 'framework', 'database', 'language', 'tool',
-      'library', 'runtime', 'version', 'dependency', 'npm', 'package',
+      'tech',
+      'stack',
+      'framework',
+      'database',
+      'language',
+      'tool',
+      'library',
+      'runtime',
+      'version',
+      'dependency',
+      'npm',
+      'package',
     ],
     'quality-and-standards': [
-      'quality', 'standard', 'accessibility', 'performance', 'test',
-      'wcag', 'coverage', 'metric', 'compliance', 'audit',
+      'quality',
+      'standard',
+      'accessibility',
+      'performance',
+      'test',
+      'wcag',
+      'coverage',
+      'metric',
+      'compliance',
+      'audit',
     ],
 
     // Brief sections
     'problem-and-objectives': [
-      'goal', 'problem', 'objective', 'solve', 'purpose', 'aim',
-      'target', 'outcome', 'deliverable',
+      'goal',
+      'problem',
+      'objective',
+      'solve',
+      'purpose',
+      'aim',
+      'target',
+      'outcome',
+      'deliverable',
     ],
     'features-and-requirements': [
-      'feature', 'requirement', 'constraint', 'functionality', 'capability',
-      'specification', 'scope', 'include', 'support',
+      'feature',
+      'requirement',
+      'constraint',
+      'functionality',
+      'capability',
+      'specification',
+      'scope',
+      'include',
+      'support',
     ],
     'target-audience': [
-      'user', 'audience', 'customer', 'stakeholder', 'persona', 'target',
-      'demographic', 'market', 'segment',
+      'user',
+      'audience',
+      'customer',
+      'stakeholder',
+      'persona',
+      'target',
+      'demographic',
+      'market',
+      'segment',
     ],
 
     // PRD sections
     'executive-summary': [
-      'summary', 'overview', 'brief', 'high-level', 'executive', 'elevator',
+      'summary',
+      'overview',
+      'brief',
+      'high-level',
+      'executive',
+      'elevator',
     ],
     'problem-statement': [
-      'problem', 'challenge', 'pain', 'issue', 'difficulty', 'frustration',
-      'current state', 'as-is',
+      'problem',
+      'challenge',
+      'pain',
+      'issue',
+      'difficulty',
+      'frustration',
+      'current state',
+      'as-is',
     ],
     'goals-and-objectives': [
-      'goal', 'objective', 'success', 'kpi', 'metric', 'achieve',
-      'measurable', 'smart', 'outcome',
+      'goal',
+      'objective',
+      'success',
+      'kpi',
+      'metric',
+      'achieve',
+      'measurable',
+      'smart',
+      'outcome',
     ],
     'user-personas': [
-      'persona', 'user type', 'role', 'archetype', 'user story',
+      'persona',
+      'user type',
+      'role',
+      'archetype',
+      'user story',
     ],
-    'requirements': [
-      'requirement', 'functional', 'non-functional', 'must', 'should',
-      'shall', 'needs to', 'expected to',
+    requirements: [
+      'requirement',
+      'functional',
+      'non-functional',
+      'must',
+      'should',
+      'shall',
+      'needs to',
+      'expected to',
     ],
     'success-metrics': [
-      'metric', 'kpi', 'measure', 'track', 'analytics', 'indicator',
-      'success criteria', 'measurement',
+      'metric',
+      'kpi',
+      'measure',
+      'track',
+      'analytics',
+      'indicator',
+      'success criteria',
+      'measurement',
     ],
 
     // Domain Model sections
     'entity-definitions': [
-      'entity', 'model', 'domain', 'object', 'class', 'type',
-      'data structure', 'schema', 'attribute', 'field', 'property',
+      'entity',
+      'model',
+      'domain',
+      'object',
+      'class',
+      'type',
+      'data structure',
+      'schema',
+      'attribute',
+      'field',
+      'property',
     ],
     'entity-relationships': [
-      'relationship', 'relation', 'association', 'connection', 'link',
-      'reference', 'foreign key', 'cardinality', 'one-to', 'many-to',
+      'relationship',
+      'relation',
+      'association',
+      'connection',
+      'link',
+      'reference',
+      'foreign key',
+      'cardinality',
+      'one-to',
+      'many-to',
     ],
     'state-transitions': [
-      'state', 'transition', 'lifecycle', 'status', 'workflow', 'stage',
-      'process', 'flow', 'change', 'event', 'trigger',
+      'state',
+      'transition',
+      'lifecycle',
+      'status',
+      'workflow',
+      'stage',
+      'process',
+      'flow',
+      'change',
+      'event',
+      'trigger',
     ],
 
     // Specs sections
     'architecture-overview': [
-      'architecture', 'system design', 'high-level', 'component', 'module',
-      'layer', 'tier', 'service', 'microservice', 'monolith',
+      'architecture',
+      'system design',
+      'high-level',
+      'component',
+      'module',
+      'layer',
+      'tier',
+      'service',
+      'microservice',
+      'monolith',
     ],
     'data-models': [
-      'data model', 'schema', 'database', 'entity', 'table', 'collection',
-      'field', 'column', 'type', 'orm', 'prisma',
+      'data model',
+      'schema',
+      'database',
+      'entity',
+      'table',
+      'collection',
+      'field',
+      'column',
+      'type',
+      'orm',
+      'prisma',
     ],
     'api-design': [
-      'api', 'endpoint', 'rest', 'graphql', 'rpc', 'request', 'response',
-      'method', 'route', 'url', 'path', 'resource',
+      'api',
+      'endpoint',
+      'rest',
+      'graphql',
+      'rpc',
+      'request',
+      'response',
+      'method',
+      'route',
+      'url',
+      'path',
+      'resource',
     ],
     'component-architecture': [
-      'component', 'ui', 'view', 'screen', 'page', 'widget', 'element',
-      'composition', 'hierarchy', 'tree', 'parent', 'child',
+      'component',
+      'ui',
+      'view',
+      'screen',
+      'page',
+      'widget',
+      'element',
+      'composition',
+      'hierarchy',
+      'tree',
+      'parent',
+      'child',
     ],
     'security-considerations': [
-      'security', 'auth', 'authentication', 'authorization', 'permission',
-      'role', 'encrypt', 'protect', 'vulnerability', 'owasp', 'secure',
+      'security',
+      'auth',
+      'authentication',
+      'authorization',
+      'permission',
+      'role',
+      'encrypt',
+      'protect',
+      'vulnerability',
+      'owasp',
+      'secure',
     ],
     'deployment-strategy': [
-      'deploy', 'deployment', 'infrastructure', 'hosting', 'platform',
-      'vercel', 'aws', 'cloud', 'pipeline', 'ci/cd', 'production',
+      'deploy',
+      'deployment',
+      'infrastructure',
+      'hosting',
+      'platform',
+      'vercel',
+      'aws',
+      'cloud',
+      'pipeline',
+      'ci/cd',
+      'production',
     ],
 
     // Stories sections
     'epic-overview': [
-      'epic', 'theme', 'initiative', 'program', 'major feature',
+      'epic',
+      'theme',
+      'initiative',
+      'program',
+      'major feature',
     ],
     'user-stories': [
-      'story', 'as a', 'i want', 'so that', 'acceptance', 'criteria',
-      'given', 'when', 'then',
+      'story',
+      'as a',
+      'i want',
+      'so that',
+      'acceptance',
+      'criteria',
+      'given',
+      'when',
+      'then',
     ],
     'technical-tasks': [
-      'task', 'implementation', 'development', 'coding', 'build', 'create',
-      'implement', 'develop', 'program', 'write',
+      'task',
+      'implementation',
+      'development',
+      'coding',
+      'build',
+      'create',
+      'implement',
+      'develop',
+      'program',
+      'write',
     ],
     'acceptance-criteria': [
-      'acceptance', 'criteria', 'given', 'when', 'then', 'scenario',
-      'test case', 'validation', 'verify',
+      'acceptance',
+      'criteria',
+      'given',
+      'when',
+      'then',
+      'scenario',
+      'test case',
+      'validation',
+      'verify',
     ],
 
     // Artifacts sections
     'api-documentation': [
-      'documentation', 'api doc', 'swagger', 'openapi', 'reference',
+      'documentation',
+      'api doc',
+      'swagger',
+      'openapi',
+      'reference',
     ],
     'database-schema': [
-      'schema', 'database', 'erd', 'diagram', 'migration', 'ddl',
+      'schema',
+      'database',
+      'erd',
+      'diagram',
+      'migration',
+      'ddl',
     ],
     'environment-config': [
-      'environment', 'config', 'variable', 'env', 'setting', 'configuration',
-      '.env', 'secret', 'credential',
+      'environment',
+      'config',
+      'variable',
+      'env',
+      'setting',
+      'configuration',
+      '.env',
+      'secret',
+      'credential',
     ],
     'deployment-scripts': [
-      'script', 'deploy', 'automation', 'pipeline', 'github actions',
-      'dockerfile', 'kubernetes', 'k8s', 'helm',
+      'script',
+      'deploy',
+      'automation',
+      'pipeline',
+      'github actions',
+      'dockerfile',
+      'kubernetes',
+      'k8s',
+      'helm',
     ],
 
     // Handoff sections
     'project-summary': [
-      'summary', 'overview', 'introduction', 'getting started', 'about',
+      'summary',
+      'overview',
+      'introduction',
+      'getting started',
+      'about',
     ],
     'setup-guide': [
-      'setup', 'install', 'configure', 'getting started', 'prerequisite',
-      'requirement', 'dependency', 'npm install', 'clone',
+      'setup',
+      'install',
+      'configure',
+      'getting started',
+      'prerequisite',
+      'requirement',
+      'dependency',
+      'npm install',
+      'clone',
     ],
     'implementation-guide': [
-      'implementation', 'guide', 'how to', 'tutorial', 'step by step',
-      'instructions', 'procedure', 'process',
+      'implementation',
+      'guide',
+      'how to',
+      'tutorial',
+      'step by step',
+      'instructions',
+      'procedure',
+      'process',
     ],
     'next-steps': [
-      'next', 'roadmap', 'future', 'upcoming', 'planned', 'backlog',
-      'milestone', 'phase', 'iteration',
+      'next',
+      'roadmap',
+      'future',
+      'upcoming',
+      'planned',
+      'backlog',
+      'milestone',
+      'phase',
+      'iteration',
     ],
   };
 

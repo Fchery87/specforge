@@ -38,9 +38,17 @@ export class OpenAIClient implements LlmProvider {
       model: string;
       maxTokens?: number;
       temperature?: number;
+      systemPrompt?: string;
     },
   ): Promise<LlmResponse> {
     const modelConfig = OPENAI_MODELS[options.model] || OPENAI_MODELS['gpt-4o'];
+
+    const messages = options.systemPrompt
+      ? [
+          { role: 'system' as const, content: options.systemPrompt },
+          { role: 'user' as const, content: prompt },
+        ]
+      : [{ role: 'user' as const, content: prompt }];
 
     const response = await fetchWithTimeout(
       `${this.baseUrl}/chat/completions`,
@@ -52,7 +60,7 @@ export class OpenAIClient implements LlmProvider {
         },
         body: JSON.stringify({
           model: modelConfig.modelId,
-          messages: [{ role: 'user', content: prompt }],
+          messages,
           max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
           temperature: options.temperature ?? 0.7,
         }),

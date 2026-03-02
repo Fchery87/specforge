@@ -78,7 +78,7 @@ export const LLM_DEFAULTS = {
 export async function fetchWithTimeout(
   url: string,
   options: RequestInit,
-  timeoutMs: number = LLM_DEFAULTS.API_TIMEOUT_MS
+  timeoutMs: number = LLM_DEFAULTS.API_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -94,7 +94,7 @@ export async function fetchWithTimeout(
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       throw new Error(
-        `API request timed out after ${timeoutMs / 1000} seconds`
+        `API request timed out after ${timeoutMs / 1000} seconds`,
       );
     }
     throw error;
@@ -104,6 +104,11 @@ export async function fetchWithTimeout(
 /**
  * Extracts content from a choice object, handling various response formats
  * including reasoning models (GLM-4.7, DeepSeek-R1, etc.)
+ *
+ * IMPORTANT: For reasoning models, the API separates chain-of-thought
+ * (reasoning_content) from the final answer (content). We ALWAYS prefer
+ * the content field. reasoning_content is used only as a last resort
+ * and wrapped in <thinking> tags so the sanitizer can strip it.
  */
 function extractContentFromChoice(choice: RawApiChoice): string {
   // Standard OpenAI-compatible format (preferred - contains final answer)
@@ -115,14 +120,16 @@ function extractContentFromChoice(choice: RawApiChoice): string {
     return choice.message.content;
   }
 
-  // Reasoning model format (GLM-4.7, DeepSeek-R1, etc.)
-  // These models put chain-of-thought in reasoning_content and final answer in content
-  // Fall back to reasoning_content if content is empty (model may still be reasoning)
-  if (
-    choice.message?.reasoning_content &&
-    typeof choice.message.reasoning_content === 'string'
-  ) {
-    return choice.message.reasoning_content;
+  // Content as array format (multimodal responses)
+  if (Array.isArray(choice.message?.content)) {
+    const textContent = choice.message.content
+      .filter(
+        (c): c is { type: string; text: string } =>
+          c.type === 'text' && typeof c.text === 'string',
+      )
+      .map((c) => c.text)
+      .join('');
+    if (textContent.length > 0) return textContent;
   }
 
   // Delta format (sometimes used even in non-streaming responses)
@@ -135,25 +142,34 @@ function extractContentFromChoice(choice: RawApiChoice): string {
     return choice.text;
   }
 
-  // Content as array format (multimodal responses)
-  if (Array.isArray(choice.message?.content)) {
-    return choice.message.content
-      .filter(
-        (c): c is { type: string; text: string } =>
-          c.type === 'text' && typeof c.text === 'string'
-      )
-      .map((c) => c.text)
-      .join('');
-  }
-
   // Dynamic field discovery - try to find any string content in the message object
+  // but explicitly skip reasoning_content to avoid CoT leakage
   if (choice.message) {
     for (const key of Object.keys(choice.message)) {
       const value = choice.message[key];
-      if (typeof value === 'string' && value.length > 0 && key !== 'role') {
+      if (
+        typeof value === 'string' &&
+        value.length > 0 &&
+        key !== 'role' &&
+        key !== 'reasoning_content'
+      ) {
         return value;
       }
     }
+  }
+
+  // LAST RESORT: Reasoning model format (GLM-4.7, DeepSeek-R1, etc.)
+  // These models put chain-of-thought in reasoning_content and final answer in content.
+  // If we reach here, content was empty — the model only returned reasoning.
+  // Wrap in <thinking> tags so sanitizeGeneratedContent WILL strip it.
+  if (
+    choice.message?.reasoning_content &&
+    typeof choice.message.reasoning_content === 'string'
+  ) {
+    console.warn(
+      '[extractContentFromChoice] No content field found, using reasoning_content as fallback. This will be sanitized.',
+    );
+    return `<thinking>${choice.message.reasoning_content}</thinking>`;
   }
 
   return '';
@@ -168,7 +184,7 @@ function extractContentFromChoice(choice: RawApiChoice): string {
  * - Any future OpenAI-compatible providers
  */
 export function normalizeOpenAIResponse(
-  data: RawApiResponse
+  data: RawApiResponse,
 ): NormalizedResponse {
   let content = '';
   let finishReason: string | undefined;
@@ -194,7 +210,7 @@ export function normalizeOpenAIResponse(
  * Anthropic uses a different response structure with content arrays.
  */
 export function normalizeAnthropicResponse(
-  data: RawApiResponse
+  data: RawApiResponse,
 ): NormalizedResponse {
   let content = '';
 
@@ -203,7 +219,7 @@ export function normalizeAnthropicResponse(
     content = data.content
       .filter(
         (block): block is { type: string; text: string } =>
-          block.type === 'text' && typeof block.text === 'string'
+          block.type === 'text' && typeof block.text === 'string',
       )
       .map((block) => block.text)
       .join('');

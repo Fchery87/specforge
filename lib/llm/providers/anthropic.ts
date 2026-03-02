@@ -43,10 +43,22 @@ export class AnthropicClient implements LlmProvider {
       model: string;
       maxTokens?: number;
       temperature?: number;
+      systemPrompt?: string;
     },
   ): Promise<LlmResponse> {
     const modelConfig =
       ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS['claude-sonnet-4-5'];
+
+    // Anthropic uses a top-level 'system' field, not a system message in the array
+    const body: Record<string, unknown> = {
+      model: modelConfig.modelId,
+      max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
+      temperature: options.temperature ?? 0.7,
+      messages: [{ role: 'user', content: prompt }],
+    };
+    if (options.systemPrompt) {
+      body.system = options.systemPrompt;
+    }
 
     const response = await fetchWithTimeout(`${this.baseUrl}/messages`, {
       method: 'POST',
@@ -55,12 +67,7 @@ export class AnthropicClient implements LlmProvider {
         'x-api-key': this.apiKey,
         'anthropic-version': '2023-06-01',
       },
-      body: JSON.stringify({
-        model: modelConfig.modelId,
-        max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
-        temperature: options.temperature ?? 0.7,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

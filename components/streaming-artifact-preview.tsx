@@ -2,7 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Loader2, Square } from "lucide-react";
 
 type StreamStatus = "idle" | "streaming" | "paused" | "complete" | "cancelled";
 
@@ -13,6 +15,8 @@ export function StreamingArtifactPreview(props: {
   currentSection?: string;
   sectionsCompleted?: number;
   sectionsTotal?: number;
+  onCancel?: () => void;
+  isCancelling?: boolean;
 }) {
   const {
     title,
@@ -21,7 +25,11 @@ export function StreamingArtifactPreview(props: {
     currentSection,
     sectionsCompleted,
     sectionsTotal,
+    onCancel,
+    isCancelling,
   } = props;
+
+  const isLive = streamStatus === "streaming";
 
   const statusLabel =
     streamStatus === "streaming"
@@ -49,18 +57,36 @@ export function StreamingArtifactPreview(props: {
                 </div>
               )}
           </div>
-          {statusLabel && (
-            <Badge
-              variant="outline"
-              className={cn(
-                statusLabel === "Live" && "border-border text-white/90",
-                statusLabel === "Paused" && "border-border text-white/90",
-                statusLabel === "Cancelled" && "border-border text-white/80"
-              )}
-            >
-              {statusLabel}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {isLive && onCancel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+                disabled={isCancelling}
+                className="h-7 gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                {isCancelling ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Square className="w-3 h-3" />
+                )}
+                {isCancelling ? "Stopping…" : "Stop"}
+              </Button>
+            )}
+            {statusLabel && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  statusLabel === "Live" && "border-border text-white/90",
+                  statusLabel === "Paused" && "border-border text-white/90",
+                  statusLabel === "Cancelled" && "border-border text-white/80"
+                )}
+              >
+                {statusLabel}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0">

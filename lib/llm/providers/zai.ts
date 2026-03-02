@@ -95,9 +95,17 @@ export class ZAIClient implements LlmProvider {
       model: string;
       maxTokens?: number;
       temperature?: number;
+      systemPrompt?: string;
     },
   ): Promise<LlmResponse> {
     const modelConfig = ZAI_MODELS[options.model] || ZAI_MODELS['glm-4.5'];
+
+    const messages = options.systemPrompt
+      ? [
+          { role: 'system' as const, content: options.systemPrompt },
+          { role: 'user' as const, content: prompt },
+        ]
+      : [{ role: 'user' as const, content: prompt }];
 
     const response = await fetchWithTimeout(
       `${this.baseUrl}/chat/completions`,
@@ -109,7 +117,7 @@ export class ZAIClient implements LlmProvider {
         },
         body: JSON.stringify({
           model: modelConfig.modelId,
-          messages: [{ role: 'user', content: prompt }],
+          messages,
           max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
           temperature: options.temperature ?? 0.6,
         }),

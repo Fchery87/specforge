@@ -373,6 +373,8 @@ export default function PhasePage() {
                       currentSection={(streamingArtifact as any)?.currentSection}
                       sectionsCompleted={(streamingArtifact as any)?.sectionsCompleted}
                       sectionsTotal={(streamingArtifact as any)?.sectionsTotal}
+                      onCancel={handleCancelGeneration}
+                      isCancelling={isCancelling}
                     />
                   </div>
                 )}

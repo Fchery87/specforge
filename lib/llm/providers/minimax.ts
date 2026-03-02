@@ -48,10 +48,18 @@ export class MinimaxClient implements LlmProvider {
       model: string;
       maxTokens?: number;
       temperature?: number;
+      systemPrompt?: string;
     },
   ): Promise<LlmResponse> {
     const modelConfig =
       MINIMAX_MODELS[options.model] || MINIMAX_MODELS['minimax-m2'];
+
+    const messages = options.systemPrompt
+      ? [
+          { role: 'system' as const, content: options.systemPrompt },
+          { role: 'user' as const, content: prompt },
+        ]
+      : [{ role: 'user' as const, content: prompt }];
 
     const response = await fetchWithTimeout(
       `${this.baseUrl}/chat/completions`,
@@ -63,7 +71,7 @@ export class MinimaxClient implements LlmProvider {
         },
         body: JSON.stringify({
           model: modelConfig.modelId,
-          messages: [{ role: 'user', content: prompt }],
+          messages,
           max_tokens:
             options.maxTokens ?? Math.min(modelConfig.maxOutputTokens, 4096),
           temperature: options.temperature ?? 0.7,
