@@ -3,6 +3,7 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { getNextUpdatedAt } from './projects';
 import { renderPreviewHtml } from '../lib/markdown-render';
+import { getAffectedPhases } from '../lib/specification/dependency-graph';
 
 /**
  * Maps phaseId to artifact type for database storage
@@ -181,8 +182,6 @@ export const updatePhaseStatus = internalMutation({
 
       // When a phase becomes ready, propagate staleness to downstream phases
       if (args.status === 'ready') {
-        const { getAffectedPhases } =
-          await import('../lib/specification/dependency-graph');
         const affectedPhases = getAffectedPhases(args.phaseId);
 
         for (const phaseId of affectedPhases) {
@@ -193,7 +192,9 @@ export const updatePhaseStatus = internalMutation({
             .first();
 
           if (downstreamPhase) {
-            const upstreamChanges = downstreamPhase.upstreamChanges || [];
+            const upstreamChanges = [
+              ...(downstreamPhase.upstreamChanges || []),
+            ];
             if (!upstreamChanges.includes(args.phaseId)) {
               upstreamChanges.push(args.phaseId);
             }
