@@ -68,10 +68,9 @@ describe("QuestionsPanel suggestion chips", () => {
       />
     );
     fireEvent.click(screen.getByText("Option A"));
-    // The chip button should be gone (text only appears in textarea now, not as a button)
-    const chipButtons = screen.queryAllByRole("button");
-    const hasChip = chipButtons.some(btn => btn.className.includes("px-3 py-1 text-xs border") && btn.textContent === "Option A");
-    expect(hasChip).toBe(false);
+    // After clicking, the chip button should no longer be in the document
+    // (the text moves into the textarea value, but no chip button remains)
+    expect(screen.queryByRole("button", { name: "Option A" })).not.toBeInTheDocument();
   });
 
   test("no chips rendered when suggestions array is empty", () => {
@@ -82,10 +81,12 @@ describe("QuestionsPanel suggestion chips", () => {
         questions={[baseQuestion]}
       />
     );
-    // Should not have any chip-looking buttons besides the AI suggest button
-    const chipButtons = screen.queryAllByRole("button");
-    // None of them should have chip-like text
-    const hasChip = chipButtons.some(btn => btn.className.includes("px-3 py-1 text-xs border"));
-    expect(hasChip).toBe(false);
+    // Textarea renders normally
+    expect(screen.getByPlaceholderText("Enter your answer...")).toBeInTheDocument();
+    // No chips (there are no suggestions on this question)
+    // The only buttons should be the standard UI buttons (AI suggest, batch, regenerate)
+    // None should have suggestion text
+    const allButtons = screen.getAllByRole("button");
+    expect(allButtons.every(btn => !["Monolith", "Microservices", "Option A", "Option B"].includes(btn.textContent ?? ""))).toBe(true);
   });
 });

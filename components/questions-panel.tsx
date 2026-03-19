@@ -445,7 +445,7 @@ export function QuestionsPanel({
                       <div className="flex flex-wrap gap-2 mt-2">
                         {questionSuggestions[question.id].map((suggestion, chipIdx) => (
                           <button
-                            key={chipIdx}
+                            key={`${suggestion}-${chipIdx}`}
                             type="button"
                             onClick={() => handleSuggestionSelect(question.id, suggestion)}
                             className="inline-flex items-center px-3 py-1 text-xs border border-border bg-secondary/40 hover:bg-secondary/70 transition-colors cursor-pointer"
