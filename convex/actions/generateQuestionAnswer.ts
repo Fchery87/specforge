@@ -39,7 +39,7 @@ export const generateQuestionAnswer = action({
   handler: async (
     ctx: ActionCtx,
     args
-  ): Promise<{ suggestedAnswer: string; suggestions?: string[] }> => {
+  ): Promise<{ suggestedAnswer: string; suggestions: string[] }> => {
     // Verify user owns project
     const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
       projectId: args.projectId,
@@ -221,13 +221,12 @@ async function generateAnswer(params: {
       'No LLM client available. Please configure your API credentials in settings.'
     );
   }
-  const llmClient = params.llmClient;
 
   try {
     const startedAt = Date.now();
     const response = await retryWithBackoff(
       () =>
-        llmClient.complete(params.prompt, {
+        params.llmClient!.complete(params.prompt, {
           model: params.model.id,
           maxTokens: Math.min(params.model.maxOutputTokens || 2000, 2000),
           temperature: 0.7,

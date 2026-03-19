@@ -25,6 +25,7 @@ describe('parseSuggestionsResponse', () => {
     const raw = JSON.stringify({ suggestions: ['Option A', 'Option B'] });
     const result = parseSuggestionsResponse(raw);
     // falls back to full raw text
+    expect(result.suggestedAnswer).toContain('"suggestions"');
     expect(result.suggestions).toEqual([]);
   });
 
@@ -83,5 +84,20 @@ describe('selectQuestions', () => {
     const result = selectQuestions(ai, base, { min: 3, max: 8 });
     expect(result.aiGenerated).toBe(false);
     expect(result.questions[0].text).toBe('Base Q0');
+  });
+});
+
+describe('normalizeQuestions', () => {
+  test('filters out questions with empty text', () => {
+    const questions = [{ text: 'Valid question' }, { text: '' }, { text: '  ' }, { text: 'Another valid' }];
+    const result = normalizeQuestions(questions, 'brief', { min: 1, max: 10 });
+    expect(result).toHaveLength(2);
+    expect(result[0].text).toBe('Valid question');
+  });
+
+  test('slices to range.max', () => {
+    const questions = Array.from({ length: 10 }, (_, i) => ({ text: `Q${i}` }));
+    const result = normalizeQuestions(questions, 'brief', { min: 3, max: 5 });
+    expect(result).toHaveLength(5);
   });
 });
