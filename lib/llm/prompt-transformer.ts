@@ -1,6 +1,8 @@
 import type { LlmSectionRequest } from './types';
 import { getCapabilities, type PromptCapabilities } from './provider-capabilities';
 
+const MERMAID_GUIDELINE = '- Use Mermaid diagrams (```mermaid fences) to visualize architectures, flows, and relationships where helpful';
+
 /**
  * Transforms a generic LlmSectionRequest into provider-optimized prompts.
  * Uses capability-based system for deep model agnosticism.
@@ -81,6 +83,7 @@ ${sectionInstStr}
 - Include code examples where appropriate
 - Maintain consistent style throughout
 - Focus on actionable, technical content
+${MERMAID_GUIDELINE}
 </guidelines>`;
   }
 
@@ -100,7 +103,8 @@ ${sectionInstStr}
 - Be thorough and detailed
 - Include code examples where appropriate
 - Maintain consistent style throughout
-- Focus on actionable, technical content`;
+- Focus on actionable, technical content
+${MERMAID_GUIDELINE}`;
   }
 
   // Default format
@@ -118,7 +122,8 @@ Guidelines:
 - Be thorough and detailed
 - Include code examples where appropriate
 - Maintain consistent style throughout
-- Focus on actionable, technical content`;
+- Focus on actionable, technical content
+${MERMAID_GUIDELINE}`;
 }
 
 interface UserPromptParams {
