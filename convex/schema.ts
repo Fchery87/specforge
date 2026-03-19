@@ -32,6 +32,9 @@ export default defineSchema({
         answer: v.optional(v.string()),
         aiGenerated: v.boolean(),
         required: v.optional(v.boolean()),
+        // AI-generated selectable suggestion options
+        suggestions: v.optional(v.array(v.string())),
+        selectedSuggestionIndex: v.optional(v.number()),
       }),
     ),
     // Staleness tracking for dependency graph

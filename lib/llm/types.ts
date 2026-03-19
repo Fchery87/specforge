@@ -182,3 +182,16 @@ export interface SectionPlanWithPreferences {
  * Section plans organized by phase
  */
 export type SectionPlansByPhase = Record<string, SectionPlanConfig[]>;
+
+/**
+ * Extended question with AI-generated suggestion options
+ */
+export interface QuestionWithSuggestions {
+  id: string;
+  text: string;
+  answer?: string;
+  aiGenerated: boolean;
+  required?: boolean;
+  suggestions?: string[];
+  selectedSuggestionIndex?: number;
+}
