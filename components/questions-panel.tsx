@@ -21,6 +21,8 @@ type Question = {
   answer?: string;
   aiGenerated: boolean;
   required?: boolean;
+  suggestions?: string[];
+  selectedSuggestionIndex?: number;
 };
 
 interface QuestionsPanelProps {
@@ -69,6 +71,7 @@ export function QuestionsPanel({
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [aiGeneratingId, setAiGeneratingId] = useState<string | null>(null);
+  const [questionSuggestions, setQuestionSuggestions] = useState<Record<string, string[]>>({});
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isBatchStarting, setIsBatchStarting] = useState(false);
   const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
@@ -92,12 +95,15 @@ export function QuestionsPanel({
   useEffect(() => {
     const initial: Record<string, string> = {};
     const initialAi: Record<string, boolean> = {};
+    const initialSuggestions: Record<string, string[]> = {};
     questions.forEach(q => {
       if (q.answer) initial[q.id] = q.answer;
       if (q.aiGenerated !== undefined) initialAi[q.id] = q.aiGenerated;
+      if (q.suggestions?.length) initialSuggestions[q.id] = q.suggestions;
     });
     setLocalAnswers(initial);
     setLocalAiGenerated(initialAi);
+    setQuestionSuggestions(initialSuggestions);
   }, [questions]);
 
   useEffect(() => {
@@ -216,6 +222,13 @@ export function QuestionsPanel({
       });
       setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
 
+      // Store suggestions for chip display
+      if (result.suggestions && result.suggestions.length > 0) {
+        setQuestionSuggestions(prev => ({ ...prev, [questionId]: result.suggestions }));
+      } else {
+        setQuestionSuggestions(prev => ({ ...prev, [questionId]: [] }));
+      }
+
       pendingSaveRef.current[questionId] = result.suggestedAnswer;
       pendingAiGeneratedRef.current[questionId] = true;
       const doneToast = getToastMessage("ai_answer_done");
@@ -223,9 +236,9 @@ export function QuestionsPanel({
         id: toastId,
         description: doneToast.description,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to generate AI answer:", error);
-      setErrorMessage(error.message || "Failed to generate AI answer. Please try again.");
+      setErrorMessage((error as Error).message || "Failed to generate AI answer. Please try again.");
       const errorToast = getToastMessage("ai_answer_error");
       toast.error(errorToast.title, {
         id: toastId,
@@ -234,6 +247,14 @@ export function QuestionsPanel({
     } finally {
       setAiGeneratingId(null);
     }
+  }
+
+  function handleSuggestionSelect(questionId: string, suggestion: string) {
+    setLocalAnswers(prev => ({ ...prev, [questionId]: suggestion }));
+    setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
+    setQuestionSuggestions(prev => ({ ...prev, [questionId]: [] }));
+    pendingSaveRef.current[questionId] = suggestion;
+    pendingAiGeneratedRef.current[questionId] = true;
   }
 
   async function handleBatchAiGenerate() {
@@ -420,6 +441,20 @@ export function QuestionsPanel({
                         {charCount.toLocaleString()}/{maxLength.toLocaleString()}
                       </span>
                     </div>
+                    {questionSuggestions[question.id]?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {questionSuggestions[question.id].map((suggestion, chipIdx) => (
+                          <button
+                            key={chipIdx}
+                            type="button"
+                            onClick={() => handleSuggestionSelect(question.id, suggestion)}
+                            className="inline-flex items-center px-3 py-1 text-xs border border-border bg-secondary/40 hover:bg-secondary/70 transition-colors cursor-pointer"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
