@@ -39,7 +39,7 @@ export const generateQuestionAnswer = action({
   handler: async (
     ctx: ActionCtx,
     args
-  ): Promise<{ suggestedAnswer: string }> => {
+  ): Promise<{ suggestedAnswer: string; suggestions?: string[] }> => {
     // Verify user owns project
     const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
       projectId: args.projectId,
@@ -162,13 +162,13 @@ export const generateQuestionAnswer = action({
 
     // Generate answer using LLM with dynamic API endpoint
     const llmClient = createLlmClient(credentials, providerApiEndpoint);
-    const suggestedAnswer = await generateAnswer({
+    const { suggestedAnswer, suggestions } = await generateAnswer({
       prompt,
       model,
       llmClient,
     });
 
-    return { suggestedAnswer };
+    return { suggestedAnswer, suggestions };
   },
 });
 
@@ -183,18 +183,39 @@ function buildQuestionPrompt(params: {
 Project Title: ${params.projectTitle}
 Project Description: ${params.projectDescription}
 
-${params.previousQuestions ? `Previous answers:\n${params.previousQuestions}\n\n` : ''}
+${params.previousQuestions ? `Previous answers:\n${params.previousQuestions}\n\n` : ''}Question: ${params.questionText}
 
-Question: ${params.questionText}
+Respond ONLY with valid JSON in this exact shape:
+{
+  "suggestedAnswer": "<full answer, clear and specific>",
+  "suggestions": ["<option 1, 5-15 words>", "<option 2>", "<option 3>", "<option 4>"]
+}
+Provide 3-5 concise selectable options in "suggestions". No explanation outside the JSON.`;
+}
 
-Provide a clear, concise answer based on the project context. Be specific and actionable.`;
+export function parseSuggestionsResponse(raw: string): { suggestedAnswer: string; suggestions: string[] } {
+  const fallback = { suggestedAnswer: raw.trim(), suggestions: [] };
+  try {
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start < 0 || end <= start) return fallback;
+    const parsed = JSON.parse(raw.slice(start, end + 1));
+    const suggestedAnswer = typeof parsed.suggestedAnswer === 'string' ? parsed.suggestedAnswer.trim() : '';
+    const suggestions = Array.isArray(parsed.suggestions)
+      ? parsed.suggestions.filter((s: unknown): s is string => typeof s === 'string' && s.trim().length > 0).slice(0, 5)
+      : [];
+    if (!suggestedAnswer) return fallback;
+    return { suggestedAnswer, suggestions };
+  } catch {
+    return fallback;
+  }
 }
 
 async function generateAnswer(params: {
   prompt: string;
   model: LlmModel;
   llmClient: ReturnType<typeof createLlmClient>;
-}): Promise<string> {
+}): Promise<{ suggestedAnswer: string; suggestions: string[] }> {
   if (!params.llmClient) {
     throw new Error(
       'No LLM client available. Please configure your API credentials in settings.'
@@ -226,17 +247,16 @@ async function generateAnswer(params: {
       },
     });
 
-    return response.content.trim();
-  } catch (error: any) {
+    return parseSuggestionsResponse(response.content);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     logTelemetry('warn', {
       provider: params.model.provider,
       model: params.model.id,
       success: false,
-      error: error?.message ?? 'Unknown error',
+      error: message,
     });
     console.error('LLM API error:', error);
-    throw new Error(
-      `Failed to generate answer: ${error.message || 'Unknown error'}`
-    );
+    throw new Error(`Failed to generate answer: ${message}`);
   }
 }
