@@ -1,4 +1,5 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
+import * as providerCapabilities from '../llm/provider-capabilities';
 import { buildTransformedPrompts } from '../llm/prompt-transformer';
 import type { LlmSectionRequest } from '../llm/types';
 
@@ -22,10 +23,20 @@ describe('buildTransformedPrompts mermaid guideline', () => {
   test('markdown format system prompt includes mermaid guideline', () => {
     const { systemPrompt } = buildTransformedPrompts(baseRequest, 'openai');
     expect(systemPrompt).toContain('Mermaid');
+    expect(systemPrompt).toContain('```mermaid');
   });
 
-  test('default format system prompt includes mermaid guideline', () => {
-    const { systemPrompt } = buildTransformedPrompts(baseRequest, 'deepseek');
+  test('default format (plain capabilities) system prompt includes mermaid guideline', () => {
+    vi.spyOn(providerCapabilities, 'getCapabilities').mockReturnValueOnce({
+      supportsXmlTags: false,
+      contextFormat: 'plaintext',
+      prefersMarkdownStructure: false,
+      supportsSystemRole: true,
+      supportsChainOfThought: false,
+      maxSystemPromptTokens: 4096,
+    });
+    const { systemPrompt } = buildTransformedPrompts(baseRequest, 'any-provider');
     expect(systemPrompt).toContain('Mermaid');
+    expect(systemPrompt).toContain('```mermaid');
   });
 });
