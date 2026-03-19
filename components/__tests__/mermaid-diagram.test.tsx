@@ -41,9 +41,8 @@ describe("MermaidDiagram", () => {
     });
   });
 
-  test("renders nothing for empty chart string", () => {
+  test("shows loading state for empty chart string", () => {
     render(<MermaidDiagram chart="" />);
-    // Neither loading nor error — empty chart, effect exits early
     expect(screen.queryByText("Rendering diagram…")).toBeInTheDocument();
   });
 

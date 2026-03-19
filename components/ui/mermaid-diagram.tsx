@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface MermaidDiagramProps {
@@ -11,7 +11,6 @@ interface MermaidDiagramProps {
 let mermaidInitialized = false;
 
 export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [svg, setSvg] = useState<string | null>(null);
 
@@ -54,7 +53,10 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
 
   if (error) {
     return (
-      <div className={cn("p-3 border border-destructive/30 bg-destructive/10 text-sm text-destructive font-mono", className)}>
+      <div
+        role="alert"
+        className={cn("p-3 border border-destructive/30 bg-destructive/10 text-sm text-destructive font-mono", className)}
+      >
         <p className="font-semibold mb-1">Diagram error</p>
         <p className="text-xs opacity-80">{error}</p>
       </div>
@@ -63,7 +65,10 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
 
   if (!svg) {
     return (
-      <div className={cn("flex items-center justify-center h-24 text-sm text-muted-foreground border border-border/50 bg-secondary/20", className)}>
+      <div
+        aria-live="polite"
+        className={cn("flex items-center justify-center h-24 text-sm text-muted-foreground border border-border/50 bg-secondary/20", className)}
+      >
         Rendering diagram…
       </div>
     );
@@ -71,7 +76,6 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
 
   return (
     <div
-      ref={containerRef}
       className={cn("mermaid-diagram overflow-auto", className)}
       dangerouslySetInnerHTML={{ __html: svg }}
     />
