@@ -20,10 +20,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
-import { Loader2, Download, Archive, ArrowLeft, Sparkles, FileText, Layers, Code, Package } from "lucide-react";
+import { Loader2, Download, Archive, Sparkles, FileText, Layers, Code, Package } from "lucide-react";
 import { toast } from "sonner";
 import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 import { PhaseSwitcher } from "@/components/phase-switcher";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
   constitution: { label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
@@ -290,13 +291,13 @@ export default function PhasePage() {
       {/* Back Navigation */}
       <div className="page-container py-6 relative z-10">
         <div className="flex items-center gap-4">
-          <Link
-            href={`/project/${projectId}`}
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Project
-          </Link>
+          <Breadcrumbs
+            items={[
+              { label: "Dashboard", href: "/dashboard" },
+              { label: project?.title ?? "Project", href: `/project/${projectId}` },
+              { label: phaseConfig.label },
+            ]}
+          />
           {phases && (
             <PhaseSwitcher
               currentPhaseId={phaseId}

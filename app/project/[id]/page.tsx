@@ -8,7 +8,8 @@ import { api } from "@/convex/_generated/api";
 import { PhaseStepper } from "@/components/phase-stepper";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { ProjectPhaseCard } from "@/components/project-phase-card";
-import { ArrowLeft, Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
+import { Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
 const PHASES = [
   { id: "constitution", label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
@@ -80,13 +81,12 @@ export default function ProjectPage() {
 
       {/* Back Navigation */}
       <div className="page-container py-6 relative z-10">
-        <Link 
-          href="/dashboard" 
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </Link>
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: project?.title ?? "Project" },
+          ]}
+        />
       </div>
 
       {/* Project Header */}
