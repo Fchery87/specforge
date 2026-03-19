@@ -1,17 +1,26 @@
 import { describe, test, expect } from 'vitest';
+import type { QuestionWithSuggestions } from '../../lib/llm/types';
 
 describe('Question with suggestions schema', () => {
   test('question object supports suggestions array', () => {
-    const question = {
+    const question: QuestionWithSuggestions = {
       id: 'q1',
       text: 'What architecture pattern?',
-      answer: undefined,
       aiGenerated: false,
       required: true,
       suggestions: ['Monolith', 'Microservices', 'Serverless', 'Modular Monolith'],
-      selectedSuggestionIndex: undefined,
     };
     expect(question.suggestions).toHaveLength(4);
+    expect(question.selectedSuggestionIndex).toBeUndefined();
+  });
+
+  test('question without suggestions is valid', () => {
+    const question: QuestionWithSuggestions = {
+      id: 'q2',
+      text: 'What is your timeline?',
+      aiGenerated: false,
+    };
+    expect(question.suggestions).toBeUndefined();
     expect(question.selectedSuggestionIndex).toBeUndefined();
   });
 });
