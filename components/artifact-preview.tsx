@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Loader2, Trash2, Edit, Download, ChevronDown, ChevronUp, FileText, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MermaidAwareContent } from "@/components/ui/mermaid-aware-content";
 
 type CritiqueResult = {
   passes: boolean;
@@ -179,10 +180,9 @@ export function ArtifactPreview({ artifact, onDelete, onEdit }: ArtifactPreviewP
               <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 Preview
               </h4>
-              <div
-                className="prose prose-invert max-w-none text-sm p-4 bg-secondary/30 border border-border max-h-64 overflow-y-auto"
-                dangerouslySetInnerHTML={{ __html: artifact.previewHtml || "" }}
-              />
+              <div className="p-4 bg-secondary/30 border border-border max-h-64 overflow-y-auto">
+                <MermaidAwareContent markdown={artifact.content} />
+              </div>
             </div>
 
             {/* Actions */}
