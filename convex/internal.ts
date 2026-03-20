@@ -229,6 +229,16 @@ export const getProjectInternal = internalQuery({
   },
 });
 
+export const getProjectPhasesInternal = internalQuery({
+  args: { projectId: v.id('projects') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect();
+  },
+});
+
 export const getPhaseArtifactsInternal = internalQuery({
   args: { projectId: v.id('projects') },
   handler: async (ctx, args) => {

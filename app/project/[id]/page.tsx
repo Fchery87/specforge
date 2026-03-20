@@ -1,16 +1,18 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PhaseStepper } from "@/components/phase-stepper";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { ProjectPhaseCard } from "@/components/project-phase-card";
 import { Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { toast } from "sonner";
 
 const PHASES = [
   { id: "constitution", label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
@@ -27,6 +29,10 @@ export default function ProjectPage() {
   const params = useParams<{ id: string }>();
   const { isLoaded, isSignedIn } = useAuth();
   const toggleSkip = useMutation(api.projects.toggleSkipPhase);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const generateAllAction = (api as any)['actions/generateAllPhases']?.generateAllPhases as any;
+  const generateAll = useAction(generateAllAction);
 
   const project = useQuery(
     api.projects.getProject,
@@ -83,6 +89,22 @@ export default function ProjectPage() {
     ])
   );
 
+  const hasPendingPhases = [...phaseStatusMap.values()].some(
+    s => s === 'pending'
+  ) || PHASES.some(p => !skippedPhases.includes(p.id) && !phaseStatusMap.has(p.id));
+
+  async function handleGenerateAll() {
+    setIsGeneratingAll(true);
+    try {
+      const result = await generateAll({ projectId: params.id as Id<"projects"> });
+      toast.success(`Scheduled ${result.scheduled} phase${result.scheduled === 1 ? '' : 's'} for generation`);
+    } catch {
+      toast.error('Failed to schedule generation');
+    } finally {
+      setIsGeneratingAll(false);
+    }
+  }
+
   return (
     <main className="relative min-h-[calc(100vh-5rem)]">
       {/* Grid Background */}
@@ -129,9 +151,20 @@ export default function ProjectPage() {
 
       {/* Phase Cards */}
       <section className="page-container page-section border-t-2 border-border relative z-10">
-        <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-8">
-          Workflow Phases
-        </h2>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+            Workflow Phases
+          </h2>
+          {/* Generate All button */}
+          <Button
+            onClick={handleGenerateAll}
+            disabled={isGeneratingAll || !hasPendingPhases}
+            className="gap-2"
+          >
+            {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            Generate All Phases
+          </Button>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {PHASES.map((phase, idx) => (
             <ProjectPhaseCard

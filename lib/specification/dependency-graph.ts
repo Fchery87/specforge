@@ -118,6 +118,37 @@ export function validateDependencyGraph(): { valid: boolean; cycles: string[][] 
 }
 
 /**
+ * Returns phases grouped into batches that can run in parallel.
+ * Each batch contains phases whose dependencies are all in earlier batches.
+ * Skipped phases are treated as resolved so they don't block downstream phases.
+ */
+export function getParallelBatches(skippedPhases: string[] = []): string[][] {
+  const remaining = new Set(
+    Object.keys(PHASE_DEPENDENCIES).filter(p => !skippedPhases.includes(p))
+  );
+  const resolved = new Set(skippedPhases);
+  const batches: string[][] = [];
+
+  while (remaining.size > 0) {
+    const batch: string[] = [];
+    for (const phase of remaining) {
+      const deps = PHASE_DEPENDENCIES[phase] || [];
+      if (deps.every(d => resolved.has(d))) {
+        batch.push(phase);
+      }
+    }
+    if (batch.length === 0) break; // Safety: prevent infinite loop
+    batch.forEach(p => {
+      remaining.delete(p);
+      resolved.add(p);
+    });
+    batches.push(batch);
+  }
+
+  return batches;
+}
+
+/**
  * Checks if a phase is downstream of another phase.
  */
 export function isDownstreamOf(phase: string, potentialUpstream: string): boolean {
