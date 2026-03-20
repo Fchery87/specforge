@@ -17,6 +17,7 @@ interface SectionPlanPreviewProps {
   sectionPlans: SectionPlanConfig[];
   onGenerate: (preferences: UserSectionPreference[]) => void;
   isGenerating?: boolean;
+  isLoadingPlan?: boolean;
   initialPreferences?: UserSectionPreference[];
 }
 
@@ -26,6 +27,7 @@ export function SectionPlanPreview({
   sectionPlans,
   onGenerate,
   isGenerating = false,
+  isLoadingPlan = false,
   initialPreferences,
 }: SectionPlanPreviewProps) {
   // Initialize preferences
@@ -125,6 +127,19 @@ export function SectionPlanPreview({
         return "📝";
     }
   };
+
+  if (isLoadingPlan) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-8 flex flex-col items-center justify-center gap-4">
+            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Generating section plan...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

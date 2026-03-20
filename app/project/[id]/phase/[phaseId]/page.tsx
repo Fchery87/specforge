@@ -74,7 +74,14 @@ export default function PhasePage() {
   // Interactive section planning state (Phase 4 P2)
   const [showSectionPlan, setShowSectionPlan] = useState(false);
   const [sectionPreferences, setSectionPreferences] = useState<UserSectionPreference[]>([]);
-  const sectionPlans = getSectionPlansForPhase(phaseId);
+  const staticSectionPlans = getSectionPlansForPhase(phaseId);
+  // AI-generated section plans (Task 16)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const generateSectionPlanAction = (api as any)["actions/generateSectionPlan"]?.generateSectionPlan as any;
+  const generateSectionPlanFn = useAction(generateSectionPlanAction);
+  const [aiSectionPlans, setAiSectionPlans] = useState<typeof staticSectionPlans | null>(null);
+  const [isLoadingAiPlan, setIsLoadingAiPlan] = useState(false);
+  const sectionPlans = aiSectionPlans ?? staticSectionPlans;
   
   const phaseToastIdRef = useRef<string | number | null>(null);
   const phaseStatusRef = useRef<string | null>(null);
@@ -102,6 +109,29 @@ export default function PhasePage() {
 
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
+
+  // Handle AI plan generation (Task 16)
+  async function handleGenerateAiPlan() {
+    if (!projectId || !phaseId) return;
+    setIsLoadingAiPlan(true);
+    try {
+      const result = await generateSectionPlanFn({
+        projectId: projectId as any,
+        phaseId,
+      });
+      if (result?.sectionPlan?.length) {
+        // Map GeneratedSectionPlan to SectionPlanConfig shape
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setAiSectionPlans(result.sectionPlan as any);
+      }
+    } catch {
+      toast.error("Failed to generate AI plan", {
+        description: "Using default section plan instead.",
+      });
+    } finally {
+      setIsLoadingAiPlan(false);
+    }
+  }
 
   // Handle initiate generation (shows section plan preview first)
   function handleInitiateGenerate() {
@@ -346,13 +376,29 @@ export default function PhasePage() {
               Clarifications
             </h2>
             {showSectionPlan ? (
-              <SectionPlanPreview
-                phaseId={phaseId}
-                phaseName={phaseConfig.label}
-                sectionPlans={sectionPlans}
-                onGenerate={handleGenerateWithPreferences}
-                isGenerating={isGenerating}
-              />
+              <div className="space-y-4">
+                {!aiSectionPlans && !isLoadingAiPlan && (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateAiPlan}
+                      disabled={isGenerating}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate Plan with AI
+                    </Button>
+                  </div>
+                )}
+                <SectionPlanPreview
+                  phaseId={phaseId}
+                  phaseName={phaseConfig.label}
+                  sectionPlans={sectionPlans}
+                  onGenerate={handleGenerateWithPreferences}
+                  isGenerating={isGenerating}
+                  isLoadingPlan={isLoadingAiPlan}
+                />
+              </div>
             ) : (
               <QuestionsPanel
                 projectId={projectId}

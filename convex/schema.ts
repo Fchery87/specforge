@@ -244,6 +244,21 @@ export default defineSchema({
     }),
     error: v.optional(v.string()),
     updatedAt: v.number(),
+    generatedSectionPlan: v.optional(v.array(
+      v.object({
+        id: v.string(),
+        title: v.string(),
+        description: v.string(),
+        estimatedTokens: v.number(),
+        required: v.boolean(),
+        sectionType: v.optional(v.union(
+          v.literal('technical'),
+          v.literal('implementation'),
+          v.literal('planning'),
+          v.literal('documentation'),
+        )),
+      })
+    )),
   }).index('by_project_phase', ['projectId', 'phaseId']),
 
   // Section preferences for interactive planning feature
