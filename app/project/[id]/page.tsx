@@ -30,11 +30,11 @@ export default function ProjectPage() {
 
   const project = useQuery(
     api.projects.getProject,
-    isLoaded && isSignedIn ? { projectId: params.id as any } : "skip"
+    isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
   );
   const phases = useQuery(
     api.projects.getProjectPhases,
-    isLoaded && isSignedIn ? { projectId: params.id as any } : "skip"
+    isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
   );
 
   // Show loading while auth is initializing
