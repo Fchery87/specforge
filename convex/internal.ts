@@ -1105,3 +1105,52 @@ export const setModelDirectoryCache = internalMutation({
     }
   },
 });
+
+// ============================================================================
+// TICKETS
+// ============================================================================
+
+/**
+ * Fetches a single artifact by its document ID.
+ * Used by parseTickets action to read artifact content.
+ */
+export const getArtifactInternal = internalQuery({
+  args: { artifactId: v.id('artifacts') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.artifactId);
+  },
+});
+
+/**
+ * Inserts a single ticket document into the tickets table.
+ */
+export const createTicketInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    artifactId: v.optional(v.id('artifacts')),
+    title: v.string(),
+    description: v.string(),
+    acceptanceCriteria: v.array(v.string()),
+    status: v.union(
+      v.literal('todo'),
+      v.literal('in_progress'),
+      v.literal('done'),
+    ),
+    priority: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+    ),
+    estimatedEffort: v.optional(v.string()),
+    order: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert('tickets', {
+      ...args,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
