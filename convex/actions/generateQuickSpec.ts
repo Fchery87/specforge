@@ -116,16 +116,29 @@ export const generateQuickSpec = action({
       );
     }
 
-    const response = await client.complete(
-      buildQuickSpecPrompt(args.title, args.description),
-      {
-        model: model.id,
-        maxTokens: 2048,
-        temperature: 0.3,
-        systemPrompt: QUICK_SPEC_SYSTEM_PROMPT,
-      },
-    );
+    try {
+      const response = await client.complete(
+        buildQuickSpecPrompt(args.title, args.description),
+        {
+          model: model.id,
+          maxTokens: 2048,
+          temperature: 0.3,
+          systemPrompt: QUICK_SPEC_SYSTEM_PROMPT,
+        },
+      );
 
-    return { content: response.content };
+      return { content: response.content };
+    } catch (error: any) {
+      // Handle specific provider errors with user-friendly messages
+      if (error.message?.includes('No instances available') || 
+          error.message?.includes('chutes')) {
+        throw new Error(
+          'The selected AI model is temporarily unavailable. ' +
+          'Please try again in a few minutes or switch to a different model in Settings.'
+        );
+      }
+      // Re-throw other errors as-is
+      throw error;
+    }
   },
 });

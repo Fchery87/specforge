@@ -1205,3 +1205,123 @@ export const createTicketInternal = internalMutation({
     });
   },
 });
+
+// ============================================================================
+// VERIFICATION RESULTS (Task 20: Implementation Verification)
+// ============================================================================
+
+export const createVerificationResult = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    checkedAt: v.number(),
+    findings: v.array(v.object({
+      category: v.union(
+        v.literal('bug'),
+        v.literal('performance'),
+        v.literal('security'),
+        v.literal('clarity'),
+        v.literal('missing'),
+      ),
+      severity: v.union(v.literal('critical'), v.literal('major'), v.literal('minor')),
+      title: v.string(),
+      description: v.string(),
+      suggestion: v.string(),
+      specReference: v.optional(v.string()),
+    })),
+    overallScore: v.number(),
+    status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert('verificationResults', {
+      projectId: args.projectId,
+      phaseId: args.phaseId,
+      checkedAt: args.checkedAt,
+      findings: args.findings,
+      overallScore: args.overallScore,
+      status: args.status,
+    });
+  },
+});
+
+export const getVerificationResultsByProject = internalQuery({
+  args: {
+    projectId: v.id('projects'),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('verificationResults')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .order('desc')
+      .take(10);
+  },
+});
+
+// ============================================================================
+// PROJECT CODEBASE (Task 19: Codebase Awareness)
+// ============================================================================
+
+/**
+ * Stores or updates the project codebase data
+ */
+export const storeCodebaseInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    repoUrl: v.string(),
+    repoOwner: v.string(),
+    repoName: v.string(),
+    defaultBranch: v.string(),
+    fileTree: v.string(),
+    keyFiles: v.array(
+      v.object({
+        path: v.string(),
+        content: v.string(),
+        language: v.string(),
+        sizeBytes: v.number(),
+      }),
+    ),
+    totalFiles: v.number(),
+    totalDirectories: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('projectCodebase')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .first();
+
+    const data = {
+      projectId: args.projectId,
+      repoUrl: args.repoUrl,
+      repoOwner: args.repoOwner,
+      repoName: args.repoName,
+      defaultBranch: args.defaultBranch,
+      fileTree: args.fileTree,
+      keyFiles: args.keyFiles,
+      analyzedAt: Date.now(),
+      totalFiles: args.totalFiles,
+      totalDirectories: args.totalDirectories,
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, data);
+      return existing._id;
+    } else {
+      return await ctx.db.insert('projectCodebase', data);
+    }
+  },
+});
+
+/**
+ * Gets the project codebase data
+ */
+export const getCodebaseInternal = internalQuery({
+  args: {
+    projectId: v.id('projects'),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('projectCodebase')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .first();
+  },
+});

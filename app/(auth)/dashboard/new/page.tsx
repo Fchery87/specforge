@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, Github } from "lucide-react";
 import Link from "next/link";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
+import { CodebaseConnector } from "@/components/codebase-connector";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -24,6 +25,8 @@ export default function NewProjectPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<Id<"constitutionTemplates"> | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [showRepoConnector, setShowRepoConnector] = useState(false);
+  const [createdProjectId, setCreatedProjectId] = useState<Id<"projects"> | null>(null);
 
   const titleLeft = 100 - title.length;
   const descLeft = 5000 - description.length;
@@ -42,10 +45,19 @@ export default function NewProjectPage() {
       if (selectedTemplateId) {
         await incrementUsageCount({ templateId: selectedTemplateId });
       }
-      router.push(`/project/${id}`);
+      // Show repo connector step instead of immediately redirecting
+      setCreatedProjectId(id);
+      setShowRepoConnector(true);
+      setIsCreating(false);
     } catch (error) {
       console.error("Failed to create project:", error);
       setIsCreating(false);
+    }
+  }
+
+  function handleSkipRepo() {
+    if (createdProjectId) {
+      router.push(`/project/${createdProjectId}`);
     }
   }
 
@@ -90,8 +102,44 @@ export default function NewProjectPage() {
 
           {/* Form Card */}
           <Card variant="static" className="border-2">
-            <CardHeader>
-              <CardTitle className="text-xl normal-case tracking-normal font-semibold">Project Details</CardTitle>
+            {showRepoConnector && createdProjectId ? (
+              <>
+                <CardHeader>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-primary flex items-center justify-center">
+                      <Github className="w-5 h-5 text-black" />
+                    </div>
+                    <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                      Step 2 of 2
+                    </span>
+                  </div>
+                  <CardTitle className="text-xl normal-case tracking-normal font-semibold">
+                    Connect Your Repository
+                  </CardTitle>
+                  <CardDescription>
+                    Link a GitHub repository to enable codebase-aware specification generation. This helps SpecForge understand your existing code structure and patterns.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <CodebaseConnector 
+                    projectId={createdProjectId} 
+                    onComplete={handleSkipRepo}
+                  />
+                  <div className="flex items-center justify-center">
+                    <Button 
+                      variant="ghost" 
+                      onClick={handleSkipRepo}
+                      className="text-muted-foreground"
+                    >
+                      Skip this step →
+                    </Button>
+                  </div>
+                </CardContent>
+              </>
+            ) : (
+              <>
+                <CardHeader>
+                  <CardTitle className="text-xl normal-case tracking-normal font-semibold">Project Details</CardTitle>
               <CardDescription>
                 Title (max 100 chars) and description (max 5,000 chars)
               </CardDescription>
@@ -284,6 +332,8 @@ export default function NewProjectPage() {
                 </Button>
               </div>
             </CardContent>
+            </>
+          )}
           </Card>
         </div>
       </div>

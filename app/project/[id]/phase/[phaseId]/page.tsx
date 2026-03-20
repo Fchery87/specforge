@@ -29,6 +29,7 @@ import { PhaseSwitcher } from "@/components/phase-switcher";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TicketBoard } from "@/components/ticket-board";
 import { GenerationActivityStream } from "@/components/generation-activity-stream";
+import { VerificationPanel } from "@/components/verification-panel";
 
 function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
   return {
@@ -515,6 +516,21 @@ export default function PhasePage() {
             phaseId={phaseId}
             artifactId={phase.artifacts?.[0]?._id}
           />
+        </section>
+      )}
+
+      {/* Verification Panel — for specs and stories phases */}
+      {(phaseId === 'specs' || phaseId === 'stories') && (
+        <section className="page-container page-section border-t-2 border-border relative z-10">
+          <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
+            Verification
+          </h2>
+          <div className="max-w-2xl">
+            <VerificationPanel
+              projectId={projectId}
+              phaseId={phaseId}
+            />
+          </div>
         </section>
       )}
 

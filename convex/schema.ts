@@ -178,6 +178,7 @@ export default defineSchema({
       v.union(v.literal('paid'), v.literal('coding')),
     ),
     zaiIsChina: v.optional(v.boolean()),
+    githubAccessToken: v.optional(v.bytes()), // Encrypted GitHub OAuth token
   }).index('by_user', ['userId']),
 
   generationTasks: defineTable({
@@ -346,4 +347,46 @@ export default defineSchema({
     createdAt: v.number(),
     usageCount: v.number(),
   }).index('by_user', ['userId']),
+
+  projectCodebase: defineTable({
+    projectId: v.id('projects'),
+    repoUrl: v.string(),
+    repoOwner: v.string(),
+    repoName: v.string(),
+    defaultBranch: v.string(),
+    fileTree: v.string(), // JSON serialized directory tree
+    keyFiles: v.array(
+      v.object({
+        path: v.string(),
+        content: v.string(),
+        language: v.string(),
+        sizeBytes: v.number(),
+      }),
+    ),
+    analyzedAt: v.number(),
+    totalFiles: v.number(),
+    totalDirectories: v.number(),
+  }).index('by_project', ['projectId']),
+
+  verificationResults: defineTable({
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    checkedAt: v.number(),
+    findings: v.array(v.object({
+      category: v.union(
+        v.literal('bug'),
+        v.literal('performance'),
+        v.literal('security'),
+        v.literal('clarity'),
+        v.literal('missing'),
+      ),
+      severity: v.union(v.literal('critical'), v.literal('major'), v.literal('minor')),
+      title: v.string(),
+      description: v.string(),
+      suggestion: v.string(),
+      specReference: v.optional(v.string()),
+    })),
+    overallScore: v.number(),
+    status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),
+  }).index('by_project', ['projectId']),
 });

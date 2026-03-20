@@ -203,6 +203,14 @@ export const generatePhaseWorker = internalAction({
       sectionInstructions = `${sectionInstructions}\n\n## CUSTOM INSTRUCTIONS\n${customInstructions}`;
     }
 
+    // Add codebase context if available (Task 19: Codebase Awareness)
+    sectionInstructions = await buildSectionInstructionsWithCodebase(
+      ctx,
+      projectId,
+      sectionInstructions,
+      phaseId,
+    );
+
     try {
       // Initialize streaming state (creates placeholder artifact if missing)
       if (currentStep === 0) {
@@ -1254,4 +1262,150 @@ function extractRelevantQuestionsForSection(
   }
 
   return relevantQuestions;
+}
+
+// ============================================================================
+// CODEBASE CONTEXT (Task 19: Codebase Awareness)
+// ============================================================================
+
+interface CodebaseFile {
+  path: string;
+  content: string;
+  language: string;
+  sizeBytes: number;
+}
+
+interface CodebaseData {
+  projectId: string;
+  repoUrl: string;
+  repoOwner: string;
+  repoName: string;
+  defaultBranch: string;
+  fileTree: string;
+  keyFiles: CodebaseFile[];
+  analyzedAt: number;
+  totalFiles: number;
+  totalDirectories: number;
+}
+
+/**
+ * Fetches codebase data for a project if available
+ */
+async function fetchCodebaseForProject(
+  ctx: any,
+  projectId: string,
+): Promise<CodebaseData | null> {
+  try {
+    const codebase = await ctx.runQuery(internal.internal.getCodebaseInternal, {
+      projectId,
+    });
+    return codebase;
+  } catch (error) {
+    console.warn('[fetchCodebaseForProject] Failed to fetch codebase:', error);
+    return null;
+  }
+}
+
+/**
+ * Formats codebase data into a string for inclusion in prompts
+ */
+function formatCodebaseContext(codebase: CodebaseData): string {
+  const lines: string[] = [];
+
+  lines.push('## CONNECTED CODEBASE');
+  lines.push(`Repository: ${codebase.repoOwner}/${codebase.repoName}`);
+  lines.push(`Branch: ${codebase.defaultBranch}`);
+  lines.push(`Files: ${codebase.totalFiles.toLocaleString()} files in ${codebase.totalDirectories.toLocaleString()} directories`);
+  lines.push('');
+
+  // Add file tree (truncated if very large)
+  lines.push('### Project Structure');
+  try {
+    const tree = JSON.parse(codebase.fileTree);
+    lines.push(formatFileTree(tree, 0));
+  } catch {
+    lines.push('(File tree unavailable)');
+  }
+  lines.push('');
+
+  // Add key files content
+  if (codebase.keyFiles.length > 0) {
+    lines.push('### Key Files');
+    lines.push('');
+
+    for (const file of codebase.keyFiles.slice(0, 20)) {
+      lines.push(`#### ${file.path}`);
+      lines.push(`\`\`\`${file.language}`);
+      // Truncate large files
+      const maxContentLength = 5000;
+      const content = file.content.length > maxContentLength
+        ? file.content.slice(0, maxContentLength) + '\n\n... (truncated)'
+        : file.content;
+      lines.push(content);
+      lines.push('```');
+      lines.push('');
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Formats a file tree node into a string representation
+ */
+function formatFileTree(node: any, depth: number): string {
+  const indent = '  '.repeat(depth);
+  const lines: string[] = [];
+
+  if (typeof node !== 'object' || node === null) {
+    return '';
+  }
+
+  for (const [name, child] of Object.entries(node)) {
+    if (typeof child === 'object' && child !== null) {
+      if ('children' in child && child.children) {
+        // Directory
+        lines.push(`${indent}📁 ${name}/`);
+        lines.push(formatFileTree(child.children, depth + 1));
+      } else if ('type' in child && child.type === 'file') {
+        // File
+        lines.push(`${indent}📄 ${name}`);
+      } else {
+        // Nested object (more directories)
+        lines.push(`${indent}📁 ${name}/`);
+        lines.push(formatFileTree(child, depth + 1));
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Builds section instructions with optional codebase context
+ */
+async function buildSectionInstructionsWithCodebase(
+  ctx: any,
+  projectId: string,
+  baseInstructions: string,
+  phaseId: string,
+): Promise<string> {
+  // Only include codebase for phases that benefit from it
+  const codebaseRelevantPhases = ['specs', 'stories', 'artifacts'];
+  if (!codebaseRelevantPhases.includes(phaseId)) {
+    return baseInstructions;
+  }
+
+  const codebase = await fetchCodebaseForProject(ctx, projectId);
+  if (!codebase) {
+    return baseInstructions;
+  }
+
+  const codebaseContext = formatCodebaseContext(codebase);
+
+  return `${baseInstructions}
+
+---
+
+${codebaseContext}`;
 }

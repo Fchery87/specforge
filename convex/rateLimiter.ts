@@ -64,6 +64,20 @@ const RATE_LIMIT_CONFIG = {
     rate: 5,
     capacity: 8,
   },
+  // Verification: 10 per minute per user
+  verifyImplementation: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 10,
+    capacity: 15,
+  },
+  // Codebase scanning: 5 per minute per user
+  scanCodebase: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 5,
+    capacity: 8,
+  },
 };
 
 // Initialize rate limiter with Convex components

@@ -28,6 +28,7 @@ export const getUserConfigRaw = query({
       systemKeyId: config.systemKeyId,
       zaiEndpointType: config.zaiEndpointType,
       zaiIsChina: config.zaiIsChina,
+      githubAccessToken: config.githubAccessToken,
     };
   },
 });
@@ -104,5 +105,56 @@ export const deleteUserConfigRaw = mutation({
     if (existing && existing.apiKey) {
       await ctx.db.delete(existing._id);
     }
+  },
+});
+
+// Raw mutation to save encrypted GitHub access token
+export const saveGitHubTokenRaw = mutation({
+  args: {
+    encryptedToken: v.array(v.number()),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthenticated');
+
+    const existing = await ctx.db
+      .query('userLlmConfigs')
+      .withIndex('by_user', (q) => q.eq('userId', identity.subject))
+      .first();
+
+    const tokenBuffer = new Uint8Array(args.encryptedToken).buffer;
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        githubAccessToken: tokenBuffer,
+      });
+      return existing._id;
+    } else {
+      // Create minimal config with just the GitHub token
+      return await ctx.db.insert('userLlmConfigs', {
+        userId: identity.subject,
+        provider: 'openai', // Default provider
+        apiKey: undefined,
+        defaultModel: 'gpt-4',
+        useSystem: false,
+        githubAccessToken: tokenBuffer,
+      });
+    }
+  },
+});
+
+// Raw query to get GitHub token (encrypted)
+export const getGitHubTokenRaw = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const config = await ctx.db
+      .query('userLlmConfigs')
+      .withIndex('by_user', (q) => q.eq('userId', identity.subject))
+      .first();
+
+    return config?.githubAccessToken ?? null;
   },
 });
