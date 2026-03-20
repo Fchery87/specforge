@@ -6,6 +6,7 @@ import { TicketCard } from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 type TicketStatus = "todo" | "in_progress" | "done";
 
@@ -36,7 +37,11 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
     if (!artifactId) return;
     setIsParsing(true);
     try {
-      await parseTickets({ artifactId: artifactId as any, projectId: projectId as any, phaseId }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      await parseTickets({ artifactId: artifactId as any, projectId: projectId as any }); // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error) {
+      toast.error("Failed to parse tickets", {
+        description: "Could not extract tickets from the artifact. Please try again.",
+      });
     } finally {
       setIsParsing(false);
     }
@@ -49,6 +54,14 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
 
   if (tickets === undefined) {
     return <div className="text-muted-foreground text-sm">Loading tickets…</div>;
+  }
+
+  if (tickets.length === 0 && !artifactId) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Generate the User Stories artifact first to extract tickets.
+      </p>
+    );
   }
 
   if (tickets.length === 0 && artifactId) {

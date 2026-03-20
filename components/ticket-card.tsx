@@ -1,5 +1,6 @@
 "use client";
 
+import type { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,7 @@ type TicketPriority = "critical" | "high" | "medium" | "low";
 
 interface TicketCardProps {
   ticket: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    _id: any;
+    _id: Id<"tickets">;
     title: string;
     description?: string;
     acceptanceCriteria: string[];
@@ -19,8 +19,7 @@ interface TicketCardProps {
     estimatedEffort?: string;
     order: number;
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onStatusChange: (id: any, newStatus: TicketStatus) => void;
+  onStatusChange: (id: Id<"tickets">, newStatus: TicketStatus) => void;
 }
 
 const PRIORITY_CLASS: Record<TicketPriority, string> = {
