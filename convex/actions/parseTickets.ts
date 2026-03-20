@@ -3,6 +3,7 @@
 import { action } from '../_generated/server';
 import { internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
+import type { Id } from '../_generated/dataModel';
 import { parseTicketsFromMarkdown } from '../../lib/ticket-parser';
 
 export const parseTicketsFromArtifact = action({
@@ -14,6 +15,14 @@ export const parseTicketsFromArtifact = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Not authenticated');
 
+    // Verify the caller owns the project
+    const project = await ctx.runQuery(internalApi.internal.getProjectInternal, {
+      projectId: args.projectId,
+    });
+    if (!project || project.userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
     // Get artifact content
     const artifact = await ctx.runQuery(internalApi.internal.getArtifactInternal, {
       artifactId: args.artifactId,
@@ -23,8 +32,14 @@ export const parseTicketsFromArtifact = action({
     // Parse tickets from markdown
     const parsed = parseTicketsFromMarkdown(artifact.content);
 
+    // Clear existing tickets for this phase (idempotency)
+    await ctx.runMutation(internalApi.internal.deleteTicketsByPhaseInternal, {
+      projectId: args.projectId,
+      phaseId: artifact.phaseId,
+    });
+
     // Create ticket documents
-    const ticketIds = [];
+    const ticketIds: Id<'tickets'>[] = [];
     for (let i = 0; i < parsed.length; i++) {
       const ticket = parsed[i];
       const id = await ctx.runMutation(internalApi.internal.createTicketInternal, {

@@ -1122,6 +1122,30 @@ export const getArtifactInternal = internalQuery({
 });
 
 /**
+ * Deletes all existing tickets for a given (projectId, phaseId) pair.
+ * Used for idempotent ticket parsing — ensures re-running parseTickets
+ * does not produce duplicates.
+ */
+export const deleteTicketsByPhaseInternal = internalMutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('tickets')
+      .withIndex('by_project_phase', (q) =>
+        q.eq('projectId', args.projectId).eq('phaseId', args.phaseId)
+      )
+      .collect();
+    for (const ticket of existing) {
+      await ctx.db.delete(ticket._id);
+    }
+    return existing.length;
+  },
+});
+
+/**
  * Inserts a single ticket document into the tickets table.
  */
 export const createTicketInternal = internalMutation({

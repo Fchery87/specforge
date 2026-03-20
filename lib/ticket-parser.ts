@@ -28,7 +28,7 @@ export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
       /acceptance\s+criteria/i.test(l) || /\*\*acceptance/i.test(l),
     );
     const description = lines
-      .slice(1, acIndex > 0 ? acIndex : undefined)
+      .slice(1, acIndex !== -1 ? acIndex : undefined)
       .filter(
         (l) =>
           !l.startsWith('**Priority') &&
@@ -40,7 +40,7 @@ export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
 
     // Extract acceptance criteria (bullet points)
     const criteria: string[] = [];
-    if (acIndex > 0) {
+    if (acIndex !== -1) {
       for (let i = acIndex + 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (line.startsWith('- ')) {
