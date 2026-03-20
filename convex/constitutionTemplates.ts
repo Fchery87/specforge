@@ -2,14 +2,29 @@ import { mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 
-const lockedConstraintsValidator = v.optional(
-  v.object({
-    architecture: v.optional(v.string()),
-    stateManagement: v.optional(v.string()),
-    apiDesign: v.optional(v.string()),
-    securityProtocols: v.optional(v.array(v.string())),
-  }),
-);
+/** Pure helper — builds the insert payload for a new template */
+export function buildTemplateInsert(
+  userId: string,
+  name: string,
+  description: string,
+  constitutionContent: string,
+  lockedConstraints?: {
+    architecture?: string;
+    stateManagement?: string;
+    apiDesign?: string;
+    securityProtocols?: string[];
+  },
+) {
+  return {
+    userId,
+    name,
+    description,
+    constitutionContent,
+    lockedConstraints,
+    createdAt: Date.now(),
+    usageCount: 0,
+  };
+}
 
 export const listTemplates = query({
   args: {},
@@ -30,21 +45,29 @@ export const saveTemplate = mutation({
     name: v.string(),
     description: v.string(),
     constitutionContent: v.string(),
-    lockedConstraints: lockedConstraintsValidator,
+    lockedConstraints: v.optional(
+      v.object({
+        architecture: v.optional(v.string()),
+        stateManagement: v.optional(v.string()),
+        apiDesign: v.optional(v.string()),
+        securityProtocols: v.optional(v.array(v.string())),
+      }),
+    ),
   },
   handler: async (ctx: MutationCtx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthorized');
 
-    return await ctx.db.insert('constitutionTemplates', {
-      userId: identity.subject,
-      name: args.name,
-      description: args.description,
-      constitutionContent: args.constitutionContent,
-      lockedConstraints: args.lockedConstraints,
-      createdAt: Date.now(),
-      usageCount: 0,
-    });
+    return await ctx.db.insert(
+      'constitutionTemplates',
+      buildTemplateInsert(
+        identity.subject,
+        args.name,
+        args.description,
+        args.constitutionContent,
+        args.lockedConstraints,
+      ),
+    );
   },
 });
 

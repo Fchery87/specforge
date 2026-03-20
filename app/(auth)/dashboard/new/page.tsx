@@ -216,10 +216,10 @@ export default function NewProjectPage() {
                             onChange={() => setSelectedTemplateId(null)}
                             disabled={isCreating}
                           />
-                          <div>
-                            <p className="text-sm font-semibold">No template</p>
-                            <p className="text-xs text-muted-foreground">Start with a blank constitution</p>
-                          </div>
+                          <span className="flex flex-col">
+                            <span className="text-sm font-semibold">No template</span>
+                            <span className="text-xs text-muted-foreground">Start with a blank constitution</span>
+                          </span>
                         </label>
 
                         {templates.map((template) => (
@@ -239,22 +239,22 @@ export default function NewProjectPage() {
                               onChange={() => setSelectedTemplateId(template._id)}
                               disabled={isCreating}
                             />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-semibold">{template.name}</p>
+                            <span className="flex flex-col min-w-0 flex-1">
+                              <span className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold">{template.name}</span>
                                 {template.usageCount > 0 && (
                                   <span className="text-xs text-muted-foreground">
                                     Used {template.usageCount}×
                                   </span>
                                 )}
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">{template.description}</p>
+                              </span>
+                              <span className="text-xs text-muted-foreground mt-0.5">{template.description}</span>
                               {template.lockedConstraints?.architecture && (
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <span className="text-xs text-muted-foreground mt-1">
                                   Architecture: {template.lockedConstraints.architecture}
-                                </p>
+                                </span>
                               )}
-                            </div>
+                            </span>
                           </label>
                         ))}
                       </div>

@@ -1,43 +1,27 @@
 import { describe, test, expect } from 'vitest';
+import { buildTemplateInsert } from '../constitutionTemplates';
 
-describe('constitutionTemplates schema', () => {
-  test('template shape is valid', () => {
-    const template = {
-      userId: 'user_123',
-      name: 'Next.js SaaS',
-      description: 'Standard constraints for Next.js SaaS projects',
-      constitutionContent: '## Architecture\n- Next.js 16 App Router\n',
-      lockedConstraints: {
-        architecture: 'Next.js App Router',
-        stateManagement: 'Zustand + React Query',
-        apiDesign: 'REST with Convex mutations',
-      },
-      createdAt: Date.now(),
-      usageCount: 0,
-    };
-    expect(template.name).toBe('Next.js SaaS');
-    expect(template.usageCount).toBe(0);
-    expect(template.lockedConstraints?.architecture).toBe('Next.js App Router');
+describe('buildTemplateInsert', () => {
+  test('sets usageCount to 0 and includes createdAt', () => {
+    const before = Date.now();
+    const result = buildTemplateInsert('user_123', 'Next.js SaaS', 'desc', '## Architecture\n');
+    const after = Date.now();
+    expect(result.usageCount).toBe(0);
+    expect(result.createdAt).toBeGreaterThanOrEqual(before);
+    expect(result.createdAt).toBeLessThanOrEqual(after);
+    expect(result.userId).toBe('user_123');
+    expect(result.name).toBe('Next.js SaaS');
   });
 
-  test('template without lockedConstraints is valid', () => {
-    const template: {
-      userId: string;
-      name: string;
-      description: string;
-      constitutionContent: string;
-      lockedConstraints?: { architecture?: string };
-      createdAt: number;
-      usageCount: number;
-    } = {
-      userId: 'user_123',
-      name: 'Generic',
-      description: 'Generic template',
-      constitutionContent: 'No constraints',
-      createdAt: Date.now(),
-      usageCount: 3,
-    };
-    expect(template.lockedConstraints).toBeUndefined();
-    expect(template.usageCount).toBe(3);
+  test('includes lockedConstraints when provided', () => {
+    const constraints = { architecture: 'Serverless', stateManagement: 'Zustand' };
+    const result = buildTemplateInsert('user_123', 'Template', 'desc', 'content', constraints);
+    expect(result.lockedConstraints?.architecture).toBe('Serverless');
+    expect(result.lockedConstraints?.stateManagement).toBe('Zustand');
+  });
+
+  test('lockedConstraints is undefined when not provided', () => {
+    const result = buildTemplateInsert('user_123', 'T', 'd', 'c');
+    expect(result.lockedConstraints).toBeUndefined();
   });
 });
