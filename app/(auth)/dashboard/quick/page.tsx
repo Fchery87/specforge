@@ -24,6 +24,7 @@ export default function QuickSpecPage() {
     if (!title.trim() || !description.trim()) return;
     setIsGenerating(true);
     setError(null);
+    setResult(null);
     try {
       const res = await generateQuickSpec({
         title: title.trim(),
@@ -73,10 +74,11 @@ export default function QuickSpecPage() {
           {/* Input Form */}
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-semibold uppercase tracking-widest text-muted-foreground block mb-2">
+              <label htmlFor="quick-spec-title" className="text-sm font-semibold uppercase tracking-widest text-muted-foreground block mb-2">
                 Task Title
               </label>
               <input
+                id="quick-spec-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -85,10 +87,11 @@ export default function QuickSpecPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold uppercase tracking-widest text-muted-foreground block mb-2">
+              <label htmlFor="quick-spec-description" className="text-sm font-semibold uppercase tracking-widest text-muted-foreground block mb-2">
                 Description
               </label>
               <textarea
+                id="quick-spec-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe what you want to build, any constraints, and the tech stack..."

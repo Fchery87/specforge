@@ -13,11 +13,12 @@ import {
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
+import { rateLimiter } from '../rateLimiter';
 
 const QUICK_SPEC_SYSTEM_PROMPT =
   'You are a software architect. Produce clear, concise, actionable specifications.';
 
-function buildQuickSpecPrompt(title: string, description: string): string {
+export function buildQuickSpecPrompt(title: string, description: string): string {
   return `Generate a concise implementation spec for the following:
 
 Title: ${title}
@@ -47,6 +48,8 @@ export const generateQuickSpec = action({
   handler: async (ctx, args): Promise<{ content: string }> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Not authenticated');
+
+    await rateLimiter.limit(ctx, 'generateQuickSpec', { key: identity.subject, throws: true });
 
     // Resolve credentials using the same pattern as generatePhase
     const userConfig = await ctx.runAction(

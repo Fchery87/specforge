@@ -50,6 +50,13 @@ const RATE_LIMIT_CONFIG = {
     rate: 10,
     capacity: 15,
   },
+  // Quick spec generation: 10 per minute per user
+  generateQuickSpec: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 10,
+    capacity: 15,
+  },
 };
 
 // Initialize rate limiter with Convex components
