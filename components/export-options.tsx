@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileCode, Bot, FileText, Archive, Loader2, Check } from "lucide-react";
+import { Download, FileCode, Bot, FileText, Archive, Loader2, Check, Clipboard } from "lucide-react";
+import { formatForClaudeCode, formatForCursor } from "@/lib/export/clipboard-formats";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -13,7 +14,7 @@ interface ExportOption {
   label: string;
   description: string;
   icon: typeof FileText;
-  format: "zip" | "skill" | "agents" | "markdown";
+  format: "zip" | "skill" | "agents" | "markdown" | "clipboard-claude" | "clipboard-cursor";
   available: boolean;
 }
 
@@ -40,6 +41,22 @@ const EXPORT_OPTIONS: ExportOption[] = [
     description: "Project context for AI development assistance",
     icon: FileCode,
     format: "agents",
+    available: true,
+  },
+  {
+    id: "copy-claude",
+    label: "Copy for Claude Code",
+    description: "Copy spec to clipboard for CLAUDE.md or agent context",
+    icon: Clipboard,
+    format: "clipboard-claude" as const,
+    available: true,
+  },
+  {
+    id: "copy-cursor",
+    label: "Copy for Cursor",
+    description: "Copy spec to clipboard for .cursorrules",
+    icon: Clipboard,
+    format: "clipboard-cursor" as const,
     available: true,
   },
   {
@@ -130,6 +147,42 @@ export function ExportOptionsPanel({
           downloadFile(agentsContent, "AGENTS.md", "text/markdown");
           toast.success("AGENTS.md Downloaded", {
             description: "Place this file in your project root for AI context.",
+          });
+          break;
+        }
+
+        case "clipboard-claude": {
+          const skillContent = generateSkillMd({
+            project: {
+              _id: project._id,
+              title: project.title,
+              description: project.description,
+              createdAt: project.createdAt,
+            },
+            artifacts,
+          });
+          const formatted = formatForClaudeCode({ title: project.title, content: skillContent });
+          await navigator.clipboard.writeText(formatted);
+          toast.success("Copied to Clipboard", {
+            description: "Paste into your CLAUDE.md or agent context.",
+          });
+          break;
+        }
+
+        case "clipboard-cursor": {
+          const skillContent = generateSkillMd({
+            project: {
+              _id: project._id,
+              title: project.title,
+              description: project.description,
+              createdAt: project.createdAt,
+            },
+            artifacts,
+          });
+          const formatted = formatForCursor({ title: project.title, content: skillContent });
+          await navigator.clipboard.writeText(formatted);
+          toast.success("Copied to Clipboard", {
+            description: "Paste into your .cursorrules file.",
           });
           break;
         }
