@@ -294,4 +294,33 @@ export default defineSchema({
     expiresAt: v.number(),
     version: v.number(), // Cache version for invalidation
   }).index('by_key', ['cacheKey']),
+
+  // Structured tickets parsed from User Stories artifacts
+  tickets: defineTable({
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    artifactId: v.optional(v.id('artifacts')),
+    title: v.string(),
+    description: v.string(),
+    acceptanceCriteria: v.array(v.string()),
+    status: v.union(
+      v.literal('todo'),
+      v.literal('in_progress'),
+      v.literal('done'),
+    ),
+    priority: v.union(
+      v.literal('critical'),
+      v.literal('high'),
+      v.literal('medium'),
+      v.literal('low'),
+    ),
+    estimatedEffort: v.optional(v.string()),
+    order: v.number(),
+    dependencies: v.optional(v.array(v.id('tickets'))),
+    externalId: v.optional(v.string()),
+    externalUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_project', ['projectId'])
+    .index('by_project_phase', ['projectId', 'phaseId']),
 });
