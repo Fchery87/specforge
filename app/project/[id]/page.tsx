@@ -97,7 +97,8 @@ export default function ProjectPage() {
     setIsGeneratingAll(true);
     try {
       const result = await generateAll({ projectId: params.id as Id<"projects"> });
-      toast.success(`Scheduled ${result.scheduled} phase${result.scheduled === 1 ? '' : 's'} for generation`);
+      const count = result?.scheduled ?? 0;
+      toast.success(`Scheduled ${count} phase${count === 1 ? '' : 's'} for generation`);
     } catch {
       toast.error('Failed to schedule generation');
     } finally {

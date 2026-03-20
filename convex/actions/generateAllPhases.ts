@@ -39,10 +39,11 @@ export const generateAllPhases = action({
     for (const batch of batches) {
       for (const phaseId of batch) {
         const status = phaseStatusMap.get(phaseId);
-        // Only schedule phases that are pending (not already ready/generating)
+        // Only schedule phases that haven't started yet.
+        // Phases with 'error' status require manual per-phase retry.
+        // Phases with 'ready' or 'generating' status are intentionally skipped.
         if (status === 'pending' || status === undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await ctx.scheduler.runAfter(0, (api as any)['actions/generatePhase'].generatePhase, {
+          await ctx.scheduler.runAfter(0, api.actions.generatePhase.generatePhase, {
             projectId: args.projectId,
             phaseId,
           });
