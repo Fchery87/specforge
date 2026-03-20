@@ -44,7 +44,9 @@ export function canGeneratePhase(
   phaseStatuses: Record<string, string>,
 ): { canGenerate: boolean; blockedBy: string[] } {
   const deps = PHASE_DEPENDENCIES[phaseId] || [];
-  const blockedBy = deps.filter((dep) => phaseStatuses[dep] !== 'ready');
+  const blockedBy = deps.filter(
+    (dep) => phaseStatuses[dep] !== 'ready' && phaseStatuses[dep] !== 'skipped'
+  );
   return {
     canGenerate: blockedBy.length === 0,
     blockedBy,

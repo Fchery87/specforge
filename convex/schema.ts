@@ -13,6 +13,7 @@ export default defineSchema({
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
+    skippedPhases: v.optional(v.array(v.string())),
     zipStorageId: v.optional(v.id('_storage')),
   }).index('by_user', ['userId']),
 

@@ -344,6 +344,28 @@ export const updatePhaseQuestions = mutation({
   },
 });
 
+export const toggleSkipPhase = mutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    skip: v.boolean(),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Not authenticated');
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.userId !== identity.subject) throw new Error('Forbidden');
+
+    const current = project.skippedPhases ?? [];
+    const updated = args.skip
+      ? [...new Set([...current, args.phaseId])]
+      : current.filter((p: string) => p !== args.phaseId);
+
+    await ctx.db.patch(args.projectId, { skippedPhases: updated });
+  },
+});
+
 export const appendSectionToArtifact = mutation({
   args: {
     projectId: v.id('projects'),

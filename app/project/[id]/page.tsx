@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import { PhaseStepper } from "@/components/phase-stepper";
@@ -25,7 +25,9 @@ const PHASES = [
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
   const { isLoaded, isSignedIn } = useAuth();
-  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const toggleSkip = useMutation(api.projects.toggleSkipPhase as any);
+
   const project = useQuery(
     api.projects.getProject,
     isLoaded && isSignedIn ? { projectId: params.id as any } : "skip"
@@ -73,6 +75,8 @@ export default function ProjectPage() {
     string,
     "pending" | "generating" | "ready" | "error"
   >((phases ?? []).map((phase) => [phase.phaseId, phase.status]));
+
+  const skippedPhases = project.skippedPhases ?? [];
 
   return (
     <main className="relative min-h-[calc(100vh-5rem)]">
@@ -134,6 +138,14 @@ export default function ProjectPage() {
               icon={phase.icon}
               index={idx}
               status={phaseStatusMap.get(phase.id)}
+              isSkipped={skippedPhases.includes(phase.id)}
+              onToggleSkip={
+                phase.id !== "constitution"
+                  ? (skip: boolean) =>
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      toggleSkip({ projectId: params.id as any, phaseId: phase.id, skip })
+                  : undefined
+              }
             />
           ))}
         </div>
