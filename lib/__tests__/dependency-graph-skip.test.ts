@@ -13,4 +13,17 @@ describe('canGeneratePhase with skipped phases', () => {
     const result = canGeneratePhase('specs', statuses);
     expect(result.canGenerate).toBe(true);
   });
+
+  test('pending dependencies still block generation', () => {
+    const statuses = {
+      constitution: 'ready',
+      brief: 'ready',
+      prd: 'pending', // Not ready, not skipped
+      domainModel: 'skipped',
+      specs: 'pending',
+    };
+    const result = canGeneratePhase('specs', statuses);
+    expect(result.canGenerate).toBe(false);
+    expect(result.blockedBy).toContain('prd');
+  });
 });

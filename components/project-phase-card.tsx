@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/phase-status";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-type PhaseStatus = "pending" | "generating" | "ready" | "error";
+type PhaseStatus = "pending" | "generating" | "ready" | "error" | "skipped";
 
 interface ProjectPhaseCardProps {
   projectId: string;

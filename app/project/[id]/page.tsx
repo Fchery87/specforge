@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { PhaseStepper } from "@/components/phase-stepper";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { ProjectPhaseCard } from "@/components/project-phase-card";
@@ -25,8 +26,7 @@ const PHASES = [
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
   const { isLoaded, isSignedIn } = useAuth();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const toggleSkip = useMutation(api.projects.toggleSkipPhase as any);
+  const toggleSkip = useMutation(api.projects.toggleSkipPhase);
 
   const project = useQuery(
     api.projects.getProject,
@@ -71,12 +71,17 @@ export default function ProjectPage() {
     );
   }
 
+  const skippedPhases = project.skippedPhases ?? [];
+
   const phaseStatusMap = new Map<
     string,
-    "pending" | "generating" | "ready" | "error"
-  >((phases ?? []).map((phase) => [phase.phaseId, phase.status]));
-
-  const skippedPhases = project.skippedPhases ?? [];
+    "pending" | "generating" | "ready" | "error" | "skipped"
+  >(
+    (phases ?? []).map((phase) => [
+      phase.phaseId,
+      skippedPhases.includes(phase.phaseId) ? "skipped" : phase.status,
+    ])
+  );
 
   return (
     <main className="relative min-h-[calc(100vh-5rem)]">
@@ -142,8 +147,7 @@ export default function ProjectPage() {
               onToggleSkip={
                 phase.id !== "constitution"
                   ? (skip: boolean) =>
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      toggleSkip({ projectId: params.id as any, phaseId: phase.id, skip })
+                      toggleSkip({ projectId: params.id as Id<"projects">, phaseId: phase.id, skip })
                   : undefined
               }
             />

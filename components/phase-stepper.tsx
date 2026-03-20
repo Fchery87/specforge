@@ -16,7 +16,7 @@ const PHASES = [
   { id: "handoff", label: "Handoff + ZIP" },
 ];
 
-type PhaseStatus = "pending" | "generating" | "ready" | "error";
+type PhaseStatus = "pending" | "generating" | "ready" | "error" | "skipped";
 
 export function PhaseStepper({
   projectId,
