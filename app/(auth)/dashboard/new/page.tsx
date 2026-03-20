@@ -2,24 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 
 export default function NewProjectPage() {
   const router = useRouter();
   const createProject = useMutation(api.projects.createProject);
+  const incrementUsageCount = useMutation(api.constitutionTemplates.incrementUsageCount);
+  const templates = useQuery(api.constitutionTemplates.listTemplates);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  
+  const [selectedTemplateId, setSelectedTemplateId] = useState<Id<"constitutionTemplates"> | null>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+
   const titleLeft = 100 - title.length;
   const descLeft = 5000 - description.length;
   const isValid = title.trim().length > 0 && description.trim().length > 0;
@@ -28,10 +33,15 @@ export default function NewProjectPage() {
     if (!isValid || isCreating) return;
     setIsCreating(true);
     try {
-      const id = await createProject({ 
-        title: title.slice(0, 100), 
-        description: description.slice(0, 5000) 
+      // TODO: Pass selectedTemplateId to createProject once the mutation supports it.
+      // For now the selected template is stored locally and usage is tracked below.
+      const id = await createProject({
+        title: title.slice(0, 100),
+        description: description.slice(0, 5000),
       });
+      if (selectedTemplateId) {
+        await incrementUsageCount({ templateId: selectedTemplateId });
+      }
       router.push(`/project/${id}`);
     } catch (error) {
       console.error("Failed to create project:", error);
@@ -39,15 +49,17 @@ export default function NewProjectPage() {
     }
   }
 
+  const selectedTemplate = templates?.find((t) => t._id === selectedTemplateId) ?? null;
+
   return (
     <main className="relative min-h-[calc(100vh-5rem)]">
       {/* Grid Background */}
       <div className="absolute inset-0 bg-grid-fade opacity-10 pointer-events-none" />
-      
+
       {/* Back Navigation */}
       <div className="page-container py-6 relative z-10">
-        <Link 
-          href="/dashboard" 
+        <Link
+          href="/dashboard"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -90,10 +102,10 @@ export default function NewProjectPage() {
                 <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
                   Project Title
                 </label>
-                <Input 
+                <Input
                   inputSize="hero"
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value.slice(0, 100))} 
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value.slice(0, 100))}
                   placeholder="My Awesome Project"
                   disabled={isCreating}
                 />
@@ -133,12 +145,130 @@ export default function NewProjectPage() {
                 </div>
               </div>
 
+              {/* Constitution Templates */}
+              <div className="border border-border">
+                <button
+                  type="button"
+                  onClick={() => setTemplatesOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                  disabled={isCreating}
+                >
+                  <div className="flex items-center gap-2">
+                    <BookTemplate className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                      Constitution Templates
+                    </span>
+                    {templates !== undefined && (
+                      <span className="text-xs font-semibold bg-muted px-2 py-0.5 text-muted-foreground">
+                        {templates.length === 0 ? "No templates" : `${templates.length} template${templates.length === 1 ? "" : "s"}`}
+                      </span>
+                    )}
+                    {selectedTemplate && (
+                      <span className="text-xs font-semibold bg-primary text-black px-2 py-0.5">
+                        {selectedTemplate.name}
+                      </span>
+                    )}
+                  </div>
+                  {templatesOpen ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </button>
+
+                {templatesOpen && (
+                  <div className="border-t border-border p-4">
+                    {templates === undefined && (
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm py-4 justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading templates…
+                      </div>
+                    )}
+
+                    {templates !== undefined && templates.length === 0 && (
+                      <div className="text-center py-6 space-y-2">
+                        <BookTemplate className="w-8 h-8 text-muted-foreground mx-auto" />
+                        <p className="text-sm text-muted-foreground">No templates saved yet.</p>
+                        <p className="text-xs text-muted-foreground">
+                          Save a project&apos;s constitution as a template to reuse it here.
+                        </p>
+                      </div>
+                    )}
+
+                    {templates !== undefined && templates.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Select a template to pre-apply its constitution constraints to this project.
+                        </p>
+                        {/* None option */}
+                        <label
+                          className={`flex items-start gap-3 p-3 cursor-pointer border transition-colors ${
+                            selectedTemplateId === null
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-muted-foreground"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="constitutionTemplate"
+                            className="mt-0.5 accent-primary"
+                            checked={selectedTemplateId === null}
+                            onChange={() => setSelectedTemplateId(null)}
+                            disabled={isCreating}
+                          />
+                          <div>
+                            <p className="text-sm font-semibold">No template</p>
+                            <p className="text-xs text-muted-foreground">Start with a blank constitution</p>
+                          </div>
+                        </label>
+
+                        {templates.map((template) => (
+                          <label
+                            key={template._id}
+                            className={`flex items-start gap-3 p-3 cursor-pointer border transition-colors ${
+                              selectedTemplateId === template._id
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-muted-foreground"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="constitutionTemplate"
+                              className="mt-0.5 accent-primary"
+                              checked={selectedTemplateId === template._id}
+                              onChange={() => setSelectedTemplateId(template._id)}
+                              disabled={isCreating}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-semibold">{template.name}</p>
+                                {template.usageCount > 0 && (
+                                  <span className="text-xs text-muted-foreground">
+                                    Used {template.usageCount}×
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{template.description}</p>
+                              {template.lockedConstraints?.architecture && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Architecture: {template.lockedConstraints.architecture}
+                                </p>
+                              )}
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Submit Button */}
               <div className="flex items-center justify-between pt-6 border-t border-border">
                 <p className="text-sm text-muted-foreground">
                   {isValid ? "Ready to create your project" : "Fill in both fields to continue"}
                 </p>
-                <Button 
+                <Button
                   onClick={onSubmit}
                   disabled={!isValid || isCreating}
                   className="min-w-[200px]"

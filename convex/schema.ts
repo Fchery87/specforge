@@ -324,4 +324,21 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index('by_project', ['projectId'])
     .index('by_project_phase', ['projectId', 'phaseId']),
+
+  constitutionTemplates: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    description: v.string(),
+    constitutionContent: v.string(),
+    lockedConstraints: v.optional(
+      v.object({
+        architecture: v.optional(v.string()),
+        stateManagement: v.optional(v.string()),
+        apiDesign: v.optional(v.string()),
+        securityProtocols: v.optional(v.array(v.string())),
+      }),
+    ),
+    createdAt: v.number(),
+    usageCount: v.number(),
+  }).index('by_user', ['userId']),
 });
