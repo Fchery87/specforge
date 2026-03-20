@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useQuery, useAction, useConvex, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import type { FunctionReference } from "convex/server";
 import { PhaseStatusIndicator } from "@/components/phase-status";
 import { ArtifactPreview } from "@/components/artifact-preview";
@@ -444,7 +445,7 @@ export default function PhasePage() {
             Ticket Board
           </h2>
           <TicketBoard
-            projectId={projectId}
+            projectId={projectId as unknown as Id<"projects">}
             phaseId={phaseId}
             artifactId={phase.artifacts?.[0]?._id}
           />

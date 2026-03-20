@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { TicketCard } from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -11,9 +12,9 @@ import { toast } from "sonner";
 type TicketStatus = "todo" | "in_progress" | "done";
 
 interface TicketBoardProps {
-  projectId: string;
+  projectId: Id<"projects">;
   phaseId: string;
-  artifactId?: string;
+  artifactId?: Id<"artifacts">;
 }
 
 const COLUMNS: { status: TicketStatus; label: string }[] = [
@@ -24,7 +25,7 @@ const COLUMNS: { status: TicketStatus; label: string }[] = [
 
 export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps) {
   const tickets = useQuery(api.tickets.listByPhase, {
-    projectId: projectId as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    projectId,
     phaseId,
   });
   const updateStatus = useMutation(api.tickets.updateStatus);
@@ -37,7 +38,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
     if (!artifactId) return;
     setIsParsing(true);
     try {
-      await parseTickets({ artifactId: artifactId as any, projectId: projectId as any }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      await parseTickets({ artifactId: artifactId as Id<"artifacts">, projectId });
     } catch (error) {
       toast.error("Failed to parse tickets", {
         description: "Could not extract tickets from the artifact. Please try again.",
@@ -47,8 +48,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function handleStatusChange(id: any, newStatus: TicketStatus) {
+  function handleStatusChange(id: Id<"tickets">, newStatus: TicketStatus) {
     updateStatus({ ticketId: id, status: newStatus });
   }
 
