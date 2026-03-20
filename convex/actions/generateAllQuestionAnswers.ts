@@ -6,11 +6,9 @@ import type { Id, Doc } from '../_generated/dataModel';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
-  getModelById,
-  getFallbackModel,
+  resolveModelForCredentials,
   resolveCredentials,
   validateProviderModelMatch,
-  getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import type { LlmModel, ProviderCredentials } from '../../lib/llm/types';
@@ -66,7 +64,7 @@ export const generateAllQuestionAnswers = action({
 
     // Resolve credentials and model
     const userConfig = await ctx.runAction(
-      api.userConfigActions.getUserConfig,
+      internalApi.userConfigActions.getUserConfigInternal,
       {}
     );
     const systemCredentialsMap = await ctx.runAction(
@@ -88,19 +86,7 @@ export const generateAllQuestionAnswers = action({
       throw new Error('No LLM credentials configured. Please configure your API keys in Settings.');
     }
 
-    let model: LlmModel;
-    if (credentials.modelId) {
-      model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
-    } else if (credentials.provider) {
-      // Fallback to first enabled model for provider
-      const modelId = getFirstEnabledModelForProvider(
-        credentials.provider,
-        enabledModels
-      );
-      model = getModelById(modelId, enabledModelsFromDb || []) ?? getFallbackModel();
-    } else {
-      model = getFallbackModel();
-    }
+    const model: LlmModel = resolveModelForCredentials(credentials, enabledModelsFromDb || [], enabledModels);
 
     // Validate provider-model match
     {

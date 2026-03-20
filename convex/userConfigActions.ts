@@ -1,6 +1,6 @@
 'use node';
 
-import { action } from './_generated/server';
+import { action, internalAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { getRequiredEncryptionKey } from '../lib/encryption-key';
@@ -56,6 +56,45 @@ export const getUserConfig = action({
       zaiEndpointType: config.zaiEndpointType,
       zaiIsChina: config.zaiIsChina,
     });
+  },
+});
+
+/**
+ * Internal version of getUserConfig that returns the full decrypted config
+ * including the API key. Only callable from other server-side actions.
+ */
+export const getUserConfigInternal = internalAction({
+  args: {},
+  handler: async (ctx: ActionCtx): Promise<UserConfig | null> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const config: any = await ctx.runQuery(api.userConfigs.getUserConfigRaw);
+    if (!config) return null;
+
+    // Decrypt the API key
+    let decryptedApiKey: string | undefined;
+    if (config.apiKey) {
+      try {
+        const encrypted = JSON.parse(
+          Buffer.from(config.apiKey).toString('utf8')
+        );
+        decryptedApiKey = decrypt(encrypted, ENCRYPTION_KEY);
+      } catch {
+        decryptedApiKey = undefined;
+      }
+    }
+
+    return {
+      userId: config.userId,
+      provider: config.provider,
+      apiKey: decryptedApiKey,
+      defaultModel: config.defaultModel,
+      useSystem: config.useSystem,
+      systemKeyId: config.systemKeyId,
+      zaiEndpointType: config.zaiEndpointType,
+      zaiIsChina: config.zaiIsChina,
+    };
   },
 });
 

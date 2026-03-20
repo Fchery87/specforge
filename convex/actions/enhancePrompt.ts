@@ -6,10 +6,8 @@ import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import {
-  getFirstEnabledModelForProvider,
+  resolveModelForCredentials,
   resolveCredentials,
-  getModelById,
-  getFallbackModel,
   validateProviderModelMatch,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
@@ -200,7 +198,7 @@ export const enhancePrompt = action({
 
       // Resolve user configuration and credentials
       const userConfig = await ctx.runAction(
-        api.userConfigActions.getUserConfig,
+        internalApi.userConfigActions.getUserConfigInternal,
         {},
       );
       const systemCredentialsMap = await ctx.runAction(
@@ -228,21 +226,8 @@ export const enhancePrompt = action({
         };
       }
 
-      // Resolve model using the same pattern as generatePhase
-      // This ensures we use the user's configured model
-      let model: LlmModel;
-      if (credentials?.modelId) {
-        model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
-      } else if (credentials?.provider) {
-        // Fallback to first enabled model for provider
-        const modelId = getFirstEnabledModelForProvider(
-          credentials.provider,
-          enabledModels,
-        );
-        model = getModelById(modelId, enabledModelsFromDb || []) ?? getFallbackModel();
-      } else {
-        model = getFallbackModel();
-      }
+      // Resolve model using the shared resolver that trusts credentials' modelId
+      const model: LlmModel = resolveModelForCredentials(credentials, enabledModelsFromDb || [], enabledModels);
 
       // Fetch provider API endpoint from models.dev
       let providerApiEndpoint: string | null = null;

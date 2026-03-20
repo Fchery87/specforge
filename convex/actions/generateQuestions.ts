@@ -7,13 +7,10 @@ import { v } from 'convex/values';
 import type { Doc } from '../_generated/dataModel';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import {
-  getModelById,
-  getFallbackModel,
   resolveCredentials,
-  validateProviderModelMatch,
+  resolveModelForCredentials,
   getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
-import type { LlmModel } from '../../lib/llm/types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
@@ -143,26 +140,27 @@ export function buildQuestionPrompt(params: {
     `Generate ${params.range.min}-${params.range.max} specific, high-value questions for the "${params.phaseId}" phase.\n\n` +
     `Project Title: ${params.title}\n` +
     `Project Description: ${params.description}\n\n` +
+    `For each question, also provide 3-5 selectable suggestion options that represent common answers.\n\n` +
     `Return JSON only in this shape:\n` +
-    `{\"questions\":[{\"text\":\"...\",\"required\":true}]}`
+    `{\"questions\":[{\"text\":\"...\",\"required\":true,\"suggestions\":[\"Option A\",\"Option B\",\"Option C\"]}]}`
   );
 }
 
 export function normalizeQuestions(
-  questions: Array<{ text: string; required?: boolean }>,
+  questions: Array<{ text: string; required?: boolean; suggestions?: string[] }>,
   phaseId: string,
   range: { min: number; max: number },
-): Array<{ text: string; required?: boolean }> {
+): Array<{ text: string; required?: boolean; suggestions?: string[] }> {
   const filtered = questions.filter((q) => q.text?.trim().length);
   return filtered.slice(0, range.max);
 }
 
 export function selectQuestions(
-  aiQuestions: Array<{ text: string; required?: boolean }>,
+  aiQuestions: Array<{ text: string; required?: boolean; suggestions?: string[] }>,
   baseQuestions: Array<{ text: string; required?: boolean }>,
   range: { min: number; max: number },
 ): {
-  questions: Array<{ text: string; required?: boolean }>;
+  questions: Array<{ text: string; required?: boolean; suggestions?: string[] }>;
   aiGenerated: boolean;
 } {
   if (aiQuestions.length >= range.min) {
@@ -173,7 +171,7 @@ export function selectQuestions(
 
 function parseQuestionsResponse(
   raw: string,
-): Array<{ text: string; required?: boolean }> {
+): Array<{ text: string; required?: boolean; suggestions?: string[] }> {
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
@@ -231,7 +229,7 @@ export const generateQuestions = action({
     try {
       // Resolve credentials for AI question generation
       const userConfig = await ctx.runAction(
-        api.userConfigActions.getUserConfig,
+        internalApi.userConfigActions.getUserConfigInternal,
         {},
       );
 
@@ -256,41 +254,11 @@ export const generateQuestions = action({
         enabledModels,
       );
 
-      let model: LlmModel;
-      const provider = credentials?.provider;
-      if (credentials?.modelId && credentials.modelId !== '') {
-        model =
-          getModelById(credentials.modelId, enabledModelsFromDb || []) ??
-          getFallbackModel();
-      } else if (provider && enabledModels.length > 0) {
-        const providerModel = enabledModels.find(
-          (m: Doc<'llmModels'>) => m.provider === provider,
-        );
-        if (providerModel) {
-          model = {
-            id: providerModel.modelId,
-            provider: providerModel.provider as
-              | 'openai'
-              | 'openrouter'
-              | 'deepseek'
-              | 'anthropic'
-              | 'mistral'
-              | 'zai'
-              | 'minimax'
-              | 'other',
-            contextTokens: providerModel.contextTokens,
-            maxOutputTokens: providerModel.maxOutputTokens,
-            defaultMax: providerModel.defaultMax,
-          };
-          if (credentials) {
-            credentials.modelId = providerModel.modelId;
-          }
-        } else {
-          model = getFallbackModel();
-        }
-      } else {
-        model = getFallbackModel();
-      }
+      const model = resolveModelForCredentials(
+        credentials,
+        enabledModelsFromDb || [],
+        enabledModels,
+      );
 
       // Fetch provider API endpoint from models.dev
       let providerApiEndpoint: string | null = null;
@@ -308,6 +276,9 @@ export const generateQuestions = action({
       }
 
       const llmClient = createLlmClient(credentials, providerApiEndpoint);
+      if (!llmClient) {
+        console.warn('[generateQuestions] No LLM client — credentials missing or invalid. Falling back to base questions.');
+      }
       if (llmClient) {
         const prompt = buildQuestionPrompt({
           title: project.title,
@@ -346,12 +317,13 @@ export const generateQuestions = action({
           range,
         );
       }
-    } catch {
+    } catch (err) {
+      console.error('[generateQuestions] AI question generation failed:', err);
       logTelemetry('warn', {
         provider: credentials?.provider ?? 'unknown',
         model: 'unknown',
         success: false,
-        error: 'generateQuestions failed',
+        error: `generateQuestions failed: ${err instanceof Error ? err.message : String(err)}`,
       });
       aiQuestions = [];
     }
@@ -365,6 +337,7 @@ export const generateQuestions = action({
       answer: undefined as string | undefined,
       aiGenerated,
       required: q.required ?? false,
+      suggestions: Array.isArray(q.suggestions) ? q.suggestions.filter((s): s is string => typeof s === 'string') : undefined,
     }));
 
     await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {

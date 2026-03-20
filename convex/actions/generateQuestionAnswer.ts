@@ -2,18 +2,14 @@
 
 import { action } from '../_generated/server';
 import type { ActionCtx } from '../_generated/server';
-import type { Doc } from '../_generated/dataModel';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
-  getModelById,
-  getFallbackModel,
+  resolveModelForCredentials,
   resolveCredentials,
-  validateProviderModelMatch,
-  getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
-import type { LlmModel, ProviderCredentials } from '../../lib/llm/types';
+import type { LlmModel } from '../../lib/llm/types';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
@@ -83,7 +79,7 @@ export const generateQuestionAnswer = action({
 
     // Resolve credentials
     const userConfig = await ctx.runAction(
-      api.userConfigActions.getUserConfig,
+      internalApi.userConfigActions.getUserConfigInternal,
       {}
     );
 
@@ -109,36 +105,7 @@ export const generateQuestionAnswer = action({
       enabledModels
     );
 
-    let model: LlmModel;
-    if (credentials?.modelId && credentials.modelId !== '') {
-      model = getModelById(credentials.modelId, enabledModelsFromDb || []) ?? getFallbackModel();
-    } else if (credentials?.provider && enabledModels.length > 0) {
-      const providerModel = enabledModels.find(
-        (m: Doc<'llmModels'>) => m.provider === credentials.provider
-      );
-      if (providerModel) {
-        model = {
-          id: providerModel.modelId,
-          provider: providerModel.provider as
-            | 'openai'
-            | 'openrouter'
-            | 'deepseek'
-            | 'anthropic'
-            | 'mistral'
-            | 'zai'
-            | 'minimax'
-            | 'other',
-          contextTokens: providerModel.contextTokens,
-          maxOutputTokens: providerModel.maxOutputTokens,
-          defaultMax: providerModel.defaultMax,
-        };
-        credentials.modelId = providerModel.modelId;
-      } else {
-        model = getFallbackModel();
-      }
-    } else {
-      model = getFallbackModel();
-    }
+    const model: LlmModel = resolveModelForCredentials(credentials, enabledModelsFromDb || [], enabledModels);
 
     // Fetch provider API endpoint from models.dev
     let providerApiEndpoint: string | null = null;

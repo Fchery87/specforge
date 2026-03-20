@@ -39,10 +39,11 @@ const navLinks = (isAdmin: boolean) => [
 ];
 
 function NavLinks() {
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, user, isLoaded } = useUser();
   const pathname = usePathname();
 
-  if (!isSignedIn) return null;
+  // Prevent hydration mismatch by waiting for client-side auth state
+  if (!isLoaded || !isSignedIn) return null;
 
   const isAdmin = user?.publicMetadata?.role === "admin";
   const links = navLinks(isAdmin);
@@ -77,7 +78,10 @@ function NavLinks() {
 }
 
 function AuthNav({ className }: { className?: string }) {
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, user, isLoaded } = useUser();
+
+  // Prevent hydration mismatch by waiting for client-side auth state
+  if (!isLoaded) return null;
 
   if (isSignedIn && user) {
     return (

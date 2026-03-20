@@ -67,7 +67,7 @@ export const generateSectionPlan = action({
 
     // Resolve credentials — same pattern as generateQuickSpec
     const userConfig = await ctx.runAction(
-      api.userConfigActions.getUserConfig,
+      internalApi.userConfigActions.getUserConfigInternal,
       {},
     );
     const systemCredentialsMap = await ctx.runAction(

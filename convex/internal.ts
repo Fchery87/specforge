@@ -300,6 +300,7 @@ export const updatePhaseQuestionsInternal = internalMutation({
         answer: v.optional(v.string()),
         aiGenerated: v.boolean(),
         required: v.optional(v.boolean()),
+        suggestions: v.optional(v.array(v.string())),
       }),
     ),
   },

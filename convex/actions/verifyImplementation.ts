@@ -6,10 +6,8 @@ import type { Id } from '../_generated/dataModel';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import {
-  getModelById,
-  getFallbackModel,
+  resolveModelForCredentials,
   resolveCredentials,
-  getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import type { LlmModel } from '../../lib/llm/types';
@@ -93,7 +91,7 @@ export const verifyImplementation = action({
 
     // Resolve LLM credentials and model
     const userConfig = await ctx.runAction(
-      api.userConfigActions.getUserConfig,
+      internalApi.userConfigActions.getUserConfigInternal,
       {},
     );
     const systemCredentialsMap = await ctx.runAction(
@@ -117,21 +115,7 @@ export const verifyImplementation = action({
     }
 
     // Get model (prefer smaller/faster model for verification)
-    let model: LlmModel;
-    if (credentials.modelId) {
-      model =
-        getModelById(credentials.modelId, enabledModelsFromDb || []) ??
-        getFallbackModel();
-    } else if (credentials.provider) {
-      const modelId = getFirstEnabledModelForProvider(
-        credentials.provider,
-        enabledModels,
-      );
-      model =
-        getModelById(modelId, enabledModelsFromDb || []) ?? getFallbackModel();
-    } else {
-      model = getFallbackModel();
-    }
+    const model: LlmModel = resolveModelForCredentials(credentials, enabledModelsFromDb || [], enabledModels);
 
     // Build verification prompt
     const prompt = buildVerificationPrompt({

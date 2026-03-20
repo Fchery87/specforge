@@ -454,6 +454,50 @@ export function resolveCredentials(
   return null;
 }
 
+/**
+ * Resolve the correct model for a given set of credentials.
+ * Never falls back to a model from a different provider — if the
+ * model isn't in the registry, trust the credentials' modelId.
+ */
+export function resolveModelForCredentials(
+  credentials: ProviderCredentials | null,
+  dbModels: Array<{ provider: string; modelId: string; contextTokens: number; maxOutputTokens: number; defaultMax: number }>,
+  enabledModels: Array<{ provider: string; modelId: string; contextTokens: number; maxOutputTokens: number; defaultMax: number }>,
+): LlmModel {
+  const provider = credentials?.provider ?? '';
+
+  // 1. Try the specific modelId from credentials
+  if (credentials?.modelId && credentials.modelId !== '') {
+    const known = getModelById(credentials.modelId, dbModels);
+    if (known) return known;
+
+    // Model not in registry/DB but credentials say to use it — trust it
+    return {
+      id: credentials.modelId,
+      provider,
+      contextTokens: 128000,
+      maxOutputTokens: 8192,
+      defaultMax: 4096,
+    };
+  }
+
+  // 2. Find any enabled model for this specific provider
+  const providerModel = enabledModels.find((m) => m.provider === provider);
+  if (providerModel) {
+    if (credentials) credentials.modelId = providerModel.modelId;
+    return {
+      id: providerModel.modelId,
+      provider: providerModel.provider,
+      contextTokens: providerModel.contextTokens,
+      maxOutputTokens: providerModel.maxOutputTokens,
+      defaultMax: providerModel.defaultMax,
+    };
+  }
+
+  // 3. Last resort — global fallback
+  return getFallbackModel();
+}
+
 export function getFallbackModel(modelId?: string): LlmModel {
   if (modelId) {
     const model = getModelById(modelId);

@@ -14,12 +14,10 @@ import {
   estimateTokenCount,
 } from '../../lib/llm/chunking';
 import {
-  getModelById,
-  getFallbackModel,
+  resolveModelForCredentials,
   validateModelForArtifact,
   resolveCredentials,
   validateProviderModelMatch,
-  getFirstEnabledModelForProvider,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import type {
@@ -123,7 +121,7 @@ export const generatePhase = action({
 
     // Resolve model and credentials (similar to original logic)
     const userConfig = await ctx.runAction(
-      api.userConfigActions.getUserConfig,
+      internalApi.userConfigActions.getUserConfigInternal,
       {},
     );
     const systemCredentialsMap = await ctx.runAction(
@@ -149,23 +147,11 @@ export const generatePhase = action({
 
     let model: LlmModel;
     if (args.modelId) {
-      model =
-        getModelById(args.modelId, enabledModelsFromDb || []) ??
-        getFallbackModel();
-    } else if (credentials.modelId) {
-      model =
-        getModelById(credentials.modelId, enabledModelsFromDb || []) ??
-        getFallbackModel();
-    } else if (credentials.provider) {
-      // Fallback to first enabled model for provider
-      const modelId = getFirstEnabledModelForProvider(
-        credentials.provider,
-        enabledModels,
-      );
-      model =
-        getModelById(modelId, enabledModelsFromDb || []) ?? getFallbackModel();
+      // Explicit model override from action args — use it directly
+      const overrideCredentials = { ...credentials, modelId: args.modelId };
+      model = resolveModelForCredentials(overrideCredentials, enabledModelsFromDb || [], enabledModels);
     } else {
-      model = getFallbackModel();
+      model = resolveModelForCredentials(credentials, enabledModelsFromDb || [], enabledModels);
     }
 
     // Validate provider-model match
