@@ -177,31 +177,25 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Start Card */}
-          <Card variant="default">
-            <CardHeader>
-              <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4">
-                <Zap className="w-7 h-7 text-muted-foreground" />
-              </div>
-              <CardTitle>Quick Start</CardTitle>
-              <CardDescription>
-                Jump back into an existing project
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {mostRecentProject ? (
-                <Link
-                  href={`/project/${mostRecentProject._id}`}
-                  className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors group"
-                >
-                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <span className="truncate">{mostRecentProject.title}</span>
-                </Link>
-              ) : (
-                <p className="text-muted-foreground text-sm">No projects yet</p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Quick Spec Card */}
+          <Link href={"/dashboard/quick" as Route} className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-black group-hover:bg-black/10 transition-colors">
+                  <Zap className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>Quick Spec</CardTitle>
+                <CardDescription>
+                  Generate a focused spec from a single task description
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-primary group-hover:text-black font-bold uppercase tracking-tight text-sm transition-colors">
+                  Open Quick Spec <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </section>
 
