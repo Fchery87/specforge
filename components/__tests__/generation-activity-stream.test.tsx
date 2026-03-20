@@ -1,6 +1,10 @@
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { GenerationActivityStream } from '../generation-activity-stream';
+
+beforeEach(() => {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+});
 
 const activities = [
   { timestamp: 1000, message: 'Gathering context...', type: 'context' as const },

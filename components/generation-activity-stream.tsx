@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Loader2, Check, Search, Brain } from "lucide-react";
 
@@ -15,6 +16,12 @@ interface GenerationActivityStreamProps {
 }
 
 export function GenerationActivityStream({ activities, isActive }: GenerationActivityStreamProps) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activities.length]);
+
   if (activities.length === 0) return null;
 
   const icons = {
@@ -43,6 +50,7 @@ export function GenerationActivityStream({ activities, isActive }: GenerationAct
             </div>
           );
         })}
+        <div ref={bottomRef} />
       </div>
     </div>
   );

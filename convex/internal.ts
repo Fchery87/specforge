@@ -444,7 +444,7 @@ export const appendActivityLog = internalMutation({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) return;
-    const activityLog = task.activityLog ?? [];
+    const activityLog = (task.activityLog ?? []).slice(-50);
     await ctx.db.patch(args.taskId, { activityLog: [...activityLog, args.entry] });
   },
 });
