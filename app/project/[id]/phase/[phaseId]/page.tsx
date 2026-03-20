@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 import { PhaseSwitcher } from "@/components/phase-switcher";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { TicketBoard } from "@/components/ticket-board";
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
   constitution: { label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
@@ -435,6 +436,20 @@ export default function PhasePage() {
           </div>
         </div>
       </section>
+
+      {/* Ticket Board — only for stories phase */}
+      {phaseId === 'stories' && (
+        <section className="page-container page-section border-t-2 border-border relative z-10">
+          <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
+            Ticket Board
+          </h2>
+          <TicketBoard
+            projectId={projectId}
+            phaseId={phaseId}
+            artifactId={phase.artifacts?.[0]?._id}
+          />
+        </section>
+      )}
 
       {/* Decorative Element */}
       <div className="text-[15vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden mt-12">
