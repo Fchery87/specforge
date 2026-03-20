@@ -16,7 +16,8 @@ import { StreamingArtifactPreview } from "@/components/streaming-artifact-previe
 import { ExportOptionsPanel } from "@/components/export-options";
 import { SectionPlanPreview, SectionPlanPreviewSkeleton } from "@/components/section-plan-preview";
 import { getSectionPlansForPhase } from "@/lib/llm/section-plans";
-import type { UserSectionPreference } from "@/lib/llm/types";
+import type { SectionPlanConfig, UserSectionPreference } from "@/lib/llm/types";
+import type { GeneratedSectionPlan } from "@/lib/section-plan-parser";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,6 +28,18 @@ import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 import { PhaseSwitcher } from "@/components/phase-switcher";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TicketBoard } from "@/components/ticket-board";
+
+function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    estimatedTokens: p.estimatedTokens,
+    required: p.required,
+    phaseId: '',
+    sectionType: (p.sectionType ?? 'documentation') as SectionPlanConfig['sectionType'],
+  };
+}
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
   constitution: { label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
@@ -79,7 +92,7 @@ export default function PhasePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const generateSectionPlanAction = (api as any)["actions/generateSectionPlan"]?.generateSectionPlan as any;
   const generateSectionPlanFn = useAction(generateSectionPlanAction);
-  const [aiSectionPlans, setAiSectionPlans] = useState<typeof staticSectionPlans | null>(null);
+  const [aiSectionPlans, setAiSectionPlans] = useState<SectionPlanConfig[] | null>(null);
   const [isLoadingAiPlan, setIsLoadingAiPlan] = useState(false);
   const sectionPlans = aiSectionPlans ?? staticSectionPlans;
   
@@ -120,9 +133,7 @@ export default function PhasePage() {
         phaseId,
       });
       if (result?.sectionPlan?.length) {
-        // Map GeneratedSectionPlan to SectionPlanConfig shape
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setAiSectionPlans(result.sectionPlan as any);
+        setAiSectionPlans(result.sectionPlan.map(toSectionPlanConfig));
       }
     } catch {
       toast.error("Failed to generate AI plan", {
@@ -181,7 +192,6 @@ export default function PhasePage() {
         description: errorToast.description,
       });
       setIsPhaseStarting(false);
-    } finally {
     }
   }
 
@@ -383,7 +393,7 @@ export default function PhasePage() {
                       variant="outline"
                       size="sm"
                       onClick={handleGenerateAiPlan}
-                      disabled={isGenerating}
+                      disabled={isGenerating || isLoadingAiPlan}
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
                       Generate Plan with AI

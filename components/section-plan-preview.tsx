@@ -132,9 +132,9 @@ export function SectionPlanPreview({
     return (
       <div className="space-y-6">
         <Card>
-          <CardContent className="p-8 flex flex-col items-center justify-center gap-4">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground">Generating section plan...</p>
+          <CardContent className="p-8 flex flex-col items-center justify-center gap-4" role="status">
+            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" aria-hidden="true" />
+            <p aria-live="polite" className="text-sm text-muted-foreground">Generating section plan...</p>
           </CardContent>
         </Card>
       </div>
