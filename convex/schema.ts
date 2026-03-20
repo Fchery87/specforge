@@ -243,6 +243,11 @@ export default defineSchema({
       ),
     }),
     error: v.optional(v.string()),
+    activityLog: v.optional(v.array(v.object({
+      timestamp: v.number(),
+      message: v.string(),
+      type: v.union(v.literal('info'), v.literal('context'), v.literal('generating'), v.literal('complete')),
+    }))),
     updatedAt: v.number(),
   }).index('by_project_phase', ['projectId', 'phaseId']),
 

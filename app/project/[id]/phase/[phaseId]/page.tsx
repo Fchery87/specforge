@@ -28,6 +28,7 @@ import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 import { PhaseSwitcher } from "@/components/phase-switcher";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TicketBoard } from "@/components/ticket-board";
+import { GenerationActivityStream } from "@/components/generation-activity-stream";
 
 function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
   return {
@@ -430,6 +431,15 @@ export default function PhasePage() {
               onDownloadAll={handleDownloadZip}
               isDownloading={isDownloadingZip}
             />
+
+            {isGenerating && (
+              <div className="mb-4">
+                <GenerationActivityStream
+                  activities={generationTask?.activityLog ?? []}
+                  isActive={isGenerating}
+                />
+              </div>
+            )}
 
             <Card variant="static">
               <CardContent className="p-6">

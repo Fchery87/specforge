@@ -170,6 +170,20 @@ export const generatePhaseWorker = internalAction({
       sectionPreferences,
     } = metadata;
 
+    // Emit context-gathering activity on the first step
+    if (currentStep === 0) {
+      await ctx.runMutation(internal.internal.appendActivityLog, {
+        taskId: task._id,
+        entry: { timestamp: Date.now(), message: 'Gathering upstream context...', type: 'context' },
+      });
+    }
+
+    // Emit activity entry for this section
+    await ctx.runMutation(internal.internal.appendActivityLog, {
+      taskId: task._id,
+      entry: { timestamp: Date.now(), message: `Generating "${section.name}"...`, type: 'generating' },
+    });
+
     // Create LLM client with dynamic API endpoint from models.dev
     const llmClient = createLlmClient(credentials, providerApiEndpoint);
 
@@ -408,6 +422,10 @@ export const generatePhaseWorker = internalAction({
           taskId: args.taskId,
           currentStep: nextStep,
           status: 'completed',
+        });
+        await ctx.runMutation(internal.internal.appendActivityLog, {
+          taskId: args.taskId,
+          entry: { timestamp: Date.now(), message: 'Generation complete', type: 'complete' },
         });
         await ctx.runMutation(internal.internal.updatePhaseStatus, {
           projectId,

@@ -432,6 +432,23 @@ export const getGenerationTask = internalQuery({
   },
 });
 
+export const appendActivityLog = internalMutation({
+  args: {
+    taskId: v.id('generationTasks'),
+    entry: v.object({
+      timestamp: v.number(),
+      message: v.string(),
+      type: v.union(v.literal('info'), v.literal('context'), v.literal('generating'), v.literal('complete')),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) return;
+    const activityLog = task.activityLog ?? [];
+    await ctx.db.patch(args.taskId, { activityLog: [...activityLog, args.entry] });
+  },
+});
+
 export const appendSectionToArtifactInternal = internalMutation({
   args: {
     projectId: v.id('projects'),
