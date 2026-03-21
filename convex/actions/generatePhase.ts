@@ -218,6 +218,15 @@ export const generatePhase = action({
     }
 
     // Initialize the background task
+    // Create credential reference (without apiKey) for secure storage
+    const credentialRef = {
+      provider: credentials.provider,
+      modelId: credentials.modelId,
+      source: (userConfig?.apiKey ? 'user' : 'system') as 'user' | 'system',
+      zaiEndpointType: credentials.zaiEndpointType,
+      zaiIsChina: credentials.zaiIsChina,
+    };
+
     const taskId = await ctx.runMutation(
       internalApi.internal.initGenerationTask,
       {
@@ -227,7 +236,7 @@ export const generatePhase = action({
         totalSteps: filteredSectionPlan.length,
         plan: filteredSectionPlan,
         metadata: {
-          credentials,
+          credentials: credentialRef,
           model,
           artifactType,
           providerApiEndpoint: providerApiEndpoint ?? undefined,

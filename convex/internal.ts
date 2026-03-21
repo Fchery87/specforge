@@ -362,8 +362,8 @@ export const initGenerationTask = internalMutation({
       }),
       credentials: v.object({
         provider: v.string(),
-        apiKey: v.string(),
         modelId: v.string(),
+        source: v.union(v.literal('user'), v.literal('system')),
         zaiEndpointType: v.optional(
           v.union(v.literal('paid'), v.literal('coding')),
         ),

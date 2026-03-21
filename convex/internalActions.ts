@@ -113,6 +113,65 @@ export const getAllDecryptedSystemCredentials = internalAction({
   },
 });
 
+/**
+ * Resolve credentials at worker execution time based on credential reference.
+ * Re-fetches API keys from storage instead of using stored credentials.
+ */
+async function resolveCredentialsForWorker(
+  ctx: any,
+  credentialRef: {
+    provider: string;
+    modelId: string;
+    source: 'user' | 'system';
+    zaiEndpointType?: 'paid' | 'coding';
+    zaiIsChina?: boolean;
+  },
+  userId: string,
+): Promise<{
+  provider: string;
+  apiKey: string;
+  modelId: string;
+  zaiEndpointType?: 'paid' | 'coding';
+  zaiIsChina?: boolean;
+} | null> {
+  // Get system credentials
+  const systemCredentialsMap = await ctx.runAction(
+    internal.internalActions.getAllDecryptedSystemCredentials,
+    {},
+  );
+
+  if (credentialRef.source === 'user') {
+    // For user credentials, fetch from user config
+    const userConfig = await ctx.runAction(
+      internal.userConfigActions.getUserConfigInternal,
+      {},
+    );
+    if (userConfig?.apiKey) {
+      return {
+        provider: credentialRef.provider,
+        apiKey: userConfig.apiKey,
+        modelId: credentialRef.modelId,
+        zaiEndpointType: userConfig.zaiEndpointType,
+        zaiIsChina: userConfig.zaiIsChina,
+      };
+    }
+  } else {
+    // For system credentials, fetch from system credentials
+    const systemCred = systemCredentialsMap[credentialRef.provider];
+    if (systemCred?.apiKey) {
+      return {
+        provider: credentialRef.provider,
+        apiKey: systemCred.apiKey,
+        modelId: credentialRef.modelId,
+        zaiEndpointType: systemCred.zaiEndpointType,
+        zaiIsChina: systemCred.zaiIsChina,
+      };
+    }
+  }
+
+  return null;
+}
+
 // ============================================================================
 // GENERATION WORKERS - Background workers for chained generation
 // ============================================================================
@@ -163,12 +222,35 @@ export const generatePhaseWorker = internalAction({
 
     const {
       model,
-      credentials,
+      credentials: credentialRef,
       artifactType,
       projectContext,
       providerApiEndpoint,
       sectionPreferences,
     } = metadata;
+
+    // Resolve credentials at runtime (re-fetch API key from storage)
+    const project = await ctx.runQuery(internal.internal.getProjectInternal, {
+      projectId,
+    });
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    const resolvedCredentials = await resolveCredentialsForWorker(
+      ctx,
+      credentialRef as any,
+      project.userId,
+    );
+    if (!resolvedCredentials) {
+      await ctx.runMutation(internal.internal.updateGenerationTask, {
+        taskId: args.taskId,
+        currentStep,
+        status: 'failed',
+        error: 'Failed to resolve credentials',
+      });
+      return;
+    }
 
     // Emit context-gathering activity on the first step
     if (currentStep === 0) {
@@ -185,7 +267,7 @@ export const generatePhaseWorker = internalAction({
     });
 
     // Create LLM client with dynamic API endpoint from models.dev
-    const llmClient = createLlmClient(credentials, providerApiEndpoint);
+    const llmClient = createLlmClient(resolvedCredentials, providerApiEndpoint);
 
     // Get custom instructions for this section from preferences (Phase 4 P2)
     const sectionPref = sectionPreferences?.find(
@@ -699,11 +781,34 @@ export const generateQuestionsWorker = internalAction({
     if (!task || task.status !== 'in_progress') return;
 
     const { plan, metadata, projectId, phaseId } = task;
-    const { model, credentials, projectContext, providerApiEndpoint } =
+    const { model, credentials: credentialRef, projectContext, providerApiEndpoint } =
       metadata;
 
+    // Resolve credentials at runtime (re-fetch API key from storage)
+    const project = await ctx.runQuery(internal.internal.getProjectInternal, {
+      projectId,
+    });
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    const resolvedCredentials = await resolveCredentialsForWorker(
+      ctx,
+      credentialRef as any,
+      project.userId,
+    );
+    if (!resolvedCredentials) {
+      await ctx.runMutation(internal.internal.updateGenerationTask, {
+        taskId: args.taskId,
+        currentStep: task.currentStep,
+        status: 'failed',
+        error: 'Failed to resolve credentials',
+      });
+      return;
+    }
+
     // Create LLM client with dynamic API endpoint from models.dev
-    const llmClient = createLlmClient(credentials, providerApiEndpoint);
+    const llmClient = createLlmClient(resolvedCredentials, providerApiEndpoint);
     if (!llmClient) {
       await ctx.runMutation(internal.internal.updateGenerationTask, {
         taskId: args.taskId,
