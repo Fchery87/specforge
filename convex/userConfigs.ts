@@ -102,7 +102,7 @@ export const deleteUserConfigRaw = mutation({
       .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .first();
 
-    if (existing && existing.apiKey) {
+    if (existing) {
       await ctx.db.delete(existing._id);
     }
   },

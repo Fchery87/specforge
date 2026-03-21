@@ -17,7 +17,7 @@ export class GenericOpenAIClient implements LlmProvider {
 
   constructor(apiKey: string, baseUrl: string, provider: string) {
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl.endsWith('/v1') ? baseUrl : `${baseUrl}`;
+    this.baseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     this.provider = provider;
   }
 

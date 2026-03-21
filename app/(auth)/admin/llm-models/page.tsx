@@ -462,7 +462,7 @@ export default function LlmModelsPage() {
                       type="number"
                       value={newModel.contextTokens}
                       onChange={(e) =>
-                        setNewModel({ ...newModel, contextTokens: parseInt(e.target.value) })
+                        setNewModel({ ...newModel, contextTokens: parseInt(e.target.value) || 0 })
                       }
                       className={cn(detectedModel && "border-primary/50")}
                     />
@@ -482,7 +482,7 @@ export default function LlmModelsPage() {
                       type="number"
                       value={newModel.maxOutputTokens}
                       onChange={(e) =>
-                        setNewModel({ ...newModel, maxOutputTokens: parseInt(e.target.value) })
+                        setNewModel({ ...newModel, maxOutputTokens: parseInt(e.target.value) || 0 })
                       }
                       className={cn(detectedModel && "border-primary/50")}
                     />
@@ -502,7 +502,7 @@ export default function LlmModelsPage() {
                       type="number"
                       value={newModel.defaultMax}
                       onChange={(e) =>
-                        setNewModel({ ...newModel, defaultMax: parseInt(e.target.value) })
+                        setNewModel({ ...newModel, defaultMax: parseInt(e.target.value) || 0 })
                       }
                       className={cn(detectedModel && "border-primary/50")}
                     />
