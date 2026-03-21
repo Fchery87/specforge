@@ -390,4 +390,57 @@ export default defineSchema({
     overallScore: v.number(),
     status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),
   }).index('by_project', ['projectId']),
+
+  // Audit logs for security tracking
+  auditLogs: defineTable({
+    action: v.string(), // e.g., 'credential_updated', 'user_suspended', 'project_deleted'
+    actorId: v.string(), // User ID who performed the action
+    actorEmail: v.optional(v.string()),
+    targetType: v.union(
+      v.literal('user'),
+      v.literal('project'),
+      v.literal('credential'),
+      v.literal('system'),
+      v.literal('model'),
+    ),
+    targetId: v.optional(v.string()),
+    details: v.optional(v.string()), // JSON string of additional details
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index('by_actor', ['actorId']).index('by_target', ['targetType', 'targetId']).index('by_created', ['createdAt']),
+
+  // Feature flags for system configuration
+  featureFlags: defineTable({
+    key: v.string(),
+    name: v.string(),
+    description: v.string(),
+    enabled: v.boolean(),
+    updatedBy: v.string(),
+    updatedAt: v.number(),
+  }).index('by_key', ['key']),
+
+  // System configuration settings
+  systemConfig: defineTable({
+    key: v.string(),
+    value: v.string(), // JSON string of the value
+    category: v.union(
+      v.literal('rate_limit'),
+      v.literal('security'),
+      v.literal('generation'),
+      v.literal('maintenance'),
+    ),
+    updatedBy: v.string(),
+    updatedAt: v.number(),
+  }).index('by_key', ['key']).index('by_category', ['category']),
+
+  // Health check results for LLM providers
+  healthChecks: defineTable({
+    provider: v.string(),
+    status: v.union(v.literal('healthy'), v.literal('degraded'), v.literal('down')),
+    responseTime: v.number(), // in ms
+    lastChecked: v.number(),
+    errorMessage: v.optional(v.string()),
+    consecutiveFailures: v.number(),
+  }).index('by_provider', ['provider']),
 });

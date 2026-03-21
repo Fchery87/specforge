@@ -20,7 +20,11 @@ import {
   Info,
   FileCode,
   Play,
-  CheckCircle
+  CheckCircle,
+  BarChart3,
+  Lock,
+  Settings,
+  Flag
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -292,7 +296,147 @@ export default function AdminDashboardPage() {
           </h2>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/* User Management */}
+          <Link href="/admin/users" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <Users className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  View users, manage roles, and audit user activity
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  Manage Users <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Project Management */}
+          <Link href="/admin/projects" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <FolderOpen className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>Project Control Center</CardTitle>
+                <CardDescription>
+                  Cross-user project visibility, bulk operations, and moderation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  Manage Projects <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Analytics */}
+          <Link href="/admin/analytics" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <BarChart3 className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>Usage Analytics</CardTitle>
+                <CardDescription>
+                  Token consumption, cost tracking, and usage patterns
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  View Analytics <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* System Health */}
+          <Link href="/admin/health" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <Activity className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>System Health</CardTitle>
+                <CardDescription>
+                  Monitor LLM provider health, queue status, and performance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  Monitor Health <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Security & Audit */}
+          <Link href="/admin/security" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <Lock className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>Security & Audit</CardTitle>
+                <CardDescription>
+                  Security events, audit trails, and administrative actions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  View Logs <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Settings */}
+          <Link href="/admin/settings" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <Settings className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>Global Settings</CardTitle>
+                <CardDescription>
+                  Feature flags, rate limits, and system-wide configuration
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  Configure <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Content Moderation */}
+          <Link href="/admin/moderation" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <Flag className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>Content Moderation</CardTitle>
+                <CardDescription>
+                  Review artifacts, templates, and content filtering
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  Moderate <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
           {/* LLM Models */}
           <Link href="/admin/llm-models" className="block">
             <Card variant="interactive" className="h-full group">
