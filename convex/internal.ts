@@ -4,7 +4,7 @@ import { v } from 'convex/values';
 import { getNextUpdatedAt } from './projects';
 import { renderPreviewHtml } from '../lib/markdown-render';
 import { getAffectedPhases } from '../lib/specification/dependency-graph';
-import { mapPhaseToArtifactType } from './lib/phase-utils';
+import { mapPhaseToArtifactType } from './lib/phase_utils';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },

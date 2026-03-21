@@ -16,7 +16,11 @@ import {
   ArrowRight,
   CheckCircle2,
   XCircle,
-  Activity
+  Activity,
+  Info,
+  FileCode,
+  Play,
+  CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +57,12 @@ export default function AdminDashboardPage() {
     isLoaded && isSignedIn ? {} : "skip"
   );
 
+  // Get recent activity
+  const activities = useQuery(
+    api.admin.getRecentActivity,
+    isLoaded && isSignedIn ? { limit: 20 } : "skip"
+  );
+
   // Show loading while Clerk auth is initializing
   if (!isLoaded) {
     return (
@@ -76,7 +86,7 @@ export default function AdminDashboardPage() {
   }
 
   // Show loading while data is being fetched
-  if (stats === undefined || systemCredentials === undefined || models === undefined) {
+  if (stats === undefined || systemCredentials === undefined || models === undefined || activities === undefined) {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px] gap-3">
@@ -99,6 +109,34 @@ export default function AdminDashboardPage() {
 
   const enabledModelsCount = models?.filter((m: any) => m.enabled).length || 0;
   const configuredProviders = PROVIDERS.filter(p => getCredentialStatus(p.id).configured).length;
+
+  // Helper to get activity icon based on type
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'generating':
+        return <Play className="w-4 h-4 text-primary" />;
+      case 'complete':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'context':
+        return <FileCode className="w-4 h-4 text-blue-500" />;
+      default:
+        return <Info className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  // Format relative time
+  const formatRelativeTime = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  };
 
   return (
     <main className="relative">
@@ -296,23 +334,87 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Activity Monitor */}
-          <Card variant="default" className="h-full opacity-60">
-            <CardHeader>
-              <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4">
-                <Activity className="w-7 h-7 text-muted-foreground" />
-              </div>
-              <CardTitle>Activity Monitor</CardTitle>
-              <CardDescription>
-                View generation logs and rate limit status
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center text-muted-foreground font-bold uppercase tracking-tight">
-                Coming Soon
-              </div>
-            </CardContent>
-          </Card>
+          <Link href="/admin/activity" className="block">
+            <Card variant="interactive" className="h-full group">
+              <CardHeader>
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
+                  <Activity className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                </div>
+                <CardTitle>Activity Monitor</CardTitle>
+                <CardDescription>
+                  View recent generation activity and system logs
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
+                  View Activity <ArrowRight className="w-4 h-4 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
+      </section>
+
+      {/* Activity Feed */}
+      <section className="page-section page-container border-t-2 border-border">
+        <div className="mb-8">
+          <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+            Recent Activity
+          </h2>
+          <p className="text-muted-foreground mt-2">
+            Latest generation tasks and system events
+          </p>
+        </div>
+
+        <Card variant="default">
+          <CardContent className="p-0">
+            {activities && activities.length > 0 ? (
+              <div className="divide-y divide-border">
+                {activities.map((activity: any) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-4 p-4 hover:bg-secondary/30 transition-colors"
+                  >
+                    <div className="mt-1 flex-shrink-0">
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-none mb-1">
+                        {activity.message}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Project: {activity.projectId} • Phase: {activity.phaseId}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-xs text-muted-foreground">
+                        {formatRelativeTime(activity.timestamp)}
+                      </p>
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1",
+                          activity.taskStatus === 'completed'
+                            ? "bg-green-500/10 text-green-500"
+                            : activity.taskStatus === 'failed'
+                            ? "bg-red-500/10 text-red-500"
+                            : "bg-yellow-500/10 text-yellow-500"
+                        )}
+                      >
+                        {activity.taskStatus}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <Activity className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">No recent activity</p>
+                <p className="text-xs mt-1">Activity will appear here when users generate artifacts</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       {/* Projects Breakdown */}

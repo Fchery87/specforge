@@ -161,3 +161,47 @@ export const deleteSystemCredential = mutation({
     }
   },
 });
+
+// Get recent activity from generation tasks for monitoring
+export const getRecentActivity = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx: QueryCtx, args) => {
+    await requireAdmin(ctx);
+
+    const limit = args.limit ?? 50;
+    const tasks = await ctx.db.query('generationTasks').collect();
+    
+    // Extract activity logs from all tasks and flatten
+    const activities: Array<{
+      id: string;
+      timestamp: number;
+      message: string;
+      type: 'info' | 'context' | 'generating' | 'complete';
+      projectId: string;
+      phaseId: string;
+      taskStatus: string;
+    }> = [];
+
+    for (const task of tasks) {
+      if (task.activityLog && task.activityLog.length > 0) {
+        for (const log of task.activityLog) {
+          activities.push({
+            id: `${task._id}-${log.timestamp}`,
+            timestamp: log.timestamp,
+            message: log.message,
+            type: log.type,
+            projectId: task.projectId,
+            phaseId: task.phaseId,
+            taskStatus: task.status,
+          });
+        }
+      }
+    }
+
+    // Sort by timestamp descending and limit
+    activities.sort((a, b) => b.timestamp - a.timestamp);
+    return activities.slice(0, limit);
+  },
+});

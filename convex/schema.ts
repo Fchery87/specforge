@@ -220,7 +220,8 @@ export default defineSchema({
       credentials: v.object({
         provider: v.string(),
         modelId: v.string(),
-        source: v.union(v.literal('user'), v.literal('system')),
+        source: v.optional(v.union(v.literal('user'), v.literal('system'))),
+        apiKey: v.optional(v.string()),
         zaiEndpointType: v.optional(
           v.union(v.literal('paid'), v.literal('coding')),
         ),

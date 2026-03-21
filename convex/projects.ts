@@ -4,7 +4,7 @@ import type { Doc } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { canAccessProject } from '../lib/authz';
 import { normalizeProjectInput } from '../lib/project-input';
-import { mapPhaseToArtifactType } from './lib/phase-utils';
+import { mapPhaseToArtifactType } from './lib/phase_utils';
 
 const DEFAULT_PHASES = [
   'constitution',
