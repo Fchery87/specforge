@@ -145,7 +145,13 @@ export default function ProjectPage() {
       <section className="page-container pb-8 relative z-10">
         <PhaseStepper
           projectId={params.id}
-          currentPhase="constitution"
+          currentPhase={
+            // Find the first phase that is not 'ready' (i.e., the current active phase)
+            PHASES.find((p) => {
+              const status = phaseStatusMap.get(p.id);
+              return !status || status !== 'ready';
+            })?.id ?? 'constitution'
+          }
           phaseStatuses={Object.fromEntries(phaseStatusMap)}
         />
       </section>
