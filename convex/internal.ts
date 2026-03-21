@@ -4,42 +4,7 @@ import { v } from 'convex/values';
 import { getNextUpdatedAt } from './projects';
 import { renderPreviewHtml } from '../lib/markdown-render';
 import { getAffectedPhases } from '../lib/specification/dependency-graph';
-
-/**
- * Maps phaseId to artifact type for database storage
- */
-function mapPhaseToArtifactType(
-  phaseId: string,
-):
-  | 'brief'
-  | 'constitution'
-  | 'prd'
-  | 'domainModel'
-  | 'spec'
-  | 'techSpec'
-  | 'userStories'
-  | 'handoff' {
-  switch (phaseId) {
-    case 'constitution':
-      return 'constitution';
-    case 'brief':
-      return 'brief';
-    case 'prd':
-      return 'prd';
-    case 'domainModel':
-      return 'domainModel';
-    case 'specs':
-      return 'techSpec';
-    case 'stories':
-      return 'userStories';
-    case 'artifacts':
-      return 'handoff';
-    case 'handoff':
-      return 'handoff';
-    default:
-      return 'handoff';
-  }
-}
+import { mapPhaseToArtifactType } from './lib/phase-utils';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },

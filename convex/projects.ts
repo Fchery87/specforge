@@ -4,6 +4,7 @@ import type { Doc } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { canAccessProject } from '../lib/authz';
 import { normalizeProjectInput } from '../lib/project-input';
+import { mapPhaseToArtifactType } from './lib/phase-utils';
 
 const DEFAULT_PHASES = [
   'constitution',
@@ -16,41 +17,7 @@ const DEFAULT_PHASES = [
   'handoff',
 ];
 
-/**
- * Maps phaseId to artifact type for database storage
- */
-function mapPhaseToArtifactType(
-  phaseId: string,
-):
-  | 'brief'
-  | 'constitution'
-  | 'prd'
-  | 'domainModel'
-  | 'spec'
-  | 'techSpec'
-  | 'userStories'
-  | 'handoff' {
-  switch (phaseId) {
-    case 'constitution':
-      return 'constitution';
-    case 'brief':
-      return 'brief';
-    case 'prd':
-      return 'prd';
-    case 'domainModel':
-      return 'domainModel';
-    case 'specs':
-      return 'techSpec';
-    case 'stories':
-      return 'userStories';
-    case 'handoff':
-      return 'handoff';
-    case 'artifacts':
-      return 'handoff'; // Artifacts phase produces handoff artifacts
-    default:
-      return 'handoff';
-  }
-}
+// mapPhaseToArtifactType is now imported from './lib/phase-utils'
 
 export const createProject = mutation({
   args: { title: v.string(), description: v.string() },
