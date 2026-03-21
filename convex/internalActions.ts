@@ -364,6 +364,23 @@ export const generatePhaseWorker = internalAction({
         );
       };
 
+      // Fetch previous sections' content for coherence
+      let previousSections: Array<{ name: string; content: string }> = [];
+      if (currentStep > 0) {
+        const artifact = await ctx.runQuery(
+          internal.internal.getArtifactByPhaseInternal,
+          { projectId, phaseId },
+        );
+        if (artifact?.content) {
+          // Use the last 3000 chars of previous content as a summary
+          const prevContent = artifact.content;
+          const truncated = prevContent.length > 3000
+            ? prevContent.slice(-3000)
+            : prevContent;
+          previousSections = [{ name: 'previous-content', content: truncated }];
+        }
+      }
+
       // Check if critique is enabled for this phase
       const critiqueEnabled =
         isCritiqueEnabled() &&
@@ -394,7 +411,7 @@ export const generatePhaseWorker = internalAction({
           sectionName: section.name,
           sectionInstructions,
           sectionQuestions,
-          previousSections: [],
+          previousSections,
           model,
           maxTokens: section.maxTokens,
           llmClient,
@@ -441,7 +458,7 @@ export const generatePhaseWorker = internalAction({
           sectionName: section.name,
           sectionInstructions,
           sectionQuestions,
-          previousSections: [],
+          previousSections,
           model,
           maxTokens: section.maxTokens,
           // Reasoning models (QwQ, R1, GLM, etc.) need more tokens per turn
