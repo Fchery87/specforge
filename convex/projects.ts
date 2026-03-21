@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { canAccessProject } from '../lib/authz';
 import { normalizeProjectInput } from '../lib/project-input';
@@ -265,38 +266,100 @@ export function getNextUpdatedAt(current: number, now: number): number {
   return now > current ? now : current;
 }
 
+// Exported handler for testing
+export async function deleteProjectHandler(
+  ctx: MutationCtx,
+  args: { projectId: any },
+) {
+  const project = await ctx.db.get(args.projectId);
+  if (!project) throw new Error('Project not found');
+
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity || (project as Doc<'projects'>).userId !== identity.subject) {
+    throw new Error('Forbidden');
+  }
+
+  // Cascade delete phases
+  const phases = await ctx.db
+    .query('phases')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const phase of phases) {
+    await ctx.db.delete(phase._id);
+  }
+
+  // Cascade delete artifacts
+  const artifacts = await ctx.db
+    .query('artifacts')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const artifact of artifacts) {
+    await ctx.db.delete(artifact._id);
+  }
+
+  // Cascade delete artifact versions (for each artifact)
+  for (const artifact of artifacts) {
+    const versions = await ctx.db
+      .query('artifactVersions')
+      .withIndex('by_artifact', (q) => q.eq('artifactId', artifact._id))
+      .collect();
+    for (const version of versions) {
+      await ctx.db.delete(version._id);
+    }
+  }
+
+  // Cascade delete generation tasks
+  const tasks = await ctx.db
+    .query('generationTasks')
+    .withIndex('by_project_phase', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const task of tasks) {
+    await ctx.db.delete(task._id);
+  }
+
+  // Cascade delete section preferences
+  const prefs = await ctx.db
+    .query('sectionPreferences')
+    .withIndex('by_project_phase', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const pref of prefs) {
+    await ctx.db.delete(pref._id);
+  }
+
+  // Cascade delete project codebase
+  const codebases = await ctx.db
+    .query('projectCodebase')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const cb of codebases) {
+    await ctx.db.delete(cb._id);
+  }
+
+  // Cascade delete verification results
+  const verifications = await ctx.db
+    .query('verificationResults')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const vr of verifications) {
+    await ctx.db.delete(vr._id);
+  }
+
+  // Cascade delete tickets
+  const tickets = await ctx.db
+    .query('tickets')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const ticket of tickets) {
+    await ctx.db.delete(ticket._id);
+  }
+
+  // Delete the project
+  await ctx.db.delete(args.projectId);
+}
+
 export const deleteProject = mutation({
   args: { projectId: v.id('projects') },
-  handler: async (ctx: MutationCtx, args) => {
-    const project = await ctx.db.get(args.projectId);
-    if (!project) throw new Error('Project not found');
-
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject) {
-      throw new Error('Forbidden');
-    }
-
-    // Cascade delete phases
-    const phases = await ctx.db
-      .query('phases')
-      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
-      .collect();
-    for (const phase of phases) {
-      await ctx.db.delete(phase._id);
-    }
-
-    // Cascade delete artifacts
-    const artifacts = await ctx.db
-      .query('artifacts')
-      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
-      .collect();
-    for (const artifact of artifacts) {
-      await ctx.db.delete(artifact._id);
-    }
-
-    // Delete the project
-    await ctx.db.delete(args.projectId);
-  },
+  handler: deleteProjectHandler,
 });
 
 export const updatePhaseQuestions = mutation({
