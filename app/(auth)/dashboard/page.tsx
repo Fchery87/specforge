@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 function getRelativeTime(timestamp: number): string {
   const now = Date.now();
@@ -42,6 +43,7 @@ export default function DashboardPage() {
     projectId: Id<"projects"> | null;
     projectTitle: string;
   }>({ open: false, projectId: null, projectTitle: "" });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isLoaded) {
     return (
@@ -81,8 +83,20 @@ export default function DashboardPage() {
   const mostRecentProject = recentByUpdated[0] || null;
 
   async function handleDeleteProject() {
-    if (deleteDialogState.projectId) {
+    if (!deleteDialogState.projectId) return;
+    
+    setIsDeleting(true);
+    try {
       await deleteProjectMutation({ projectId: deleteDialogState.projectId });
+      toast.success("Project deleted successfully");
+      setDeleteDialogState({ open: false, projectId: null, projectTitle: "" });
+    } catch (error) {
+      toast.error("Failed to delete project", {
+        description: error instanceof Error ? error.message : "Please try again or check if the project has active generations.",
+        duration: 5000,
+      });
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -97,6 +111,7 @@ export default function DashboardPage() {
         confirmLabel="Delete"
         variant="destructive"
         onConfirm={handleDeleteProject}
+        isLoading={isDeleting}
       />
 
       {/* Hero Header with Grid Background */}

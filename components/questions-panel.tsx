@@ -14,6 +14,7 @@ import { collectBatchAnswers } from "@/lib/batch-answers";
 import { Loader2, Check, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { GenerationControls } from "@/components/generation-controls";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type Question = {
   id: string;
@@ -33,18 +34,6 @@ interface QuestionsPanelProps {
   isGenerating?: boolean;
   onCancelGeneration?: () => void;
   isCancelling?: boolean;
-}
-
-// Debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
 }
 
 export function QuestionsPanel({
@@ -393,13 +382,18 @@ export function QuestionsPanel({
                     </div>
                   </div>
                   <div className="ml-11 space-y-2">
+                    <label htmlFor={`answer-${question.id}`} className="sr-only">
+                      Answer for question {idx + 1}: {question.text}
+                    </label>
                     <div className="flex items-center gap-2">
                       <Textarea
+                        id={`answer-${question.id}`}
                         value={answer}
                         onChange={(e) => handleAnswerChange(question.id, e.target.value)}
                         placeholder="Enter your answer..."
                         className="min-h-[100px] flex-1"
                         maxLength={maxLength}
+                        aria-label={`Answer for question ${idx + 1}`}
                       />
                       <Button
                         variant="outline"
@@ -407,6 +401,7 @@ export function QuestionsPanel({
                         onClick={() => handleAiSuggest(question.id)}
                         disabled={aiGeneratingId === question.id || isGenerating}
                         className="self-start"
+                        aria-label={`Get AI suggestion for question ${idx + 1}`}
                       >
                         {aiGeneratingId === question.id ? (
                           <>

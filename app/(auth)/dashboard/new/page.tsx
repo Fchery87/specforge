@@ -13,6 +13,7 @@ import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, Git
 import Link from "next/link";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 import { CodebaseConnector } from "@/components/codebase-connector";
+import { toast } from "sonner";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -51,6 +52,10 @@ export default function NewProjectPage() {
       setIsCreating(false);
     } catch (error) {
       console.error("Failed to create project:", error);
+      toast.error("Failed to create project", {
+        description: error instanceof Error ? error.message : "Please try again or check your connection.",
+        duration: 5000,
+      });
       setIsCreating(false);
     }
   }

@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { PhaseStepper } from "@/components/phase-stepper";
+import { generateAllPhasesAction } from "@/lib/convex-actions";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ProjectPhaseCard } from "@/components/project-phase-card";
 import { Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 const PHASES = [
@@ -30,9 +33,8 @@ export default function ProjectPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const toggleSkip = useMutation(api.projects.toggleSkipPhase);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generateAllAction = (api as any)['actions/generateAllPhases']?.generateAllPhases as any;
-  const generateAll = useAction(generateAllAction);
+  const [showGenerateAllConfirm, setShowGenerateAllConfirm] = useState(false);
+  const generateAll = useAction(generateAllPhasesAction);
 
   const project = useQuery(
     api.projects.getProject,
@@ -55,7 +57,8 @@ export default function ProjectPage() {
   }
 
   // Show loading skeleton while project data is being fetched
-  if (!project) {
+  // Check if project is undefined (loading) vs null (not found)
+  if (project === undefined) {
     return (
       <main className="relative min-h-[calc(100vh-5rem)]">
         <div className="absolute inset-0 bg-grid-fade opacity-10" />
@@ -72,6 +75,28 @@ export default function ProjectPage() {
             <CardSkeleton />
             <CardSkeleton />
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  // If project is null, it doesn't exist or user doesn't have access
+  if (project === null) {
+    // This will trigger the not-found.tsx page
+    return (
+      <main className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center">
+        <div className="absolute inset-0 bg-grid-fade opacity-10" />
+        <div className="text-center">
+          <div className="text-[15vw] font-bold uppercase tracking-tighter text-muted-foreground/20 leading-none mb-4">
+            404
+          </div>
+          <h1 className="text-v-h2 mb-4">Project Not Found</h1>
+          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+            The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard">Back to Dashboard</Link>
+          </Button>
         </div>
       </main>
     );
@@ -94,6 +119,7 @@ export default function ProjectPage() {
   ) || PHASES.some(p => !skippedPhases.includes(p.id) && !phaseStatusMap.has(p.id));
 
   async function handleGenerateAll() {
+    setShowGenerateAllConfirm(false);
     setIsGeneratingAll(true);
     try {
       const result = await generateAll({ projectId: params.id as Id<"projects"> });
@@ -164,7 +190,7 @@ export default function ProjectPage() {
           </h2>
           {/* Generate All button */}
           <Button
-            onClick={handleGenerateAll}
+            onClick={() => setShowGenerateAllConfirm(true)}
             disabled={isGeneratingAll || !hasPendingPhases}
             className="gap-2"
           >
@@ -199,6 +225,17 @@ export default function ProjectPage() {
       <div className="text-[12vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden mt-12">
         {project.title?.split(' ')[0]?.toUpperCase() || 'PROJECT'}
       </div>
+
+      {/* Generate All Confirmation Dialog */}
+      <ConfirmDialog
+        open={showGenerateAllConfirm}
+        onOpenChange={setShowGenerateAllConfirm}
+        title="Generate All Phases"
+        description="This will generate all pending phases using AI. This may take several minutes and consume API credits. Are you sure you want to continue?"
+        confirmLabel="Generate All"
+        variant="default"
+        onConfirm={handleGenerateAll}
+      />
     </main>
   );
 }

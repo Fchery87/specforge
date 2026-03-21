@@ -24,6 +24,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body>
+        {/* Skip to main content link for accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-primary focus:text-primary-foreground focus:top-4 focus:left-4 focus:font-bold focus:uppercase focus:tracking-wide focus:border-2 focus:border-primary"
+        >
+          Skip to main content
+        </a>
         <NoiseOverlay />
         <ClerkProvider
           appearance={{
@@ -73,7 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ConvexClientProvider>
               <SiteHeader />
               <div className="flex flex-col min-h-screen">
-                <main className="pt-20 flex-grow">
+                <main id="main-content" className="pt-20 flex-grow" tabIndex={-1}>
                   {children}
                 </main>
                 <SiteFooter />
