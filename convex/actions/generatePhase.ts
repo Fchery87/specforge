@@ -62,6 +62,7 @@ import {
   validateSemantics,
   hasBlockingErrors,
 } from '../../lib/validation/semantic-validator';
+import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
 
 interface Question {
   id: string;
@@ -120,6 +121,35 @@ export const generatePhase = action({
     const questions = phaseData.questions || [];
     const answeredQuestions = questions.filter((q: Question) => q.answer);
 
+    // Collect upstream phase questions for cross-phase context
+    const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
+    const upstreamQAPairs: Array<{ question: string; answer: string }> = [];
+
+    for (const upstreamPhaseId of upstreamPhaseIds) {
+      const upstreamPhase = await ctx.runQuery(
+        internalApi.internal.getPhaseInternal,
+        { projectId: args.projectId, phaseId: upstreamPhaseId },
+      );
+      if (upstreamPhase?.questions) {
+        const upstreamAnswered = upstreamPhase.questions
+          .filter((q: Question) => q.answer)
+          .map((q: Question) => ({
+            question: `[${upstreamPhaseId}] ${q.text}`,
+            answer: q.answer || '',
+          }));
+        upstreamQAPairs.push(...upstreamAnswered);
+      }
+    }
+
+    // Combine: current phase questions + upstream phase questions
+    const allQAPairs = [
+      ...answeredQuestions.map((q: Question) => ({
+        question: q.text,
+        answer: q.answer || '',
+      })),
+      ...upstreamQAPairs,
+    ];
+
     if (hasMissingRequiredAnswers(questions) && args.phaseId !== 'handoff') {
       throw new Error('Please answer all required questions before generating');
     }
@@ -176,12 +206,7 @@ export const generatePhase = action({
 
     const artifactType = getArtifactTypeForPhase(args.phaseId);
     const sectionNames = getSectionPlan(artifactType, args.phaseId);
-    const questionsText = serializeQAPairs(
-      answeredQuestions.map((q: Question) => ({
-        question: q.text,
-        answer: q.answer || '',
-      })),
-    );
+    const questionsText = serializeQAPairs(allQAPairs);
     const estimatedTokens =
       estimateTokenCount(
         `${project.title}\n${project.description}\n${questionsText}`,
