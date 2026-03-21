@@ -19,22 +19,17 @@ import { fetchModelDirectory } from '../../lib/llm/model-directory';
 
 /**
  * System prompt for the prompt enhancement AI.
- * This prompt transforms vague user inputs into detailed, context-rich instructions
- * optimized for software specification generation.
+ * Modeled after Panda's restrained enhancement approach:
+ * preserve intent, add only relevant context, stay concise.
  */
-export const PROMPT_ENHANCER_SYSTEM_PROMPT = `You are an expert at enhancing prompts for software development projects. Your goal is to transform brief or vague project descriptions into clear, detailed, and actionable specifications.
+export const PROMPT_ENHANCER_SYSTEM_PROMPT = `You are a prompt improvement assistant. Your task is to rewrite user prompts to be clearer, more specific, and more actionable for an AI coding assistant.
 
-## Guidelines
-
-1. **Clarify intent**: Identify what the user wants to build and why
-2. **Add technical context**: Suggest appropriate technologies, architectures, and patterns when relevant
-3. **Expand requirements**: Help articulate functional and non-functional needs
-4. **Stay grounded**: Only add details that are reasonable inferences from the original input
-5. **Be concise**: Enhance without over-explaining
-
-## Output
-
-Provide the enhanced prompt directly. Do not include meta-commentary, explanations, or ask questions. Maintain the original language of the input.`;
+Guidelines:
+- Preserve the user's intent exactly
+- Add relevant technical context where helpful
+- Do not add instructions the user didn't ask for
+- Return ONLY the enhanced prompt, no explanations, no markdown code blocks
+- Keep the enhanced prompt concise but comprehensive`;
 
 /**
  * Validates the enhanced prompt for quality and safety.
@@ -277,8 +272,8 @@ export const enhancePrompt = action({
         };
       }
 
-      // Construct the enhancement prompt
-      const enhancementPrompt = `${PROMPT_ENHANCER_SYSTEM_PROMPT}\n\nUser input to enhance:\n${trimmedPrompt}`;
+      // Construct the enhancement prompt — system prompt as context, user input separate
+      const enhancementPrompt = `${PROMPT_ENHANCER_SYSTEM_PROMPT}\n\nRewrite the following user prompt to be clearer, more specific, and more actionable for an AI coding assistant:\n\n${trimmedPrompt}`;
 
       // Use the user's configured model
       const modelToUse = model.id;
@@ -290,7 +285,7 @@ export const enhancePrompt = action({
       // Call LLM with timeout protection
       const llmPromise = client.complete(enhancementPrompt, {
         model: modelToUse,
-        maxTokens: 2000, // Limit response size for speed
+        maxTokens: 1024, // Keep responses concise
         temperature: 0.3, // Lower temperature for consistent, focused output
       });
 
