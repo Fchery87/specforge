@@ -101,3 +101,27 @@ describe('normalizeQuestions', () => {
     expect(result).toHaveLength(5);
   });
 });
+
+describe('buildQuestionPrompt', () => {
+  test('includes phase description in prompt', () => {
+    const prompt = buildQuestionPrompt({
+      title: 'Test Project',
+      description: 'A test project',
+      phaseId: 'specs',
+      range: { min: 5, max: 8 },
+    });
+    expect(prompt).toContain('Technical Specifications');
+    expect(prompt).toContain('architecture');
+  });
+
+  test('includes section names in prompt for targeted questions', () => {
+    const prompt = buildQuestionPrompt({
+      title: 'Test Project',
+      description: 'A test project',
+      phaseId: 'constitution',
+      range: { min: 4, max: 6 },
+    });
+    expect(prompt).toContain('locked-constraints');
+    expect(prompt).toContain('tech-stack');
+  });
+});

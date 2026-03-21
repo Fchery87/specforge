@@ -130,19 +130,62 @@ const PHASE_QUESTION_RANGE: Record<string, { min: number; max: number }> = {
   handoff: { min: 3, max: 5 },
 };
 
+const PHASE_CONTEXT: Record<string, { description: string; sections: string[] }> = {
+  constitution: {
+    description: 'Project Constitution — immutable standards and constraints governing the entire project',
+    sections: ['locked-constraints', 'architecture-decisions', 'tech-stack', 'quality-and-standards'],
+  },
+  brief: {
+    description: 'Project Brief — high-level overview, problem statement, goals, and target audience',
+    sections: ['problem-and-objectives', 'features-and-requirements', 'target-audience'],
+  },
+  prd: {
+    description: 'Product Requirements Document — detailed requirements, user personas, and success metrics',
+    sections: ['executive-summary', 'problem-statement', 'goals-and-objectives', 'user-personas', 'requirements', 'success-metrics'],
+  },
+  domainModel: {
+    description: 'Domain Model — core entities, relationships, state transitions, and invariants',
+    sections: ['entity-definitions', 'entity-relationships', 'state-transitions'],
+  },
+  specs: {
+    description: 'Technical Specifications — architecture, data models, API design, security, and deployment',
+    sections: ['architecture-overview', 'data-models', 'api-design', 'component-architecture', 'security-considerations', 'deployment-strategy'],
+  },
+  stories: {
+    description: 'User Stories & Tasks — epics, user stories with acceptance criteria, and technical tasks',
+    sections: ['epic-overview', 'user-stories', 'technical-tasks', 'acceptance-criteria'],
+  },
+  artifacts: {
+    description: 'Technical Artifacts — API documentation, database schemas, environment config, deployment scripts',
+    sections: ['api-documentation', 'database-schema', 'environment-config', 'deployment-scripts'],
+  },
+  handoff: {
+    description: 'Project Handoff — summary, setup guide, implementation guide, and next steps',
+    sections: ['project-summary', 'setup-guide', 'implementation-guide', 'next-steps'],
+  },
+};
+
 export function buildQuestionPrompt(params: {
   title: string;
   description: string;
   phaseId: string;
   range: { min: number; max: number };
 }): string {
+  const phaseCtx = PHASE_CONTEXT[params.phaseId];
+  const phaseDesc = phaseCtx?.description ?? params.phaseId;
+  const sectionsList = phaseCtx?.sections?.join(', ') ?? '';
+
   return (
     `Generate ${params.range.min}-${params.range.max} specific, high-value questions for the "${params.phaseId}" phase.\n\n` +
+    `Phase Purpose: ${phaseDesc}\n` +
+    (sectionsList ? `Sections this phase will generate: ${sectionsList}\n\n` : '\n') +
     `Project Title: ${params.title}\n` +
     `Project Description: ${params.description}\n\n` +
+    `Ask questions whose answers will directly inform the content of the sections listed above. ` +
+    `Focus on decisions, constraints, and preferences that the user must clarify before generating each section.\n\n` +
     `For each question, also provide 3-5 selectable suggestion options that represent common answers.\n\n` +
     `Return JSON only in this shape:\n` +
-    `{\"questions\":[{\"text\":\"...\",\"required\":true,\"suggestions\":[\"Option A\",\"Option B\",\"Option C\"]}]}`
+    `{"questions":[{"text":"...","required":true,"suggestions":["Option A","Option B","Option C"]}]}`
   );
 }
 
