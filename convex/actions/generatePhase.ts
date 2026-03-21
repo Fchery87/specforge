@@ -48,6 +48,11 @@ import {
   DEFAULT_CRITIQUE_CONFIG,
 } from '../../lib/llm/prompts/critic';
 import {
+  serializeQAPairs,
+  formatQAForPrompt,
+  deserializeQAPairs,
+} from '../../lib/llm/qa-serializer';
+import {
   getStructuredOutputMode,
   applyStructuredOutput,
   extractJsonFromResponse,
@@ -171,9 +176,12 @@ export const generatePhase = action({
 
     const artifactType = getArtifactTypeForPhase(args.phaseId);
     const sectionNames = getSectionPlan(artifactType, args.phaseId);
-    const questionsText = answeredQuestions
-      .map((q: Question) => `${q.text}: ${q.answer}`)
-      .join('\n');
+    const questionsText = serializeQAPairs(
+      answeredQuestions.map((q: Question) => ({
+        question: q.text,
+        answer: q.answer || '',
+      })),
+    );
     const estimatedTokens =
       estimateTokenCount(
         `${project.title}\n${project.description}\n${questionsText}`,
@@ -432,7 +440,7 @@ Generate the "${params.sectionName}" section for a ${params.phaseId} document.
 Project: ${params.projectContext.title}
 Description: ${params.projectContext.description}
 
-${params.projectContext.questions ? `User Requirements & Clarifications:\n${params.projectContext.questions}\n` : ''}
+${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
 ${params.sectionInstructions}
 
 Requirements:
@@ -544,7 +552,7 @@ Generate the "${params.sectionName}" section for a ${params.phaseId} document.
 Project: ${params.projectContext.title}
 Description: ${params.projectContext.description}
 
-${params.projectContext.questions ? `User Requirements & Clarifications:\n${params.projectContext.questions}\n` : ''}
+${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
 ${params.sectionInstructions}
 
 Requirements:
