@@ -443,4 +443,135 @@ export default defineSchema({
     errorMessage: v.optional(v.string()),
     consecutiveFailures: v.number(),
   }).index('by_provider', ['provider']),
+
+  // Dashboard: User Preferences & Settings
+  userPreferences: defineTable({
+    userId: v.string(),
+    pinnedProjectIds: v.array(v.id('projects')),
+    dashboardLayout: v.optional(v.object({
+      showAnalytics: v.boolean(),
+      showActivityFeed: v.boolean(),
+      defaultSort: v.union(
+        v.literal('updatedAt'),
+        v.literal('createdAt'),
+        v.literal('title'),
+        v.literal('progress'),
+      ),
+      defaultFilter: v.optional(v.string()),
+    })),
+    theme: v.optional(v.union(v.literal('light'), v.literal('dark'), v.literal('system'))),
+    emailNotifications: v.optional(v.object({
+      generationComplete: v.boolean(),
+      driftDetected: v.boolean(),
+      weeklyDigest: v.boolean(),
+    })),
+    updatedAt: v.number(),
+  }).index('by_user', ['userId']),
+
+  // Dashboard: Aggregated User Analytics (updated by scheduled job)
+  userAnalytics: defineTable({
+    userId: v.string(),
+    period: v.union(v.literal('daily'), v.literal('weekly'), v.literal('monthly')),
+    periodStart: v.number(),
+    tokensUsed: v.number(),
+    estimatedCost: v.number(), // in USD
+    specsGenerated: v.number(),
+    phasesCompleted: v.number(),
+    successRate: v.number(), // 0-100
+    timeSavedMinutes: v.number(),
+    lastUpdatedAt: v.number(),
+  }).index('by_user_period', ['userId', 'period', 'periodStart']),
+
+  // Dashboard: Notification System
+  notifications: defineTable({
+    userId: v.string(),
+    type: v.union(
+      v.literal('generation_complete'),
+      v.literal('generation_failed'),
+      v.literal('drift_detected'),
+      v.literal('phase_stale'),
+      v.literal('verification_complete'),
+      v.literal('system_announcement'),
+    ),
+    title: v.string(),
+    message: v.string(),
+    metadata: v.optional(v.object({
+      projectId: v.optional(v.id('projects')),
+      phaseId: v.optional(v.string()),
+      artifactId: v.optional(v.id('artifacts')),
+      actionUrl: v.optional(v.string()),
+    })),
+    read: v.boolean(),
+    readAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_read', ['userId', 'read'])
+    .index('by_created', ['createdAt']),
+
+  // Dashboard: Project Tags for Filtering
+  projectTags: defineTable({
+    projectId: v.id('projects'),
+    tag: v.string(),
+    createdAt: v.number(),
+  })
+    .index('by_project', ['projectId'])
+    .index('by_tag', ['tag']),
+
+  // Dashboard: Computed Project Metrics (cached for performance)
+  projectMetrics: defineTable({
+    projectId: v.id('projects'),
+    totalPhases: v.number(),
+    completedPhases: v.number(),
+    completionPercentage: v.number(),
+    currentPhaseId: v.optional(v.string()),
+    healthScore: v.number(), // 0-100
+    stalenessFlags: v.array(v.object({
+      phaseId: v.string(),
+      isStale: v.boolean(),
+      reason: v.optional(v.string()),
+    })),
+    verificationStatus: v.union(
+      v.literal('passed'),
+      v.literal('failed'),
+      v.literal('warning'),
+      v.literal('not_checked'),
+    ),
+    lastActivityAt: v.number(),
+    lastActivityType: v.optional(v.string()),
+    totalTokensUsed: v.number(),
+    estimatedCost: v.number(),
+    generationCount: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_project', ['projectId']),
+
+  // Dashboard: User-Specific Activity Feed
+  dashboardActivity: defineTable({
+    userId: v.string(),
+    projectId: v.id('projects'),
+    phaseId: v.optional(v.string()),
+    artifactId: v.optional(v.id('artifacts')),
+    type: v.union(
+      v.literal('project_created'),
+      v.literal('phase_started'),
+      v.literal('phase_completed'),
+      v.literal('generation_started'),
+      v.literal('generation_completed'),
+      v.literal('generation_failed'),
+      v.literal('drift_detected'),
+      v.literal('verification_complete'),
+      v.literal('project_updated'),
+    ),
+    message: v.string(),
+    metadata: v.optional(v.object({
+      phaseName: v.optional(v.string()),
+      artifactType: v.optional(v.string()),
+      success: v.optional(v.boolean()),
+      errorMessage: v.optional(v.string()),
+    })),
+    createdAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_user_created', ['userId', 'createdAt']),
 });
