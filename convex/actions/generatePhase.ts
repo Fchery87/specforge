@@ -150,7 +150,7 @@ export const generatePhase = action({
       ...upstreamQAPairs,
     ];
 
-    if (hasMissingRequiredAnswers(questions) && args.phaseId !== 'handoff') {
+    if (hasMissingRequiredAnswers(questions)) {
       throw new Error('Please answer all required questions before generating');
     }
 
