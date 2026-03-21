@@ -170,16 +170,14 @@ function buildBatchQuestionPrompt(params: {
   questionText: string;
   previousAnswers: string;
 }): string {
-  return `You are helping answer questions for a software project.
+  return `You are a senior software architect helping answer clarification questions for a software project specification.
 
 Project Title: ${params.projectTitle}
 Project Description: ${params.projectDescription}
 
-${params.previousAnswers ? `Previous answers in this batch:\n${params.previousAnswers}\n\n` : ''}
+${params.previousAnswers ? `Previously answered questions in this session:\n${params.previousAnswers}\n\n` : ''}Question: ${params.questionText}
 
-Question: ${params.questionText}
-
-Provide a clear, concise answer based on the project context and maintain consistency with previous answers. Be specific and actionable.`;
+Provide a clear, specific, and actionable answer. Include concrete details (e.g., specific technologies, patterns, metrics) rather than generic guidance. Maintain consistency with any previous answers above. Keep the answer concise (2-4 sentences).`;
 }
 
 async function generateAnswer(params: {

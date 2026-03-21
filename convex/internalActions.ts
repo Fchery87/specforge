@@ -847,16 +847,14 @@ export const generateQuestionsWorker = internalAction({
                   .map((q: Question) => `${q.text}\nAnswer: ${q.answer}`)
                   .join('\n\n');
 
-                const prompt = `You are helping answer questions for a software project.
+                const prompt = `You are a senior software architect helping answer clarification questions for a software project specification.
 
 Project Title: ${projectContext.title}
 Project Description: ${projectContext.description}
 
-${previousAnswers ? `Previous answers:\n${previousAnswers}\n\n` : ''}
+${previousAnswers ? `Previously answered questions in this session:\n${previousAnswers}\n\n` : ''}Question: ${question.text}
 
-Question: ${question.text}
-
-Provide a clear, concise answer based on the project context and maintain consistency with previous answers. Be specific and actionable.`;
+Provide a clear, specific, and actionable answer. Include concrete details (e.g., specific technologies, patterns, metrics) rather than generic guidance. Maintain consistency with any previous answers above. Keep the answer concise (2-4 sentences).`;
 
                 const response = await llmClient.complete(prompt, {
                   model: model.id,
