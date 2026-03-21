@@ -80,8 +80,10 @@ export class MinimaxClient implements LlmProvider {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Minimax API error: ${error}`);
+      const errorText = await response.text();
+      // Log raw error server-side for debugging, but don't expose to callers
+      console.error(`[MiniMax] API error (${response.status}):`, errorText);
+      throw new Error(`MiniMax API error: HTTP ${response.status}`);
     }
 
     const data = await response.json();
@@ -96,10 +98,11 @@ export class MinimaxClient implements LlmProvider {
       'minimax',
     );
 
-    const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
+    const response = await this.complete(userPrompt, {
       model: request.modelId,
       maxTokens: request.maxTokens,
       temperature: 0.7,
+      systemPrompt,
     });
 
     return {

@@ -125,8 +125,10 @@ export class ZAIClient implements LlmProvider {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Z.AI API error: ${error}`);
+      const errorText = await response.text();
+      // Log raw error server-side for debugging, but don't expose to callers
+      console.error(`[Z.AI] API error (${response.status}):`, errorText);
+      throw new Error(`Z.AI API error: HTTP ${response.status}`);
     }
 
     const data = await response.json();
@@ -143,10 +145,11 @@ export class ZAIClient implements LlmProvider {
       'zai',
     );
 
-    const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
+    const response = await this.complete(userPrompt, {
       model: request.modelId,
       maxTokens: request.maxTokens,
       temperature: 0.6,
+      systemPrompt,
     });
 
     return {

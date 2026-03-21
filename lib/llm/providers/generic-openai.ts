@@ -55,8 +55,10 @@ export class GenericOpenAIClient implements LlmProvider {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`${this.provider} API error: ${error}`);
+      const errorText = await response.text();
+      // Log raw error server-side for debugging, but don't expose to callers
+      console.error(`[${this.provider}] API error (${response.status}):`, errorText);
+      throw new Error(`${this.provider} API error: HTTP ${response.status}`);
     }
 
     const data = await response.json();
@@ -71,10 +73,11 @@ export class GenericOpenAIClient implements LlmProvider {
       this.provider,
     );
 
-    const response = await this.complete(`${systemPrompt}\n\n${userPrompt}`, {
+    const response = await this.complete(userPrompt, {
       model: request.modelId,
       maxTokens: request.maxTokens,
       temperature: 0.7,
+      systemPrompt,
     });
 
     return {
