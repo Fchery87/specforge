@@ -100,10 +100,15 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
       return;
     }
 
+    // Generate CSRF nonce and store for validation
+    const nonce = crypto.randomUUID();
+    sessionStorage.setItem('github_oauth_nonce', nonce);
+
     const state = Buffer.from(
       JSON.stringify({
         redirect: `/project/${projectId}`,
         projectId,
+        nonce,
       })
     ).toString('base64');
 

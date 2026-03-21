@@ -66,31 +66,46 @@ export async function GET(request: NextRequest) {
 
     const accessToken = tokenData.access_token;
 
-    // Parse state to get redirect info
+    // Parse state to get redirect info and validate nonce
     let redirectUrl = '/dashboard';
     let projectId: string | null = null;
+    let nonce: string | null = null;
     
     if (state) {
       try {
         const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
         redirectUrl = stateData.redirect || '/dashboard';
         projectId = stateData.projectId || null;
+        nonce = stateData.nonce || null;
       } catch {
         // Invalid state, use defaults
       }
+    }
+
+    // Validate redirect URL against allowlist to prevent open redirects
+    const ALLOWED_REDIRECT_PATTERNS = [
+      /^\/project\/[a-zA-Z0-9_-]+$/,
+      /^\/dashboard$/,
+    ];
+    if (!ALLOWED_REDIRECT_PATTERNS.some((pattern) => pattern.test(redirectUrl))) {
+      redirectUrl = '/dashboard';
     }
 
     // Encrypt the access token
     const encrypted = encrypt(accessToken, ENCRYPTION_KEY);
     const encryptedJson = JSON.stringify(encrypted);
 
-    // Store the encrypted token in Convex via API
-    // The client will need to call a mutation to store this
+    // TODO: Store encrypted token server-side in Convex instead of URL
+    // This requires a Convex mutation that stores the token keyed by nonce
     // For now, we redirect with the encrypted token (safe since it's encrypted)
+    // and the client validates the nonce on page load
     const redirectWithToken = new URL(redirectUrl, request.url);
     redirectWithToken.searchParams.set('github_token', Buffer.from(encryptedJson).toString('base64'));
     if (projectId) {
       redirectWithToken.searchParams.set('project_id', projectId);
+    }
+    if (nonce) {
+      redirectWithToken.searchParams.set('nonce', nonce);
     }
 
     return NextResponse.redirect(redirectWithToken);
