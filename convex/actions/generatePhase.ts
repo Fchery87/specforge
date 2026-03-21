@@ -957,9 +957,9 @@ Generate the Project Constitution now:`;
     const response = await retryWithBackoff(
       () =>
         llmClient.complete(constitutionPrompt, {
-          model: requestBody.model as string,
-          maxTokens: requestBody.maxTokens as number,
-          temperature: requestBody.temperature as number,
+          model: enhancedRequestBody.model as string,
+          maxTokens: enhancedRequestBody.maxTokens as number,
+          temperature: enhancedRequestBody.temperature as number,
         }),
       { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
     );
