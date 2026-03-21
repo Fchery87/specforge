@@ -147,27 +147,37 @@ export const scanCodebase = action({
       const keyFilesPaths = identifyKeyFiles(tree);
       const keyFiles: KeyFileInfo[] = [];
 
-      // Fetch content for up to 50 key files
+      // Fetch content for up to 50 key files in parallel batches
       const filesToFetch = keyFilesPaths.slice(0, 50);
-      for (const filePath of filesToFetch) {
-        try {
-          const content = await fetchFileContent(
-            accessToken,
-            args.repoOwner,
-            args.repoName,
-            filePath
-          );
-          if (content !== null) {
-            keyFiles.push({
-              path: filePath,
-              content,
-              language: detectLanguage(filePath),
-              sizeBytes: Buffer.byteLength(content, 'utf8'),
-            });
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < filesToFetch.length; i += BATCH_SIZE) {
+        const batch = filesToFetch.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(async (filePath) => {
+            const content = await fetchFileContent(
+              accessToken,
+              args.repoOwner,
+              args.repoName,
+              filePath
+            );
+            if (content !== null) {
+              return {
+                path: filePath,
+                content,
+                language: detectLanguage(filePath),
+                sizeBytes: Buffer.byteLength(content, 'utf8'),
+              };
+            }
+            return null;
+          })
+        );
+
+        for (const result of results) {
+          if (result.status === 'fulfilled' && result.value !== null) {
+            keyFiles.push(result.value);
+          } else if (result.status === 'rejected') {
+            console.warn('[scanCodebase] Failed to fetch file:', result.reason);
           }
-        } catch (error) {
-          console.warn(`[scanCodebase] Failed to fetch ${filePath}:`, error);
-          // Continue with other files
         }
       }
 
