@@ -21,6 +21,7 @@ import {
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
+import { deserializeQAPairs, type QAPair } from '../lib/llm/qa-serializer';
 
 /**
  * Heuristic to detect reasoning/thinking models by model ID.
@@ -935,18 +936,7 @@ function extractRelevantQuestionsForSection(
   }
 
   // Parse the questions text into individual Q&A pairs
-  // Format: "Question text: Answer text\nQuestion text: Answer text"
-  const qaPairs = questionsText
-    .split('\n')
-    .filter((line) => line.includes(':'))
-    .map((line) => {
-      const colonIndex = line.indexOf(':');
-      return {
-        question: line.substring(0, colonIndex).trim(),
-        answer: line.substring(colonIndex + 1).trim(),
-      };
-    })
-    .filter((qa) => qa.question && qa.answer);
+  const qaPairs = deserializeQAPairs(questionsText);
 
   // Define keywords for each section type
   const sectionKeywords: Record<string, string[]> = {
@@ -1343,7 +1333,7 @@ function extractRelevantQuestionsForSection(
   const keywords = sectionKeywords[sectionName] || [];
   if (keywords.length === 0) {
     // If no specific keywords, return all questions for this phase
-    return qaPairs.map((qa) => `${qa.question}: ${qa.answer}`);
+    return qaPairs.map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`);
   }
 
   // Score and filter questions based on keyword relevance
@@ -1359,11 +1349,11 @@ function extractRelevantQuestionsForSection(
   const relevantQuestions = scoredQuestions
     .filter((qa) => qa.score > 0)
     .sort((a, b) => b.score - a.score)
-    .map((qa) => `${qa.question}: ${qa.answer}`);
+    .map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`);
 
   // If no matches, return all questions (don't lose data)
   if (relevantQuestions.length === 0) {
-    return qaPairs.map((qa) => `${qa.question}: ${qa.answer}`);
+    return qaPairs.map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`);
   }
 
   return relevantQuestions;
