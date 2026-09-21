@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { encrypt } from '@/lib/encryption';
 import { getRequiredEncryptionKey } from '@/lib/encryption-key';
 
-const ENCRYPTION_KEY = getRequiredEncryptionKey();
+export const dynamic = 'force-dynamic';
 
 /**
  * GitHub OAuth callback handler
@@ -91,8 +91,9 @@ export async function GET(request: NextRequest) {
       redirectUrl = '/dashboard';
     }
 
-    // Encrypt the access token
-    const encrypted = encrypt(accessToken, ENCRYPTION_KEY);
+    // Encrypt the access token (key resolved per request so the
+    // module imports cleanly at build time without env present)
+    const encrypted = encrypt(accessToken, getRequiredEncryptionKey());
     const encryptedJson = JSON.stringify(encrypted);
 
     // TODO: Store encrypted token server-side in Convex instead of URL
