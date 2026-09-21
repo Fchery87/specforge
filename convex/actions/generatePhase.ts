@@ -590,6 +590,68 @@ Generate the "${params.sectionName}" section now:`;
   return { systemPrompt, userPrompt };
 }
 
+/**
+ * Single-shot provider-level token streaming for one section. Yields raw
+ * text deltas to `onDelta` as they arrive over SSE and resolves with the
+ * full content. Unlike generateSectionContentStreaming this issues one
+ * provider request with stream:true instead of chunked continuation turns.
+ */
+export async function generateSectionContentRealtime(params: {
+  projectContext: { title: string; description: string; questions: string };
+  sectionName: string;
+  sectionQuestions: string[];
+  previousSections: Array<{ name: string; content: string }>;
+  model: LlmModel;
+  maxTokens: number;
+  llmClient: LlmProvider;
+  phaseId: string;
+  onDelta: (delta: string) => Promise<void>;
+}): Promise<{ content: string }> {
+  const { llmClient, model } = params;
+
+  const { systemPrompt, userPrompt } = buildSectionPrompts({
+    projectContext: params.projectContext,
+    sectionName: params.sectionName,
+    sectionQuestions: params.sectionQuestions,
+    previousSections: params.previousSections,
+    phaseId: params.phaseId,
+  });
+
+  const startedAt = Date.now();
+  let content = '';
+  try {
+    for await (const delta of llmClient.streamComplete(userPrompt, {
+      model: model.id,
+      maxTokens: Math.min(params.maxTokens, model.maxOutputTokens),
+      temperature: 0.7,
+      systemPrompt,
+    })) {
+      content += delta;
+      await params.onDelta(delta);
+    }
+
+    const durationMs = Date.now() - startedAt;
+    logTelemetry('info', {
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: true,
+    });
+
+    return { content: sanitizeGeneratedContent(content) };
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    logTelemetry('warn', {
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
 export async function generateSectionContentStreaming(params: {
   projectContext: { title: string; description: string; questions: string };
   sectionName: string;

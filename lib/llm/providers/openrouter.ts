@@ -1,16 +1,13 @@
-import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
-import { buildTransformedPrompts } from '../prompt-transformer';
-import {
-  normalizeOpenAIResponse,
-  fetchWithTimeout,
-} from '../response-normalizer';
+import { BaseProvider } from "../base-provider";
+import type { LlmResponse } from "../types";
 
-export class OpenRouterClient implements LlmProvider {
-  private apiKey: string;
-  private baseUrl = 'https://openrouter.ai/api/v1';
+export class OpenRouterClient extends BaseProvider {
+  supportsStreaming(): boolean {
+    return true;
+  }
 
   constructor(apiKey: string) {
-    this.apiKey = apiKey;
+    super(apiKey, "https://openrouter.ai/api/v1", "openrouter");
   }
 
   async complete(
@@ -22,64 +19,14 @@ export class OpenRouterClient implements LlmProvider {
       systemPrompt?: string;
     },
   ): Promise<LlmResponse> {
-    const messages = options.systemPrompt
-      ? [
-          { role: 'system' as const, content: options.systemPrompt },
-          { role: 'user' as const, content: prompt },
-        ]
-      : [{ role: 'user' as const, content: prompt }];
+    const messages = this.buildMessages(prompt, options.systemPrompt);
 
-    const response = await fetchWithTimeout(
-      `${this.baseUrl}/chat/completions`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: options.model,
-          messages,
-          max_tokens: options.maxTokens,
-          temperature: options.temperature ?? 0.7,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      // Log raw error server-side for debugging, but don't expose to callers
-      console.error(`[OpenRouter] API error (${response.status}):`, errorText);
-      throw new Error(`OpenRouter API error: HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    return normalizeOpenAIResponse(data);
-  }
-
-  async generateSection(
-    request: LlmSectionRequest,
-  ): Promise<{ content: string; tokens: number }> {
-    const { systemPrompt, userPrompt } = buildTransformedPrompts(
-      request,
-      'openrouter',
-    );
-
-    const response = await this.complete(userPrompt, {
-      model: request.modelId,
-      maxTokens: request.maxTokens,
-      temperature: 0.7,
-      systemPrompt,
+    return this.openAIChatComplete({
+      model: options.model,
+      messages,
+      max_tokens: options.maxTokens,
+      temperature: options.temperature ?? 0.7,
     });
-
-    return {
-      content: response.content,
-      tokens: response.usage.completionTokens,
-    };
-  }
-
-  isAvailable(): boolean {
-    return !!this.apiKey && this.apiKey.length > 0;
   }
 }
 

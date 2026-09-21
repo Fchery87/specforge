@@ -1,9 +1,6 @@
-import type { LlmProvider, LlmResponse, LlmSectionRequest } from '../types';
-import { buildTransformedPrompts } from '../prompt-transformer';
-import {
-  normalizeAnthropicResponse,
-  fetchWithTimeout,
-} from '../response-normalizer';
+import { BaseProvider } from "../base-provider";
+import { fetchWithTimeout, normalizeAnthropicResponse } from "../response-normalizer";
+import type { LlmResponse } from "../types";
 
 export interface AnthropicModelConfig {
   modelId: string;
@@ -12,29 +9,26 @@ export interface AnthropicModelConfig {
 }
 
 export const ANTHROPIC_MODELS: Record<string, AnthropicModelConfig> = {
-  'claude-opus-4-5': {
-    modelId: 'claude-opus-4-5',
+  "claude-opus-4-5": {
+    modelId: "claude-opus-4-5",
     contextTokens: 200000,
     maxOutputTokens: 16384,
   },
-  'claude-sonnet-4-5': {
-    modelId: 'claude-sonnet-4-5',
+  "claude-sonnet-4-5": {
+    modelId: "claude-sonnet-4-5",
     contextTokens: 200000,
     maxOutputTokens: 8192,
   },
-  'claude-haiku-4-5': {
-    modelId: 'claude-haiku-4-5',
+  "claude-haiku-4-5": {
+    modelId: "claude-haiku-4-5",
     contextTokens: 200000,
     maxOutputTokens: 8192,
   },
 };
 
-export class AnthropicClient implements LlmProvider {
-  private apiKey: string;
-  private baseUrl: string = 'https://api.anthropic.com/v1';
-
+export class AnthropicClient extends BaseProvider {
   constructor(apiKey: string) {
-    this.apiKey = apiKey;
+    super(apiKey, "https://api.anthropic.com/v1", "anthropic");
   }
 
   async complete(
@@ -47,63 +41,39 @@ export class AnthropicClient implements LlmProvider {
     },
   ): Promise<LlmResponse> {
     const modelConfig =
-      ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS['claude-sonnet-4-5'];
+      ANTHROPIC_MODELS[options.model] || ANTHROPIC_MODELS["claude-sonnet-4-5"];
 
-    // Anthropic uses a top-level 'system' field, not a system message in the array
     const body: Record<string, unknown> = {
       model: modelConfig.modelId,
       max_tokens: options.maxTokens ?? modelConfig.maxOutputTokens,
       temperature: options.temperature ?? 0.7,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: "user", content: prompt }],
     };
     if (options.systemPrompt) {
       body.system = options.systemPrompt;
     }
 
     const response = await fetchWithTimeout(`${this.baseUrl}/messages`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
+        "Content-Type": "application/json",
+        "x-api-key": this.apiKey,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify(body),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      // Log raw error server-side for debugging, but don't expose to callers
-      console.error(`[Anthropic] API error (${response.status}):`, errorText);
+      console.error(
+        `[Anthropic] API error (${response.status}):`,
+        errorText,
+      );
       throw new Error(`Anthropic API error: HTTP ${response.status}`);
     }
 
     const data = await response.json();
     return normalizeAnthropicResponse(data);
-  }
-
-  async generateSection(
-    request: LlmSectionRequest,
-  ): Promise<{ content: string; tokens: number }> {
-    const { systemPrompt, userPrompt } = buildTransformedPrompts(
-      request,
-      'anthropic',
-    );
-
-    const response = await this.complete(userPrompt, {
-      model: request.modelId,
-      maxTokens: request.maxTokens,
-      temperature: 0.7,
-      systemPrompt,
-    });
-
-    return {
-      content: response.content,
-      tokens: response.usage.completionTokens,
-    };
-  }
-
-  isAvailable(): boolean {
-    return !!this.apiKey && this.apiKey.length > 0;
   }
 }
 
