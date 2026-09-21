@@ -9,8 +9,8 @@ For details on specific areas, see the sub-folder guides below.
 ## Root Setup Commands
 
 ```bash
-# Install dependencies
-npm install  # or bun install
+# Install dependencies (npm only, Node >=20.9, Node 22 recommended via .nvmrc)
+npm ci
 
 # Dev server
 npm run dev
@@ -75,3 +75,38 @@ Before creating a PR:
 3. `npm run test` passes
 4. No new `any` types introduced (strict mode)
 5. Tests for new functionality added
+
+## Authoritative Rules (merged from CLAUDE.md, single source per directory)
+
+### Code Quality (MUST)
+- **MUST** write TypeScript in strict mode
+- **MUST** include tests for all new features (co-located `*.test.ts*`)
+- **MUST** run lint and typecheck before committing
+- **MUST NOT** commit secrets, API keys, or tokens
+
+### Best Practices (SHOULD)
+- **SHOULD** use functional React components with hooks
+- **SHOULD** use descriptive variable names (no single letters except loops)
+- **SHOULD** keep functions under 50 lines
+- **SHOULD** use `@/` alias for absolute imports
+
+### Anti-Patterns (MUST NOT)
+- **MUST NOT** use `any` type without explicit justification
+- **MUST NOT** use `@ts-ignore` to bypass TypeScript errors
+- **MUST NOT** push directly to main branch
+- **MUST NOT** hardcode colors - use Tailwind classes or CSS variables
+
+### Git Workflow
+- Branch from `main` for features: `feature/description`
+- Use Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`
+- PRs require: passing tests, type checks, lint, and 1 approval
+- Squash commits on merge, delete branches after merge
+
+### Testing Requirements
+- **Unit tests**: All business logic - aim for >80% coverage
+- **Framework**: Vitest + React Testing Library
+- **Location**: Co-located `*.test.ts*` or `__tests__/` folder
+
+### Tool Permissions
+- Read any file, write code files, run tests/linters/type checkers
+- Ask first: edit `.env` files, force push, delete Convex database
