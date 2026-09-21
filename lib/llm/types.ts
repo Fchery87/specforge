@@ -14,6 +14,19 @@ export interface LlmProvider {
     request: LlmSectionRequest,
   ): Promise<{ content: string; tokens: number }>;
   isAvailable(): boolean;
+  /** Whether this provider instance can consume SSE token streams. */
+  supportsStreaming(): boolean;
+  /** Yields raw text deltas from a single streaming completion. */
+  streamComplete(
+    prompt: string,
+    options: {
+      model: string;
+      maxTokens?: number;
+      temperature?: number;
+      systemPrompt?: string;
+      signal?: AbortSignal;
+    },
+  ): AsyncGenerator<string, void, undefined>;
 }
 
 export interface LlmResponse {
