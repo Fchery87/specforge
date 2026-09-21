@@ -1,4 +1,4 @@
-import { mutation, query } from './_generated/server';
+import { internalQuery, mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { getRequiredEncryptionKey } from '../lib/encryption-key';
@@ -36,6 +36,33 @@ export const getUserConfigRaw = query({
 // NOTE: Decryption must be done in actions with "use node" directive.
 // This query returns the raw encrypted config.
 // Use getUserConfig action from userConfigActions.ts for decrypted data.
+
+// Internal query for worker-time resolution by explicit userId.
+// No auth check: internal queries are server-to-server only.
+// Returns raw encrypted row; caller decrypts in a Node action.
+export const getUserConfigRawByUserId = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx: QueryCtx, args) => {
+    const config = await ctx.db
+      .query('userLlmConfigs')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .first();
+
+    if (!config) return null;
+
+    return {
+      userId: config.userId,
+      provider: config.provider,
+      apiKey: config.apiKey,
+      defaultModel: config.defaultModel,
+      useSystem: config.useSystem,
+      systemKeyId: config.systemKeyId,
+      zaiEndpointType: config.zaiEndpointType,
+      zaiIsChina: config.zaiIsChina,
+      githubAccessToken: config.githubAccessToken,
+    };
+  },
+});
 
 // Raw mutation that saves encrypted data
 export const saveUserConfigRaw = mutation({
