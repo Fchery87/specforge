@@ -1,11 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { getModelById, getProviderDisplayName, resolveModelForCredentials, getFallbackModel } from '../registry';
+import type { LlmModel } from '../types';
 
 describe('LLM Model Registry', () => {
   it('should find known models', () => {
-    const gpt4 = getModelById('gpt-4o');
-    expect(gpt4).toBeDefined();
-    expect(gpt4?.provider).toBe('openai');
+    const flagship = getModelById('gpt-5.4');
+    expect(flagship).toBeDefined();
+    expect(flagship?.provider).toBe('openai');
+    expect(flagship?.contextTokens).toBeGreaterThan(0);
+    expect(getModelById('gpt-5.4-mini')?.provider).toBe('openai');
+    expect(getModelById('gpt-4o')).toBeNull();
   });
 
   it('should return null for unknown models', () => {
@@ -14,7 +18,7 @@ describe('LLM Model Registry', () => {
   });
 
   it('should have correct model properties', () => {
-    const model = getModelById('gpt-4o');
+    const model = getModelById('gpt-5.4');
     if (model) {
       expect(model).toMatchObject({
         id: expect.any(String),
