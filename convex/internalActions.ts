@@ -1,6 +1,8 @@
 'use node';
 
 import { internalAction } from './_generated/server';
+import type { ActionCtx } from './_generated/server';
+import type { Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { getRequiredEncryptionKey } from '../lib/encryption-key';
 import { decrypt } from '../lib/encryption';
@@ -10,6 +12,7 @@ import { renderPreviewHtml } from '../lib/markdown-render';
 import { estimateTokenCount } from '../lib/llm/chunking';
 import {
   generateSectionContentStreaming,
+  generateSectionContentRealtime,
   getSectionInstructions,
   generateConstitution,
   generateSectionWithCritique,
@@ -52,11 +55,18 @@ export const getAllDecryptedSystemCredentials = internalAction({
   handler: async (ctx) => {
     const ENCRYPTION_KEY = getRequiredEncryptionKey();
 
-    let configs: any[];
+    interface SystemCredentialRow {
+      provider: string;
+      apiKey?: ArrayBuffer;
+      isEnabled: boolean;
+      zaiEndpointType?: 'paid' | 'coding';
+      zaiIsChina?: boolean;
+    }
+    let configs: SystemCredentialRow[];
     try {
       configs = (await ctx.runQuery(
         internal.systemCredentials.getAllSystemCredentialsInternal,
-      )) as any[];
+      )) as SystemCredentialRow[];
     } catch {
       return {};
     }
@@ -118,8 +128,8 @@ export const getAllDecryptedSystemCredentials = internalAction({
  * Resolve credentials at worker execution time based on credential reference.
  * Re-fetches API keys from storage instead of using stored credentials.
  */
-async function resolveCredentialsForWorker(
-  ctx: any,
+export async function resolveCredentialsForWorker(
+  ctx: ActionCtx,
   credentialRef: {
     provider: string;
     modelId: string;
@@ -142,10 +152,10 @@ async function resolveCredentialsForWorker(
   );
 
   if (credentialRef.source === 'user') {
-    // For user credentials, fetch from user config
+    // Worker has no identity, so resolve by explicit userId.
     const userConfig = await ctx.runAction(
-      internal.userConfigActions.getUserConfigInternal,
-      {},
+      internal.userConfigActions.getUserConfigByUserIdInternal,
+      { userId },
     );
     if (userConfig?.apiKey) {
       return {
@@ -240,7 +250,7 @@ export const generatePhaseWorker = internalAction({
 
     const resolvedCredentials = await resolveCredentialsForWorker(
       ctx,
-      credentialRef as any,
+      credentialRef as { provider: string; modelId: string; source: 'user' | 'system'; zaiEndpointType?: 'paid' | 'coding'; zaiIsChina?: boolean },
       project.userId,
     );
     if (!resolvedCredentials) {
@@ -453,7 +463,31 @@ export const generatePhaseWorker = internalAction({
           phaseId,
         );
 
-        const response = await generateSectionContentStreaming({
+        const supportsRealtime =
+          currentStep === 0 && llmClient !== null && llmClient.supportsStreaming();
+
+        if (supportsRealtime && llmClient !== null) {
+          const realtime = await generateSectionContentRealtime({
+            projectContext,
+            sectionName: section.name,
+            sectionQuestions,
+            previousSections,
+            model,
+            maxTokens: section.maxTokens,
+            llmClient,
+            phaseId,
+            onDelta: async (delta) => {
+              const deltaTokens = estimateTokenCount(delta);
+              sectionTokens += deltaTokens;
+              bufferedDelta += delta;
+              bufferedTokens += deltaTokens;
+              await flushBuffer(false);
+            },
+          });
+          finalContent = realtime.content;
+          await flushBuffer(true);
+        } else {
+          const response = await generateSectionContentStreaming({
           projectContext,
           sectionName: section.name,
           sectionInstructions,
@@ -470,17 +504,18 @@ export const generatePhaseWorker = internalAction({
           llmClient,
           providerInfo: `Worker step ${currentStep + 1}`,
           phaseId,
-          onChunk: async (delta) => {
-            const deltaTokens = estimateTokenCount(delta);
-            sectionTokens += deltaTokens;
-            bufferedDelta += delta;
-            bufferedTokens += deltaTokens;
-            await flushBuffer(false);
-          },
-        });
+            onChunk: async (delta) => {
+              const deltaTokens = estimateTokenCount(delta);
+              sectionTokens += deltaTokens;
+              bufferedDelta += delta;
+              bufferedTokens += deltaTokens;
+              await flushBuffer(false);
+            },
+          });
 
-        finalContent = response.content;
-        await flushBuffer(true);
+          finalContent = response.content;
+          await flushBuffer(true);
+        }
       }
 
       // Post-streaming sanitization: the deltas flushed to the DB are raw.
@@ -622,11 +657,11 @@ export const generatePhaseWorker = internalAction({
                   ConstitutionSchema.parse(jsonObj);
                   parsedConstitution = JSON.stringify(jsonObj, null, 2);
                   constitutionSuccess = true;
-                } catch (err: any) {
-                  constitutionError = `Schema validation failed: ${err.message}`;
+                } catch (err) {
+                  constitutionError = `Schema validation failed: ${err instanceof Error ? err.message : String(err)}`;
                   console.warn(
                     '[generatePhaseWorker] Constitution schema validation failed (non-fatal):',
-                    err.message,
+                    err instanceof Error ? err.message : String(err),
                   );
                   // Non-fatal: the markdown Constitution artifact is already saved.
                   // JSON version is a best-effort enhancement for downstream phases.
@@ -757,21 +792,20 @@ export const generatePhaseWorker = internalAction({
           }
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error(
         `[generatePhaseWorker] Error at step ${currentStep}:`,
         error,
       );
 
-      const isCancelled =
-        typeof error?.message === 'string' &&
-        error.message.toLowerCase().includes('cancelled');
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const isCancelled = errMsg.toLowerCase().includes('cancelled');
 
       await ctx.runMutation(internal.internal.updateGenerationTask, {
         taskId: args.taskId,
         currentStep,
         status: 'failed',
-        error: error.message,
+        error: errMsg,
       });
       await ctx.runMutation(internal.internal.updatePhaseStatus, {
         projectId,
@@ -812,7 +846,7 @@ export const generateQuestionsWorker = internalAction({
 
     const resolvedCredentials = await resolveCredentialsForWorker(
       ctx,
-      credentialRef as any,
+      credentialRef as { provider: string; modelId: string; source: 'user' | 'system'; zaiEndpointType?: 'paid' | 'coding'; zaiIsChina?: boolean },
       project.userId,
     );
     if (!resolvedCredentials) {
@@ -845,7 +879,7 @@ export const generateQuestionsWorker = internalAction({
         const chunk = plan.slice(currentStep, currentStep + CONCURRENCY_LIMIT);
 
         await Promise.all(
-          chunk.map(async (question: any) => {
+          (chunk as Array<{ id: string; text: string }>).map(async (question) => {
             let attempts = 0;
             let success = false;
             let lastError;
@@ -887,12 +921,13 @@ Provide a clear, specific, and actionable answer. Include concrete details (e.g.
                   aiGenerated: true,
                 });
                 success = true;
-              } catch (err: any) {
+              } catch (err) {
                 attempts++;
                 lastError = err;
+                const errMsg = err instanceof Error ? err.message : String(err);
                 if (
-                  err.message?.includes('429') ||
-                  err.message?.includes('rate limit')
+                  errMsg.includes('429') ||
+                  errMsg.includes('rate limit')
                 ) {
                   // Rate limit, backoff
                   await new Promise((resolve) =>
@@ -916,13 +951,13 @@ Provide a clear, specific, and actionable answer. Include concrete details (e.g.
           status: currentStep < task.totalSteps ? 'in_progress' : 'completed',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error(`[generateQuestionsWorker] Error:`, error);
       await ctx.runMutation(internal.internal.updateGenerationTask, {
         taskId: args.taskId,
         currentStep: task.currentStep,
         status: 'failed',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   },
@@ -1402,8 +1437,8 @@ interface CodebaseData {
  * Fetches codebase data for a project if available
  */
 async function fetchCodebaseForProject(
-  ctx: any,
-  projectId: string,
+  ctx: ActionCtx,
+  projectId: Id<'projects'>,
 ): Promise<CodebaseData | null> {
   try {
     const codebase = await ctx.runQuery(internal.internal.getCodebaseInternal, {
@@ -1463,7 +1498,12 @@ function formatCodebaseContext(codebase: CodebaseData): string {
 /**
  * Formats a file tree node into a string representation
  */
-function formatFileTree(node: any, depth: number): string {
+interface FileTreeNode {
+  children?: FileTreeNode;
+  type?: string;
+}
+
+function formatFileTree(node: unknown, depth: number): string {
   const indent = '  '.repeat(depth);
   const lines: string[] = [];
 
@@ -1495,8 +1535,8 @@ function formatFileTree(node: any, depth: number): string {
  * Builds section instructions with optional codebase context
  */
 async function buildSectionInstructionsWithCodebase(
-  ctx: any,
-  projectId: string,
+  ctx: ActionCtx,
+  projectId: Id<'projects'>,
   baseInstructions: string,
   phaseId: string,
 ): Promise<string> {

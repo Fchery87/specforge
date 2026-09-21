@@ -2,6 +2,7 @@
 
 import { action, internalAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
+import { internal } from './_generated/api';
 import { v } from 'convex/values';
 import { getRequiredEncryptionKey } from '../lib/encryption-key';
 import { encrypt, decrypt } from '../lib/encryption';
@@ -11,6 +12,18 @@ import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 
 const ENCRYPTION_KEY = getRequiredEncryptionKey();
+
+interface RawUserConfigRow {
+  userId: string;
+  provider: string;
+  apiKey?: ArrayBuffer;
+  defaultModel: string;
+  useSystem: boolean;
+  systemKeyId?: string;
+  zaiEndpointType?: 'paid' | 'coding';
+  zaiIsChina?: boolean;
+  githubAccessToken?: ArrayBuffer;
+}
 
 interface UserConfig {
   userId: string;
@@ -29,7 +42,7 @@ export const getUserConfig = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    const config: any = await ctx.runQuery(api.userConfigs.getUserConfigRaw);
+    const config = (await ctx.runQuery(api.userConfigs.getUserConfigRaw)) as RawUserConfigRow | null;
     if (!config) return null;
 
     // Decrypt the API key
@@ -69,10 +82,49 @@ export const getUserConfigInternal = internalAction({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    const config: any = await ctx.runQuery(api.userConfigs.getUserConfigRaw);
+    const config = (await ctx.runQuery(api.userConfigs.getUserConfigRaw)) as RawUserConfigRow | null;
     if (!config) return null;
 
     // Decrypt the API key
+    let decryptedApiKey: string | undefined;
+    if (config.apiKey) {
+      try {
+        const encrypted = JSON.parse(
+          Buffer.from(config.apiKey).toString('utf8')
+        );
+        decryptedApiKey = decrypt(encrypted, ENCRYPTION_KEY);
+      } catch {
+        decryptedApiKey = undefined;
+      }
+    }
+
+    return {
+      userId: config.userId,
+      provider: config.provider,
+      apiKey: decryptedApiKey,
+      defaultModel: config.defaultModel,
+      useSystem: config.useSystem,
+      systemKeyId: config.systemKeyId,
+      zaiEndpointType: config.zaiEndpointType,
+      zaiIsChina: config.zaiIsChina,
+    };
+  },
+});
+
+/**
+ * Worker-time resolution by explicit userId. Scheduled workers carry no
+ * user identity, so the identity-based getUserConfigInternal returns null
+ * there. This bypasses auth and reads by userId instead.
+ */
+export const getUserConfigByUserIdInternal = internalAction({
+  args: { userId: v.string() },
+  handler: async (ctx: ActionCtx, args): Promise<UserConfig | null> => {
+    const config = (await ctx.runQuery(
+      internal.userConfigs.getUserConfigRawByUserId,
+      { userId: args.userId },
+    )) as RawUserConfigRow | null;
+    if (!config) return null;
+
     let decryptedApiKey: string | undefined;
     if (config.apiKey) {
       try {
