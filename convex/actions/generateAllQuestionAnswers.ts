@@ -216,16 +216,16 @@ async function generateAnswer(params: {
       },
     });
     return response.content.trim();
-  } catch (error: any) {
+  } catch (error) {
     logTelemetry('warn', {
       provider: params.model.provider,
       model: params.model.id,
       success: false,
-      error: error?.message ?? 'Unknown error',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
     console.error('LLM API error:', error);
     throw new Error(
-      `Failed to generate answer: ${error.message || 'Unknown error'}`
+      `Failed to generate answer: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }

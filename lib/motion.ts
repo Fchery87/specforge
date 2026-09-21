@@ -3,7 +3,7 @@
  * Consistent animation presets across the application
  */
 
-import { type Transition, type Variants } from 'framer-motion';
+import { type Transition, type Variants } from 'motion/react';
 
 // === Transition Presets ===
 export const transitions = {

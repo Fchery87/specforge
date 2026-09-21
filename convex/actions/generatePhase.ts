@@ -24,6 +24,7 @@ import type {
   SectionPlan,
   ProviderCredentials,
   LlmModel,
+  LlmProvider,
 } from '../../lib/llm/types';
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
@@ -531,19 +532,123 @@ Generate the "${params.sectionName}" section now:`;
       content: sanitizeGeneratedContent(response.content),
       continued: response.continued,
     };
-  } catch (error: any) {
+  } catch (error) {
     const durationMs = Date.now() - startedAt;
     logTelemetry('warn', {
       provider: model.provider,
       model: model.id,
       durationMs,
       success: false,
-      error: error?.message ?? String(error),
+      error: error instanceof Error ? error.message : String(error),
     });
-    console.error(`[generateSectionContent] LLM call failed:`, error?.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[generateSectionContent] LLM call failed:`, errorMessage);
     throw new Error(
-      `Failed to generate ${params.sectionName}: ${error?.message}`,
+      `Failed to generate ${params.sectionName}: ${errorMessage}`,
     );
+  }
+}
+
+export function buildSectionPrompts(params: {
+  projectContext: { title: string; description: string; questions: string };
+  sectionName: string;
+  sectionQuestions: string[];
+  previousSections: Array<{ name: string; content: string }>;
+  phaseId: string;
+}): { systemPrompt: string; userPrompt: string } {
+  const systemPrompt = `You are an expert technical writer creating project documentation.
+Generate the "${params.sectionName}" section for a ${params.phaseId} document.
+
+Project: ${params.projectContext.title}
+Description: ${params.projectContext.description}
+
+${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
+
+Requirements:
+- Use markdown formatting
+- Be thorough and detailed
+- Include specific, actionable content
+- Reference the project context throughout
+- Output ONLY document content — no reasoning, analysis, or meta-commentary
+- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
+- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
+- Do NOT include internal checklists, confidence scores, or analysis headers
+- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
+
+  const userPrompt = `${
+    params.previousSections.length > 0
+      ? `Previous sections for context:\n${params.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n')}\n\n`
+      : ''
+  }
+${
+  params.sectionQuestions.length > 0
+    ? `Address these points:\n${params.sectionQuestions.map((q) => `- ${q}`).join('\n')}\n\n`
+    : ''
+}
+Generate the "${params.sectionName}" section now:`;
+
+  return { systemPrompt, userPrompt };
+}
+
+/**
+ * Single-shot provider-level token streaming for one section. Yields raw
+ * text deltas to `onDelta` as they arrive over SSE and resolves with the
+ * full content. Unlike generateSectionContentStreaming this issues one
+ * provider request with stream:true instead of chunked continuation turns.
+ */
+export async function generateSectionContentRealtime(params: {
+  projectContext: { title: string; description: string; questions: string };
+  sectionName: string;
+  sectionQuestions: string[];
+  previousSections: Array<{ name: string; content: string }>;
+  model: LlmModel;
+  maxTokens: number;
+  llmClient: LlmProvider;
+  phaseId: string;
+  onDelta: (delta: string) => Promise<void>;
+}): Promise<{ content: string }> {
+  const { llmClient, model } = params;
+
+  const { systemPrompt, userPrompt } = buildSectionPrompts({
+    projectContext: params.projectContext,
+    sectionName: params.sectionName,
+    sectionQuestions: params.sectionQuestions,
+    previousSections: params.previousSections,
+    phaseId: params.phaseId,
+  });
+
+  const startedAt = Date.now();
+  let content = '';
+  try {
+    for await (const delta of llmClient.streamComplete(userPrompt, {
+      model: model.id,
+      maxTokens: Math.min(params.maxTokens, model.maxOutputTokens),
+      temperature: 0.7,
+      systemPrompt,
+    })) {
+      content += delta;
+      await params.onDelta(delta);
+    }
+
+    const durationMs = Date.now() - startedAt;
+    logTelemetry('info', {
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: true,
+    });
+
+    return { content: sanitizeGeneratedContent(content) };
+  } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    logTelemetry('warn', {
+      provider: model.provider,
+      model: model.id,
+      durationMs,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
 }
 
@@ -571,37 +676,13 @@ export async function generateSectionContentStreaming(params: {
     };
   }
 
-  const systemPrompt = `You are an expert technical writer creating project documentation.
-Generate the "${params.sectionName}" section for a ${params.phaseId} document.
-
-Project: ${params.projectContext.title}
-Description: ${params.projectContext.description}
-
-${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
-${params.sectionInstructions}
-
-Requirements:
-- Use markdown formatting
-- Be thorough and detailed
-- Include specific, actionable content
-- Reference the project context throughout
-- Output ONLY document content — no reasoning, analysis, or meta-commentary
-- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
-- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
-- Do NOT include internal checklists, confidence scores, or analysis headers
-- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
-
-  const userPrompt = `${
-    params.previousSections.length > 0
-      ? `Previous sections for context:\n${params.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n')}\n\n`
-      : ''
-  }
-${
-  params.sectionQuestions.length > 0
-    ? `Address these points:\n${params.sectionQuestions.map((q) => `- ${q}`).join('\n')}\n\n`
-    : ''
-}
-Generate the "${params.sectionName}" section now:`;
+  const { systemPrompt, userPrompt } = buildSectionPrompts({
+    projectContext: params.projectContext,
+    sectionName: params.sectionName,
+    sectionQuestions: params.sectionQuestions,
+    previousSections: params.previousSections,
+    phaseId: params.phaseId,
+  });
 
   const startedAt = Date.now();
   try {
@@ -645,21 +726,22 @@ Generate the "${params.sectionName}" section now:`;
       content: sanitizeGeneratedContent(response.content),
       continued: response.continued,
     };
-  } catch (error: any) {
+  } catch (error) {
     const durationMs = Date.now() - startedAt;
     logTelemetry('warn', {
       provider: model.provider,
       model: model.id,
       durationMs,
       success: false,
-      error: error?.message ?? String(error),
+      error: error instanceof Error ? error.message : String(error),
     });
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
       `[generateSectionContentStreaming] LLM call failed:`,
-      error?.message,
+      errorMessage,
     );
     throw new Error(
-      `Failed to generate ${params.sectionName}: ${error?.message}`,
+      `Failed to generate ${params.sectionName}: ${errorMessage}`,
     );
   }
 }
@@ -1057,16 +1139,16 @@ Generate the Project Constitution now:`;
       semanticWarnings: hasErrors ? semanticWarnings : undefined,
       hasSemanticErrors: hasErrors,
     };
-  } catch (error: any) {
+  } catch (error) {
     const durationMs = Date.now() - startedAt;
     logTelemetry('warn', {
       provider: model.provider,
       model: model.id,
       durationMs,
       success: false,
-      error: error?.message ?? String(error),
+      error: error instanceof Error ? error.message : String(error),
     });
-    console.error(`[generateConstitution] Failed:`, error?.message);
+    console.error(`[generateConstitution] Failed:`, error instanceof Error ? error.message : String(error));
     return {
       content: '',
       success: false,
@@ -1205,16 +1287,17 @@ export async function critiqueSection(params: {
     });
 
     return critiqueResult;
-  } catch (error: any) {
+  } catch (error) {
     const durationMs = Date.now() - startedAt;
     logTelemetry('warn', {
       provider: model.provider,
       model: model.id,
       durationMs,
       success: false,
-      error: error?.message ?? String(error),
+      error: error instanceof Error ? error.message : String(error),
     });
-    console.error(`[critiqueSection] Failed:`, error?.message);
+    const critiqueErrorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[critiqueSection] Failed:`, critiqueErrorMessage);
 
     // Return a failing result on error
     return {
@@ -1226,7 +1309,7 @@ export async function critiqueSection(params: {
           category: 'completeness',
           severity: 'critical',
           criterion: 'Critique Execution',
-          issue: `Critique failed: ${error?.message ?? 'Unknown error'}`,
+          issue: `Critique failed: ${critiqueErrorMessage}`,
           suggestion: 'Review the section manually for quality issues',
         },
       ],

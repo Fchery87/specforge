@@ -5,12 +5,12 @@ SpecForge is a high-performance scaffold designed for building **repo-native**, 
 ## Tech Stack
 
 - **Framework**: [Next.js 16](https://nextjs.org/) (App Router with Turbopack)
-- **Runtime**: [Bun](https://bun.sh/)
+- **Runtime**: Node.js 20.9+ (Node 22 recommended via `.nvmrc`), npm only
 - **Database & Backend**: [Convex](https://www.convex.dev/)
 - **Authentication**: [Clerk](https://clerk.com/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) (Brutalist + Dark Mode)
 - **Components**: [Radix UI](https://www.radix-ui.com/) + [Framer Motion](https://www.framer.com/motion/)
-- **Testing**: [Vitest](https://vitest.dev/)
+- **Testing**: [Vitest](https://vitest.dev/) + [Playwright](https://playwright.dev/) (smoke)
 - **Utilities**: [Lucide React](https://lucide.dev/), [JSZip](https://stuk.github.io/jszip/)
 
 ## Key Features
@@ -20,7 +20,9 @@ SpecForge is a high-performance scaffold designed for building **repo-native**, 
 - **Live Generation (Pseudo-Streaming)**: Artifacts are persisted incrementally during generation and rendered live via Convex reactive queries.
 - **Cancel + Preserve Output**: Users can cancel generation; partial output is preserved and marked `streamStatus='cancelled'`.
 - **Provider-Model Intelligence**: Automatic matching of LLM providers (DeepSeek, OpenAI, etc.) with their specific enabled models.
-- **Multi-LLM Support**: DeepSeek (V3.2), OpenAI (GPT-4o), Anthropic (Claude 3.5), Mistral, Z.AI, and Minimax.
+- **Admin Console**: User management, projects, analytics, health, security, moderation, LLM model directory.
+- **Dashboard**: Project list with search, pinned projects, activity feed, notifications.
+- **Multi-LLM Support**: DeepSeek, OpenAI (GPT-5.4), Anthropic (Claude 4.5), Mistral, Z.AI, and Minimax.
 - **Artifact Management**: Real-time preview with high-fidelity markdown rendering.
 - **Project Export**: Full project ZIP generation and storage.
 - **Encrypted Credentials**: AES-encrypted system and user API keys stored in Convex.
@@ -45,13 +47,13 @@ SpecForge uses a **Coordinator-Worker** pattern to handle complex generation tas
 
 ### Prerequisites
 
-- Node.js 18+
-- (Optional) Bun
+- Node.js 20.9+ (Node 22 recommended, pinned in `.nvmrc`)
+- npm (only supported toolchain)
 
 ### Installation
 
 ```bash
-npm install
+npm ci
 ```
 
 ### Environment Setup
@@ -66,7 +68,7 @@ Required variables:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk publishable key
 - `CLERK_SECRET_KEY` - Clerk secret key
-- `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL (auto-set by `bunx convex dev`)
+- `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL (auto-set by `npx convex dev`)
 - `CONVEX_ENCRYPTION_KEY` - required for encrypting stored credentials
 
 ### Development
@@ -131,15 +133,16 @@ specforge/
 
 ## Scripts
 
-| Command               | Description                      |
-| --------------------- | -------------------------------- |
-| `npm run dev`         | Start Next.js development server |
-| `npm run convex`      | Start Convex development server  |
-| `npm run build`       | Production build                 |
-| `npm run lint`        | Run ESLint                       |
-| `npm run typecheck`   | TypeScript type checking         |
-| `npm run test`        | Run unit tests                   |
-| `npm run test:coverage` | Run tests with coverage        |
+| Command                 | Description                      |
+| ----------------------- | -------------------------------- |
+| `npm run dev`           | Start Next.js development server |
+| `npm run convex`        | Start Convex development server  |
+| `npm run build`         | Production build                 |
+| `npm run lint`          | Run ESLint                       |
+| `npm run typecheck`     | TypeScript type checking         |
+| `npm run test`          | Run unit tests                   |
+| `npm run test:coverage` | Run tests with coverage          |
+| `npm run test:e2e`      | Run Playwright smoke test        |
 
 ---
 

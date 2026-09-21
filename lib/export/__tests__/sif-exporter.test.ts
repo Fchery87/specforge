@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { ProjectConstitution } from '../../validation/constitution-schema';
 import {
   exportToSif,
   validateSif,
@@ -146,7 +147,7 @@ describe('sif-exporter', () => {
     it('should calculate L1 conformance level with constitution and semantic validation', () => {
       const sif = exportToSif(mockProject, mockPhases, mockArtifacts, {
         userId: 'user456',
-        constitution: { lockedConstraints: {} },
+        constitution: { lockedConstraints: {} } as ProjectConstitution,
         semanticValidationPassed: true,
       });
 
@@ -156,7 +157,7 @@ describe('sif-exporter', () => {
     it('should calculate L2 conformance level with all validations passed', () => {
       const sif = exportToSif(mockProject, mockPhases, mockArtifacts, {
         userId: 'user456',
-        constitution: { lockedConstraints: {} },
+        constitution: { lockedConstraints: {} } as ProjectConstitution,
         semanticValidationPassed: true,
         conformanceChecksPassed: true,
       });

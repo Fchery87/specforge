@@ -78,7 +78,7 @@ export const setSystemCredentialRaw = mutation({
 
     if (existing) {
       // Update existing credential
-      const updates: any = {
+      const updates: Partial<{ apiKey: ArrayBuffer; isEnabled: boolean; zaiEndpointType: 'paid' | 'coding'; zaiIsChina: boolean; updatedAt: number }> = {
         isEnabled: args.isEnabled,
         zaiEndpointType: args.zaiEndpointType,
         zaiIsChina: args.zaiIsChina,

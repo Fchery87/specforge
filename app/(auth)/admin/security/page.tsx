@@ -53,17 +53,17 @@ const TARGET_ICONS: Record<string, React.ReactNode> = {
 export default function SecurityPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const [actionFilter, setActionFilter] = useState<string | null>(null);
-  const [targetFilter, setTargetFilter] = useState<string | null>(null);
-  
+  const [targetFilter, setTargetFilter] = useState<'user' | 'project' | 'credential' | 'system' | 'model' | null>(null);
+
   // Get audit logs
   const auditLogs = useQuery(
     api.admin.getAuditLogs,
-    isLoaded && isSignedIn 
-      ? { 
+    isLoaded && isSignedIn
+      ? {
           limit: 100,
           action: actionFilter || undefined,
-          targetType: targetFilter as any || undefined,
-        } 
+          targetType: targetFilter || undefined,
+        }
       : "skip"
   );
 
@@ -113,7 +113,7 @@ export default function SecurityPage() {
   };
 
   // Get unique actions for filter
-  const uniqueActions = [...new Set(auditLogs.map((log: any) => log.action))];
+  const uniqueActions = [...new Set(auditLogs.map((log) => log.action))];
 
   return (
     <main className="relative">
@@ -169,7 +169,7 @@ export default function SecurityPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {auditLogs.filter((l: any) => l.targetType === 'user').length}
+                {auditLogs.filter((l) => l.targetType === 'user').length}
               </p>
               <p className="text-xs text-muted-foreground mt-2">User-related events</p>
             </CardContent>
@@ -183,7 +183,7 @@ export default function SecurityPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {auditLogs.filter((l: any) => l.targetType === 'project').length}
+                {auditLogs.filter((l) => l.targetType === 'project').length}
               </p>
               <p className="text-xs text-muted-foreground mt-2">Project-related events</p>
             </CardContent>
@@ -197,7 +197,7 @@ export default function SecurityPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {auditLogs.filter((l: any) => l.targetType === 'system').length}
+                {auditLogs.filter((l) => l.targetType === 'system').length}
               </p>
               <p className="text-xs text-muted-foreground mt-2">Configuration changes</p>
             </CardContent>
@@ -227,7 +227,7 @@ export default function SecurityPage() {
             </SelectContent>
           </Select>
 
-          <Select value={targetFilter || 'all'} onValueChange={(v) => setTargetFilter(v === 'all' ? null : v)}>
+          <Select value={targetFilter || 'all'} onValueChange={(v) => setTargetFilter(v === 'all' ? null : (v as 'user' | 'project' | 'credential' | 'system' | 'model'))}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by target" />
             </SelectTrigger>
@@ -282,7 +282,7 @@ export default function SecurityPage() {
 
               {/* Log Rows */}
               {auditLogs.length > 0 ? (
-                auditLogs.map((log: any) => (
+                auditLogs.map((log) => (
                   <div 
                     key={log.id}
                     className="grid grid-cols-12 gap-4 p-4 items-start hover:bg-secondary/20 transition-colors"

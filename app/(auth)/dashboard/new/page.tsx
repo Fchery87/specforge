@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, Github } from "lucide-react";
+import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, GitBranch } from "lucide-react";
 import Link from "next/link";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 import { CodebaseConnector } from "@/components/codebase-connector";
@@ -112,7 +112,7 @@ export default function NewProjectPage() {
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 bg-primary flex items-center justify-center">
-                      <Github className="w-5 h-5 text-black" />
+                      <GitBranch className="w-5 h-5 text-black" />
                     </div>
                     <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
                       Step 2 of 2
