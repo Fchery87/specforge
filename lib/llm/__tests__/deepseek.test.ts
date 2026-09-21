@@ -6,8 +6,8 @@ describe("deepseek registry", () => {
     expect(getProviderDisplayName("deepseek")).toBe("DeepSeek");
   });
 
-  it("includes deepseek-chat model", () => {
-    const model = getModelById("deepseek-chat");
+  it("includes deepseek-v4-flash model", () => {
+    const model = getModelById("deepseek-v4-flash");
     expect(model?.provider).toBe("deepseek");
   });
 });
