@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAction } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { generateQuickSpecAction } from "@/lib/convex-actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -16,9 +16,7 @@ export default function QuickSpecPage() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const quickSpecRef = (api as any)["actions/generateQuickSpec"]?.generateQuickSpec;
-  const generateQuickSpec = useAction(quickSpecRef);
+  const generateQuickSpec = useAction(generateQuickSpecAction);
 
   async function handleGenerate() {
     if (!title.trim() || !description.trim()) return;

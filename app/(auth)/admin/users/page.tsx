@@ -27,7 +27,7 @@ import {
   ChevronUp,
   Key
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,22 +98,6 @@ export default function UserManagementPage() {
       </main>
     );
   }
-
-  // Format relative time
-  const formatRelativeTime = (timestamp: number | null) => {
-    if (!timestamp) return 'Never';
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 30) return `${days}d ago`;
-    return `${Math.floor(days / 30)}mo ago`;
-  };
 
   // Format date
   const formatDate = (timestamp: number | null) => {

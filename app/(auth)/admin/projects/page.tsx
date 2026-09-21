@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ import {
   Clock,
   User
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -141,7 +142,7 @@ export default function ProjectManagementPage() {
     
     try {
       await deleteProject({ 
-        projectId: projectToDelete.id as any, 
+        projectId: projectToDelete.id as Id<'projects'>, 
         reason: deleteReason 
       });
       setDeleteDialogOpen(false);
@@ -158,27 +159,13 @@ export default function ProjectManagementPage() {
     
     try {
       await bulkDeleteProjects({ 
-        projectIds: Array.from(selectedProjects) as any[],
+        projectIds: Array.from(selectedProjects) as Id<'projects'>[],
         reason: "Bulk delete by admin"
       });
       setSelectedProjects(new Set());
     } catch (err) {
       console.error('Failed to delete projects:', err);
     }
-  };
-
-  // Format relative time
-  const formatRelativeTime = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
   };
 
   // Format date

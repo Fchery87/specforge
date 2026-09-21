@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useQuery } from "convex/react";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -26,7 +27,7 @@ import {
   Settings,
   Flag
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 
 const PROVIDERS = [
   { id: "openai", name: "OpenAI", short: "GPT" },
@@ -103,7 +104,7 @@ export default function AdminDashboardPage() {
 
   // Helper to check credential status
   const getCredentialStatus = (providerId: string) => {
-    const cred = systemCredentials?.find((c: any) => c.provider === providerId);
+    const cred = systemCredentials?.find((c) => c.provider === providerId);
     if (!cred) return { configured: false, enabled: false };
     return {
       configured: !!cred.apiKey,
@@ -111,7 +112,7 @@ export default function AdminDashboardPage() {
     };
   };
 
-  const enabledModelsCount = models?.filter((m: any) => m.enabled).length || 0;
+  const enabledModelsCount = models?.filter((m) => m.enabled).length || 0;
   const configuredProviders = PROVIDERS.filter(p => getCredentialStatus(p.id).configured).length;
 
   // Helper to get activity icon based on type
@@ -126,20 +127,6 @@ export default function AdminDashboardPage() {
       default:
         return <Info className="w-4 h-4 text-muted-foreground" />;
     }
-  };
-
-  // Format relative time
-  const formatRelativeTime = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
   };
 
   return (
@@ -298,7 +285,7 @@ export default function AdminDashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* User Management */}
-          <Link href="/admin/users" className="block">
+          <Link href={"/admin/users" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -318,7 +305,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Project Management */}
-          <Link href="/admin/projects" className="block">
+          <Link href={"/admin/projects" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -338,7 +325,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Analytics */}
-          <Link href="/admin/analytics" className="block">
+          <Link href={"/admin/analytics" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -358,7 +345,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* System Health */}
-          <Link href="/admin/health" className="block">
+          <Link href={"/admin/health" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -378,7 +365,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Security & Audit */}
-          <Link href="/admin/security" className="block">
+          <Link href={"/admin/security" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -398,7 +385,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Settings */}
-          <Link href="/admin/settings" className="block">
+          <Link href={"/admin/settings" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -418,7 +405,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Content Moderation */}
-          <Link href="/admin/moderation" className="block">
+          <Link href={"/admin/moderation" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -478,7 +465,7 @@ export default function AdminDashboardPage() {
           </Link>
 
           {/* Activity Monitor */}
-          <Link href="/admin/activity" className="block">
+          <Link href={"/admin/activity" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
@@ -514,7 +501,7 @@ export default function AdminDashboardPage() {
           <CardContent className="p-0">
             {activities && activities.length > 0 ? (
               <div className="divide-y divide-border">
-                {activities.map((activity: any) => (
+                {activities.map((activity) => (
                   <div
                     key={activity.id}
                     className="flex items-start gap-4 p-4 hover:bg-secondary/30 transition-colors"

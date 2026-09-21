@@ -125,7 +125,7 @@ describe('provider error sanitization', () => {
     const client = new OpenAIClient('bad-key');
     await expect(
       client.complete('test', { model: 'gpt-4o' })
-    ).rejects.toThrow(/OpenAI API error/);
+    ).rejects.toThrow(/API error: HTTP/);
 
     // The error should NOT contain the org_id
     try {

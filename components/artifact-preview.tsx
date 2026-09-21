@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Loader2, Trash2, Edit, Download, ChevronDown, ChevronUp, FileText, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { MermaidAwareContent } from "@/components/ui/mermaid-aware-content";
 
 type CritiqueResult = {
@@ -24,7 +25,7 @@ type CritiqueResult = {
 };
 
 type Artifact = {
-  _id: string;
+  _id: Id<'artifacts'>;
   title: string;
   type: string;
   content: string;
@@ -37,18 +38,6 @@ interface ArtifactPreviewProps {
   artifact: Artifact;
   onDelete?: () => void;
   onEdit?: () => void;
-}
-
-function formatRelativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  
-  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-  return 'Just now';
 }
 
 function downloadMarkdown(content: string, filename: string) {
@@ -70,12 +59,12 @@ export function ArtifactPreview({ artifact, onDelete, onEdit }: ArtifactPreviewP
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
-  const deleteArtifact = useMutation(api.artifacts.deleteArtifact as any);
+  const deleteArtifact = useMutation(api.artifacts.deleteArtifact);
 
   async function handleDelete() {
     setIsDeleting(true);
     try {
-      await deleteArtifact({ artifactId: artifact._id as any });
+      await deleteArtifact({ artifactId: artifact._id });
       onDelete?.();
     } catch (error) {
       console.error("Failed to delete artifact:", error);

@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
+import { scanCodebaseAction } from '@/lib/convex-actions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { GitBranch, FolderTree, FileCode, Loader2, CheckCircle2, AlertCircle, Github, Link2 } from 'lucide-react';
+import { GitBranch, FolderTree, FileCode, Loader2, CheckCircle2, AlertCircle, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CodebaseConnectorProps {
@@ -32,8 +33,6 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
   const [success, setSuccess] = useState(false);
 
   const codebase = useQuery(api.codebase.getCodebase, { projectId });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const scanCodebaseAction = (api as any)["actions/scanCodebase"]?.scanCodebase as any;
   const scanCodebase = useAction(scanCodebaseAction);
 
   // Parse GitHub URL to extract owner and repo
@@ -173,7 +172,7 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary/10 flex items-center justify-center rounded-lg">
-            <Github className="w-5 h-5 text-primary" />
+            <GitBranch className="w-5 h-5 text-primary" />
           </div>
           <div>
             <CardTitle className="text-lg">Connect Repository</CardTitle>
@@ -234,7 +233,7 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
                 disabled={isConnecting}
                 className="w-full"
               >
-                <Github className="w-4 h-4 mr-2" />
+                <GitBranch className="w-4 h-4 mr-2" />
                 Connect with GitHub OAuth
               </Button>
             </div>

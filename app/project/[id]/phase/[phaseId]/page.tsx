@@ -8,6 +8,7 @@ import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { FunctionReference } from "convex/server";
+import { generatePhaseAction, generateProjectZipAction, generateSectionPlanAction, getGenerationTaskAction, getArtifactByPhaseAction, getAllProjectArtifactsAction, cancelArtifactStreamingAction } from "@/lib/convex-actions";
 import { PhaseStatusIndicator } from "@/components/phase-status";
 import { ArtifactPreview } from "@/components/artifact-preview";
 import { QuestionsPanel } from "@/components/questions-panel";
@@ -56,30 +57,26 @@ const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; descr
 
 export default function PhasePage() {
   const params = useParams<{ id: string; phaseId: string }>();
-  const projectId = params.id;
+  const projectId = params.id as Id<"projects">;
   const phaseId = params.phaseId;
   const { isLoaded, isSignedIn } = useAuth();
 
   const project = useQuery(
     api.projects.getProject,
-    isLoaded && isSignedIn ? { projectId: projectId as any } : "skip"
+    isLoaded && isSignedIn ? { projectId } : "skip"
   );
   const phase = useQuery(
     api.projects.getPhase,
-    isLoaded && isSignedIn ? { projectId: projectId as any, phaseId } : "skip"
+    isLoaded && isSignedIn ? { projectId, phaseId } : "skip"
   );
   const phases = useQuery(
     api.projects.getProjectPhases,
-    isLoaded && isSignedIn ? { projectId: projectId as any } : "skip"
+    isLoaded && isSignedIn ? { projectId } : "skip"
   );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generatePhaseAction = (api as any)["actions/generatePhase"]?.generatePhase as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generateZipAction = (api as any)["actions/generateProjectZip"]?.generateProjectZip as any;
   const generatePhase = useAction(generatePhaseAction);
-  const generateZip = useAction(generateZipAction);
-  const cancelArtifactStreaming = useMutation(api.artifacts.cancelArtifactStreaming as any);
-  const getGenerationTaskQuery: any = (api as any)?.projects?.getGenerationTask;
+  const generateZip = useAction(generateProjectZipAction);
+  const cancelArtifactStreaming = useMutation(cancelArtifactStreamingAction);
+  const getGenerationTaskQuery = getGenerationTaskAction;
   const convex = useConvex();
   const [isPhaseStarting, setIsPhaseStarting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -91,8 +88,6 @@ export default function PhasePage() {
   const [sectionPreferences, setSectionPreferences] = useState<UserSectionPreference[]>([]);
   const staticSectionPlans = getSectionPlansForPhase(phaseId);
   // AI-generated section plans (Task 16)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generateSectionPlanAction = (api as any)["actions/generateSectionPlan"]?.generateSectionPlan as any;
   const generateSectionPlanFn = useAction(generateSectionPlanAction);
   const [aiSectionPlans, setAiSectionPlans] = useState<SectionPlanConfig[] | null>(null);
   const [isLoadingAiPlan, setIsLoadingAiPlan] = useState(false);
@@ -103,24 +98,22 @@ export default function PhasePage() {
   const phaseProgressRef = useRef<number | null>(null);
   const generationTask = useQuery(
     getGenerationTaskQuery,
-    phaseTaskId ? { taskId: phaseTaskId as any } : "skip"
+    phaseTaskId ? { taskId: phaseTaskId as Id<'generationTasks'> } : "skip"
   );
-  const getArtifactByPhaseQuery: any = (api as any)?.artifacts?.getArtifactByPhase;
   const streamingArtifact = useQuery(
-    getArtifactByPhaseQuery,
-    isLoaded && isSignedIn ? { projectId: projectId as any, phaseId } : "skip"
+    getArtifactByPhaseAction,
+    isLoaded && isSignedIn ? { projectId, phaseId } : "skip"
   );
-  const getAllProjectArtifactsQuery: any = (api as any)?.artifacts?.getAllProjectArtifacts;
   const allArtifacts = useQuery(
-    getAllProjectArtifactsQuery,
-    isLoaded && isSignedIn && phaseId === "handoff" ? { projectId: projectId as any } : "skip"
+    getAllProjectArtifactsAction,
+    isLoaded && isSignedIn && phaseId === "handoff" ? { projectId } : "skip"
   );
   const isGenerating =
     isPhaseStarting || generationTask?.status === "in_progress";
   const hasStreamingPreview =
-    !!(streamingArtifact as any)?.streamStatus ||
-    !!(streamingArtifact as any)?.previewHtml ||
-    !!(streamingArtifact as any)?.content;
+    !!streamingArtifact?.streamStatus ||
+    !!streamingArtifact?.previewHtml ||
+    !!streamingArtifact?.content;
 
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
@@ -131,7 +124,7 @@ export default function PhasePage() {
     setIsLoadingAiPlan(true);
     try {
       const result = await generateSectionPlanFn({
-        projectId: projectId as any,
+        projectId,
         phaseId,
       });
       if (result?.sectionPlan?.length) {
@@ -172,7 +165,7 @@ export default function PhasePage() {
     phaseToastIdRef.current = toastId;
     try {
       const result = await generatePhase({ 
-        projectId: projectId as any, 
+        projectId, 
         phaseId,
         // TODO: Pass preferences to generation when backend supports it
         // sectionPreferences: preferences,
@@ -180,12 +173,6 @@ export default function PhasePage() {
       setPhaseTaskId(result?.taskId ?? null);
       if (!result?.taskId) {
         throw new Error("Phase generation did not return a task id.");
-      }
-      if (result?.continuedSections) {
-        const continuedToast = getToastMessage("phase_continued");
-        toast.message(continuedToast.title, {
-          description: `${continuedToast.description} (${result.continuedSections} section${result.continuedSections === 1 ? "" : "s"})`,
-        });
       }
     } catch (error) {
       const errorToast = getToastMessage("phase_error");
@@ -204,7 +191,7 @@ export default function PhasePage() {
       description: "Stopping the AI and preserving partial output.",
     });
     try {
-      await cancelArtifactStreaming({ projectId: projectId as any, phaseId });
+      await cancelArtifactStreaming({ projectId, phaseId });
       toast.success("Cancelled", {
         id: toastId,
         description: "Partial output preserved. You can regenerate when ready.",
@@ -227,11 +214,11 @@ export default function PhasePage() {
     });
     try {
       if (!project?.zipStorageId) {
-        await generateZip({ projectId: projectId as any });
+        await generateZip({ projectId });
       }
 
       const zipUrl = await convex.query(api.projects.getProjectZipUrl, {
-        projectId: projectId as any,
+        projectId,
       });
 
       if (zipUrl) {
@@ -427,7 +414,7 @@ export default function PhasePage() {
           {/* Right Column: Artifacts */}
           <div>
             <ArtifactsHeader
-              streamStatus={(streamingArtifact as any)?.streamStatus}
+              streamStatus={streamingArtifact?.streamStatus}
               hasArtifacts={!!phase.artifacts && phase.artifacts.length > 0}
               onDownloadAll={handleDownloadZip}
               isDownloading={isDownloadingZip}
@@ -447,12 +434,12 @@ export default function PhasePage() {
                 {hasStreamingPreview && (
                   <div className="mb-4">
                     <StreamingArtifactPreview
-                      title={(streamingArtifact as any)?.title ?? "Generating…"}
-                      previewHtml={(streamingArtifact as any)?.previewHtml ?? ""}
-                      streamStatus={(streamingArtifact as any)?.streamStatus}
-                      currentSection={(streamingArtifact as any)?.currentSection}
-                      sectionsCompleted={(streamingArtifact as any)?.sectionsCompleted}
-                      sectionsTotal={(streamingArtifact as any)?.sectionsTotal}
+                      title={streamingArtifact?.title ?? "Generating…"}
+                      previewHtml={streamingArtifact?.previewHtml ?? ""}
+              streamStatus={streamingArtifact?.streamStatus}
+                      currentSection={streamingArtifact?.currentSection}
+                      sectionsCompleted={streamingArtifact?.sectionsCompleted}
+                      sectionsTotal={streamingArtifact?.sectionsTotal}
                       onCancel={handleCancelGeneration}
                       isCancelling={isCancelling}
                     />
@@ -460,7 +447,7 @@ export default function PhasePage() {
                 )}
                 {(phase.artifacts ?? []).length > 0 ? (
                   <div className="space-y-4">
-                    {phase.artifacts.map((a: any) => (
+                    {phase.artifacts.map((a) => (
                       <ArtifactPreview 
                         key={a._id} 
                         artifact={a}
@@ -490,12 +477,12 @@ export default function PhasePage() {
                   zipStorageId: project.zipStorageId,
                 }}
                 artifacts={{
-                  brief: allArtifacts?.find((a: any) => a.type === "brief")?.content,
-                  constitution: allArtifacts?.find((a: any) => a.type === "constitution")?.content,
-                  prd: allArtifacts?.find((a: any) => a.type === "prd")?.content,
-                  techSpec: allArtifacts?.find((a: any) => a.type === "techSpec")?.content,
-                  userStories: allArtifacts?.find((a: any) => a.type === "userStories")?.content,
-                  handoff: allArtifacts?.find((a: any) => a.type === "handoff")?.content,
+                  brief: allArtifacts?.find((a) => a.type === "brief")?.content,
+                  constitution: allArtifacts?.find((a) => a.type === "constitution")?.content,
+                  prd: allArtifacts?.find((a) => a.type === "prd")?.content,
+                  techSpec: allArtifacts?.find((a) => a.type === "techSpec")?.content,
+                  userStories: allArtifacts?.find((a) => a.type === "userStories")?.content,
+                  handoff: allArtifacts?.find((a) => a.type === "handoff")?.content,
                 }}
                 onDownloadZip={handleDownloadZip}
                 isDownloadingZip={isDownloadingZip}
@@ -512,7 +499,7 @@ export default function PhasePage() {
             Ticket Board
           </h2>
           <TicketBoard
-            projectId={projectId as unknown as Id<"projects">}
+            projectId={projectId}
             phaseId={phaseId}
             artifactId={phase.artifacts?.[0]?._id}
           />

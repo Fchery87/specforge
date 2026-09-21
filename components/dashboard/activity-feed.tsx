@@ -16,7 +16,7 @@ import {
   Shield,
   Clock,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeTime } from '@/lib/utils';
 
 const ACTIVITY_ICONS = {
   project_created: FileText,
@@ -53,20 +53,6 @@ const ACTIVITY_LABELS: Record<string, string> = {
   verification_complete: 'Verified',
   project_updated: 'Updated',
 };
-
-function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d`;
-  if (hours > 0) return `${hours}h`;
-  if (minutes > 0) return `${minutes}m`;
-  return 'now';
-}
 
 function groupByTime(activities: { _id: string; createdAt: number; type: string; message: string; metadata?: Record<string, unknown> }[]): [string, typeof activities][] {
   const now = Date.now();
