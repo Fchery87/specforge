@@ -3,6 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+type PublicUserConfig = {
+  provider: string;
+  defaultModel: string;
+  useSystem: boolean;
+  hasKey?: boolean;
+  systemKeyId?: string;
+  zaiEndpointType?: 'paid' | 'coding';
+  zaiIsChina?: boolean;
+};
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +42,7 @@ export default function LlmConfigPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userConfig, setUserConfig] = useState<any>(null);
+  const [userConfig, setUserConfig] = useState<PublicUserConfig | null>(null);
   const [providerSearch, setProviderSearch] = useState("");
   const [showAllProviders, setShowAllProviders] = useState(false);
 
@@ -400,7 +409,7 @@ export default function LlmConfigPage() {
               placeholder={
                 useSystem
                   ? "Leave empty to use system credentials"
-                  : userConfig?.hasApiKey
+                  : userConfig?.hasKey
                     ? "API key saved (re-enter to replace)"
                     : `Enter your ${currentProvider?.name} API key`
               }
@@ -551,8 +560,8 @@ export default function LlmConfigPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-white/60">API Key:</span>
-                <Badge variant={userConfig.hasApiKey ? "default" : "secondary"}>
-                  {userConfig.hasApiKey ? "••••••••" : "System"}
+                <Badge variant={userConfig.hasKey ? "default" : "secondary"}>
+                  {userConfig.hasKey ? "••••••••" : "System"}
                 </Badge>
               </div>
             </div>

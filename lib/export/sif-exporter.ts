@@ -9,6 +9,7 @@ import type { SpecForgeInterchangeFormat, SifPhase, SifArtifact } from './sif-sc
 import { SIF_SCHEMA_URL, SIF_SCHEMA_VERSION, calculateConformanceLevel } from './sif-schema';
 import { SPECFORGE_VERSION } from '../llm/provenance';
 import { computeContentHash } from '../llm/provenance';
+import type { ProjectConstitution } from '../validation/constitution-schema';
 import { PHASE_DEPENDENCIES } from '../specification/dependency-graph';
 
 export interface ExportProject {
@@ -57,7 +58,7 @@ export interface ExportArtifact {
 export interface ExportToSifOptions {
   includeHidden?: boolean;
   userId: string;
-  constitution?: Record<string, unknown>;
+  constitution?: ProjectConstitution;
   semanticValidationPassed?: boolean;
   conformanceChecksPassed?: boolean;
 }
@@ -121,7 +122,7 @@ export function exportToSif(
       updatedAt: new Date(project.updatedAt).toISOString(),
       specforgeVersion: SPECFORGE_VERSION,
     },
-    constitution: constitution as any,
+    constitution,
     phases: sifPhases,
     dependencyGraph: PHASE_DEPENDENCIES,
     metadata: {

@@ -513,7 +513,7 @@ export const getUsageAnalytics = query({
       const date = new Date(task.updatedAt).toISOString().split('T')[0];
 
       // Estimate tokens from sections
-      const tokens = task.plan.reduce((sum: number, section: any) => sum + (section.maxTokens || 0), 0);
+      const tokens = task.plan.reduce((sum: number, section: { maxTokens?: number; id?: string }) => sum + (section.maxTokens ?? 0), 0);
 
       // Provider stats
       if (!providerUsage[provider]) {

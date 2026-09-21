@@ -245,7 +245,7 @@ export default function AnalyticsPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Object.entries(analytics.providerUsage).map(([provider, data]: [string, any]) => (
+          {Object.entries(analytics.providerUsage).map(([provider, data]) => (
             <Card key={provider} variant="default">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -306,7 +306,7 @@ export default function AnalyticsPage() {
               </div>
 
               {analytics.topUsers.length > 0 ? (
-                analytics.topUsers.map((user: any, index: number) => (
+                analytics.topUsers.map((user, index) => (
                   <div 
                     key={user.userId}
                     className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-secondary/20"
@@ -368,8 +368,8 @@ export default function AnalyticsPage() {
 
               {Object.entries(analytics.modelUsage).length > 0 ? (
                 Object.entries(analytics.modelUsage)
-                  .sort(([, a]: [string, any], [, b]: [string, any]) => b.tokens - a.tokens)
-                  .map(([modelId, data]: [string, any]) => (
+                  .sort(([, a], [, b]) => b.tokens - a.tokens)
+                  .map(([modelId, data]) => (
                     <div 
                       key={modelId}
                       className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-secondary/20"

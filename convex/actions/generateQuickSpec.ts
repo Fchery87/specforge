@@ -118,10 +118,10 @@ export const generateQuickSpec = action({
       );
 
       return { content: response.content };
-    } catch (error: any) {
-      // Handle specific provider errors with user-friendly messages
-      if (error.message?.includes('No instances available') || 
-          error.message?.includes('chutes')) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('No instances available') ||
+          errorMessage.includes('chutes')) {
         throw new Error(
           'The selected AI model is temporarily unavailable. ' +
           'Please try again in a few minutes or switch to a different model in Settings.'

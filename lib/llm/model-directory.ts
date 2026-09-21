@@ -112,8 +112,16 @@ export async function fetchModelDirectory(): Promise<ModelsDevProvider[]> {
     const data = await response.json();
 
     // Transform from provider-keyed object to array
-    const providers: ModelsDevProvider[] = Object.entries(data).map(
-      ([id, provider]: [string, any]) => ({
+    interface ModelsDevRawProvider {
+  name: string;
+  npm: string;
+  env: string[];
+  doc: string;
+  api?: string;
+  models: ModelsDevProvider['models'];
+}
+const providers: ModelsDevProvider[] = Object.entries(data as Record<string, ModelsDevRawProvider>).map(
+      ([id, provider]) => ({
         id,
         name: provider.name,
         npm: provider.npm,
@@ -146,7 +154,14 @@ export async function fetchModelDirectory(): Promise<ModelsDevProvider[]> {
  * For server-side usage where DB cache is available
  */
 export async function fetchModelDirectoryWithDbCache(
-  dbQuery: (table: string) => { withIndex: (index: string, filter: (q: any) => any) => { first: () => Promise<any> } }
+  dbQuery: (
+    table: string
+  ) => {
+    withIndex: (
+      index: string,
+      filter: (q: { eq: (field: string, value: unknown) => unknown }) => unknown
+    ) => { first: () => Promise<unknown> };
+  }
 ): Promise<ModelsDevProvider[]> {
   // 1. Check in-memory cache first (fastest)
   if (memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION_MS) {
@@ -154,18 +169,21 @@ export async function fetchModelDirectoryWithDbCache(
   }
 
   // 2. Check DB cache (for server-side resilience)
+  interface DirectoryCacheRow {
+    expiresAt: number;
+    data: ModelsDevProvider[];
+  }
   try {
-    const dbCache = await dbQuery('modelDirectoryCache')
+    const dbCache = (await dbQuery('modelDirectoryCache')
       .withIndex('by_key', (q) => q.eq('cacheKey', 'providers'))
-      .first();
+      .first()) as DirectoryCacheRow | null;
 
     if (dbCache && dbCache.expiresAt > Date.now()) {
-      // Update memory cache and return
       memoryCache = {
-        data: dbCache.data as ModelsDevProvider[],
+        data: dbCache.data,
         timestamp: Date.now(),
       };
-      return dbCache.data as ModelsDevProvider[];
+      return dbCache.data;
     }
   } catch (dbError) {
     console.warn('[fetchModelDirectoryWithDbCache] DB cache lookup failed:', dbError);

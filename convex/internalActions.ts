@@ -12,7 +12,6 @@ import { renderPreviewHtml } from '../lib/markdown-render';
 import { estimateTokenCount } from '../lib/llm/chunking';
 import {
   generateSectionContentStreaming,
-  generateSectionContentRealtime,
   getSectionInstructions,
   generateConstitution,
   generateSectionWithCritique,
@@ -463,30 +462,6 @@ export const generatePhaseWorker = internalAction({
           phaseId,
         );
 
-        const supportsRealtime =
-          currentStep === 0 && llmClient !== null && llmClient.supportsStreaming();
-
-        if (supportsRealtime && llmClient !== null) {
-          const realtime = await generateSectionContentRealtime({
-            projectContext,
-            sectionName: section.name,
-            sectionQuestions,
-            previousSections,
-            model,
-            maxTokens: section.maxTokens,
-            llmClient,
-            phaseId,
-            onDelta: async (delta) => {
-              const deltaTokens = estimateTokenCount(delta);
-              sectionTokens += deltaTokens;
-              bufferedDelta += delta;
-              bufferedTokens += deltaTokens;
-              await flushBuffer(false);
-            },
-          });
-          finalContent = realtime.content;
-          await flushBuffer(true);
-        } else {
           const response = await generateSectionContentStreaming({
           projectContext,
           sectionName: section.name,
@@ -513,9 +488,8 @@ export const generatePhaseWorker = internalAction({
             },
           });
 
-          finalContent = response.content;
-          await flushBuffer(true);
-        }
+        finalContent = response.content;
+        await flushBuffer(true);
       }
 
       // Post-streaming sanitization: the deltas flushed to the DB are raw.

@@ -40,14 +40,14 @@ export const generateProjectZip = action({
       { projectId: args.projectId },
     );
 
-    const entries = artifacts.map((a: any) => ({
+    const entries = artifacts.map((a) => ({
       path: `${sanitizeZipPathSegment(a.phaseId)}/${sanitizeZipPathSegment(a.title)}.md`,
       content: a.content,
     }));
 
     // Generate Agent-Native files
     const artifactMap: Record<string, string> = {};
-    artifacts.forEach((a: any) => {
+    artifacts.forEach((a) => {
       artifactMap[a.phaseId] = a.content;
     });
 

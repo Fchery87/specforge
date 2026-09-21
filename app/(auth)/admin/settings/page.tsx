@@ -126,7 +126,7 @@ export default function SettingsPage() {
 
   // Merge with defaults
   const mergedFlags = DEFAULT_FEATURE_FLAGS.map(defaultFlag => {
-    const existing = featureFlags.find((f: any) => f.key === defaultFlag.key);
+    const existing = featureFlags.find((f) => f.key === defaultFlag.key);
     return existing || defaultFlag;
   });
 
@@ -169,10 +169,10 @@ export default function SettingsPage() {
   };
 
   // Handle config update
-  const handleConfigUpdate = async (key: string, value: string, category: string) => {
+  const handleConfigUpdate = async (key: string, value: string, category: 'rate_limit' | 'security' | 'generation' | 'maintenance') => {
     setSaving(prev => new Set(prev).add(key));
     try {
-      await updateSystemConfig({ key, value, category: category as any });
+      await updateSystemConfig({ key, value, category });
     } catch (err) {
       console.error('Failed to update config:', err);
     } finally {
