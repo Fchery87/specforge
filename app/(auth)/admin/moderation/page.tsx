@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
+import type { Doc } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ import {
 
 export default function ModerationPage() {
   const { isLoaded, isSignedIn } = useAuth();
-  const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
+  const [selectedArtifact, setSelectedArtifact] = useState<Doc<'artifacts'> | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   
   // Get all artifacts for moderation

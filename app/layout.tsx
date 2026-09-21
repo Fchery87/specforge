@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { clerkBaseAppearance } from "@/lib/clerk-theme";
 import { ThemeProvider } from "next-themes";
 import { ConvexClientProvider } from "@/lib/auth";
 import { Toaster } from "sonner";
+import { NoiseOverlay } from "@/components/ui/noise-overlay";
 
 export const metadata: Metadata = {
   title: "SpecForge",
   description: "Idea → Specs → Handoff. Spec-driven project generator.",
 };
-
-import { NoiseOverlay } from "@/components/ui/noise-overlay";
 
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -33,48 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <NoiseOverlay />
         <ClerkProvider
-          appearance={{
-            baseTheme: undefined,
-            variables: {
-              colorBackground: "#18181B",
-              colorText: "#FAFAFA",
-              colorPrimary: "#DFE104",
-              colorTextSecondary: "#A1A1AA",
-              colorInputBackground: "#27272A",
-              colorInputText: "#FAFAFA",
-              colorDanger: "#EF4444",
-              borderRadius: "0px",
-              fontFamily: "'Space Grotesk', sans-serif",
-            },
-            elements: {
-              // UserButton Popover (dropdown)
-              userButtonPopoverCard: "bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.3)] font-grotesk",
-              userButtonPopoverMain: "bg-zinc-900",
-              userButtonPopoverActions: "bg-zinc-900",
-              userButtonPopoverActionButton: "hover:bg-zinc-800 rounded-none transition-colors",
-              userButtonPopoverActionButton__manageAccount: "hover:bg-zinc-800",
-              userButtonPopoverActionButton__signOut: "hover:bg-zinc-800",
-              userButtonPopoverActionButtonText: "text-zinc-100 font-bold uppercase tracking-wide text-sm",
-              userButtonPopoverActionButtonIcon: "text-[#DFE104] w-5 h-5",
-              userButtonPopoverFooter: "hidden",
-              // User preview in dropdown
-              userPreview: "bg-zinc-900",
-              userPreviewMainIdentifier: "text-zinc-100 font-bold uppercase tracking-tight",
-              userPreviewSecondaryIdentifier: "text-zinc-400 text-xs uppercase tracking-wide",
-              userPreviewAvatarBox: "rounded-none border-2 border-[#DFE104]",
-              // Avatar
-              avatarBox: "rounded-none border-2 border-[#DFE104]",
-              // Cards and containers
-              card: "bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_40px_-8px_rgba(223,225,4,0.3)]",
-              // Forms
-              formFieldLabel: "text-zinc-300 font-bold uppercase tracking-wide text-xs",
-              formFieldInput: "border-2 border-zinc-700 rounded-none focus:border-[#DFE104] bg-zinc-800 text-zinc-100",
-              formButtonPrimary: "bg-[#DFE104] text-black font-bold uppercase tracking-wide rounded-none hover:bg-[#DFE104]/90",
-              // Footer
-              footerActionText: "text-zinc-400",
-              footerActionLink: "text-[#DFE104] font-bold uppercase hover:text-[#DFE104]/90",
-            },
-          }}
+          appearance={clerkBaseAppearance}
+          afterSignOutUrl="/"
         >
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             <ConvexClientProvider>

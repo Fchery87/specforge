@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Sparkles, LayoutDashboard, Settings, Shield, Menu } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
+import { clerkUserButtonAppearance } from "@/lib/clerk-theme";
 import { cn } from "@/lib/utils";
 
 const navLinks = (isAdmin: boolean) => [
@@ -90,38 +91,7 @@ function AuthNav({ className }: { className?: string }) {
           Hi, {user.firstName || "Forgemaster"}
         </span>
         <UserButton
-          afterSignOutUrl="/"
-          appearance={{
-            variables: {
-              colorBackground: "#18181B",
-              colorText: "#FAFAFA",
-              colorPrimary: "#DFE104",
-              colorTextSecondary: "#A1A1AA",
-              borderRadius: "0px",
-              fontFamily: "'Space Grotesk', sans-serif",
-            },
-            elements: {
-              // Avatar in header
-              avatarBox: "w-10 h-10 rounded-none border-2 border-[#DFE104]",
-              userButtonAvatarBox: "rounded-none border-2 border-[#DFE104]",
-              // Popover card (dropdown container)
-              userButtonPopoverCard: "!bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.3)]",
-              userButtonPopoverMain: "!bg-zinc-900",
-              userButtonPopoverActions: "!bg-zinc-900 py-2",
-              // User preview section at top of dropdown
-              userPreview: "!bg-zinc-900 p-4 border-b border-zinc-800",
-              userPreviewMainIdentifier: "!text-zinc-100 font-bold uppercase tracking-tight text-base",
-              userPreviewSecondaryIdentifier: "!text-zinc-400 text-xs uppercase tracking-wide",
-              userPreviewAvatarBox: "rounded-none border-2 border-[#DFE104]",
-              // Action buttons
-              userButtonPopoverActionButton: "!bg-zinc-900 hover:!bg-zinc-800 rounded-none transition-colors px-4 py-3",
-              userButtonPopoverActionButton__manageAccount: "hover:!bg-zinc-800",
-              userButtonPopoverActionButton__signOut: "hover:!bg-zinc-800",
-              userButtonPopoverActionButtonText: "!text-zinc-100 font-bold uppercase tracking-wide text-sm",
-              userButtonPopoverActionButtonIcon: "!text-[#DFE104] w-5 h-5",
-              userButtonPopoverFooter: "hidden",
-            },
-          }}
+          appearance={clerkUserButtonAppearance}
         />
       </div>
     );
@@ -221,44 +191,7 @@ function MobileMenu() {
                 Hi, {user.firstName || "Forgemaster"}
               </span>
               <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  variables: {
-                    colorBackground: "#18181B",
-                    colorText: "#FAFAFA",
-                    colorPrimary: "#DFE104",
-                    colorTextSecondary: "#A1A1AA",
-                    borderRadius: "0px",
-                    fontFamily: "'Space Grotesk', sans-serif",
-                  },
-                  elements: {
-                    avatarBox:
-                      "w-9 h-9 rounded-none border-2 border-[#DFE104]",
-                    userButtonAvatarBox: "rounded-none border-2 border-[#DFE104]",
-                    userButtonPopoverCard:
-                      "!bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.3)]",
-                    userButtonPopoverMain: "!bg-zinc-900",
-                    userButtonPopoverActions: "!bg-zinc-900 py-2",
-                    userPreview: "!bg-zinc-900 p-4 border-b border-zinc-800",
-                    userPreviewMainIdentifier:
-                      "!text-zinc-100 font-bold uppercase tracking-tight text-base",
-                    userPreviewSecondaryIdentifier:
-                      "!text-zinc-400 text-xs uppercase tracking-wide",
-                    userPreviewAvatarBox:
-                      "rounded-none border-2 border-[#DFE104]",
-                    userButtonPopoverActionButton:
-                      "!bg-zinc-900 hover:!bg-zinc-800 rounded-none transition-colors px-4 py-3",
-                    userButtonPopoverActionButton__manageAccount:
-                      "hover:!bg-zinc-800",
-                    userButtonPopoverActionButton__signOut:
-                      "hover:!bg-zinc-800",
-                    userButtonPopoverActionButtonText:
-                      "!text-zinc-100 font-bold uppercase tracking-wide text-sm",
-                    userButtonPopoverActionButtonIcon:
-                      "!text-[#DFE104] w-5 h-5",
-                    userButtonPopoverFooter: "hidden",
-                  },
-                }}
+                appearance={clerkUserButtonAppearance}
               />
             </div>
           ) : null}

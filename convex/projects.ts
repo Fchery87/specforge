@@ -1,6 +1,6 @@
 import { mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { canAccessProject } from '../lib/authz';
 import { normalizeProjectInput } from '../lib/project-input';
@@ -236,7 +236,7 @@ export function getNextUpdatedAt(current: number, now: number): number {
 // Exported handler for testing
 export async function deleteProjectHandler(
   ctx: MutationCtx,
-  args: { projectId: any },
+  args: { projectId: Id<'projects'> },
 ) {
   const project = await ctx.db.get(args.projectId);
   if (!project) throw new Error('Project not found');

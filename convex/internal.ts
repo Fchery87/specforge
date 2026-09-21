@@ -723,7 +723,7 @@ export const saveAnswerInternal = internalMutation({
 
     const project = await ctx.db.get(args.projectId);
     const now = Date.now();
-    const updatedQuestions = (phase.questions || []).map((q: any) =>
+    const updatedQuestions = (phase.questions || []).map((q) =>
       q.id === args.questionId
         ? {
             ...q,

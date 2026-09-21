@@ -1,10 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 export async function cancelArtifactStreamingHandler(
   ctx: Pick<MutationCtx, "db" | "auth">,
-  args: { projectId: any; phaseId: string }
+  args: { projectId: Id<"projects">; phaseId: string }
 ): Promise<void> {
   const project = await ctx.db.get(args.projectId);
   if (!project || !("userId" in project)) throw new Error("Not found");
@@ -25,7 +26,7 @@ export async function cancelArtifactStreamingHandler(
 
 export async function getArtifactByPhaseHandler(
   ctx: Pick<QueryCtx, "db" | "auth">,
-  args: { projectId: any; phaseId: string }
+  args: { projectId: Id<"projects">; phaseId: string }
 ) {
   const project = await ctx.db.get(args.projectId);
   if (!project || !("userId" in project)) return null;

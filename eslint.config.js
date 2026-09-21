@@ -31,6 +31,13 @@ export default [
     rules: {
       ...nextPlugin.configs["core-web-vitals"].rules,
       "@next/next/no-page-custom-font": "off",
+      "@typescript-eslint/no-explicit-any": "error",
+    },
+  },
+  {
+    files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ];

@@ -1,6 +1,6 @@
 import { query, mutation } from './_generated/server';
 import type { QueryCtx, MutationCtx } from './_generated/server';
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 
 // Shared auth helper: look up ticket -> project -> verify ownership
@@ -11,11 +11,10 @@ async function authorizeTicketAccess(
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error('Unauthenticated');
 
-  const ticket = await ctx.db.get(ticketId as any);
+  const ticket = await ctx.db.get(ticketId as Id<'tickets'>);
   if (!ticket) throw new Error('Ticket not found');
 
-  // Type assertion: we know this is a ticket based on the ID
-  const typedTicket = ticket as Doc<'tickets'>;
+  const typedTicket = ticket;
   const project = await ctx.db.get(typedTicket.projectId);
   if (!project) throw new Error('Project not found');
 
@@ -36,11 +35,10 @@ async function authorizeProjectAccess(
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error('Unauthenticated');
 
-  const project = await ctx.db.get(projectId as any);
+  const project = await ctx.db.get(projectId as Id<'projects'>);
   if (!project) throw new Error('Project not found');
 
-  // Type assertion: we know this is a project based on the ID
-  const typedProject = project as Doc<'projects'>;
+  const typedProject = project;
   if (typedProject.userId !== identity.subject) {
     throw new Error('Forbidden');
   }
@@ -51,7 +49,7 @@ async function authorizeProjectAccess(
 // Exported handlers for testing
 export async function listByProjectHandler(
   ctx: QueryCtx,
-  args: { projectId: any },
+  args: { projectId: Id<'projects'> },
 ) {
   await authorizeProjectAccess(ctx, args.projectId);
   return await ctx.db
@@ -63,7 +61,7 @@ export async function listByProjectHandler(
 
 export async function listByPhaseHandler(
   ctx: QueryCtx,
-  args: { projectId: any; phaseId: string },
+  args: { projectId: Id<'projects'>; phaseId: string },
 ) {
   await authorizeProjectAccess(ctx, args.projectId);
   return await ctx.db
@@ -77,7 +75,7 @@ export async function listByPhaseHandler(
 
 export async function updateStatusHandler(
   ctx: MutationCtx,
-  args: { ticketId: any; status: 'todo' | 'in_progress' | 'done' },
+  args: { ticketId: Id<'tickets'>; status: 'todo' | 'in_progress' | 'done' },
 ) {
   await authorizeTicketAccess(ctx, args.ticketId);
   await ctx.db.patch(args.ticketId, {
@@ -88,7 +86,7 @@ export async function updateStatusHandler(
 
 export async function deleteTicketHandler(
   ctx: MutationCtx,
-  args: { ticketId: any },
+  args: { ticketId: Id<'tickets'> },
 ) {
   await authorizeTicketAccess(ctx, args.ticketId);
   await ctx.db.delete(args.ticketId);
@@ -96,7 +94,7 @@ export async function deleteTicketHandler(
 
 export async function reorderHandler(
   ctx: MutationCtx,
-  args: { ticketId: any; newOrder: number },
+  args: { ticketId: Id<'tickets'>; newOrder: number },
 ) {
   await authorizeTicketAccess(ctx, args.ticketId);
   await ctx.db.patch(args.ticketId, {
@@ -108,9 +106,9 @@ export async function reorderHandler(
 export async function insertTicketHandler(
   ctx: MutationCtx,
   args: {
-    projectId: any;
+    projectId: Id<'projects'>;
     phaseId: string;
-    artifactId?: any;
+    artifactId?: Id<'artifacts'>;
     title: string;
     description: string;
     acceptanceCriteria: string[];
