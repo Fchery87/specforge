@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { enhancePromptAction } from "@/lib/convex-actions";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Wand2, Loader2, Sparkles, RotateCcw, Check } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -65,10 +66,6 @@ export function PromptEnhanceButton({
   } | null>(null);
   const [originalPrompt, setOriginalPrompt] = useState<string | null>(null);
 
-  // Get the enhance action from Convex
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const apiAny = api as any;
-  const enhancePromptAction = apiAny["actions/enhancePrompt"]?.enhancePrompt;
   const enhanceAction = useAction(enhancePromptAction);
 
   /**

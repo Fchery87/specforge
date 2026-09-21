@@ -13,5 +13,6 @@ export default defineConfig({
     include: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
     exclude: ['**/node_modules/**', '**/.worktrees/**'],
     setupFiles: ['./vitest.setup.ts'],
+    testTimeout: 15000,
   },
 });

@@ -49,7 +49,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 **3. Framer Motion animations:**
 ```tsx
 // ✅ DO: Use motion.tsx utilities
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 // See: components/ui/motion.tsx
 ```
 

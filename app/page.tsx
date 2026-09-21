@@ -17,7 +17,7 @@ import {
   Archive,
   Terminal,
 } from "lucide-react";
-import { motion, useScroll, useTransform, useSpring, useVelocity } from "framer-motion";
+import { motion, useScroll, useTransform, useSpring, useVelocity } from "motion/react";
 import { useRef } from "react";
 
 const features = [
