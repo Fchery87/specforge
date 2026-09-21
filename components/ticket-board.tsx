@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import { parseTicketsFromArtifactAction } from "@/lib/convex-actions";
 import { TicketCard } from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -29,9 +30,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
     phaseId,
   });
   const updateStatus = useMutation(api.tickets.updateStatus);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const parseTicketsAction = (api as any)["actions/parseTickets"]?.parseTicketsFromArtifact as any;
-  const parseTickets = useAction(parseTicketsAction);
+  const parseTickets = useAction(parseTicketsFromArtifactAction);
   const [isParsing, setIsParsing] = useState(false);
 
   async function handleParse() {

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { MODEL_REGISTRY, getModelById, getModelsByProvider } from "@/lib/llm/registry";
+import { listAllModelsAction, addModelAction, deleteModelAction, updateModelAction, listSystemCredentialsAction, setSystemCredentialAction, deleteSystemCredentialAction } from "@/lib/convex-actions";
 import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/providers/zai";
 import { useModelDirectory } from "@/lib/hooks/useModelDirectory";
 import type { ModelDirectoryEntry } from "@/lib/hooks/useModelDirectory";
@@ -75,15 +76,15 @@ const popularProviderIds = ["zai", "anthropic", "github", "openai", "google", "o
 
 export default function LlmModelsPage() {
   // Model management queries/mutations
-  const models = useQuery((api as any).admin?.listAllModels);
-  const addModel = useMutation((api as any).admin?.addModel);
-  const deleteModel = useMutation((api as any).admin?.deleteModel);
-  const updateModel = useMutation((api as any).admin?.updateModel);
+  const models = useQuery(listAllModelsAction);
+  const addModel = useMutation(addModelAction);
+  const deleteModel = useMutation(deleteModelAction);
+  const updateModel = useMutation(updateModelAction);
 
   // System credentials queries/mutations
-  const systemCredentials = useQuery((api as any).admin?.listSystemCredentials);
-  const setSystemCredential = useAction((api as any).systemCredentialActions?.setSystemCredential);
-  const deleteSystemCredential = useAction((api as any).systemCredentialActions?.deleteSystemCredential);
+  const systemCredentials = useQuery(listSystemCredentialsAction);
+  const setSystemCredential = useAction(setSystemCredentialAction);
+  const deleteSystemCredential = useAction(deleteSystemCredentialAction);
 
   // Models.dev integration
   const { providers, models: allModels, getModelById: getModelFromDirectory } = useModelDirectory({ suitableForSpecs: true });
@@ -259,7 +260,7 @@ export default function LlmModelsPage() {
 
   // Credential management functions
   function startEditingCredential(provider: string) {
-    const existing = systemCredentials?.find((c: any) => c.provider === provider);
+    const existing = systemCredentials?.find((c) => c.provider === provider);
     setCredentialForm({
       apiKey: "",
       isEnabled: existing?.isEnabled ?? true,
@@ -303,7 +304,7 @@ export default function LlmModelsPage() {
 
   function getCredentialStatus(provider: string): { hasKey: boolean; isEnabled: boolean } | null {
     if (!systemCredentials) return null;
-    const cred = systemCredentials.find((c: any) => c.provider === provider);
+    const cred = systemCredentials.find((c) => c.provider === provider);
     if (!cred) return null;
     return {
       hasKey: !!cred.apiKey,
@@ -812,7 +813,7 @@ export default function LlmModelsPage() {
                       </div>
                     ) : (
                       searchedModels.map((model) => {
-                        const isAlreadyAdded = models.some((m: any) => m.modelId === model.id);
+                        const isAlreadyAdded = models.some((m) => m.modelId === model.id);
                         
                         return (
                           <Card key={model.id} className="border border-border bg-card">
@@ -932,7 +933,7 @@ export default function LlmModelsPage() {
                     No providers found matching "{credentialSearch}"
                   </div>
                 )}
-                {filteredCredentialProviders.map((provider: any) => {
+                {filteredCredentialProviders.map((provider) => {
                   const credentialStatus = getCredentialStatus(provider.id);
                   const isEditing = editingCredential === provider.id;
 

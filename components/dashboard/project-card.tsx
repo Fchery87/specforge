@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,7 @@ import {
   Loader2,
   Play,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const PHASE_ORDER = ['brief', 'constitution', 'prd', 'domainModel', 'spec', 'userStories', 'handoff'];
@@ -41,7 +42,7 @@ const PHASE_LABELS: Record<string, string> = {
 
 interface ProjectCardProps {
   project: {
-    _id: string;
+    _id: Id<'projects'>;
     title: string;
     description: string;
     status: 'draft' | 'active' | 'complete';
@@ -60,20 +61,6 @@ interface ProjectCardProps {
   isPinned?: boolean;
   onPin?: () => void;
   onUnpin?: () => void;
-}
-
-function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'Just now';
 }
 
 function HealthBadge({ status }: { status: string }) {
@@ -113,11 +100,11 @@ export function ProjectCard({ project, metrics, isPinned, onPin, onUnpin }: Proj
     setIsPinning(true);
     try {
       if (isPinned) {
-        await unpinProject({ projectId: project._id as any });
+        await unpinProject({ projectId: project._id });
         onUnpin?.();
         toast.success('Project unpinned');
       } else {
-        await pinProject({ projectId: project._id as any });
+        await pinProject({ projectId: project._id });
         onPin?.();
         toast.success('Project pinned');
       }

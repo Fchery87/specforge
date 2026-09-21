@@ -1,5 +1,5 @@
 import FastMarquee from "react-fast-marquee";
-import { cn } from "@/lib/markdown";
+import { cn } from "@/lib/utils";
 
 interface MarqueeProps {
   className?: string;

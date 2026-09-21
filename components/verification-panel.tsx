@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { verifyImplementationAction } from "@/lib/convex-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,8 +47,7 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
     status: VerificationStatus;
   } | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const verifyAction = useAction((api as any).actions?.verifyImplementation?.verifyImplementation as any);
+  const verifyAction = useAction(verifyImplementationAction);
 
   async function handleVerify() {
     if (!gitDiff.trim()) {

@@ -9,14 +9,15 @@ vi.mock("convex/react", () => ({
   useQuery: () => null,
 }));
 
-vi.mock("@/convex/_generated/api", () => ({
-  api: {
-    projects: { saveAnswer: "saveAnswer", getGenerationTask: "getGenerationTask" },
-    "actions/generateQuestions": { generateQuestions: "generateQuestions" },
-    "actions/generateQuestionAnswer": { generateQuestionAnswer: "generateQuestionAnswer" },
-    "actions/generateAllQuestionAnswers": { generateAllQuestionAnswers: "generateAllQuestionAnswers" },
-  },
-}));
+vi.mock("@/convex/_generated/api", () => {
+  const handler: ProxyHandler<object> = {
+    get(_target, prop) {
+      if (prop === "then") return undefined;
+      return new Proxy({}, handler);
+    },
+  };
+  return { api: new Proxy({}, handler) };
+});
 
 vi.mock("sonner", () => ({ toast: { message: vi.fn(() => "toast-id"), success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/notifications", () => ({ getToastMessage: () => ({ title: "t", description: "d" }) }));

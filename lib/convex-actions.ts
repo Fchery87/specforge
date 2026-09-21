@@ -1,5 +1,5 @@
 // lib/convex-actions.ts
-// Type-safe action exports to eliminate "as any" casts throughout the app
+// Typed Convex function references shared by client components
 
 import { api } from "@/convex/_generated/api";
 
@@ -34,3 +34,24 @@ export const getCodebaseAction = api.codebase.getCodebase;
 
 // LLM Models
 export const listEnabledModelsAction = api.llmModels.listEnabledModels;
+
+// Artifacts
+export const getArtifactByPhaseAction = api.artifacts.getArtifactByPhase;
+export const getAllProjectArtifactsAction = api.artifacts.getAllProjectArtifacts;
+export const cancelArtifactStreamingAction = api.artifacts.cancelArtifactStreaming;
+
+// Project queries
+export const getGenerationTaskAction = api.projects.getGenerationTask;
+export const saveAnswerAction = api.projects.saveAnswer;
+export const getPhaseAction = api.projects.getPhase;
+
+// Admin
+export const listAllModelsAction = api.admin.listAllModels;
+export const addModelAction = api.admin.addModel;
+export const deleteModelAction = api.admin.deleteModel;
+export const updateModelAction = api.admin.updateModel;
+export const listSystemCredentialsAction = api.admin.listSystemCredentials;
+
+// System Credential Actions
+export const setSystemCredentialAction = api.systemCredentialActions.setSystemCredential;
+export const deleteSystemCredentialAction = api.systemCredentialActions.deleteSystemCredential;

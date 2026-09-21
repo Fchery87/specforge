@@ -24,7 +24,9 @@ import {
   AlertCircle,
   TrendingUp,
   TrendingDown,
-  Layers
+  Layers,
+  FolderOpen,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -271,7 +273,7 @@ export default function HealthMonitorPage() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {PROVIDERS.map((provider) => {
-            const healthData = health.providers.find((p: any) => p.provider === provider.id);
+            const healthData = health.providers.find((p) => p.provider === provider.id);
             const isChecking = checking.has(provider.id);
             
             return (

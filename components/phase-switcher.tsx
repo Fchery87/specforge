@@ -6,17 +6,7 @@ import { ChevronDown, Check, Loader2, Circle, AlertTriangle } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-
-const PHASE_LABELS: Record<string, string> = {
-  constitution: "Constitution",
-  brief: "Brief",
-  prd: "PRD",
-  domainModel: "Domain Model",
-  specs: "Specifications",
-  stories: "User Stories",
-  artifacts: "Artifacts",
-  handoff: "Handoff",
-};
+import { PHASE_LABELS } from "@/lib/phase-config";
 
 function StatusIcon({ status }: { status: string }) {
   switch (status) {

@@ -17,7 +17,7 @@ import {
   RefreshCw,
   AlertCircle
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export default function ActivityMonitorPage() {
@@ -107,22 +107,8 @@ export default function ActivityMonitorPage() {
     });
   };
 
-  // Format relative time
-  const formatRelativeTime = (timestamp: number) => {
-    const now = Date.now();
-    const diff = now - timestamp;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  };
-
   // Group activities by date
-  const groupedActivities = activities.reduce((groups: any, activity: any) => {
+  const groupedActivities = activities.reduce<Record<string, typeof activities>>((groups, activity) => {
     const date = new Date(activity.timestamp).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -139,11 +125,11 @@ export default function ActivityMonitorPage() {
   // Get activity statistics
   const stats = {
     total: activities.length,
-    generating: activities.filter((a: any) => a.type === 'generating').length,
-    complete: activities.filter((a: any) => a.type === 'complete').length,
-    info: activities.filter((a: any) => a.type === 'info').length,
-    inProgress: activities.filter((a: any) => a.taskStatus === 'in_progress').length,
-    failed: activities.filter((a: any) => a.taskStatus === 'failed').length,
+    generating: activities.filter((a) => a.type === 'generating').length,
+    complete: activities.filter((a) => a.type === 'complete').length,
+    info: activities.filter((a) => a.type === 'info').length,
+    inProgress: activities.filter((a) => a.taskStatus === 'in_progress').length,
+    failed: activities.filter((a) => a.taskStatus === 'failed').length,
   };
 
   return (
@@ -260,13 +246,13 @@ export default function ActivityMonitorPage() {
 
         {Object.keys(groupedActivities).length > 0 ? (
           <div className="space-y-8">
-            {Object.entries(groupedActivities).map(([date, dayActivities]: [string, any]) => (
+            {Object.entries(groupedActivities).map(([date, dayActivities]) => (
               <div key={date}>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 sticky top-0 bg-background py-2 z-10">
                   {date}
                 </h3>
                 <div className="space-y-3">
-                  {dayActivities.map((activity: any) => (
+                  {dayActivities.map((activity) => (
                     <Card
                       key={activity.id}
                       variant="default"

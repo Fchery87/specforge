@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
+import type { Id } from '@/convex/_generated/dataModel';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -23,7 +24,7 @@ import {
   Info,
   X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeTime } from '@/lib/utils';
 import Link from 'next/link';
 import type { Route } from 'next';
 import { toast } from 'sonner';
@@ -45,20 +46,6 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   verification_complete: 'text-emerald-500 bg-emerald-500/10',
   system_announcement: 'text-blue-500 bg-blue-500/10',
 };
-
-function formatRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'Just now';
-}
 
 interface Notification {
   _id: string;
@@ -179,9 +166,9 @@ export function NotificationBell() {
 
   const count = unreadCount?.count ?? 0;
 
-  async function handleMarkAsRead(notificationId: string) {
+  async function handleMarkAsRead(notificationId: Id<'notifications'>) {
     try {
-      await markAsRead({ notificationId: notificationId as any });
+      await markAsRead({ notificationId });
     } catch {
       toast.error('Failed to mark notification as read');
     }
@@ -196,9 +183,9 @@ export function NotificationBell() {
     }
   }
 
-  async function handleDelete(notificationId: string) {
+  async function handleDelete(notificationId: Id<'notifications'>) {
     try {
-      await deleteNotification({ notificationId: notificationId as any });
+      await deleteNotification({ notificationId });
       toast.success('Notification deleted');
     } catch {
       toast.error('Failed to delete notification');
@@ -263,8 +250,8 @@ export function NotificationBell() {
                 <NotificationItem
                   key={notification._id}
                   notification={notification}
-                  onMarkAsRead={() => handleMarkAsRead(notification._id)}
-                  onDelete={() => handleDelete(notification._id)}
+                  onMarkAsRead={() => handleMarkAsRead(notification._id as Id<'notifications'>)}
+                  onDelete={() => handleDelete(notification._id as Id<'notifications'>)}
                 />
               ))}
             </div>

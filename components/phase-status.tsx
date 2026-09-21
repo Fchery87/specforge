@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { PROJECT_PHASES } from "@/lib/phase-config";
 
 interface PhaseStatusIndicatorProps {
   phases: Array<{
@@ -14,17 +15,6 @@ interface PhaseStatusIndicatorProps {
   projectId: string;
 }
 
-const PHASE_CONFIG = [
-  { id: "constitution", label: "Constitution", color: "bg-red-500" },
-  { id: "brief", label: "Brief", color: "bg-blue-500" },
-  { id: "prd", label: "PRD", color: "bg-indigo-500" },
-  { id: "domainModel", label: "Domain Model", color: "bg-teal-500" },
-  { id: "specs", label: "Specs & Architecture", color: "bg-purple-500" },
-  { id: "stories", label: "Tasks/Stories", color: "bg-amber-500" },
-  { id: "artifacts", label: "Artifacts", color: "bg-green-500" },
-  { id: "handoff", label: "Handoff + ZIP", color: "bg-pink-500" },
-];
-
 export function PhaseStatusIndicator({ phases, currentPhase, projectId }: PhaseStatusIndicatorProps) {
   const getPhaseStatus = (phaseId: string): string => {
     const phase = phases.find(p => p.phaseId === phaseId);
@@ -32,8 +22,8 @@ export function PhaseStatusIndicator({ phases, currentPhase, projectId }: PhaseS
   };
 
   const isCompleted = (phaseId: string): boolean => {
-    const phaseIndex = PHASE_CONFIG.findIndex(p => p.id === phaseId);
-    const currentIndex = PHASE_CONFIG.findIndex(p => p.id === currentPhase);
+    const phaseIndex = PROJECT_PHASES.findIndex(p => p.id === phaseId);
+    const currentIndex = PROJECT_PHASES.findIndex(p => p.id === currentPhase);
     const status = getPhaseStatus(phaseId);
     return phaseIndex < currentIndex || status === "ready";
   };
@@ -42,7 +32,7 @@ export function PhaseStatusIndicator({ phases, currentPhase, projectId }: PhaseS
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {PHASE_CONFIG.map((phase, idx) => {
+      {PROJECT_PHASES.map((phase, idx) => {
         const status = getPhaseStatus(phase.id);
         const completed = isCompleted(phase.id);
         const current = isCurrent(phase.id);
@@ -107,7 +97,7 @@ export function PhaseStatusIndicator({ phases, currentPhase, projectId }: PhaseS
             </Link>
 
             {/* Connecting Line */}
-            {idx < PHASE_CONFIG.length - 1 && (
+            {idx < PROJECT_PHASES.length - 1 && (
               <div className={cn(
                 "w-4 md:w-8 h-0.5 mx-1",
                 completed ? "bg-success/50" : "bg-border"

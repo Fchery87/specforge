@@ -3,17 +3,18 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { generateQuestionsAction, generateQuestionAnswerAction, generateAllQuestionAnswersAction, getGenerationTaskAction } from "@/lib/convex-actions";
 import { BatchAiModal } from "./batch-ai-modal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
-import { cn } from "@/lib/utils";
 import { getToastMessage } from "@/lib/notifications";
 import { collectBatchAnswers } from "@/lib/batch-answers";
-import { Loader2, Check, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { GenerationControls } from "@/components/generation-controls";
+import { QuestionRow } from "@/components/question-row";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type Question = {
@@ -46,13 +47,9 @@ export function QuestionsPanel({
   isCancelling = false,
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
-  const generateQuestionsAction: any = (api as any)["actions/generateQuestions"]?.generateQuestions;
-  const generateQuestionAnswerAction: any = (api as any)["actions/generateQuestionAnswer"]?.generateQuestionAnswer;
-  const generateAllQuestionAnswersAction: any = (api as any)["actions/generateAllQuestionAnswers"]?.generateAllQuestionAnswers;
   const generateQuestions = useAction(generateQuestionsAction);
   const generateQuestionAnswer = useAction(generateQuestionAnswerAction);
   const generateAllQuestionAnswers = useAction(generateAllQuestionAnswersAction);
-  const getGenerationTaskQuery: any = (api as any)?.projects?.getGenerationTask;
 
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
   const [localAiGenerated, setLocalAiGenerated] = useState<Record<string, boolean>>({});
@@ -73,8 +70,8 @@ export function QuestionsPanel({
   const pendingAiGeneratedRef = useRef<Record<string, boolean>>({});
   const batchAnswers = useMemo(() => collectBatchAnswers(questions), [questions]);
   const batchTask = useQuery(
-    getGenerationTaskQuery,
-    batchTaskId ? { taskId: batchTaskId as any } : "skip"
+    getGenerationTaskAction,
+    batchTaskId ? { taskId: batchTaskId as Id<"generationTasks"> } : "skip"
   );
   const isBatchGenerating =
     isBatchStarting || batchTask?.status === "in_progress";
@@ -132,7 +129,7 @@ export function QuestionsPanel({
   const handleSaveAnswer = useCallback(async (questionId: string, value: string, aiGenerated?: boolean) => {
     setSavingId(questionId);
     try {
-      await saveAnswer({ projectId: projectId as any, phaseId, questionId, answer: value, aiGenerated });
+      await saveAnswer({ projectId: projectId as Id<"projects">, phaseId, questionId, answer: value, aiGenerated });
       setSavedId(questionId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (error) {
@@ -171,7 +168,7 @@ export function QuestionsPanel({
       description: startToast.description,
     });
     try {
-      await generateQuestions({ projectId, phaseId });
+      await generateQuestions({ projectId: projectId as Id<"projects">, phaseId });
       const doneToast = getToastMessage("questions_done");
       toast.success(doneToast.title, {
         id: toastId,
@@ -197,7 +194,7 @@ export function QuestionsPanel({
     });
     try {
       const result = await generateQuestionAnswer({
-        projectId,
+        projectId: projectId as Id<"projects">,
         phaseId,
         questionId,
       });
@@ -260,7 +257,7 @@ export function QuestionsPanel({
 
     try {
       const result = await generateAllQuestionAnswers({
-        projectId,
+        projectId: projectId as Id<"projects">,
         phaseId,
       });
 
@@ -268,9 +265,9 @@ export function QuestionsPanel({
       if (!result?.taskId) {
         throw new Error("Batch generation did not return a task id.");
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to generate batch answers:", error);
-      setErrorMessage(error.message || "Failed to generate answers. Please try again.");
+      setErrorMessage(error instanceof Error ? error.message : "Failed to generate answers. Please try again.");
       const errorToast = getToastMessage("ai_batch_error");
       toast.error(errorToast.title, {
         id: toastId,
@@ -356,110 +353,24 @@ export function QuestionsPanel({
           />
         ) : (
           <div className="space-y-8">
-            {questions.map((question, idx) => {
-              const answer = getAnswerForQuestion(question);
-              const isSaving = savingId === question.id;
-              const isSaved = savedId === question.id;
-              const maxLength = 2000;
-              const charCount = answer.length;
-
-              return (
-                <div key={question.id} className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 border-2 border-border bg-secondary/30 text-sm font-bold">
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                    <div className="flex-1">
-                      <p className={cn("text-base", question.required && "font-medium")}>
-                        {question.text}
-                        {question.required && <span className="text-warning ml-1">*</span>}
-                      </p>
-                      {getAiGeneratedForQuestion(question) && (
-                        <span className="inline-flex items-center text-xs text-muted-foreground mt-1">
-                          <Sparkles className="w-3 h-3 mr-1" /> AI suggested
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="ml-11 space-y-2">
-                    <label htmlFor={`answer-${question.id}`} className="sr-only">
-                      Answer for question {idx + 1}: {question.text}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <Textarea
-                        id={`answer-${question.id}`}
-                        value={answer}
-                        onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                        placeholder="Enter your answer..."
-                        className="min-h-[100px] flex-1"
-                        maxLength={maxLength}
-                        aria-label={`Answer for question ${idx + 1}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAiSuggest(question.id)}
-                        disabled={aiGeneratingId === question.id || isGenerating}
-                        className="self-start"
-                        aria-label={`Get AI suggestion for question ${idx + 1}`}
-                      >
-                        {aiGeneratingId === question.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4" />
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
-                        {isSaving && (
-                          <span className="flex items-center text-muted-foreground">
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Saving...
-                          </span>
-                        )}
-                        {isSaved && (
-                          <span className="flex items-center text-success">
-                            <Check className="w-3 h-3 mr-1" />
-                            Saved
-                          </span>
-                        )}
-                      </div>
-                      <span className={cn(
-                        "text-muted-foreground",
-                        charCount > maxLength * 0.9 && "text-warning"
-                      )}>
-                        {charCount.toLocaleString()}/{maxLength.toLocaleString()}
-                      </span>
-                    </div>
-                    {questionSuggestions[question.id]?.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                          Suggested answers
-                        </span>
-                        <div className="flex flex-col gap-1.5">
-                          {questionSuggestions[question.id].map((suggestion, chipIdx) => (
-                            <button
-                              key={`${suggestion}-${chipIdx}`}
-                              type="button"
-                              onClick={() => handleSuggestionSelect(question.id, suggestion)}
-                              className="inline-flex items-center gap-2 px-3 py-2 text-xs text-left border border-border/60 bg-secondary/30 hover:bg-secondary/60 hover:border-border transition-colors cursor-pointer rounded-sm"
-                            >
-                              <Sparkles className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                              {suggestion}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {questions.map((question, idx) => (
+              <QuestionRow
+                key={question.id}
+                question={question}
+                index={idx}
+                answer={getAnswerForQuestion(question)}
+                isSaving={savingId === question.id}
+                isSaved={savedId === question.id}
+                isAiGenerating={aiGeneratingId === question.id}
+                aiGenerated={getAiGeneratedForQuestion(question)}
+                suggestions={questionSuggestions[question.id] ?? []}
+                isPhaseGenerating={isGenerating}
+                maxLength={2000}
+                onAnswerChange={handleAnswerChange}
+                onAiSuggest={handleAiSuggest}
+                onSuggestionSelect={handleSuggestionSelect}
+              />
+            ))}
           </div>
         )}
 
