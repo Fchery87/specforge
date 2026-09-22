@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { encrypt } from '@/lib/encryption';
 import { getRequiredEncryptionKey } from '@/lib/encryption-key';
 
@@ -9,6 +10,7 @@ export const dynamic = 'force-dynamic';
  * Exchanges the authorization code for an access token and stores it encrypted
  */
 export async function GET(request: NextRequest) {
+  await auth.protect();
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
   const state = searchParams.get('state'); // Contains redirect URL and project info

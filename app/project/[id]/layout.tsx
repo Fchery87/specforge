@@ -1,0 +1,7 @@
+import { auth } from '@clerk/nextjs/server'
+
+export default async function ProjectLayout({ children }: { children: React.ReactNode }) {
+  await auth.protect()
+
+  return <>{children}</>
+}

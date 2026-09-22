@@ -57,7 +57,7 @@ npm run convex
 
 ### Key Files
 - Types: `lib/llm/types.ts`
-- Auth: `middleware.ts` (Clerk)
+- Auth: `proxy.ts` (Clerk), per-section layouts call `auth.protect()`
 - Schema: `convex/schema.ts`
 
 ## Security & Secrets
