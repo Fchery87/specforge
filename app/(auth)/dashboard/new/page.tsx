@@ -101,7 +101,7 @@ export default function NewProjectPage() {
               Start <span className="text-primary">Building</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Give your project a name and describe what you want to create. Be detailed—the more context, the better the output.
+              Provide a project title and initial scope. The more context and constraints you supply, the higher the precision of the generated specifications.
             </p>
           </div>
 
@@ -119,10 +119,10 @@ export default function NewProjectPage() {
                     </span>
                   </div>
                   <CardTitle className="text-xl normal-case tracking-normal font-semibold">
-                    Connect Your Repository
+                    Connect Your Repository (Optional)
                   </CardTitle>
                   <CardDescription>
-                    Link a GitHub repository to enable codebase-aware specification generation. This helps SpecForge understand your existing code structure and patterns.
+                    Link an existing GitHub repository to enable codebase-aware specification generation. SpecForge will ground generated specifications in your current architecture and dependencies.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -136,7 +136,7 @@ export default function NewProjectPage() {
                       onClick={handleSkipRepo}
                       className="text-muted-foreground"
                     >
-                      Skip this step →
+                      Skip and view project →
                     </Button>
                   </div>
                 </CardContent>
@@ -145,10 +145,10 @@ export default function NewProjectPage() {
               <>
                 <CardHeader>
                   <CardTitle className="text-xl normal-case tracking-normal font-semibold">Project Details</CardTitle>
-              <CardDescription>
-                Title (max 100 chars) and description (max 5,000 chars)
-              </CardDescription>
-            </CardHeader>
+                  <CardDescription>
+                    Define your project name and core requirements (max 5,000 characters).
+                  </CardDescription>
+                </CardHeader>
             <CardContent className="space-y-8">
               {/* Title Input - Hero Style */}
               <div className="space-y-3">
@@ -159,11 +159,11 @@ export default function NewProjectPage() {
                   inputSize="hero"
                   value={title}
                   onChange={(e) => setTitle(e.target.value.slice(0, 100))}
-                  placeholder="My Awesome Project"
+                  placeholder="e.g., Real-time Collaborative Canvas"
                   disabled={isCreating}
                 />
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Make it memorable</span>
+                  <span className="text-muted-foreground">Use a clear, descriptive name</span>
                   <span className={titleLeft < 20 ? "text-warning" : "text-muted-foreground"}>
                     {titleLeft} characters left
                   </span>

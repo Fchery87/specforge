@@ -22,7 +22,7 @@ export function SiteFooter() {
           </Link>
           <p className="text-sm text-muted-foreground uppercase tracking-tight leading-relaxed">
             Idea → Specs → Handoff. 
-            High-performance project architecture generation powered by elite AI.
+            Specification engineering for modern engineering teams and autonomous AI agents.
           </p>
         </div>
 

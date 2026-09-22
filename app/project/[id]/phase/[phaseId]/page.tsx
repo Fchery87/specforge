@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
-import { Loader2, Download, Archive, Sparkles, FileText, Layers, Code, Package } from "lucide-react";
+import { Loader2, Download, Archive, Sparkles, FileText, Layers, Code, Package, BookOpen, Target, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 import { PhaseSwitcher } from "@/components/phase-switcher";
@@ -46,13 +46,13 @@ function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
   constitution: { label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
-  brief: { label: "Brief", icon: FileText, description: "Define your project scope and goals" },
-  prd: { label: "PRD", icon: FileText, description: "Product requirements and user needs" },
+  brief: { label: "Brief", icon: BookOpen, description: "Define your project scope and requirements" },
+  prd: { label: "PRD", icon: Target, description: "Formal product requirements and goals" },
   domainModel: { label: "Domain Model", icon: Layers, description: "Entities, rules, and state transitions" },
-  specs: { label: "Specifications", icon: Layers, description: "Technical specifications and architecture" },
-  stories: { label: "User Stories", icon: Code, description: "User stories and task breakdown" },
-  artifacts: { label: "Artifacts", icon: Archive, description: "Supporting technical artifacts and docs" },
-  handoff: { label: "Handoff", icon: Package, description: "Final artifacts and deliverables" },
+  specs: { label: "Specifications", icon: Code, description: "Technical specifications and design" },
+  stories: { label: "User Stories", icon: ClipboardList, description: "User stories and task breakdown" },
+  artifacts: { label: "Artifacts", icon: Sparkles, description: "Generated assets and codebase models" },
+  handoff: { label: "Handoff", icon: Package, description: "Final deliverables and documentation" },
 };
 
 export default function PhasePage() {

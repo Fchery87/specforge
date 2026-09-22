@@ -59,11 +59,10 @@ export default function QuickSpecPage() {
           </span>
         </div>
         <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-          Generate a Spec
+          Generate a Quick Spec
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl">
-          Describe your task and get a focused spec with architecture decisions,
-          implementation steps, and a diagram.
+          Describe a feature, task, or architectural refactor to generate a complete technical specification with architecture decisions, implementation steps, and a Mermaid diagram.
         </p>
       </section>
 
@@ -80,7 +79,7 @@ export default function QuickSpecPage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Add OAuth login with Google"
+                placeholder="e.g., Add OAuth2 authentication with Google and GitHub"
                 className="w-full bg-secondary/30 border border-border px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               />
             </div>
@@ -92,7 +91,7 @@ export default function QuickSpecPage() {
                 id="quick-spec-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what you want to build, any constraints, and the tech stack..."
+                placeholder="Describe the desired behavior, affected components, state changes, security constraints, and error handling..."
                 rows={6}
                 className="w-full bg-secondary/30 border border-border px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
               />
@@ -107,7 +106,7 @@ export default function QuickSpecPage() {
               ) : (
                 <Zap className="w-4 h-4" />
               )}
-              {isGenerating ? "Generating…" : "Generate Spec"}
+              {isGenerating ? "Forging Spec…" : "Generate Spec"}
             </Button>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
@@ -135,7 +134,7 @@ export default function QuickSpecPage() {
               >
                 <CardContent className="text-center text-muted-foreground">
                   <Zap className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Your spec will appear here</p>
+                  <p className="text-sm">Your generated specification and architecture diagram will render here</p>
                 </CardContent>
               </Card>
             )}

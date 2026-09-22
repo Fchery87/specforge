@@ -24,34 +24,34 @@ const features = [
   {
     icon: Layers,
     title: "Recursive Consistency",
-    description: "Constitution → Domain Model → Specs. A rigorous, zero-drift pipeline.",
+    description: "Constitution → Domain Model → Specs. A rigorous, zero-drift pipeline where invariants flow down automatically.",
   },
   {
     icon: Cpu,
     title: "Agent-Native Handoff",
-    description: "SKILL.md and AGENTS.md exports prepared for seamless AI collaboration.",
+    description: "Ready-to-run SKILL.md and AGENTS.md exports prepared for Claude Code, Cursor, Codex, and Aider.",
   },
   {
     icon: Archive,
     title: "Zero Truncation",
-    description: "Mandatory critique loops guarantee comprehensive, un-cut artifact generation.",
+    description: "Multi-pass critique loops and section planning guarantee complete, uncut specification depth.",
   },
   {
     icon: Terminal,
-    title: "Immutable Constraints",
-    description: "State invariants and security protocols locked securely at Phase 0.",
+    title: "Immutable Invariants",
+    description: "System boundaries, state invariants, and security protocols locked securely at Phase 0.",
   },
 ];
 
 const workflowSteps = [
-  { step: "00", title: "Const.", subtitle: "Project Constitution", bg: "bg-background" },
-  { step: "01", title: "Brief", subtitle: "Project Scope", bg: "bg-background" },
-  { step: "02", title: "PRD", subtitle: "Requirements", bg: "bg-background" },
-  { step: "03", title: "Domain", subtitle: "Data Entities", bg: "bg-background" },
-  { step: "04", title: "Specs", subtitle: "Architecture", bg: "bg-background" },
+  { step: "00", title: "Constitution", subtitle: "Invariants & Core Truths", bg: "bg-background" },
+  { step: "01", title: "Brief", subtitle: "Project Scope & Goals", bg: "bg-background" },
+  { step: "02", title: "PRD", subtitle: "Requirements & Users", bg: "bg-background" },
+  { step: "03", title: "Domain", subtitle: "Entities & State Rules", bg: "bg-background" },
+  { step: "04", title: "Specs", subtitle: "Architecture & Design", bg: "bg-background" },
   { step: "05", title: "Stories", subtitle: "Task Breakdown", bg: "bg-background" },
-  { step: "06", title: "Assets", subtitle: "Code Models", bg: "bg-background" },
-  { step: "07", title: "Handoff", subtitle: "Agent ZIP export", bg: "bg-primary text-black" },
+  { step: "06", title: "Artifacts", subtitle: "Code Models & Assets", bg: "bg-background" },
+  { step: "07", title: "Handoff", subtitle: "Agent ZIP Export", bg: "bg-primary text-black" },
 ];
 
 const techStack = [
@@ -109,13 +109,13 @@ export default function HomePage() {
            </motion.h1>
            
           <p className="mt-8 text-xl md:text-3xl text-muted-foreground uppercase tracking-tight max-w-4xl mx-auto px-4">
-            Specification Engineering Aligned. <br />
+            Specification Engineering for AI Agents. <br />
             From Constitution to Agent-Native Handoff.
           </p>
           <div className="mt-12 flex flex-col md:flex-row gap-6 justify-center items-center">
             <Button size="lg" className="text-xl h-20 px-12" asChild>
               <Link href="/dashboard">
-                Initialise Protocol <ArrowRight className="ml-3 w-6 h-6" />
+                Start Building <ArrowRight className="ml-3 w-6 h-6" />
               </Link>
             </Button>
             <Button
@@ -124,7 +124,7 @@ export default function HomePage() {
               className="text-xl h-20 px-12"
               asChild
             >
-              <Link href="#steps">View Architecture</Link>
+              <Link href="#steps">Explore Pipeline</Link>
             </Button>
           </div>
         </motion.div>
@@ -233,10 +233,10 @@ export default function HomePage() {
       {/* Footer CTA */}
       <section className="py-40 px-6 flex flex-col items-center justify-center text-center bg-background">
         <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-8 max-w-5xl">
-          Ready to deploy your ideas?
+          Ready to forge production-ready specs?
         </h2>
         <Button size="lg" className="h-24 px-12 text-2xl" asChild>
-          <Link href="/dashboard">Execute Protocol // Start</Link>
+          <Link href="/dashboard">Launch SpecForge</Link>
         </Button>
       </section>
     </div>

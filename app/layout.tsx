@@ -8,8 +8,8 @@ import { Toaster } from "sonner";
 import { NoiseOverlay } from "@/components/ui/noise-overlay";
 
 export const metadata: Metadata = {
-  title: "SpecForge",
-  description: "Idea → Specs → Handoff. Spec-driven project generator.",
+  title: "SpecForge | Specification Engineering for AI Agents",
+  description: "Transform product requirements into rigorous software specifications, domain models, and agent-native handoff packs for Claude Code, Cursor, and Codex.",
 };
 
 import { SiteHeader } from "@/components/site-header";

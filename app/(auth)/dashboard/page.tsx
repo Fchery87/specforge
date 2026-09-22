@@ -171,7 +171,7 @@ export default function DashboardPage() {
             Your <span className="text-primary">Projects</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl">
-            Create, manage, and forge your ideas into fully-specified, production-ready projects.
+            Create, manage, and forge your requirements into fully-specified, production-ready systems.
           </p>
         </div>
       </section>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
                 </div>
                 <CardTitle>New Project</CardTitle>
                 <CardDescription>
-                  Start from scratch with a fresh project brief
+                  Launch the 8-phase specification pipeline from an initial brief
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 </div>
                 <CardTitle>Quick Spec</CardTitle>
                 <CardDescription>
-                  Generate a focused spec from a single task description
+                  Generate an immediate technical spec and diagram from a single prompt
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
               <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="search"
-                placeholder="Search projects..."
+                placeholder="Search projects by title or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-10 pl-9 pr-4 bg-muted/30 border border-border/50 focus:bg-background transition-colors text-sm"
@@ -339,8 +339,8 @@ export default function DashboardPage() {
             title={searchQuery || statusFilter.length > 0 ? "No Projects Match" : "No Projects Yet"}
             description={
               searchQuery || statusFilter.length > 0
-                ? "Try adjusting your search or filters."
-                : "Create your first project to start generating specs, stories, and artifacts with AI assistance."
+                ? "Try adjusting your search query or status filter."
+                : "Create your first project to begin generating specifications, domain models, and agent handoff files."
             }
           >
             {searchQuery || statusFilter.length > 0 ? (

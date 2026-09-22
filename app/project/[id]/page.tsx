@@ -12,14 +12,14 @@ import { generateAllPhasesAction } from "@/lib/convex-actions";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ProjectPhaseCard } from "@/components/project-phase-card";
-import { Sparkles, Layers, FileText, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
+import { Sparkles, Layers, FileText, BookOpen, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 const PHASES = [
   { id: "constitution", label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
-  { id: "brief", label: "Brief", icon: FileText, description: "Define your project scope and requirements" },
+  { id: "brief", label: "Brief", icon: BookOpen, description: "Define your project scope and requirements" },
   { id: "prd", label: "PRD", icon: Target, description: "Formal product requirements and goals" },
   { id: "domainModel", label: "Domain Model", icon: Layers, description: "Entities, rules, and state transitions" },
   { id: "specs", label: "Spec & Architecture", icon: Code, description: "Technical specifications and design" },
@@ -230,8 +230,8 @@ export default function ProjectPage() {
       <ConfirmDialog
         open={showGenerateAllConfirm}
         onOpenChange={setShowGenerateAllConfirm}
-        title="Generate All Phases"
-        description="This will generate all pending phases using AI. This may take several minutes and consume API credits. Are you sure you want to continue?"
+        title="Generate All Pending Phases"
+        description="This will sequentially queue all remaining un-generated phases for AI generation. Tasks run asynchronously in the background. Are you sure you want to proceed?"
         confirmLabel="Generate All"
         variant="default"
         onConfirm={handleGenerateAll}
