@@ -19,5 +19,24 @@ describe("GenerationControls", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it("shows Resume Generation when canResume is true and calls onResume", async () => {
+    const user = userEvent.setup();
+    const onResume = vi.fn();
+    render(
+      <GenerationControls
+        isGenerating={false}
+        canGenerate={true}
+        canResume={true}
+        onResume={onResume}
+        onGenerate={() => {}}
+      />
+    );
+
+    const resumeBtn = screen.getByRole("button", { name: /resume generation/i });
+    expect(resumeBtn).toBeInTheDocument();
+    await user.click(resumeBtn);
+    expect(onResume).toHaveBeenCalledTimes(1);
+  });
 });
 

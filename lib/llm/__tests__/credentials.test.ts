@@ -119,5 +119,42 @@ describe("resolveCredentials", () => {
     // chutes has no system credential, should fall back to deepseek
     expect(result?.provider).toBe("deepseek");
     expect(result?.apiKey).toBe("system-deepseek-key");
+    expect(result?.source).toBe("system");
+  });
+
+  it("prefers system credentials when useSystem is true even if user apiKey is present", () => {
+    const result = resolveCredentials(
+      {
+        userId: "u",
+        provider: "openai",
+        apiKey: "stale-user-key",
+        defaultModel: "gpt-4o",
+        useSystem: true,
+      },
+      new Map([
+        ["openai", { apiKey: "system-openai-key" }],
+      ])
+    );
+
+    expect(result?.apiKey).toBe("system-openai-key");
+    expect(result?.source).toBe("system");
+  });
+
+  it("returns source 'user' when personal apiKey is used", () => {
+    const result = resolveCredentials(
+      {
+        userId: "u",
+        provider: "openai",
+        apiKey: "user-openai-key",
+        defaultModel: "gpt-4o",
+        useSystem: false,
+      },
+      new Map([
+        ["openai", { apiKey: "system-openai-key" }],
+      ])
+    );
+
+    expect(result?.apiKey).toBe("user-openai-key");
+    expect(result?.source).toBe("user");
   });
 });

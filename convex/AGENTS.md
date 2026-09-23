@@ -115,6 +115,8 @@ await rateLimiter(ctx, { key: userId });
 - **Rate limiter**: `convex/rateLimiter.ts`
 - **Internal queries**: `convex/internal.ts`
 - **Generation action**: `convex/actions/generatePhase.ts`
+- **Questions generation**: `convex/actions/generateQuestions.ts` (10-question cap, recommended answers)
+- **Ticket parsing**: `convex/actions/parseTickets.ts` (Tracer bullets & blocking edges)
 - **Credential management**: `convex/systemCredentials.ts`, `convex/userConfigs.ts`
 - **LLM models config**: `convex/llmModels.ts`
 

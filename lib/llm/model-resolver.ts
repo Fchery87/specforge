@@ -65,11 +65,46 @@ export function resolveCredentials(
   systemCredentials: Map<string, SystemCredential>,
   enabledModels?: Array<{ provider: string; modelId: string }>
 ): ProviderCredentials | null {
+  if (userConfig?.useSystem) {
+    const systemKey = userConfig.systemKeyId ?? userConfig.provider;
+    const systemCred = systemCredentials.get(systemKey);
+    if (systemCred) {
+      return {
+        provider: userConfig.provider,
+        apiKey: systemCred.apiKey,
+        modelId:
+          userConfig.defaultModel ||
+          getFirstEnabledModelForProvider(userConfig.provider, enabledModels),
+        source: 'system',
+        zaiEndpointType: systemCred.zaiEndpointType,
+        zaiIsChina: systemCred.zaiIsChina,
+      };
+    }
+
+    if (systemCredentials.size > 0) {
+      for (const [provider, systemCred] of systemCredentials.entries()) {
+        const modelId = getFirstEnabledModelForProvider(provider, enabledModels);
+
+        return {
+          provider,
+          apiKey: systemCred.apiKey,
+          modelId,
+          source: 'system',
+          zaiEndpointType: systemCred.zaiEndpointType,
+          zaiIsChina: systemCred.zaiIsChina,
+        };
+      }
+    }
+
+    return null;
+  }
+
   if (userConfig?.apiKey) {
     return {
       provider: userConfig.provider,
       apiKey: userConfig.apiKey,
       modelId: userConfig.defaultModel,
+      source: 'user',
       zaiEndpointType: userConfig.zaiEndpointType,
       zaiIsChina: userConfig.zaiIsChina,
     };
@@ -85,6 +120,7 @@ export function resolveCredentials(
         modelId:
           userConfig.defaultModel ||
           getFirstEnabledModelForProvider(userConfig.provider, enabledModels),
+        source: 'system',
         zaiEndpointType: systemCred.zaiEndpointType,
         zaiIsChina: systemCred.zaiIsChina,
       };
@@ -99,6 +135,7 @@ export function resolveCredentials(
         provider,
         apiKey: systemCred.apiKey,
         modelId,
+        source: 'system',
         zaiEndpointType: systemCred.zaiEndpointType,
         zaiIsChina: systemCred.zaiIsChina,
       };

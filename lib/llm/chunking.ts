@@ -25,6 +25,7 @@ export function getSectionPlan(
       return ['executive-summary', 'requirements', 'success-metrics'];
     case 'domainModel':
       return [
+        'domain-glossary',
         'entity-definitions',
         'entity-relationships',
         'state-transitions',
@@ -33,6 +34,8 @@ export function getSectionPlan(
     case 'specs':
       return [
         'architecture-overview',
+        'deep-modules',
+        'test-seams',
         'data-models-and-api',
         'deployment-and-security',
       ];

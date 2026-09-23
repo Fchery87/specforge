@@ -63,6 +63,20 @@
 - [x] Add loading states and progress indicators
 - [x] Build phase status indicators
 
+### Phase Modernization & Artifact Tooling ✅ COMPLETE
+
+- [x] Vertical tracer bullets with blocking edges in tickets (`convex/schema.ts`, `lib/ticket-parser.ts`, `components/ticket-board.tsx`)
+- [x] Deep interfaces and explicit test seams in technical specs (`convex/actions/generatePhase.ts`, `lib/llm/section-plans.ts`)
+- [x] Unambiguous domain model glossary generation (`lib/llm/prompts/domain-model.ts`)
+- [x] Grilling clarification interview capped at 10 questions tops (`convex/actions/generateQuestions.ts`, `components/questions-panel.tsx`)
+- [x] Optional Stress-Test Plan modal for interactive deep-dive grilling (`components/stress-test-modal.tsx`)
+- [x] In-browser markdown artifact editor modal with Split, Edit, Preview, and Schema modes (`components/artifact-editor-modal.tsx`)
+- [x] Live character, word, and token counters with estimated reading time
+- [x] Monaco-style JSON and YAML schema validator with line numbering gutter and diagnostic bar (`components/schema-validator-panel.tsx`)
+- [x] Real-time embedded code block extraction and two-way sync to markdown (`lib/schema/phase-schema-extractor.ts`)
+- [x] Automated quick-fix insertions for test seams, RFC 7807 error envelopes, glossaries, and tracer bullets
+- [x] Super-admin console suite: security, health, analytics, moderation, users, and LLM model directory (`app/(auth)/admin/*`)
+
 ---
 
 ## Project Structure Reference

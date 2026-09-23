@@ -59,6 +59,11 @@ npm run convex
 - Types: `lib/llm/types.ts`
 - Auth: `proxy.ts` (Clerk), per-section layouts call `auth.protect()`
 - Schema: `convex/schema.ts`
+- Schema Extractor & Validator Engine: `lib/schema/phase-schema-extractor.ts`
+- In-Browser Artifact Editor: `components/artifact-editor-modal.tsx`
+- Monaco-Style Schema Validator Panel: `components/schema-validator-panel.tsx`
+- Stress-Test Grilling Modal: `components/stress-test-modal.tsx`
+- Ticket Parser & Tracer Bullet Extractor: `lib/ticket-parser.ts`
 
 ## Security & Secrets
 

@@ -392,3 +392,493 @@ export const generateQuestions = action({
     return { questions };
   },
 });
+
+export interface GrillQuestionItem {
+  text: string;
+  recommendedAnswer?: string;
+  suggestions?: string[];
+}
+
+export const GRILL_FALLBACK_QUESTIONS: Record<string, GrillQuestionItem[]> = {
+  constitution: [
+    {
+      text: 'What strict linting and test coverage thresholds will block pull request CI merge gates?',
+      recommendedAnswer:
+        'Enforce strict TypeScript with zero compiler warnings and 80%+ branch coverage on all domain logic.',
+      suggestions: [
+        'Enforce strict TypeScript with zero warnings and 80%+ branch coverage',
+        'Standard linting with 70% coverage requirement',
+        'Advisory checks only without blocking merges',
+      ],
+    },
+    {
+      text: 'What is the non-negotiable policy on database schema migrations and backward compatibility?',
+      recommendedAnswer:
+        'Mandate expand-and-contract zero-downtime migrations with backward-compatible schema changes.',
+      suggestions: [
+        'Expand-and-contract zero-downtime migrations',
+        'Maintenance window with offline migrations',
+        'Direct automated migrations without rollbacks',
+      ],
+    },
+  ],
+  brief: [
+    {
+      text: 'What primary user failure state or onboarding drop-off risk must this solution prevent?',
+      recommendedAnswer:
+        'Provide a zero-friction guided wizard with instant optimistic feedback and sensible default templates.',
+      suggestions: [
+        'Guided wizard with instant optimistic feedback and sensible defaults',
+        'Comprehensive documentation and tooltip tour',
+        'Interactive sandbox mode for first-time users',
+      ],
+    },
+    {
+      text: 'What external integration failure would immediately jeopardize the primary project objective?',
+      recommendedAnswer:
+        'Design resilient fallback queues and offline caching so core workflows remain available during provider outages.',
+      suggestions: [
+        'Resilient fallback queues and offline caching',
+        'Immediate user notification with graceful error state',
+        'Multi-provider active-active failover',
+      ],
+    },
+  ],
+  prd: [
+    {
+      text: 'What explicit trade-off is accepted between feature delivery velocity and system performance?',
+      recommendedAnswer:
+        'Deliver vertical tracer bullet features with bounded latency budgets (<200ms p95) rather than unconstrained horizontal mocks.',
+      suggestions: [
+        'Vertical tracer bullets with strict p95 < 200ms latency budgets',
+        'Velocity first with performance tuning in hardening sprints',
+        'Horizontal layers with synthetic benchmarks',
+      ],
+    },
+    {
+      text: 'How will user permission boundaries and tenant data isolation be verified across edge cases?',
+      recommendedAnswer:
+        'Row-level access controls enforced in database queries paired with automated cross-tenant security test suites.',
+      suggestions: [
+        'Row-level security in database queries with cross-tenant tests',
+        'Application-level middleware filtering with RBAC matrix',
+        'Physical database-per-tenant isolation',
+      ],
+    },
+  ],
+  domainModel: [
+    {
+      text: 'What domain invariant must never be violated across concurrent multi-entity mutations?',
+      recommendedAnswer:
+        'Enforce transactional consistency boundaries within domain aggregates before emitting domain events.',
+      suggestions: [
+        'Transactional consistency boundaries within domain aggregates',
+        'Eventual consistency with compensating saga transactions',
+        'Database-level triggers and foreign key constraints',
+      ],
+    },
+    {
+      text: 'What is the canonical ubiquitous language term for this primary resource to prevent team synonym drift?',
+      recommendedAnswer:
+        'Establish an unambiguous noun in CONTEXT.md with explicit forbidden conflicting synonyms across code and UI.',
+      suggestions: [
+        'Unambiguous noun in CONTEXT.md with forbidden synonyms',
+        'Flexible synonyms allowed across different submodules',
+        'Standard database table naming conventions only',
+      ],
+    },
+  ],
+  specs: [
+    {
+      text: 'Where are the explicit architectural seams (Feathers) located to isolate side effects during automated testing?',
+      recommendedAnswer:
+        'Abstract all external I/O behind narrow interfaces injected at composition roots to enable pure in-memory test doubles.',
+      suggestions: [
+        'Abstract I/O behind narrow interfaces injected at composition roots',
+        'Integration tests against real containerized test dependencies',
+        'Monolithic end-to-end tests through the web UI',
+      ],
+    },
+    {
+      text: 'How are deep module interfaces (Ousterhout) structured to hide internal complexity and isolate downstream consumers from change?',
+      recommendedAnswer:
+        'Expose minimal declarative methods that handle orchestration internally and encapsulate error states.',
+      suggestions: [
+        'Minimal declarative methods that handle orchestration internally',
+        'Fine-grained shallow methods leaving orchestration to callers',
+        'Shared utility functions across multiple modules',
+      ],
+    },
+  ],
+  stories: [
+    {
+      text: 'Which user story serves as the initial end-to-end vertical tracer bullet across the entire stack?',
+      recommendedAnswer:
+        'Slice the primary happy-path flow through database, API, UI, and automated test seam as Ticket #1.',
+      suggestions: [
+        'Primary happy path through DB, API, UI, and test seam as Ticket #1',
+        'Complete database schema and migrations first',
+        'Complete UI mockup and design system components first',
+      ],
+    },
+    {
+      text: 'What explicit blocking dependencies prevent parallel execution among the implementation tickets?',
+      recommendedAnswer:
+        'Topologically sort tickets so foundation contracts block feature slices, maintaining a visible execution frontier.',
+      suggestions: [
+        'Topological DAG where foundation contracts block feature slices',
+        'Sprint-based milestone grouping without strict blockers',
+        'Developer self-assignment without dependency graphs',
+      ],
+    },
+  ],
+  artifacts: [
+    {
+      text: 'What automated contract testing ensures generated artifacts stay synchronized with runtime schemas?',
+      recommendedAnswer:
+        'Validate OpenAPI and schema exports against live contract test fixtures in the CI pipeline.',
+      suggestions: [
+        'Automated contract tests against OpenAPI/schema exports in CI',
+        'Manual periodic documentation reviews',
+        'Code generation scripts triggered on git pre-commit hooks',
+      ],
+    },
+  ],
+  handoff: [
+    {
+      text: 'What local environment setup step historically causes the most developer onboarding friction?',
+      recommendedAnswer:
+        'Provide a single-command setup script with verified pre-flight dependency checks and seeded mock data.',
+      suggestions: [
+        'Single-command setup script with verified pre-flight checks and seeded mock data',
+        'Comprehensive step-by-step markdown setup guide',
+        'Containerized DevContainer or Docker Compose environment',
+      ],
+    },
+  ],
+};
+
+export function buildGrillRoundPrompt(params: {
+  title: string;
+  description: string;
+  phaseId: string;
+  count: number;
+  upstreamAnswers?: string;
+  priorGrillHistory?: Array<{ question: string; answer: string }>;
+}): string {
+  const phaseCtx = PHASE_CONTEXT[params.phaseId];
+  const phaseDesc = phaseCtx?.description ?? params.phaseId;
+  const sectionsList = phaseCtx?.sections?.join(', ') ?? '';
+
+  const priorHistoryText =
+    params.priorGrillHistory && params.priorGrillHistory.length > 0
+      ? `Prior Grilling Questions & User Answers in this session:\n` +
+        params.priorGrillHistory
+          .map((h, i) => `${i + 1}. Q: ${h.question}\n   A: ${h.answer}`)
+          .join('\n') +
+        '\n\n'
+      : '';
+
+  const upstreamText = params.upstreamAnswers
+    ? `Existing Phase Answers & Decisions:\n${params.upstreamAnswers}\n\n`
+    : '';
+
+  return (
+    `You are an elite Principal Software Architect performing an interactive "Stress-Test Plan" grilling session.\n\n` +
+    `Project: ${params.title}\n` +
+    `Description: ${params.description}\n` +
+    `Target Phase: ${params.phaseId} (${phaseDesc})\n` +
+    (sectionsList ? `Sections in this phase: ${sectionsList}\n\n` : '\n') +
+    upstreamText +
+    priorHistoryText +
+    `GOAL:\n` +
+    `Ask exactly ${params.count} challenging, architectural questions that pressure-test assumptions, failure modes, data invariants, and ambiguous boundaries for this phase.\n` +
+    `Do NOT ask generic or repetitive questions. Build on prior answers if any exist.\n\n` +
+    `CRITICAL REQUIREMENT:\n` +
+    `For EVERY question, you MUST provide a concrete, opinionated "recommendedAnswer" adhering to 2026 production-grade standards (e.g., deep interfaces, explicit test seams, idempotent mutations, tracer bullets, exponential backoff, ubiquitous language) so the user can accept it with one click.\n` +
+    `Also provide 2-3 selectable alternative suggestions.\n\n` +
+    `Return JSON ONLY in this format:\n` +
+    `{"questions": [{"text": "...", "recommendedAnswer": "...", "suggestions": ["Option A", "Option B", "Option C"]}]}`
+  );
+}
+
+export function parseGrillQuestionsResponse(raw: string): GrillQuestionItem[] {
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((item) => item && typeof item === 'object' && typeof item.text === 'string')
+        .map((item) => ({
+          text: item.text,
+          recommendedAnswer: typeof item.recommendedAnswer === 'string' ? item.recommendedAnswer : undefined,
+          suggestions: Array.isArray(item.suggestions)
+            ? item.suggestions.filter((s: unknown): s is string => typeof s === 'string')
+            : undefined,
+        }));
+    }
+    if (parsed && Array.isArray(parsed.questions)) {
+      return parsed.questions
+        .filter((item: unknown) => item && typeof item === 'object' && typeof (item as { text: unknown }).text === 'string')
+        .map((item: { text: string; recommendedAnswer?: unknown; suggestions?: unknown }) => ({
+          text: item.text,
+          recommendedAnswer: typeof item.recommendedAnswer === 'string' ? item.recommendedAnswer : undefined,
+          suggestions: Array.isArray(item.suggestions)
+            ? item.suggestions.filter((s: unknown): s is string => typeof s === 'string')
+            : undefined,
+        }));
+    }
+  } catch {
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      try {
+        const parsed = JSON.parse(raw.slice(start, end + 1));
+        if (parsed && Array.isArray(parsed.questions)) {
+          return parsed.questions
+            .filter((item: unknown) => item && typeof item === 'object' && typeof (item as { text: unknown }).text === 'string')
+            .map((item: { text: string; recommendedAnswer?: unknown; suggestions?: unknown }) => ({
+              text: item.text,
+              recommendedAnswer: typeof item.recommendedAnswer === 'string' ? item.recommendedAnswer : undefined,
+              suggestions: Array.isArray(item.suggestions)
+                ? item.suggestions.filter((s: unknown): s is string => typeof s === 'string')
+                : undefined,
+            }));
+        }
+      } catch {
+        return [];
+      }
+    }
+  }
+  return [];
+}
+
+export function normalizeGrillQuestions(
+  questions: GrillQuestionItem[],
+  fallback: GrillQuestionItem[],
+  count: number,
+): GrillQuestionItem[] {
+  const valid = questions.filter((q) => q.text?.trim().length > 0);
+  if (valid.length >= count) {
+    return valid.slice(0, count);
+  }
+  const merged = [...valid];
+  for (const item of fallback) {
+    if (merged.length >= count) break;
+    if (!merged.some((m) => m.text.toLowerCase() === item.text.toLowerCase())) {
+      merged.push(item);
+    }
+  }
+  return merged.slice(0, count);
+}
+
+export interface GeneratedGrillQuestion {
+  id: string;
+  text: string;
+  answer?: string;
+  recommendedAnswer?: string;
+  suggestions?: string[];
+  grillRound: number;
+  aiGenerated: boolean;
+  required: boolean;
+}
+
+export interface GenerateGrillRoundResult {
+  questions: GeneratedGrillQuestion[];
+  currentRound: number;
+  totalQuestionsAsked: number;
+  reachedLimit: boolean;
+}
+
+export const generateGrillRound = action({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+  },
+  handler: async (
+    ctx: ActionCtx,
+    args,
+  ): Promise<GenerateGrillRoundResult> => {
+    const project = await ctx.runQuery(
+      internalApi.internal.getProjectInternal,
+      {
+        projectId: args.projectId,
+      },
+    );
+    if (!project) throw new Error('Project not found');
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || project.userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
+    const userId = identity.tokenIdentifier;
+    await rateLimiter.limit(ctx, 'generateQuestions', {
+      key: userId,
+      throws: true,
+    });
+
+    const phase = (await ctx.runQuery(
+      internalApi.internal.getPhaseInternal,
+      {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+      },
+    )) as (Doc<'phases'> & { artifacts?: unknown[] }) | null;
+
+    const grillSession = phase?.grillSession;
+    const currentCount = grillSession?.totalQuestionsAsked ?? 0;
+    const currentRound = (grillSession?.currentRound ?? 0) + 1;
+    const remaining = 10 - currentCount;
+
+    if (remaining <= 0) {
+      return {
+        questions: [],
+        currentRound: grillSession?.currentRound ?? 1,
+        totalQuestionsAsked: currentCount,
+        reachedLimit: true,
+      };
+    }
+
+    const countToAsk = Math.min(remaining, 3);
+    const fallbackList =
+      GRILL_FALLBACK_QUESTIONS[args.phaseId] ||
+      GRILL_FALLBACK_QUESTIONS['specs'] ||
+      [];
+
+    let rawAiQuestions: GrillQuestionItem[] = [];
+    let credentials: ReturnType<typeof resolveCredentials> = null;
+
+    try {
+      const userConfig = await ctx.runAction(
+        internalApi.userConfigActions.getUserConfigInternal,
+        {},
+      );
+
+      let systemCredentialsMap: Record<string, SystemCredential>;
+      try {
+        systemCredentialsMap = await ctx.runAction(
+          internalApi.internalActions.getAllDecryptedSystemCredentials,
+          {},
+        );
+      } catch {
+        systemCredentialsMap = {};
+      }
+
+      const enabledModelsFromDb = await ctx.runQuery(
+        internalApi.llmModels.listEnabledModelsInternal,
+      );
+      const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
+
+      credentials = resolveCredentials(
+        userConfig,
+        new Map(Object.entries(systemCredentialsMap || {})),
+        enabledModels,
+      );
+
+      const model = resolveModelForCredentials(
+        credentials,
+        enabledModelsFromDb || [],
+        enabledModels,
+      );
+
+      let providerApiEndpoint: string | null = null;
+      const providerId = credentials?.provider;
+      if (providerId) {
+        try {
+          const providers = await fetchModelDirectory();
+          const provider = providers.find((p) => p.id === providerId);
+          providerApiEndpoint = provider?.api || null;
+        } catch (err) {
+          console.warn(
+            `[generateGrillRound] Failed to fetch provider API endpoint: ${err}`,
+          );
+        }
+      }
+
+      const llmClient = createLlmClient(credentials, providerApiEndpoint);
+      if (llmClient) {
+        const upstreamAnswers = (phase?.questions || [])
+          .filter((q: { answer?: string }) => q.answer?.trim())
+          .map((q: { text: string; answer?: string }) => `Q: ${q.text}\nA: ${q.answer}`)
+          .join('\n\n');
+
+        const priorGrillHistory = grillSession?.rounds
+          ? grillSession.rounds
+              .flatMap((r) => r.questions)
+              .map((q) => ({
+                question: q.text,
+                answer: q.userAnswer || q.recommendedAnswer,
+              }))
+          : [];
+
+        const prompt = buildGrillRoundPrompt({
+          title: project.title,
+          description: project.description,
+          phaseId: args.phaseId,
+          count: countToAsk,
+          upstreamAnswers: upstreamAnswers || undefined,
+          priorGrillHistory,
+        });
+
+        const startedAt = Date.now();
+        const response = await retryWithBackoff(
+          () =>
+            llmClient.complete(prompt, {
+              model: model.id,
+              maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+              temperature: 0.3,
+            }),
+          { retries: 2, minDelayMs: 500, maxDelayMs: 3000 },
+        );
+        const durationMs = Date.now() - startedAt;
+
+        logTelemetry('info', {
+          provider: credentials?.provider ?? model.provider,
+          model: model.id,
+          durationMs,
+          success: true,
+          tokens: {
+            prompt: response.usage.promptTokens,
+            completion: response.usage.completionTokens,
+            total: response.usage.totalTokens,
+          },
+        });
+
+        rawAiQuestions = parseGrillQuestionsResponse(response.content);
+      }
+    } catch (err) {
+      console.error('[generateGrillRound] AI grilling round generation failed:', err);
+      logTelemetry('warn', {
+        provider: credentials?.provider ?? 'unknown',
+        model: 'unknown',
+        success: false,
+        error: `generateGrillRound failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      rawAiQuestions = [];
+    }
+
+    const normalized = normalizeGrillQuestions(
+      rawAiQuestions,
+      fallbackList,
+      countToAsk,
+    );
+
+    const questions = normalized.map((q, idx) => ({
+      id: `${args.phaseId}-grill-r${currentRound}-q${idx + 1}`,
+      text: q.text,
+      answer: undefined as string | undefined,
+      recommendedAnswer: q.recommendedAnswer,
+      suggestions: q.suggestions,
+      grillRound: currentRound,
+      aiGenerated: true,
+      required: false,
+    }));
+
+    return {
+      questions,
+      currentRound,
+      totalQuestionsAsked: currentCount,
+      reachedLimit: currentCount + questions.length >= 10,
+    };
+  },
+});

@@ -5,8 +5,10 @@ import { api } from "@/convex/_generated/api";
 
 // Actions
 export const generatePhaseAction = api.actions.generatePhase.generatePhase;
+export const resumePhaseAction = api.actions.generatePhase.resumePhase;
 export const generateAllPhasesAction = api.actions.generateAllPhases.generateAllPhases;
 export const generateQuestionsAction = api.actions.generateQuestions.generateQuestions;
+export const generateGrillRoundAction = api.actions.generateQuestions.generateGrillRound;
 export const generateAllQuestionAnswersAction = api.actions.generateAllQuestionAnswers.generateAllQuestionAnswers;
 export const generateSectionPlanAction = api.actions.generateSectionPlan.generateSectionPlan;
 export const generateQuestionAnswerAction = api.actions.generateQuestionAnswer.generateQuestionAnswer;
@@ -24,6 +26,8 @@ export const getProjectAction = api.projects.getProject;
 export const getProjectsAction = api.projects.getProjects;
 export const getProjectPhasesAction = api.projects.getProjectPhases;
 export const toggleSkipPhaseAction = api.projects.toggleSkipPhase;
+export const saveGrillAnswersAction = api.projects.saveGrillAnswers;
+export const resetGrillSessionAction = api.projects.resetGrillSession;
 
 // Constitution Templates
 export const listTemplatesAction = api.constitutionTemplates.listTemplates;
@@ -39,6 +43,7 @@ export const listEnabledModelsAction = api.llmModels.listEnabledModels;
 export const getArtifactByPhaseAction = api.artifacts.getArtifactByPhase;
 export const getAllProjectArtifactsAction = api.artifacts.getAllProjectArtifacts;
 export const cancelArtifactStreamingAction = api.artifacts.cancelArtifactStreaming;
+export const updateArtifactAction = api.artifacts.updateArtifact;
 
 // Project queries
 export const getGenerationTaskAction = api.projects.getGenerationTask;

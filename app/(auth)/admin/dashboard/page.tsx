@@ -424,41 +424,21 @@ export default function AdminDashboardPage() {
             </Card>
           </Link>
 
-          {/* LLM Models */}
-          <Link href="/admin/llm-models" className="block">
+          {/* LLM Models & System Credentials */}
+          <Link href={"/admin/llm-models" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
                 <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
                   <Sparkles className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
                 </div>
-                <CardTitle>LLM Models</CardTitle>
+                <CardTitle>LLM Models & Credentials</CardTitle>
                 <CardDescription>
-                  Configure available models, token limits, and provider settings
+                  Configure active models, token limits, and system-wide API keys
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Manage Models <ArrowRight className="w-4 h-4 ml-2" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* System Credentials */}
-          <Link href="/admin/llm-models" className="block">
-            <Card variant="interactive" className="h-full group">
-              <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Key className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
-                </div>
-                <CardTitle>System Credentials</CardTitle>
-                <CardDescription>
-                  Configure API keys for system-wide LLM access
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Configure Keys <ArrowRight className="w-4 h-4 ml-2" />
+                  Manage AI Infrastructure <ArrowRight className="w-4 h-4 ml-2" />
                 </div>
               </CardContent>
             </Card>

@@ -93,14 +93,6 @@ export default function ModerationPage() {
         <div className="absolute inset-0 bg-grid-fade opacity-20" />
         <div className="page-container relative z-10">
           <div className="flex items-center gap-3 mb-4">
-            <Link href="/admin/dashboard">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-          <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-primary flex items-center justify-center">
               <Flag className="w-5 h-5 text-black" />
             </div>

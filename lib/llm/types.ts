@@ -88,6 +88,7 @@ export interface ProviderCredentials {
   provider: string;
   apiKey: string;
   modelId: string;
+  source?: 'user' | 'system';
   zaiEndpointType?: 'paid' | 'coding';
   zaiIsChina?: boolean;
 }

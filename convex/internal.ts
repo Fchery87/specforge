@@ -266,6 +266,30 @@ export const updatePhaseQuestionsInternal = internalMutation({
         aiGenerated: v.boolean(),
         required: v.optional(v.boolean()),
         suggestions: v.optional(v.array(v.string())),
+        selectedSuggestionIndex: v.optional(v.number()),
+      }),
+    ),
+    grillSession: v.optional(
+      v.object({
+        totalQuestionsAsked: v.number(),
+        currentRound: v.number(),
+        isComplete: v.boolean(),
+        rounds: v.array(
+          v.object({
+            roundNumber: v.number(),
+            questions: v.array(
+              v.object({
+                id: v.string(),
+                text: v.string(),
+                recommendedAnswer: v.string(),
+                options: v.optional(v.array(v.string())),
+                category: v.optional(v.string()),
+                userAnswer: v.optional(v.string()),
+                acceptedRecommendation: v.optional(v.boolean()),
+              }),
+            ),
+          }),
+        ),
       }),
     ),
   },
@@ -278,15 +302,21 @@ export const updatePhaseQuestionsInternal = internalMutation({
 
     const project = await ctx.db.get(args.projectId);
     const now = Date.now();
+    const patchData: Record<string, unknown> = { questions: args.questions };
+    if (args.grillSession !== undefined) {
+      patchData.grillSession = args.grillSession;
+    }
+
     if (!phase) {
       await ctx.db.insert('phases', {
         projectId: args.projectId,
         phaseId: args.phaseId,
         status: 'ready',
         questions: args.questions,
+        grillSession: args.grillSession,
       });
     } else {
-      await ctx.db.patch(phase._id, { questions: args.questions });
+      await ctx.db.patch(phase._id, patchData);
     }
 
     if (project) {
@@ -1162,11 +1192,33 @@ export const createTicketInternal = internalMutation({
     ),
     estimatedEffort: v.optional(v.string()),
     order: v.number(),
+    sliceType: v.optional(
+      v.union(v.literal('tracer_bullet'), v.literal('wide_refactor')),
+    ),
+    blockedByTitles: v.optional(v.array(v.string())),
+    filesToTouch: v.optional(v.array(v.string())),
+    dependencies: v.optional(v.array(v.id('tickets'))),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert('tickets', {
       ...args,
       createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+/**
+ * Updates dependency references for an existing ticket.
+ */
+export const updateTicketDependenciesInternal = internalMutation({
+  args: {
+    ticketId: v.id('tickets'),
+    dependencies: v.array(v.id('tickets')),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.ticketId, {
+      dependencies: args.dependencies,
       updatedAt: Date.now(),
     });
   },

@@ -25,6 +25,7 @@ import {
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
 import { deserializeQAPairs, type QAPair } from '../lib/llm/qa-serializer';
+import { PHASE_DEPENDENCIES } from '../lib/specification/dependency-graph';
 
 /**
  * Heuristic to detect reasoning/thinking models by model ID.
@@ -206,6 +207,40 @@ function isSectionPlan(item: {
   return 'name' in item && 'maxTokens' in item;
 }
 
+/**
+ * Collects upstream phase specification artifacts to ground downstream generation.
+ * Capped per artifact to maintain rich context without exceeding token limits.
+ */
+async function fetchUpstreamArtifactsContext(
+  ctx: ActionCtx,
+  projectId: Id<'projects'>,
+  phaseId: string,
+): Promise<string> {
+  const deps = PHASE_DEPENDENCIES[phaseId] || [];
+  if (deps.length === 0) return '';
+
+  const parts: string[] = [];
+  for (const depPhaseId of deps) {
+    if (depPhaseId === 'constitution') {
+      // Handled explicitly via constitution injection
+      continue;
+    }
+    const artifact = await ctx.runQuery(
+      internal.internal.getArtifactByPhaseInternal,
+      { projectId, phaseId: depPhaseId },
+    );
+    if (artifact?.content) {
+      const title = artifact.title || depPhaseId.toUpperCase();
+      const content =
+        artifact.content.length > 6000
+          ? `${artifact.content.slice(0, 5800)}\n\n[... remaining ${depPhaseId} content omitted for brevity ...]`
+          : artifact.content;
+      parts.push(`### Upstream Specification: ${title} (${depPhaseId})\n${content}`);
+    }
+  }
+  return parts.join('\n\n');
+}
+
 export const generatePhaseWorker = internalAction({
   args: { taskId: v.id('generationTasks') },
   handler: async (ctx, args) => {
@@ -382,14 +417,22 @@ export const generatePhaseWorker = internalAction({
           { projectId, phaseId },
         );
         if (artifact?.content) {
-          // Use the last 3000 chars of previous content as a summary
           const prevContent = artifact.content;
-          const truncated = prevContent.length > 3000
-            ? prevContent.slice(-3000)
-            : prevContent;
-          previousSections = [{ name: 'previous-content', content: truncated }];
+          const boundedContent =
+            prevContent.length > 15000
+              ? prevContent.slice(-15000)
+              : prevContent;
+          previousSections = [{ name: 'previous-sections-content', content: boundedContent }];
         }
       }
+
+      // Fetch constitution and upstream phase specifications
+      const constitution = await fetchConstitutionForProject(ctx, projectId);
+      const upstreamContext = await fetchUpstreamArtifactsContext(
+        ctx,
+        projectId,
+        phaseId,
+      );
 
       // Check if critique is enabled for this phase
       const critiqueEnabled =
@@ -402,9 +445,6 @@ export const generatePhaseWorker = internalAction({
         | undefined;
 
       if (critiqueEnabled) {
-        // Fetch constitution for critique
-        const constitution = await fetchConstitutionForProject(ctx, projectId);
-
         // Extract relevant questions for this section from project context
         const sectionQuestions = extractRelevantQuestionsForSection(
           projectContext.questions,
@@ -428,6 +468,7 @@ export const generatePhaseWorker = internalAction({
           providerInfo: `Worker step ${currentStep + 1}`,
           phaseId,
           constitution,
+          upstreamContext,
         });
 
         finalContent = critiqueResult.content;
@@ -470,12 +511,15 @@ export const generatePhaseWorker = internalAction({
           const realtime = await generateSectionContentRealtime({
             projectContext,
             sectionName: section.name,
+            sectionInstructions,
             sectionQuestions,
             previousSections,
             model,
             maxTokens: section.maxTokens,
             llmClient,
             phaseId,
+            constitution,
+            upstreamContext,
             onDelta: async (delta) => {
               const deltaTokens = estimateTokenCount(delta);
               sectionTokens += deltaTokens;
@@ -488,22 +532,24 @@ export const generatePhaseWorker = internalAction({
           await flushBuffer(true);
         } else {
           const response = await generateSectionContentStreaming({
-          projectContext,
-          sectionName: section.name,
-          sectionInstructions,
-          sectionQuestions,
-          previousSections,
-          model,
-          maxTokens: section.maxTokens,
-          // Reasoning models (QwQ, R1, GLM, etc.) need more tokens per turn
-          // so they can finish thinking AND produce actual content.
-          // 300 tokens is fine for non-reasoning models but catastrophically
-          // small for reasoning models — they exhaust it all on thinking.
-          chunkMaxTokens: isReasoningModel(model.id) ? 2000 : 300,
-          maxTurns: 16,
-          llmClient,
-          providerInfo: `Worker step ${currentStep + 1}`,
-          phaseId,
+            projectContext,
+            sectionName: section.name,
+            sectionInstructions,
+            sectionQuestions,
+            previousSections,
+            model,
+            maxTokens: section.maxTokens,
+            // Reasoning models (QwQ, R1, GLM, etc.) need more tokens per turn
+            // so they can finish thinking AND produce actual content.
+            // 300 tokens is fine for non-reasoning models but catastrophically
+            // small for reasoning models — they exhaust it all on thinking.
+            chunkMaxTokens: isReasoningModel(model.id) ? 2000 : 300,
+            maxTurns: 16,
+            llmClient,
+            providerInfo: `Worker step ${currentStep + 1}`,
+            phaseId,
+            constitution,
+            upstreamContext,
             onChunk: async (delta) => {
               const deltaTokens = estimateTokenCount(delta);
               sectionTokens += deltaTokens;

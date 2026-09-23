@@ -210,6 +210,206 @@ export const saveAnswer = mutation({
   },
 });
 
+export function mergeGrillAnswersIntoQuestions<
+  T extends {
+    id: string;
+    text: string;
+    answer?: string;
+    aiGenerated: boolean;
+    required?: boolean;
+    suggestions?: string[];
+    selectedSuggestionIndex?: number;
+  },
+>(
+  currentQuestions: T[],
+  answers: Array<{
+    questionId: string;
+    questionText: string;
+    answer: string;
+    options?: string[];
+  }>,
+): T[] {
+  const questionMap = new Map(currentQuestions.map((q) => [q.id, { ...q }]));
+
+  for (const item of answers) {
+    const existing = questionMap.get(item.questionId);
+    if (existing) {
+      existing.answer = item.answer;
+      existing.aiGenerated = false;
+    } else {
+      questionMap.set(item.questionId, {
+        id: item.questionId,
+        text: item.questionText,
+        answer: item.answer,
+        aiGenerated: false,
+        required: false,
+        suggestions: item.options,
+      } as T);
+    }
+  }
+
+  return Array.from(questionMap.values());
+}
+
+export function computeUpdatedGrillSession(
+  existingSession:
+    | {
+        totalQuestionsAsked: number;
+        currentRound: number;
+        isComplete: boolean;
+        rounds: Array<{
+          roundNumber: number;
+          questions: Array<{
+            id: string;
+            text: string;
+            recommendedAnswer: string;
+            options?: string[];
+            category?: string;
+            userAnswer?: string;
+            acceptedRecommendation?: boolean;
+          }>;
+        }>;
+      }
+    | undefined,
+  answers: Array<{
+    questionId: string;
+    questionText: string;
+    answer: string;
+    recommendedAnswer: string;
+    acceptedRecommendation?: boolean;
+    options?: string[];
+    category?: string;
+    round: number;
+  }>,
+) {
+  const session = existingSession || {
+    totalQuestionsAsked: 0,
+    currentRound: 0,
+    isComplete: false,
+    rounds: [],
+  };
+
+  const roundNum = answers.length > 0 ? answers[0].round : session.currentRound + 1;
+  const newRound = {
+    roundNumber: roundNum,
+    questions: answers.map((a) => ({
+      id: a.questionId,
+      text: a.questionText,
+      recommendedAnswer: a.recommendedAnswer,
+      options: a.options,
+      category: a.category,
+      userAnswer: a.answer,
+      acceptedRecommendation: a.acceptedRecommendation,
+    })),
+  };
+
+  const updatedRounds = [
+    ...session.rounds.filter((r) => r.roundNumber !== roundNum),
+    newRound,
+  ];
+  const totalAsked = updatedRounds.reduce((acc, r) => acc + r.questions.length, 0);
+
+  return {
+    totalQuestionsAsked: totalAsked,
+    currentRound: Math.max(session.currentRound, roundNum),
+    isComplete: totalAsked >= 10,
+    rounds: updatedRounds,
+  };
+}
+
+export const saveGrillAnswers = mutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    answers: v.array(
+      v.object({
+        questionId: v.string(),
+        questionText: v.string(),
+        answer: v.string(),
+        recommendedAnswer: v.string(),
+        acceptedRecommendation: v.optional(v.boolean()),
+        options: v.optional(v.array(v.string())),
+        category: v.optional(v.string()),
+        round: v.number(),
+      }),
+    ),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new Error('Project not found');
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || (project as Doc<'projects'>).userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) throw new Error('Phase not found');
+
+    const updatedQuestions = mergeGrillAnswersIntoQuestions(
+      phase.questions || [],
+      args.answers,
+    );
+
+    const updatedSession = computeUpdatedGrillSession(
+      phase.grillSession,
+      args.answers,
+    );
+
+    const now = Date.now();
+    await ctx.db.patch(phase._id, {
+      questions: updatedQuestions,
+      grillSession: updatedSession,
+    });
+
+    await ctx.db.patch(args.projectId, {
+      updatedAt: getNextUpdatedAt(project.updatedAt, now),
+    });
+
+    return updatedSession;
+  },
+});
+
+export const resetGrillSession = mutation({
+  args: {
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new Error('Project not found');
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || (project as Doc<'projects'>).userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
+    const phase = await ctx.db
+      .query('phases')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
+      .first();
+
+    if (!phase) throw new Error('Phase not found');
+
+    const nonGrillQuestions = (phase.questions || []).filter(
+      (q) => !q.id.includes('-grill-'),
+    );
+
+    await ctx.db.patch(phase._id, {
+      questions: nonGrillQuestions,
+      grillSession: undefined,
+    });
+
+    await ctx.db.patch(args.projectId, {
+      updatedAt: getNextUpdatedAt(project.updatedAt, Date.now()),
+    });
+  },
+});
+
 export function applyAnswerUpdate<
   T extends { id: string; aiGenerated?: boolean; answer?: string },
 >(

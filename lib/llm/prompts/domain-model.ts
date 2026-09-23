@@ -14,25 +14,32 @@ This document bridges the PRD and Technical Specs by defining the core entities,
 
 Based on the Project Context and the previously generated Project Constitution and PRD:
 
-### 1. Entity Definitions
+### 1. Ubiquitous Language & Domain Glossary (CONTEXT.md style)
+Define the canonical glossary for this domain to eliminate all ambiguity across specifications:
+- **Canonical Term:** The exact name of the concept.
+- **Definition:** Clear, unambiguous definition of what this term means.
+- **Synonyms to Avoid:** Overloaded or confusing terms that must NEVER be used interchangeably (e.g., "Do NOT use 'Account' or 'Client' when referring to 'User'").
+- **Boundary Rules:** Specific rules governing where this concept begins and ends.
+
+### 2. Entity Definitions
 Identify and define the core domain entities (e.g., User, Order, Transaction). For each:
 - **Name:** Singular, PascalCase.
 - **Purpose:** 1-2 sentences on its role.
 - **Attributes:** Key data fields with logical types.
 - **Invariants:** Rules that must always be true for this entity to be valid.
 
-### 2. Entity-Relationship Model
+### 3. Entity-Relationship Model
 Describe how these entities relate to each other.
 - Use explicit cardinality (1:1, 1:N, M:N).
 - Define ownership (which entity deletes another if removed).
 
-### 3. State Transitions (Lifecycle)
+### 4. State Transitions (Lifecycle)
 For entities with complex lifecycles (e.g., an Order going from Pending -> Paid -> Shipped), define:
 - **States:** The available statuses.
 - **Transitions:** What actions cause a state change.
 - **Guards:** Conditions that must be met to allow the transition.
 
-### 4. Bounded Contexts (if applicable)
+### 5. Bounded Contexts (if applicable)
 If the system is large, define logical boundaries separating sub-domains (e.g., Billing vs. Inventory).
 
 ## Output Format
@@ -41,6 +48,14 @@ Return ONLY a valid JSON object with the following structure. Content should use
 
 \`\`\`json
 {
+  "glossary": [
+    {
+      "term": "string",
+      "definition": "string",
+      "synonymsToAvoid": ["string"],
+      "boundaryRules": "string"
+    }
+  ],
   "entities": [
     {
       "name": "string",

@@ -53,6 +53,30 @@ export default defineSchema({
         dismissed: v.optional(v.boolean()),
       }),
     ),
+    // Grilling session state (Phase discovery / stress testing)
+    grillSession: v.optional(
+      v.object({
+        totalQuestionsAsked: v.number(),
+        currentRound: v.number(),
+        isComplete: v.boolean(),
+        rounds: v.array(
+          v.object({
+            roundNumber: v.number(),
+            questions: v.array(
+              v.object({
+                id: v.string(),
+                text: v.string(),
+                recommendedAnswer: v.string(),
+                options: v.optional(v.array(v.string())),
+                category: v.optional(v.string()),
+                userAnswer: v.optional(v.string()),
+                acceptedRecommendation: v.optional(v.boolean()),
+              }),
+            ),
+          }),
+        ),
+      }),
+    ),
   }).index('by_project', ['projectId']),
 
   artifacts: defineTable({
@@ -327,6 +351,11 @@ export default defineSchema({
     dependencies: v.optional(v.array(v.id('tickets'))),
     externalId: v.optional(v.string()),
     externalUrl: v.optional(v.string()),
+    sliceType: v.optional(
+      v.union(v.literal('tracer_bullet'), v.literal('wide_refactor')),
+    ),
+    blockedByTitles: v.optional(v.array(v.string())),
+    filesToTouch: v.optional(v.array(v.string())),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index('by_project', ['projectId'])

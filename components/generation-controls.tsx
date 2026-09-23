@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function GenerationControls(props: {
@@ -9,13 +9,27 @@ export function GenerationControls(props: {
   onGenerate: () => void;
   onCancel?: () => void;
   isCancelling?: boolean;
+  canResume?: boolean;
+  onResume?: () => void;
 }) {
-  const { isGenerating, canGenerate, onGenerate, onCancel, isCancelling } = props;
+  const {
+    isGenerating,
+    canGenerate,
+    onGenerate,
+    onCancel,
+    isCancelling,
+    canResume,
+    onResume,
+  } = props;
 
   return (
     <div className="flex items-center justify-between pt-6 border-t border-border">
       <p className="text-sm text-muted-foreground">
-        {canGenerate ? "All required questions answered" : "Answer required questions to generate"}
+        {canResume
+          ? "Previous generation paused. You can resume from the last completed step."
+          : canGenerate
+            ? "All required questions answered"
+            : "Answer required questions to generate"}
       </p>
       <div className="flex items-center gap-2">
         {isGenerating && onCancel && (
@@ -26,6 +40,12 @@ export function GenerationControls(props: {
           >
             {isCancelling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Cancel
+          </Button>
+        )}
+        {canResume && onResume && !isGenerating && (
+          <Button variant="outline" onClick={onResume}>
+            <Play className="w-4 h-4 mr-2" />
+            Resume Generation
           </Button>
         )}
         <Button onClick={onGenerate} disabled={!canGenerate || isGenerating}>

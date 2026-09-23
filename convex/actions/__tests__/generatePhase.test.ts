@@ -5,6 +5,8 @@ import {
   planSectionsForPhase,
   stripLeadingHeading,
   sanitizeGeneratedContent,
+  buildSectionPrompts,
+  getSectionInstructions,
 } from '../generatePhase';
 
 describe('generatePhase helpers', () => {
@@ -189,5 +191,65 @@ describe('sanitizeGeneratedContent', () => {
     expect(result).not.toContain("I'll structure this");
     expect(result).not.toContain('I should focus');
     expect(result).not.toContain('Based on the analysis');
+  });
+});
+
+describe('buildSectionPrompts and technical contracts', () => {
+  it('incorporates sectionInstructions into systemPrompt', () => {
+    const { systemPrompt } = buildSectionPrompts({
+      projectContext: { title: 'SpecForge', description: 'Spec generator', questions: '' },
+      sectionName: 'data-models-and-api',
+      sectionInstructions: 'Provide complete database schema definitions and OpenAPI 3.1 YAML.',
+      sectionQuestions: [],
+      previousSections: [],
+      phaseId: 'specs',
+    });
+
+    expect(systemPrompt).toContain('Section Guidelines:');
+    expect(systemPrompt).toContain('Provide complete database schema definitions and OpenAPI 3.1 YAML.');
+  });
+
+  it('injects constitution into systemPrompt for post-brief phases', () => {
+    const { systemPrompt } = buildSectionPrompts({
+      projectContext: { title: 'SpecForge', description: 'Spec generator', questions: '' },
+      sectionName: 'architecture-overview',
+      sectionQuestions: [],
+      previousSections: [],
+      phaseId: 'specs',
+      constitution: '{"architecture":"Clean Architecture","securityProtocols":["OAuth2"]}',
+    });
+
+    expect(systemPrompt).toContain('Clean Architecture');
+  });
+
+  it('incorporates upstreamContext and previousSections in userPrompt', () => {
+    const { userPrompt } = buildSectionPrompts({
+      projectContext: { title: 'SpecForge', description: 'Spec generator', questions: '' },
+      sectionName: 'api-design',
+      sectionQuestions: ['How are errors formatted?'],
+      previousSections: [{ name: 'data-models', content: 'Table User { id String }' }],
+      phaseId: 'specs',
+      upstreamContext: '### Upstream Specification: PRD\nMust support OAuth2 authentication.',
+    });
+
+    expect(userPrompt).toContain('Upstream Architecture & Specifications:');
+    expect(userPrompt).toContain('### Upstream Specification: PRD');
+    expect(userPrompt).toContain('Table User { id String }');
+    expect(userPrompt).toContain('How are errors formatted?');
+  });
+
+  it('mandates formal schemas and diagrams in getSectionInstructions', () => {
+    const dataModels = getSectionInstructions('specs', 'data-models-and-api');
+    expect(dataModels).toContain('OpenAPI 3.1');
+    expect(dataModels).toContain('Prisma');
+
+    const erDiagram = getSectionInstructions('domainModel', 'entity-relationships');
+    expect(erDiagram).toContain('Mermaid erDiagram');
+
+    const stateDiagram = getSectionInstructions('domainModel', 'state-transitions');
+    expect(stateDiagram).toContain('Mermaid stateDiagram-v2');
+
+    const architecture = getSectionInstructions('specs', 'architecture-overview');
+    expect(architecture).toContain('Mermaid');
   });
 });

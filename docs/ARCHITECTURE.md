@@ -55,81 +55,96 @@ export default schema({
     userId: v.string(), // Clerk user ID
     title: v.string(),
     description: v.string(),
-    status: v.union(
-      v.literal("draft"),
-      v.literal("active"),
-      v.literal("complete")
-    ),
-    phases: v.array(
-      v.object({
-        id: v.string(), // "brief", "prd", "specs", "stories", "handoff"
-        name: v.string(),
-        status: v.string(), // "pending", "generating", "ready", "error"
-        questions: v.array(
-          v.object({
-            id: v.string(),
-            text: v.string(),
-            answer: v.optional(v.string()),
-            aiGenerated: v.boolean(),
-          })
-        ),
-        artifactIds: v.array(v.id("artifacts")),
-      })
-    ),
+    status: v.union(v.literal("draft"), v.literal("active"), v.literal("complete")),
     createdAt: v.number(),
     updatedAt: v.number(),
-    zipStorageId: v.optional(v.id("_storage")), // Project ZIP storage id
+    skippedPhases: v.optional(v.array(v.string())),
+    zipStorageId: v.optional(v.id("_storage")),
+  }),
+
+  phases: table({
+    projectId: v.id("projects"),
+    phaseId: v.string(),
+    status: v.union(v.literal("pending"), v.literal("generating"), v.literal("ready"), v.literal("error")),
+    questions: v.array(
+      v.object({
+        id: v.string(),
+        text: v.string(),
+        answer: v.optional(v.string()),
+        aiGenerated: v.boolean(),
+        suggestions: v.optional(v.array(v.string())),
+      })
+    ),
+    isStale: v.optional(v.boolean()),
+    grillSession: v.optional(
+      v.object({
+        totalQuestionsAsked: v.number(),
+        currentRound: v.number(),
+        isComplete: v.boolean(),
+        rounds: v.array(
+          v.object({
+            roundNumber: v.number(),
+            questions: v.array(
+              v.object({
+                id: v.string(),
+                text: v.string(),
+                recommendedAnswer: v.string(),
+                options: v.optional(v.array(v.string())),
+                category: v.optional(v.string()),
+                userAnswer: v.optional(v.string()),
+                acceptedRecommendation: v.optional(v.boolean()),
+              })
+            ),
+          })
+        ),
+      })
+    ),
   }),
 
   artifacts: table({
     projectId: v.id("projects"),
     phaseId: v.string(),
-    type: v.string(), // "brief", "prd", "spec", "story", "doc", "handoff"
+    type: v.union(
+      v.literal("brief"),
+      v.literal("constitution"),
+      v.literal("hidden_constitution"),
+      v.literal("prd"),
+      v.literal("domainModel"),
+      v.literal("spec"),
+      v.literal("techSpec"),
+      v.literal("userStories"),
+      v.literal("handoff"),
+    ),
     title: v.string(),
     content: v.string(), // Full Markdown (DB text)
     previewHtml: v.string(), // Rendered HTML for UI
     previewHtmlUpdatedAt: v.optional(v.number()),
-    sections: v.array(
-      v.object({
-        name: v.string(),
-        tokens: v.number(),
-        model: v.string(),
-      })
-    ),
-    // Streaming fields (optional for backward compatibility)
-    streamStatus: v.optional(
-      v.union(
-        v.literal("idle"),
-        v.literal("streaming"),
-        v.literal("paused"),
-        v.literal("complete"),
-        v.literal("cancelled")
-      )
-    ),
-    currentSection: v.optional(v.string()),
-    sectionsCompleted: v.optional(v.number()),
-    sectionsTotal: v.optional(v.number()),
-    tokensGenerated: v.optional(v.number()),
+    sections: v.array(v.object({ name: v.string(), tokens: v.number(), model: v.string() })),
+    streamStatus: v.optional(v.union(v.literal("idle"), v.literal("streaming"), v.literal("paused"), v.literal("complete"), v.literal("cancelled"))),
+    critique: v.optional(v.object({ passes: v.boolean(), score: v.number(), violations: v.array(v.any()) })),
+  }),
+
+  tickets: table({
+    projectId: v.id("projects"),
+    phaseId: v.string(),
+    artifactId: v.optional(v.id("artifacts")),
+    title: v.string(),
+    description: v.string(),
+    acceptanceCriteria: v.array(v.string()),
+    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
+    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low")),
+    order: v.number(),
+    sliceType: v.optional(v.union(v.literal("tracer_bullet"), v.literal("wide_refactor"))),
+    blockedByTitles: v.optional(v.array(v.string())),
+    filesToTouch: v.optional(v.array(v.string())),
   }),
 
   userLlmConfigs: table({
     userId: v.string(),
     provider: v.string(),
-    apiKey: v.bytes(), // Encrypted user key
+    apiKey: v.optional(v.bytes()), // Encrypted user key
     defaultModel: v.string(),
-    maxTokens: v.number(),
-  }),
-
-  systemLlmConfigs: table({
-    provider: v.string(),
-    models: v.array(
-      v.object({
-        id: v.string(),
-        maxOutputTokens: v.number(),
-        contextTokens: v.number(),
-        defaultMax: v.number(),
-      })
-    ),
+    useSystem: v.boolean(),
   }),
 });
 ```
@@ -221,19 +236,74 @@ This approach avoids relying on a single long LLM response and stays robust acro
 
 ---
 
+### 4.4 Clarification & Grilling Engine
+
+**Goal:** Resolve ambiguous requirements and architectural tradeoffs early without blocking generation.
+
+- **Question Cap:** Phase clarification questions are strictly bounded to a maximum of 10 targeted questions to prevent questionnaire fatigue.
+- **AI Recommendation Engine:** Each question is generated with an explicit recommended answer and rationale.
+- **Stress-Test Plan Modal:** An optional deep-dive interview session (`components/stress-test-modal.tsx`) allows users to stress-test their plan against edge cases, failure modes, and security constraints before committing to generation.
+
+---
+
+### 4.5 In-Browser Markdown Editor & Schema Validation Architecture
+
+**Goal:** Provide an interactive editing and schema validation environment for artifacts directly in the browser.
+
+- **Artifact Editor Modal (`components/artifact-editor-modal.tsx`):**
+  - Four viewing modes: Edit, Preview, Split, and Schema.
+  - Live token, character, and word counters with estimated reading time.
+  - Reset and Save triggers with automated ticket re-parsing when saving User Stories artifacts.
+- **Schema Extractor & Validation Engine (`lib/schema/phase-schema-extractor.ts`):**
+  - Real-time extraction of embedded code blocks (`json`, `yaml`, `prisma`, `typescript`) and full phase schema exports.
+  - Syntax error diagnostics with line and column reporting.
+  - Automated conformance evaluation (conformance score badge, test seams check, error envelope check, glossary check).
+  - Two-way markdown synchronization (`replaceCodeBlockInMarkdown`) that updates code block contents at exact line offsets.
+- **Schema Validator Panel (`components/schema-validator-panel.tsx`):**
+  - Monospace code canvas with line numbering gutter.
+  - JSON and YAML format switcher with zero-dependency conversion.
+  - Code block selector for embedded schemas.
+  - Toolbar with Format/Prettify, Copy with toast confirmation, and Sync to Markdown.
+  - One-click quick-fix insertion for test seams, RFC 7807 error envelopes, glossary tables, and tracer bullet stories.
+
+---
+
+### 4.6 Vertical Tracer Bullets, Deep Interfaces & Test Seams
+
+- **Vertical Tracer Bullets:** Stories decompose into vertical slices covering frontend UI, backend API, and database layers, tagged with `sliceType='tracer_bullet'`.
+- **Explicit Blocking Edges:** Tickets track `blockedByTitles` to construct an unambiguous execution dependency DAG.
+- **Deep Interfaces:** Technical specs declare comprehensive TypeScript interfaces and RFC 7807 error responses rather than shallow endpoint summaries.
+- **Explicit Test Seams:** All generated specs mandate unit, integration, and contract test seams.
+- **Unambiguous Glossary:** Domain models generate strict term definitions, entity attributes, and business rules.
+
+---
+
 ## 5. Frontend architecture (Next.js 16)
 
 ### 5.1 Routes
 
 ```text
 app/
-├── layout.tsx                      // Clerk + Convex providers
-├── (app)/
-│   ├── dashboard/page.tsx          // Project list
-│   ├── project/[id]/page.tsx       // Project overview
-│   ├── project/[id]/phase/[phaseId]/page.tsx // Phase UI
-│   ├── settings/llm/page.tsx       // User LLM/MCP settings
-│   └── admin/dashboard/page.tsx    // Super admin
+├── layout.tsx                              // Clerk + Convex providers
+├── (auth)/
+│   ├── dashboard/page.tsx                  // Project list & creation intake
+│   ├── project/[id]/page.tsx               // Project overview & phase graph
+│   ├── project/[id]/phase/[phaseId]/page.tsx // Interactive phase workflow
+│   ├── settings/
+│   │   ├── page.tsx                        // User account preferences
+│   │   └── llm-config/page.tsx             // User LLM API keys & model defaults
+│   └── admin/
+│       ├── page.tsx                        // Super-admin overview
+│       ├── dashboard/page.tsx              // Admin operations dashboard
+│       ├── llm-models/page.tsx             // System model catalog & provider limits
+│       ├── security/page.tsx               // Security audit & encryption status
+│       ├── health/page.tsx                 // Service health monitoring
+│       ├── analytics/page.tsx              // Generation and token metrics
+│       ├── moderation/page.tsx             // Content moderation
+│       ├── users/page.tsx                  // User administration
+│       ├── projects/page.tsx               // Cross-tenant project inspect
+│       ├── activity/page.tsx               // Global activity log
+│       └── settings/page.tsx               // System-wide parameters
 ```
 
 - Uses App Router and React Server Components where possible.
