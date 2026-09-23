@@ -20,8 +20,9 @@ npm run test -- lib/
 
 ### File Organization
 - **LLM**: `lib/llm/*` (providers, registry, chunking, types)
-- **Utilities**: `lib/*.ts` (encryption, notifications, utils)
-- **Tests**: `lib/__tests__/*.test.ts`, `lib/llm/__tests__/*.test.ts`
+- **Schema**: `lib/schema/*` (phase schema extractor, OpenAPI / JSON / YAML validators, diagnostics)
+- **Utilities**: `lib/*.ts` (encryption, notifications, ticket parsing, utils)
+- **Tests**: `lib/__tests__/*.test.ts`, `lib/llm/__tests__/*.test.ts`, `lib/schema/__tests__/*.test.ts`
 
 ### Naming Conventions
 - Utility functions: camelCase (e.g., `formatBytes`, `debounce`)
@@ -97,8 +98,11 @@ import { saveBatchAnswers, getBatchAnswerPrompt } from './batch-answers';
 
 - **Types**: `lib/llm/types.ts`
 - **LLM Registry**: `lib/llm/registry.ts` (all provider models)
+- **Model Metadata**: `lib/llm/providers/metadata.ts`
 - **Client factory**: `lib/llm/client-factory.ts`
 - **Chunking strategy**: `lib/llm/chunking.ts`
+- **Schema Extractor**: `lib/schema/phase-schema-extractor.ts`
+- **Ticket Parser**: `lib/ticket-parser.ts`
 - **Encryption**: `lib/encryption.ts`
 - **Utils**: `lib/utils.ts`
 - **Notifications**: `lib/notifications.ts`

@@ -15,17 +15,20 @@ SpecForge is a high-performance scaffold designed for building **repo-native**, 
 
 ## Key Features
 
-- **Phase-Based Workflow**: Structured project generation across multiple phases (Brief → PRD → Specs → Stories → Artifacts → Handoff)
-- **Chained Worker Architecture**: Long-running LLM generations are broken into sequential background tasks, bypassing the 600s Convex timeout.
-- **Live Generation (Pseudo-Streaming)**: Artifacts are persisted incrementally during generation and rendered live via Convex reactive queries.
-- **Cancel + Preserve Output**: Users can cancel generation; partial output is preserved and marked `streamStatus='cancelled'`.
-- **Provider-Model Intelligence**: Automatic matching of LLM providers (DeepSeek, OpenAI, etc.) with their specific enabled models.
-- **Admin Console**: User management, projects, analytics, health, security, moderation, LLM model directory.
-- **Dashboard**: Project list with search, pinned projects, activity feed, notifications.
-- **Multi-LLM Support**: DeepSeek, OpenAI (GPT-5.4), Anthropic (Claude 4.5), Mistral, Z.AI, and Minimax.
-- **Artifact Management**: Real-time preview with high-fidelity markdown rendering.
-- **Project Export**: Full project ZIP generation and storage.
-- **Encrypted Credentials**: AES-encrypted system and user API keys stored in Convex.
+- **Phase-Based Specification Engine**: Structured project generation across iterative phases (Brief, PRD, Architecture & Specs, User Stories, Artifacts, Handoff).
+- **In-Browser Markdown Editor**: Interactive artifact modal with Split, Edit, and Preview modes, character and word counters, token estimates, and reading time.
+- **Monaco-Style Schema Validator**: Integrated JSON and YAML validator with line numbering gutter, real-time syntax error diagnostics, formatting, sync to markdown, and automated quick-fix injection for test seams and error envelopes.
+- **Vertical Tracer Bullets & Blocking Edges**: Story ticket decomposition with explicit dependency edges, tracer bullet tags, and interactive Kanban boards.
+- **Deep Interfaces & Explicit Test Seams**: Technical specs generate formal TypeScript boundary contracts, error envelopes (RFC 7807), and unit/integration test seams.
+- **Unambiguous Domain Glossary**: Domain modeling phase produces strict term glossaries, entity attributes, and relation rules.
+- **Optional Grilling Clarification Interview**: Clarification questions capped at 10 items maximum, accompanied by an optional interactive Stress-Test Plan modal to resolve design ambiguities.
+- **Chained Worker Architecture**: Long-running LLM generations split into sequential background tasks, bypassing the 600s Convex timeout.
+- **Live Generation (Pseudo-Streaming)**: Incremental persistence of artifact sections with real-time UI updates via Convex reactive queries.
+- **Cancel with Output Preservation**: Users can halt generation at any time while retaining partial markdown outputs.
+- **Multi-LLM Intelligence**: Model registry supporting OpenAI, Anthropic, DeepSeek, Mistral, Z.AI, and Minimax with automatic token budgeting.
+- **Admin Console & Settings**: Super-admin management for users, projects, health, security, analytics, moderation, and LLM model catalogs.
+- **Project Export**: Download individual artifacts or complete full-project ZIP archives.
+- **Encrypted Credentials**: AES-encrypted system and user API keys stored securely in Convex.
 
 ## Architecture Overview
 
@@ -101,35 +104,41 @@ npx convex deploy
 specforge/
 ├── app/                    # Next.js App Router
 │   ├── (auth)/            # Auth-protected routes (Clerk)
-│   │   ├── dashboard/     # Project list & creation
-│   │   ├── admin/         # Admin dashboard & LLM models
-│   │   ├── settings/      # User LLM configuration
+│   │   ├── dashboard/     # Project list, creation, and intake
+│   │   ├── admin/         # Super-admin dashboard, security, and LLM catalog
+│   │   ├── settings/      # User LLM preferences and API keys
 │   │   └── {sign-in,sign-up}/
-│   ├── api/               # API routes (health check)
-│   ├── project/[id]/      # Project & phase pages
+│   ├── api/               # API endpoints (health check)
+│   ├── project/[id]/      # Project overview and phase pages
 │   └── layout.tsx         # Root layout with providers
 ├── components/            # React components
-│   ├── ui/               # Radix UI primitives
+│   ├── ui/               # Radix UI primitives and Brutalist controls
+│   ├── admin/            # Super-admin navigation and panels
+│   ├── artifact-editor-modal.tsx # Markdown editor with split preview and schema tab
+│   ├── schema-validator-panel.tsx # Monaco-style JSON/YAML schema validator
+│   ├── stress-test-modal.tsx      # Interactive grilling interview modal
+│   ├── ticket-board.tsx   # Kanban board with tracer bullets and blocking edges
 │   └── *.tsx             # Feature components
 ├── convex/               # Convex backend
-│   ├── actions/          # Server actions (LLM calls)
-│   ├── lib/              # Convex utilities
+│   ├── actions/          # Server actions (LLM generations, worker tasks, ZIP export)
+│   ├── lib/              # Convex backend utilities
 │   ├── schema.ts         # Database schema
-│   └── *.ts              # Queries & mutations
-├── lib/                  # Shared utilities
-│   ├── llm/              # LLM providers, registry, chunking
-│   ├── encryption.ts     # Credential encryption
-│   └── zip.ts            # ZIP generation
-├── docs/                 # Documentation
-└── .claude/              # Claude Code configuration
+│   └── *.ts              # Queries, mutations, and internal workers
+├── lib/                  # Shared utilities and core engines
+│   ├── llm/              # LLM providers, model registry, prompt templates, chunking
+│   ├── schema/           # Schema extraction, validation engine, and YAML conversion
+│   ├── encryption.ts     # AES-256 credential encryption
+│   └── zip.ts            # ZIP archive generation
+├── docs/                 # System architecture, roadmaps, and guides
+└── .claude/              # Claude Code workflow commands
 ```
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) - System design and data models
-- [Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md) - Feature status
-- [Code Review Handoff](docs/CODE_REVIEW_HANDOFF.md) - Review checklist
-- [AI Question Answering](docs/features/ai-question-answering.md) - Feature spec
+- [Architecture Guide](docs/ARCHITECTURE.md) - System architecture, data schema, and streaming patterns
+- [Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md) - Feature milestone tracking
+- [Architectural Roadmap](docs/ARCHITECTURAL_ROADMAP.md) - Strategic technical evolution
+- [AI Question Answering](docs/features/ai-question-answering.md) - Clarification and grilling interview design
 
 ## Scripts
 
