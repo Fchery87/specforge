@@ -256,7 +256,7 @@ export const generatePhase = action({
     const credentialRef = {
       provider: credentials.provider,
       modelId: credentials.modelId,
-      source: (userConfig?.apiKey ? 'user' : 'system') as 'user' | 'system',
+      source: (credentials.source ?? (userConfig?.useSystem ? 'system' : userConfig?.apiKey ? 'user' : 'system')) as 'user' | 'system',
       zaiEndpointType: credentials.zaiEndpointType,
       zaiIsChina: credentials.zaiIsChina,
     };
@@ -300,6 +300,70 @@ export const generatePhase = action({
     );
 
     return { taskId };
+  },
+});
+
+export const resumePhase = action({
+  args: {
+    taskId: v.id('generationTasks'),
+  },
+  handler: async (
+    ctx: ActionCtx,
+    args,
+  ): Promise<{ taskId: Id<'generationTasks'> }> => {
+    const task = await ctx.runQuery(internalApi.internal.getGenerationTask, {
+      taskId: args.taskId,
+    });
+    if (!task) throw new Error('Generation task not found');
+
+    const project = await ctx.runQuery(
+      internalApi.internal.getProjectInternal,
+      {
+        projectId: task.projectId,
+      },
+    );
+    if (!project) throw new Error('Project not found');
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || project.userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
+    if (task.status === 'completed') {
+      throw new Error('Task is already completed');
+    }
+
+    // Reset status to in_progress and clear any previous error
+    await ctx.runMutation(internalApi.internal.updateGenerationTask, {
+      taskId: args.taskId,
+      currentStep: task.currentStep,
+      status: 'in_progress',
+      error: undefined,
+    });
+
+    await ctx.runMutation(internalApi.internal.updatePhaseStatus, {
+      projectId: task.projectId,
+      phaseId: task.phaseId,
+      status: 'generating',
+    });
+
+    await ctx.runMutation(internalApi.internal.appendActivityLog, {
+      taskId: args.taskId,
+      entry: {
+        timestamp: Date.now(),
+        message: `Resuming generation from step ${task.currentStep + 1}...`,
+        type: 'generating',
+      },
+    });
+
+    // Schedule the worker starting from the currentStep
+    await ctx.scheduler.runAfter(
+      0,
+      internalApi.internalActions.generatePhaseWorker,
+      { taskId: args.taskId },
+    );
+
+    return { taskId: args.taskId };
   },
 });
 
@@ -445,8 +509,9 @@ export async function generateSectionContent(params: {
   providerInfo: string;
   phaseId: string;
   constitution: string | null;
+  upstreamContext?: string | null;
 }): Promise<{ content: string; continued: boolean }> {
-  const { llmClient, model, maxTokens, constitution } = params;
+  const { llmClient, model, maxTokens } = params;
 
   // Guard: No LLM client available
   if (!llmClient) {
@@ -459,43 +524,16 @@ export async function generateSectionContent(params: {
     };
   }
 
-  // Build the prompt
-  let systemPrompt = `You are an expert technical writer creating project documentation.
-Generate the "${params.sectionName}" section for a ${params.phaseId} document.
-
-Project: ${params.projectContext.title}
-Description: ${params.projectContext.description}
-
-${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
-${params.sectionInstructions}
-
-Requirements:
-- Use markdown formatting
-- Be thorough and detailed
-- Include specific, actionable content
-- Reference the project context throughout
-- Output ONLY document content — no reasoning, analysis, or meta-commentary
-- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
-- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
-- Do NOT include internal checklists, confidence scores, or analysis headers
-- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
-
-  // Inject constitution context if available and phase requires it
-  if (constitution && shouldInjectConstitution(params.phaseId)) {
-    systemPrompt = injectConstitutionContext(systemPrompt, constitution);
-  }
-
-  const userPrompt = `${
-    params.previousSections.length > 0
-      ? `Previous sections for context:\n${params.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n')}\n\n`
-      : ''
-  }
-${
-  params.sectionQuestions.length > 0
-    ? `Address these points:\n${params.sectionQuestions.map((q) => `- ${q}`).join('\n')}\n\n`
-    : ''
-}
-Generate the "${params.sectionName}" section now:`;
+  const { systemPrompt, userPrompt } = buildSectionPrompts({
+    projectContext: params.projectContext,
+    sectionName: params.sectionName,
+    sectionInstructions: params.sectionInstructions,
+    sectionQuestions: params.sectionQuestions,
+    previousSections: params.previousSections,
+    phaseId: params.phaseId,
+    constitution: params.constitution,
+    upstreamContext: params.upstreamContext,
+  });
 
   const basePrompt = `${systemPrompt}\n\n${userPrompt}`;
 
@@ -552,17 +590,21 @@ Generate the "${params.sectionName}" section now:`;
 export function buildSectionPrompts(params: {
   projectContext: { title: string; description: string; questions: string };
   sectionName: string;
+  sectionInstructions?: string;
   sectionQuestions: string[];
   previousSections: Array<{ name: string; content: string }>;
   phaseId: string;
+  constitution?: string | null;
+  upstreamContext?: string | null;
 }): { systemPrompt: string; userPrompt: string } {
-  const systemPrompt = `You are an expert technical writer creating project documentation.
+  let systemPrompt = `You are an expert technical writer creating project documentation.
 Generate the "${params.sectionName}" section for a ${params.phaseId} document.
 
 Project: ${params.projectContext.title}
 Description: ${params.projectContext.description}
 
 ${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
+${params.sectionInstructions ? `Section Guidelines:\n${params.sectionInstructions}\n` : ''}
 
 Requirements:
 - Use markdown formatting
@@ -575,7 +617,16 @@ Requirements:
 - Do NOT include internal checklists, confidence scores, or analysis headers
 - Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
 
+  // Inject constitution context if available and phase requires it
+  if (params.constitution && shouldInjectConstitution(params.phaseId)) {
+    systemPrompt = injectConstitutionContext(systemPrompt, params.constitution);
+  }
+
   const userPrompt = `${
+    params.upstreamContext
+      ? `Upstream Architecture & Specifications:\n${params.upstreamContext}\n\n`
+      : ''
+  }${
     params.previousSections.length > 0
       ? `Previous sections for context:\n${params.previousSections.map((s) => `## ${s.name}\n${s.content}`).join('\n\n')}\n\n`
       : ''
@@ -592,19 +643,22 @@ Generate the "${params.sectionName}" section now:`;
 
 /**
  * Single-shot provider-level token streaming for one section. Yields raw
- * text deltas to `onDelta` as they arrive over SSE and resolves with the
+ * text deltas to \`onDelta\` as they arrive over SSE and resolves with the
  * full content. Unlike generateSectionContentStreaming this issues one
  * provider request with stream:true instead of chunked continuation turns.
  */
 export async function generateSectionContentRealtime(params: {
   projectContext: { title: string; description: string; questions: string };
   sectionName: string;
+  sectionInstructions?: string;
   sectionQuestions: string[];
   previousSections: Array<{ name: string; content: string }>;
   model: LlmModel;
   maxTokens: number;
   llmClient: LlmProvider;
   phaseId: string;
+  constitution?: string | null;
+  upstreamContext?: string | null;
   onDelta: (delta: string) => Promise<void>;
 }): Promise<{ content: string }> {
   const { llmClient, model } = params;
@@ -612,9 +666,12 @@ export async function generateSectionContentRealtime(params: {
   const { systemPrompt, userPrompt } = buildSectionPrompts({
     projectContext: params.projectContext,
     sectionName: params.sectionName,
+    sectionInstructions: params.sectionInstructions,
     sectionQuestions: params.sectionQuestions,
     previousSections: params.previousSections,
     phaseId: params.phaseId,
+    constitution: params.constitution,
+    upstreamContext: params.upstreamContext,
   });
 
   const startedAt = Date.now();
@@ -665,6 +722,8 @@ export async function generateSectionContentStreaming(params: {
   llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
   phaseId: string;
+  constitution?: string | null;
+  upstreamContext?: string | null;
   onChunk: (delta: string, finishReason?: string) => Promise<void>;
 }): Promise<{ content: string; continued: boolean }> {
   const { llmClient, model } = params;
@@ -679,9 +738,12 @@ export async function generateSectionContentStreaming(params: {
   const { systemPrompt, userPrompt } = buildSectionPrompts({
     projectContext: params.projectContext,
     sectionName: params.sectionName,
+    sectionInstructions: params.sectionInstructions,
     sectionQuestions: params.sectionQuestions,
     previousSections: params.previousSections,
     phaseId: params.phaseId,
+    constitution: params.constitution,
+    upstreamContext: params.upstreamContext,
   });
 
   const startedAt = Date.now();
@@ -925,18 +987,24 @@ export function getSectionInstructions(
       'Define key performance indicators (KPIs), metrics for success, and how they will be measured and tracked.',
 
     // Domain Model sections
+    'domain-glossary':
+      'Define canonical domain terms, precise business meanings, forbidden conflicting synonyms, and domain invariants.',
     'entity-definitions':
       'Define core domain entities, their purpose, attributes, and invariants.',
     'entity-relationships':
-      'Describe cardinality and ownership relationships between entities.',
+      'Describe cardinality and ownership relationships between entities. Include a valid Mermaid erDiagram code block showing all core entities, attributes, primary/foreign keys, and exact relationship cardinalities (e.g. ||--o{, ||--||).',
     'state-transitions':
-      'Map entity lifecycle states, transitions, and governing business guards.',
+      'Map entity lifecycle states, transitions, and governing business guards. Include a valid Mermaid stateDiagram-v2 code block detailing valid states, triggering events, transitions, and guard conditions.',
 
     // Specs sections
     'architecture-overview':
-      'Describe the high-level system architecture, design patterns, and technology choices.',
+      'Describe the high-level system architecture, design patterns, and technology choices. Include a valid Mermaid C4Context or flowchart LR architecture diagram illustrating components, client boundaries, services, databases, and third-party integrations.',
+    'deep-modules':
+      'Define deep modules with narrow, simple interfaces that conceal complex internal logic (Ousterhout). Specify inputs, outputs, error catalogs, and hidden complexity.',
+    'test-seams':
+      'Identify key architectural seams (Feathers) where behavior varies and automated tests attach without modifying caller code. Provide explicit code snippets or interface contracts illustrating the seam boundaries.',
     'data-models-and-api':
-      'Define core data structures, entities, relationships, and API contracts.',
+      'Define core data structures and APIs with machine-readable precision. Provide complete database schema definitions (e.g. Prisma schema, Drizzle schema, or SQL DDL) with primary keys, foreign keys, and indexes. Provide formal OpenAPI 3.1 YAML contracts including request/response bodies, standard error envelopes, and HTTP status codes.',
     'deployment-and-security':
       'Describe deployment strategy, infrastructure, authentication, authorization, and security requirements.',
 
@@ -944,9 +1012,9 @@ export function getSectionInstructions(
     'epic-overview':
       'Provide an overview of the main epics and how they relate to project goals.',
     'user-stories':
-      'List user stories with acceptance criteria in proper format.',
+      'List user stories as vertical tracer bullets (schema + API + UI + tests) with explicit **Blocked by:** dependencies, **Slice Type:** (tracer_bullet or wide_refactor), and **Files to touch:**.',
     'technical-tasks':
-      'Break down user stories into technical implementation tasks with dependencies.',
+      'Break down user stories into technical implementation tasks with dependencies and topological ordering.',
 
     // Artifacts sections
     documentation:
@@ -1333,6 +1401,7 @@ export async function generateSectionWithCritique(params: {
   providerInfo: string;
   phaseId: string;
   constitution: string | null;
+  upstreamContext?: string | null;
   config?: CritiqueConfig;
   retryCount?: number;
 }): Promise<{
@@ -1357,6 +1426,7 @@ export async function generateSectionWithCritique(params: {
     providerInfo: params.providerInfo,
     phaseId: params.phaseId,
     constitution: params.constitution,
+    upstreamContext: params.upstreamContext,
   });
 
   // Step 2: Run critique (if enabled)

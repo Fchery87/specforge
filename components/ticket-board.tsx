@@ -55,7 +55,15 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
     return <div className="text-muted-foreground text-sm">Loading tickets…</div>;
   }
 
-  if (tickets.length === 0 && !artifactId) {
+  type BoardTicket = (typeof tickets)[number] & {
+    sliceType?: "tracer_bullet" | "wide_refactor";
+    blockedByTitles?: string[];
+    filesToTouch?: string[];
+  };
+
+  const ticketList = tickets as BoardTicket[];
+
+  if (ticketList.length === 0 && !artifactId) {
     return (
       <p className="text-sm text-muted-foreground">
         Generate the User Stories artifact first to extract tickets.
@@ -63,7 +71,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
     );
   }
 
-  if (tickets.length === 0 && artifactId) {
+  if (ticketList.length === 0 && artifactId) {
     return (
       <div className="flex flex-col items-center gap-4 py-8 text-center">
         <p className="text-muted-foreground text-sm">No tickets yet. Parse from the User Stories artifact.</p>
@@ -75,30 +83,63 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
     );
   }
 
+  const doneTicketIds = new Set(
+    ticketList.filter((t) => t.status === "done").map((t) => t._id)
+  );
+
+  const isTicketBlocked = (ticket: BoardTicket) => {
+    if (!ticket.dependencies || ticket.dependencies.length === 0) return false;
+    return ticket.dependencies.some((depId) => !doneTicketIds.has(depId));
+  };
+
+  const frontierCount =
+    ticketList.filter((t) => t.status === "todo" && !isTicketBlocked(t)).length;
+  const tracerCount =
+    ticketList.filter((t) => t.sliceType !== "wide_refactor").length;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {COLUMNS.map(({ status, label }) => {
-        const col = tickets.filter((t) => t.status === status);
-        return (
-          <div key={status}>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3">
-              {label} <span className="text-xs font-normal">({col.length})</span>
-            </h3>
+    <div className="space-y-4">
+      {ticketList.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 border border-border/60 bg-secondary/10 text-xs">
+          <div className="flex items-center gap-4">
             <div>
-              {col.map((ticket) => (
-                <TicketCard
-                  key={ticket._id}
-                  ticket={ticket}
-                  onStatusChange={handleStatusChange}
-                />
-              ))}
-              {col.length === 0 && (
-                <p className="text-xs text-muted-foreground italic">No tickets</p>
-              )}
+              <span className="font-bold text-primary">{frontierCount}</span> Ready on Frontier
+            </div>
+            <div className="text-muted-foreground">
+              <span className="font-bold text-foreground">{tracerCount}</span> Tracer Bullets
             </div>
           </div>
-        );
-      })}
+          <div className="text-muted-foreground">
+            DAG Topological Execution Order
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {COLUMNS.map(({ status, label }) => {
+          const col = ticketList.filter((t) => t.status === status);
+          return (
+            <div key={status}>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                {label} <span className="text-xs font-normal">({col.length})</span>
+              </h3>
+              <div>
+                {col.map((ticket) => (
+                  <TicketCard
+                    key={ticket._id}
+                    ticket={ticket}
+                    isBlocked={isTicketBlocked(ticket)}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+                {col.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">No tickets</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

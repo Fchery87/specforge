@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, Plus, Trash2, Check, X, Sparkles, Shield, Key, Settings, 
-  Search, Brain, Globe, Zap, Cpu, GitBranch, Layers, Hexagon, Triangle, 
-  Box, Square, Star, Command, Hash, Terminal, ChevronDown, ChevronUp 
+  Search, ChevronDown, ChevronUp, Globe, Cpu
 } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { MODEL_REGISTRY, getModelById, getModelsByProvider } from "@/lib/llm/registry";
@@ -19,60 +18,11 @@ import { listAllModelsAction, addModelAction, deleteModelAction, updateModelActi
 import { ZAI_ENDPOINTS, ZAI_ENDPOINTS_CN, ZAIEndpointType } from "@/lib/llm/providers/zai";
 import { useModelDirectory } from "@/lib/hooks/useModelDirectory";
 import type { ModelDirectoryEntry } from "@/lib/hooks/useModelDirectory";
-
-// Provider metadata for UI display
-const getProviderIcon = (providerId: string) => {
-  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-    anthropic: Brain,
-    openai: Sparkles,
-    google: Globe,
-    deepseek: Zap,
-    mistral: Cpu,
-    openrouter: GitBranch,
-    groq: Layers,
-    zai: Hexagon,
-    minimax: Triangle,
-    ai21: Box,
-    cohere: Square,
-    stability: Star,
-    fireworks: Command,
-    together: Hash,
-    replicate: Terminal,
-    github: Layers,
-    vercel: Triangle,
-    cerebras: Cpu,
-    chutes: Layers,
-  };
-  return iconMap[providerId] || Globe;
-};
-
-const getProviderDescription = (providerId: string): string => {
-  const descriptions: Record<string, string> = {
-    anthropic: "Direct access to Claude models, including Pro and Max",
-    openai: "GPT models for fast, capable general AI tasks",
-    google: "Gemini models for fast, structured responses",
-    deepseek: "Advanced reasoning models at competitive pricing",
-    mistral: "European AI models with excellent performance",
-    openrouter: "Access all supported models from one provider",
-    groq: "Ultra-fast inference for popular open source models",
-    zai: "Curated models including Claude, GPT, Gemini and more",
-    minimax: "Multilingual models optimized for long context",
-    cerebras: "High-performance inference with CS-3 systems",
-    ai21: "Jamba models for enterprise applications",
-    cohere: "Command models for natural language tasks",
-    stability: "Image generation and creative AI models",
-    fireworks: "Fast inference for open source models",
-    together: "Inference platform for open source LLMs",
-    replicate: "API for running machine learning models",
-    github: "AI models for coding assistance via GitHub Copilot",
-    vercel: "Unified access to AI models with smart routing",
-    chutes: "Decentralized AI inference at competitive prices",
-  };
-  return descriptions[providerId] || `AI models via ${providerId}`;
-};
-
-// Popular providers
-const popularProviderIds = ["zai", "anthropic", "github", "openai", "google", "openrouter", "vercel"];
+import {
+  getProviderIcon,
+  getProviderDescription,
+  POPULAR_PROVIDER_IDS as popularProviderIds,
+} from "@/lib/llm/providers/metadata";
 
 export default function LlmModelsPage() {
   // Model management queries/mutations

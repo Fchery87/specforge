@@ -98,6 +98,16 @@ export const CONSTITUTION_SECTIONS: SectionPlanConfig[] = [
  */
 export const DOMAIN_MODEL_SECTIONS: SectionPlanConfig[] = [
   {
+    id: 'domain-glossary',
+    title: 'Ubiquitous Language & Domain Glossary',
+    description:
+      'Define canonical domain terms, boundary rules, and forbidden conflicting synonyms (CONTEXT.md style).',
+    estimatedTokens: 1200,
+    required: true,
+    phaseId: 'domainModel',
+    sectionType: 'documentation',
+  },
+  {
     id: 'entity-definitions',
     title: 'Entity Definitions',
     description:
@@ -246,6 +256,26 @@ export const SPECIFICATIONS_SECTIONS: SectionPlanConfig[] = [
     sectionType: 'technical',
   },
   {
+    id: 'deep-modules',
+    title: 'Deep Module Interfaces',
+    description:
+      'Define deep modules with narrow, simple interfaces that conceal complex internal logic (Ousterhout). Specify inputs, outputs, error catalogs, and hidden complexity.',
+    estimatedTokens: 2000,
+    required: true,
+    phaseId: 'specs',
+    sectionType: 'technical',
+  },
+  {
+    id: 'test-seams',
+    title: 'Explicit Test Seams',
+    description:
+      'Identify key architectural seams (Feathers) where behavior varies and automated tests attach without modifying caller code.',
+    estimatedTokens: 1500,
+    required: true,
+    phaseId: 'specs',
+    sectionType: 'technical',
+  },
+  {
     id: 'tech-stack',
     title: 'Tech Stack',
     description:
@@ -257,9 +287,9 @@ export const SPECIFICATIONS_SECTIONS: SectionPlanConfig[] = [
   },
   {
     id: 'data-models',
-    title: 'Data Models',
+    title: 'Data Models & Schemas',
     description:
-      'Define core data structures, entities, relationships, and database schema.',
+      'Define core data structures, entities, relationships, database schemas, and migration strategy.',
     estimatedTokens: 2000,
     required: false,
     phaseId: 'specs',
@@ -267,20 +297,10 @@ export const SPECIFICATIONS_SECTIONS: SectionPlanConfig[] = [
   },
   {
     id: 'api-design',
-    title: 'API Design',
+    title: 'API Design & Contracts',
     description:
-      'Document REST/GraphQL endpoints, request/response schemas, and authentication.',
+      'Document REST/GraphQL/RPC endpoints, request/response schemas, error envelopes, and authentication.',
     estimatedTokens: 2500,
-    required: false,
-    phaseId: 'specs',
-    sectionType: 'technical',
-  },
-  {
-    id: 'component-architecture',
-    title: 'Component Architecture',
-    description:
-      'Define the component hierarchy, composition patterns, and state management approach.',
-    estimatedTokens: 1800,
     required: false,
     phaseId: 'specs',
     sectionType: 'technical',
@@ -323,9 +343,9 @@ export const USER_STORIES_SECTIONS: SectionPlanConfig[] = [
   },
   {
     id: 'user-stories',
-    title: 'User Stories',
+    title: 'Tracer-Bullet User Stories',
     description:
-      'List user stories with acceptance criteria in proper format (As a... I want... So that...).',
+      'List user stories as vertical tracer bullets (schema + API + UI + tests) with explicit **Blocked by:** dependencies, **Slice Type:**, and **Files to touch:**.',
     estimatedTokens: 3000,
     required: true,
     phaseId: 'stories',
@@ -333,9 +353,9 @@ export const USER_STORIES_SECTIONS: SectionPlanConfig[] = [
   },
   {
     id: 'technical-tasks',
-    title: 'Technical Tasks',
+    title: 'Technical Tasks & DAG',
     description:
-      'Break down user stories into technical implementation tasks with dependencies.',
+      'Break down user stories into technical implementation tasks with topological dependency edges.',
     estimatedTokens: 2500,
     required: true,
     phaseId: 'stories',
@@ -344,7 +364,7 @@ export const USER_STORIES_SECTIONS: SectionPlanConfig[] = [
   {
     id: 'acceptance-criteria',
     title: 'Acceptance Criteria',
-    description: 'Define detailed acceptance criteria for each user story.',
+    description: 'Define detailed acceptance criteria in Given/When/Then format for each vertical slice.',
     estimatedTokens: 2000,
     required: false,
     phaseId: 'stories',

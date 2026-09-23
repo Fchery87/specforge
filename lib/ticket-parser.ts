@@ -4,12 +4,16 @@ export interface ParsedTicket {
   acceptanceCriteria: string[];
   priority: 'critical' | 'high' | 'medium' | 'low';
   estimatedEffort?: string;
+  sliceType?: 'tracer_bullet' | 'wide_refactor';
+  blockedBy?: string[];
+  filesToTouch?: string[];
 }
 
 /**
  * Parses user story markdown into structured tickets.
  * Looks for H3 headings (### ) as ticket boundaries.
- * Extracts acceptance criteria from bullet lists under "Acceptance Criteria" heading.
+ * Extracts acceptance criteria, priority, effort, blocking dependencies,
+ * slice types, and target files.
  */
 export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
   const tickets: ParsedTicket[] = [];
@@ -33,6 +37,12 @@ export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
         (l) =>
           !l.startsWith('**Priority') &&
           !l.startsWith('**Effort') &&
+          !l.startsWith('**Blocked by') &&
+          !l.startsWith('**Dependencies') &&
+          !l.startsWith('**Slice Type') &&
+          !l.startsWith('**Type:') &&
+          !l.startsWith('**Files to touch') &&
+          !l.startsWith('**Target Files') &&
           l.trim(),
       )
       .join('\n')
@@ -43,8 +53,12 @@ export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
     if (acIndex !== -1) {
       for (let i = acIndex + 1; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (line.startsWith('- ')) {
+        if (line.startsWith('- [ ] ') || line.startsWith('- [x] ')) {
+          criteria.push(line.slice(6).trim());
+        } else if (line.startsWith('- ') || line.startsWith('* ')) {
           criteria.push(line.slice(2).trim());
+        } else if (/^\d+\.\s+/.test(line)) {
+          criteria.push(line.replace(/^\d+\.\s+/, '').trim());
         } else if (line.startsWith('**') || line.startsWith('##')) {
           break;
         }
@@ -63,6 +77,49 @@ export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
     const effortMatch = section.match(/\*\*Effort:\*\*\s*(\S+)/i);
     const estimatedEffort = effortMatch?.[1];
 
+    // Extract slice type (tracer_bullet vs wide_refactor)
+    const sliceMatch = section.match(
+      /\*\*(?:Slice\s+Type|Type):\*\*\s*(tracer[_\s-]?bullet|wide[_\s-]?refactor)/i,
+    );
+    let sliceType: ParsedTicket['sliceType'] = 'tracer_bullet';
+    if (sliceMatch) {
+      sliceType = sliceMatch[1].toLowerCase().includes('wide')
+        ? 'wide_refactor'
+        : 'tracer_bullet';
+    }
+
+    // Extract blocked by / dependencies
+    const blockedByMatch = section.match(
+      /\*\*(?:Blocked\s+by|Dependencies):\*\*\s*([^\n]+)/i,
+    );
+    let blockedBy: string[] | undefined;
+    if (blockedByMatch) {
+      const rawBlockers = blockedByMatch[1].trim();
+      if (
+        !/^(none|n\/a|nil|empty|no\s+blockers)/i.test(rawBlockers)
+      ) {
+        blockedBy = rawBlockers
+          .split(/[,;]|\band\b/i)
+          .map((b) => b.replace(/^\[|\]$/g, '').trim())
+          .filter(Boolean);
+      }
+    }
+
+    // Extract files to touch
+    const filesMatch = section.match(
+      /\*\*(?:Files\s+to\s+touch|Target\s+Files):\*\*\s*([^\n]+)/i,
+    );
+    let filesToTouch: string[] | undefined;
+    if (filesMatch) {
+      const rawFiles = filesMatch[1].trim();
+      if (!/^(none|n\/a)/i.test(rawFiles)) {
+        filesToTouch = rawFiles
+          .split(/[,;]/)
+          .map((f) => f.replace(/[`*]/g, '').trim())
+          .filter(Boolean);
+      }
+    }
+
     if (titleLine && (description || criteria.length > 0)) {
       tickets.push({
         title: titleLine,
@@ -70,6 +127,9 @@ export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
         acceptanceCriteria: criteria,
         priority,
         estimatedEffort,
+        sliceType,
+        blockedBy,
+        filesToTouch,
       });
     }
   }

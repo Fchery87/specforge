@@ -6,12 +6,14 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { generateQuestionsAction, generateQuestionAnswerAction, generateAllQuestionAnswersAction, getGenerationTaskAction } from "@/lib/convex-actions";
 import { BatchAiModal } from "./batch-ai-modal";
+import { StressTestModal, type GrillSessionData } from "./stress-test-modal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getToastMessage } from "@/lib/notifications";
 import { collectBatchAnswers } from "@/lib/batch-answers";
-import { Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { GenerationControls } from "@/components/generation-controls";
 import { QuestionRow } from "@/components/question-row";
@@ -31,20 +33,26 @@ interface QuestionsPanelProps {
   projectId: string;
   phaseId: string;
   questions: Question[];
+  grillSession?: GrillSessionData;
   onGeneratePhase?: () => void;
   isGenerating?: boolean;
   onCancelGeneration?: () => void;
   isCancelling?: boolean;
+  canResume?: boolean;
+  onResumePhase?: () => void;
 }
 
 export function QuestionsPanel({
   projectId,
   phaseId,
   questions,
+  grillSession,
   onGeneratePhase,
   isGenerating = false,
   onCancelGeneration,
   isCancelling = false,
+  canResume = false,
+  onResumePhase,
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
   const generateQuestions = useAction(generateQuestionsAction);
@@ -59,6 +67,7 @@ export function QuestionsPanel({
   const [aiGeneratingId, setAiGeneratingId] = useState<string | null>(null);
   const [questionSuggestions, setQuestionSuggestions] = useState<Record<string, string[]>>({});
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isStressTestOpen, setIsStressTestOpen] = useState(false);
   const [isBatchStarting, setIsBatchStarting] = useState(false);
   const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -314,7 +323,21 @@ export function QuestionsPanel({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsStressTestOpen(true)}
+            className="border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+          >
+            <ShieldAlert className="w-4 h-4 mr-1.5 text-amber-500" />
+            Stress-Test Plan
+            {grillSession?.totalQuestionsAsked ? (
+              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                {Math.min(grillSession.totalQuestionsAsked, 10)}/10
+              </Badge>
+            ) : null}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -381,6 +404,8 @@ export function QuestionsPanel({
             onGenerate={() => onGeneratePhase?.()}
             onCancel={onCancelGeneration}
             isCancelling={isCancelling}
+            canResume={canResume}
+            onResume={onResumePhase}
           />
         )}
       </CardContent>
@@ -393,6 +418,13 @@ export function QuestionsPanel({
         questions={questions}
         batchAnswers={batchAnswers}
         onCancel={handleCancelBatch}
+      />
+      <StressTestModal
+        open={isStressTestOpen}
+        onOpenChange={setIsStressTestOpen}
+        projectId={projectId}
+        phaseId={phaseId}
+        grillSession={grillSession}
       />
     </Card>
   );

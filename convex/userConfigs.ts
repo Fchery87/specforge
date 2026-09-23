@@ -72,6 +72,7 @@ export const saveUserConfigRaw = mutation({
     defaultModel: v.string(),
     useSystem: v.boolean(),
     systemKeyId: v.optional(v.string()),
+    clearApiKey: v.optional(v.boolean()),
     zaiEndpointType: v.optional(
       v.union(v.literal('paid'), v.literal('coding'))
     ),
@@ -91,10 +92,19 @@ export const saveUserConfigRaw = mutation({
       .withIndex('by_user', (q) => q.eq('userId', identity.subject))
       .first();
 
+    const shouldClearKey = Boolean(
+      args.clearApiKey ||
+      (existing && existing.provider !== args.provider && !args.encryptedApiKey && !args.useSystem)
+    );
+
     if (existing) {
       await ctx.db.patch(existing._id, {
         provider: args.provider,
-        ...(apiKeyBuffer !== undefined && { apiKey: apiKeyBuffer }),
+        ...(apiKeyBuffer !== undefined
+          ? { apiKey: apiKeyBuffer }
+          : shouldClearKey
+          ? { apiKey: undefined }
+          : {}),
         defaultModel: args.defaultModel,
         useSystem: args.useSystem,
         systemKeyId: args.systemKeyId,

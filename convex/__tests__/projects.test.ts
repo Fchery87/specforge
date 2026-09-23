@@ -33,3 +33,87 @@ describe("getNextUpdatedAt", () => {
     expect(getNextUpdatedAt(2000, 1000)).toBe(2000);
   });
 });
+
+describe("grillSession helpers", () => {
+  it("mergeGrillAnswersIntoQuestions updates existing and appends new", async () => {
+    const { mergeGrillAnswersIntoQuestions } = await import("../projects");
+    const existing = [
+      { id: "q1", text: "Q1", answer: "Old A1", aiGenerated: false },
+    ];
+    const answers = [
+      {
+        questionId: "q1",
+        questionText: "Q1",
+        answer: "New A1",
+        options: ["Opt 1"],
+      },
+      {
+        questionId: "grill-q2",
+        questionText: "Grill Q2",
+        answer: "A2",
+        options: ["Opt 2"],
+      },
+    ];
+
+    const merged = mergeGrillAnswersIntoQuestions(existing as any, answers);
+    expect(merged.length).toBe(2);
+    expect(merged[0].answer).toBe("New A1");
+    expect(merged[0].aiGenerated).toBe(false);
+    expect(merged[1].id).toBe("grill-q2");
+    expect(merged[1].answer).toBe("A2");
+  });
+
+  it("computeUpdatedGrillSession calculates total questions and rounds", async () => {
+    const { computeUpdatedGrillSession } = await import("../projects");
+    const existingSession = {
+      totalQuestionsAsked: 2,
+      currentRound: 1,
+      isComplete: false,
+      rounds: [
+        {
+          roundNumber: 1,
+          questions: [
+            {
+              id: "prior-q1",
+              text: "Prior Q1",
+              recommendedAnswer: "Rec 1",
+              userAnswer: "Prior A1",
+            },
+            {
+              id: "prior-q2",
+              text: "Prior Q2",
+              recommendedAnswer: "Rec 2",
+              userAnswer: "Prior A2",
+            },
+          ],
+        },
+      ],
+    };
+
+    const newAnswers = [
+      {
+        questionId: "grill-q3",
+        questionText: "New Q3",
+        answer: "New A3",
+        recommendedAnswer: "Rec A3",
+        acceptedRecommendation: true,
+        round: 2,
+      },
+      {
+        questionId: "grill-q4",
+        questionText: "New Q4",
+        answer: "New A4",
+        recommendedAnswer: "Rec A4",
+        acceptedRecommendation: true,
+        round: 2,
+      },
+    ];
+
+    const updated = computeUpdatedGrillSession(existingSession, newAnswers);
+    expect(updated.totalQuestionsAsked).toBe(4);
+    expect(updated.currentRound).toBe(2);
+    expect(updated.isComplete).toBe(false);
+    expect(updated.rounds.length).toBe(2);
+    expect(updated.rounds[1].questions[0].text).toBe("New Q3");
+  });
+});

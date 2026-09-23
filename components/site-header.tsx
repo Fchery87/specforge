@@ -24,7 +24,7 @@ const navLinks = (isAdmin: boolean) => [
     icon: LayoutDashboard,
   },
   {
-    href: "/settings/llm-config" as Route,
+    href: "/settings" as Route,
     label: "Settings",
     icon: Settings,
   },

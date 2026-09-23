@@ -8,10 +8,11 @@ import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { FunctionReference } from "convex/server";
-import { generatePhaseAction, generateProjectZipAction, generateSectionPlanAction, getGenerationTaskAction, getArtifactByPhaseAction, getAllProjectArtifactsAction, cancelArtifactStreamingAction } from "@/lib/convex-actions";
+import { generatePhaseAction, resumePhaseAction, generateProjectZipAction, generateSectionPlanAction, getGenerationTaskAction, getArtifactByPhaseAction, getAllProjectArtifactsAction, cancelArtifactStreamingAction } from "@/lib/convex-actions";
 import { PhaseStatusIndicator } from "@/components/phase-status";
 import { ArtifactPreview } from "@/components/artifact-preview";
 import { QuestionsPanel } from "@/components/questions-panel";
+import type { GrillSessionData } from "@/components/stress-test-modal";
 import { ArtifactsHeader } from "@/components/artifacts-header";
 import { StreamingArtifactPreview } from "@/components/streaming-artifact-preview";
 import { ExportOptionsPanel } from "@/components/export-options";
@@ -74,6 +75,7 @@ export default function PhasePage() {
     isLoaded && isSignedIn ? { projectId } : "skip"
   );
   const generatePhase = useAction(generatePhaseAction);
+  const resumePhase = useAction(resumePhaseAction);
   const generateZip = useAction(generateProjectZipAction);
   const cancelArtifactStreaming = useMutation(cancelArtifactStreamingAction);
   const getGenerationTaskQuery = getGenerationTaskAction;
@@ -203,6 +205,27 @@ export default function PhasePage() {
       });
     } finally {
       setIsCancelling(false);
+    }
+  }
+
+  const canResume =
+    generationTask !== undefined &&
+    generationTask !== null &&
+    generationTask.status === "failed" &&
+    (generationTask.currentStep ?? 0) > 0 &&
+    (generationTask.currentStep ?? 0) < (generationTask.totalSteps ?? 1);
+
+  async function handleResumePhase() {
+    if (!generationTask?._id) return;
+    setIsPhaseStarting(true);
+    toast.info(`Resuming generation from step ${(generationTask.currentStep ?? 0) + 1}...`);
+    try {
+      await resumePhase({ taskId: generationTask._id });
+    } catch (error) {
+      setIsPhaseStarting(false);
+      toast.error("Failed to resume generation", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
     }
   }
 
@@ -403,10 +426,13 @@ export default function PhasePage() {
                 projectId={projectId}
                 phaseId={phaseId}
                 questions={phase.questions}
+                grillSession={'grillSession' in phase && phase.grillSession ? (phase.grillSession as unknown as GrillSessionData) : undefined}
                 onGeneratePhase={handleInitiateGenerate}
                 isGenerating={isGenerating}
                 onCancelGeneration={handleCancelGeneration}
                 isCancelling={isCancelling}
+                canResume={canResume}
+                onResumePhase={handleResumePhase}
               />
             )}
           </div>
@@ -451,6 +477,7 @@ export default function PhasePage() {
                       <ArtifactPreview 
                         key={a._id} 
                         artifact={a}
+                        projectId={projectId}
                         onDelete={() => {}}
                       />
                     ))}

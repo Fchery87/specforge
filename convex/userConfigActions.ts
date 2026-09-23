@@ -157,6 +157,7 @@ export const saveUserConfig = action({
     defaultModel: v.string(),
     useSystem: v.boolean(),
     systemKeyId: v.optional(v.string()),
+    clearApiKey: v.optional(v.boolean()),
     zaiEndpointType: v.optional(v.union(v.literal("paid"), v.literal("coding"))),
     zaiIsChina: v.optional(v.boolean()),
   },
@@ -165,10 +166,13 @@ export const saveUserConfig = action({
     if (!identity) throw new Error('Unauthenticated');
 
     // For new configs, we need either an apiKey or useSystem to be true
-    if (!args.apiKey && !args.useSystem) {
-      throw new Error(
-        'Either an API key or system credential usage must be specified'
-      );
+    if (!args.apiKey && !args.useSystem && !args.clearApiKey) {
+      const existing = (await ctx.runQuery(api.userConfigs.getUserConfigRaw)) as RawUserConfigRow | null;
+      if (!existing?.apiKey) {
+        throw new Error(
+          'Either an API key or system credential usage must be specified'
+        );
+      }
     }
 
     const resolvedSystemKeyId = resolveSystemKeyId({
@@ -191,6 +195,7 @@ export const saveUserConfig = action({
       defaultModel: args.defaultModel,
       useSystem: args.useSystem,
       systemKeyId: resolvedSystemKeyId,
+      clearApiKey: args.clearApiKey,
       zaiEndpointType: args.zaiEndpointType,
       zaiIsChina: args.zaiIsChina,
     });

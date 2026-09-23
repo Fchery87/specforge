@@ -126,7 +126,7 @@ export const generateAllQuestionAnswers = action({
     const credentialRef = {
       provider: credentials.provider,
       modelId: credentials.modelId,
-      source: (userConfig?.apiKey ? 'user' : 'system') as 'user' | 'system',
+      source: (credentials.source ?? (userConfig?.useSystem ? 'system' : userConfig?.apiKey ? 'user' : 'system')) as 'user' | 'system',
       zaiEndpointType: credentials.zaiEndpointType,
       zaiIsChina: credentials.zaiIsChina,
     };

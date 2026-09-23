@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Loader2, Trash2, Edit, Download, ChevronDown, ChevronUp, FileText, Clock } from "lucide-react";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { MermaidAwareContent } from "@/components/ui/mermaid-aware-content";
+import { ArtifactEditorModal } from "@/components/artifact-editor-modal";
 
 type CritiqueResult = {
   passes: boolean;
@@ -31,11 +32,13 @@ type Artifact = {
   content: string;
   previewHtml: string;
   sections: Array<{ name: string; tokens: number; model: string; critique?: CritiqueResult }>;
+  phaseId?: string;
   createdAt?: number;
 };
 
 interface ArtifactPreviewProps {
   artifact: Artifact;
+  projectId?: string;
   onDelete?: () => void;
   onEdit?: () => void;
 }
@@ -54,10 +57,11 @@ function downloadZip(artifactId: string, title: string) {
   console.log("Downloading ZIP for artifact:", artifactId);
 }
 
-export function ArtifactPreview({ artifact, onDelete, onEdit }: ArtifactPreviewProps) {
+export function ArtifactPreview({ artifact, projectId, onDelete, onEdit }: ArtifactPreviewProps) {
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   
   const deleteArtifact = useMutation(api.artifacts.deleteArtifact);
 
@@ -184,12 +188,20 @@ export function ArtifactPreview({ artifact, onDelete, onEdit }: ArtifactPreviewP
                 <Download className="w-4 h-4 mr-2" />
                 ZIP
               </Button>
-              {onEdit && (
-                <Button variant="ghost" size="sm" onClick={onEdit}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (onEdit) {
+                    onEdit();
+                  } else {
+                    setIsEditorOpen(true);
+                  }
+                }}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
               {onDelete && (
                 <Button 
                   variant="ghost" 
@@ -231,6 +243,14 @@ export function ArtifactPreview({ artifact, onDelete, onEdit }: ArtifactPreviewP
         onConfirm={handleDelete}
         variant="destructive"
         isLoading={isDeleting}
+      />
+
+      {/* Artifact Markdown and Schema Editor Modal */}
+      <ArtifactEditorModal
+        open={isEditorOpen}
+        onOpenChange={setIsEditorOpen}
+        artifact={artifact}
+        projectId={projectId}
       />
     </>
   );

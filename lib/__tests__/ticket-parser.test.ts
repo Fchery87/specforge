@@ -41,4 +41,46 @@ As a user, I want to reset my password so that I can regain access.
     const tickets = parseTicketsFromMarkdown(markdown);
     expect(tickets).toHaveLength(0);
   });
+
+  test('extracts tracer bullets with blocking edges and target files', () => {
+    const markdown = `
+### US-001: Core Domain Entities
+Set up initial schema.
+
+**Slice Type:** tracer_bullet
+**Blocked by:** None
+**Files to touch:** convex/schema.ts, lib/models.ts
+
+**Acceptance Criteria:**
+- [ ] Users table exists
+- [ ] Projects table exists
+
+**Priority:** Critical
+**Effort:** M
+
+### US-002: Auth Seam Implementation
+Connect Clerk authentication.
+
+**Slice Type:** tracer_bullet
+**Blocked by:** US-001
+**Files to touch:** proxy.ts, lib/auth.tsx
+
+**Acceptance Criteria:**
+- [ ] Auth protects dashboard
+- [ ] Identity tokens verified
+
+**Priority:** High
+**Effort:** S
+`;
+    const tickets = parseTicketsFromMarkdown(markdown);
+    expect(tickets).toHaveLength(2);
+    expect(tickets[0].sliceType).toBe('tracer_bullet');
+    expect(tickets[0].blockedBy).toBeUndefined();
+    expect(tickets[0].filesToTouch).toEqual(['convex/schema.ts', 'lib/models.ts']);
+    expect(tickets[0].acceptanceCriteria).toEqual(['Users table exists', 'Projects table exists']);
+
+    expect(tickets[1].sliceType).toBe('tracer_bullet');
+    expect(tickets[1].blockedBy).toEqual(['US-001']);
+    expect(tickets[1].filesToTouch).toEqual(['proxy.ts', 'lib/auth.tsx']);
+  });
 });

@@ -39,6 +39,22 @@ export const getAllSystemCredentials = query({
   },
 });
 
+// Public query to get list of providers that have active system credentials.
+// Does NOT return API keys or sensitive data.
+export const getAvailableSystemProviders = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const credentials = await ctx.db.query('systemCredentials').collect();
+    return credentials
+      .filter((c) => c.isEnabled && c.apiKey !== undefined)
+      .map((c) => ({
+        provider: c.provider,
+        zaiEndpointType: c.zaiEndpointType,
+        zaiIsChina: c.zaiIsChina,
+      }));
+  },
+});
+
 // Internal query for getting all system credentials (for use in internal actions)
 // NOTE: No auth check needed - internal queries are server-to-server only
 export const getAllSystemCredentialsInternal = internalQuery({

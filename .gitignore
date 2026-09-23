@@ -62,3 +62,7 @@ Thumbs.db
 .claude/logs/
 .claude/artifacts/
 .claude/commands/
+
+# Local harnesses and tooling
+.apex-code/
+.harness/
