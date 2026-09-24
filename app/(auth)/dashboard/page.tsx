@@ -37,7 +37,6 @@ function getRelativeTime(timestamp: number): string {
   return "Just now";
 }
 
-const PHASE_ORDER = ['brief', 'constitution', 'prd', 'domainModel', 'spec', 'userStories', 'handoff'];
 
 export default function DashboardPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -366,89 +365,18 @@ export default function DashboardPage() {
           /* Projects Grid with Progress */
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sortedProjects.map((project) => (
-              <div key={project._id} className="relative group">
-                <Link href={`/project/${project._id}`} className="block">
-                  <Card
-                    variant="interactive"
-                    className={cn(
-                      "h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1",
-                      "border-l-4",
-                      project.status === "complete" && "border-l-emerald-500",
-                      project.status === "active" && "border-l-primary",
-                      project.status === "draft" && "border-l-muted"
-                    )}
-                  >
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-bold truncate group-hover:text-primary transition-colors">
-                        {project.title}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2 text-sm">
-                        {project.description}
-                      </CardDescription>
-
-                      {/* Status Badges */}
-                      <div className="flex items-center gap-2 mt-3">
-                        {project.status === "complete" && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                            Complete
-                          </span>
-                        )}
-                        {project.status === "active" && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-secondary text-muted-foreground">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      {/* Progress Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Progress</span>
-                          <span className="font-medium">0%</span>
-                        </div>
-                        <Progress value={0} className="h-1.5" />
-                      </div>
-
-                      {/* Phase Indicators */}
-                      <div className="flex gap-0.5">
-                        {PHASE_ORDER.map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="h-1 flex-1 rounded-full bg-muted/50"
-                          />
-                        ))}
-                      </div>
-
-                      {/* Footer */}
-                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-                        <span className="capitalize">{project.status}</span>
-                        <span>Updated {getRelativeTime(project.updatedAt)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Action Menu */}
-                <div className="absolute top-3 right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setDeleteDialogState({
-                        open: true,
-                        projectId: project._id,
-                        projectTitle: project.title,
-                      });
-                    }}
-                    className="w-8 h-8 bg-background/90 backdrop-blur border border-border hover:border-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
-                    aria-label={`Delete ${project.title}`}
-                  >
-                    <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
-                  </button>
-                </div>
-              </div>
+              <ProjectCard
+                key={project._id}
+                project={project}
+                isPinned={pinnedIds.has(project._id)}
+                onDelete={() => {
+                  setDeleteDialogState({
+                    open: true,
+                    projectId: project._id,
+                    projectTitle: project.title,
+                  });
+                }}
+              />
             ))}
           </div>
         )}
