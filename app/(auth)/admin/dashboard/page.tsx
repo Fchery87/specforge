@@ -288,8 +288,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/users" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Users className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <Users className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>User Management</CardTitle>
                 <CardDescription>
@@ -298,7 +298,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Manage Users <ArrowRight className="w-4 h-4 ml-2" />
+                  Manage Users <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -308,8 +308,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/projects" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <FolderOpen className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <FolderOpen className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Project Control Center</CardTitle>
                 <CardDescription>
@@ -318,7 +318,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Manage Projects <ArrowRight className="w-4 h-4 ml-2" />
+                  Manage Projects <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -328,8 +328,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/analytics" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <BarChart3 className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <BarChart3 className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Usage Analytics</CardTitle>
                 <CardDescription>
@@ -338,7 +338,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  View Analytics <ArrowRight className="w-4 h-4 ml-2" />
+                  View Analytics <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -348,8 +348,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/health" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Activity className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <Activity className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>System Health</CardTitle>
                 <CardDescription>
@@ -358,7 +358,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Monitor Health <ArrowRight className="w-4 h-4 ml-2" />
+                  Monitor Health <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -368,8 +368,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/security" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Lock className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <Lock className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Security & Audit</CardTitle>
                 <CardDescription>
@@ -378,7 +378,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  View Logs <ArrowRight className="w-4 h-4 ml-2" />
+                  View Logs <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -388,8 +388,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/settings" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Settings className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <Settings className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Global Settings</CardTitle>
                 <CardDescription>
@@ -398,7 +398,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Configure <ArrowRight className="w-4 h-4 ml-2" />
+                  Configure <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -408,8 +408,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/moderation" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Flag className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <Flag className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Content Moderation</CardTitle>
                 <CardDescription>
@@ -418,7 +418,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Moderate <ArrowRight className="w-4 h-4 ml-2" />
+                  Moderate <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -428,8 +428,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/llm-models" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Sparkles className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <Sparkles className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>LLM Models & Credentials</CardTitle>
                 <CardDescription>
@@ -438,7 +438,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  Manage AI Infrastructure <ArrowRight className="w-4 h-4 ml-2" />
+                  Manage AI Infrastructure <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -448,8 +448,8 @@ export default function AdminDashboardPage() {
           <Link href={"/admin/activity" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:border-primary transition-colors">
-                  <Activity className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:bg-primary/10 group-hover:border-primary transition-colors">
+                  <Activity className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Activity Monitor</CardTitle>
                 <CardDescription>
@@ -458,7 +458,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold uppercase tracking-tight transition-colors">
-                  View Activity <ArrowRight className="w-4 h-4 ml-2" />
+                  View Activity <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>

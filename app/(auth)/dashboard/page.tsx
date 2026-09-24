@@ -193,8 +193,8 @@ export default function DashboardPage() {
           <Link href="/dashboard/new" className="md:col-span-2 lg:col-span-1 block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-primary bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-black group-hover:border-black transition-colors">
-                  <Plus className="w-7 h-7 text-primary group-hover:text-primary transition-colors" />
+                <div className="w-14 h-14 border-2 border-primary bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:border-primary transition-colors">
+                  <Plus className="w-7 h-7 text-primary transition-colors" />
                 </div>
                 <CardTitle>New Project</CardTitle>
                 <CardDescription>
@@ -202,8 +202,8 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-primary group-hover:text-black font-bold uppercase tracking-tight transition-colors">
-                  Create Project <ArrowRight className="w-4 h-4 ml-2" />
+                <div className="flex items-center text-primary font-bold uppercase tracking-tight transition-all group-hover:translate-x-0.5">
+                  Create Project <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -247,8 +247,8 @@ export default function DashboardPage() {
           <Link href={"/dashboard/quick" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-black group-hover:bg-black/10 transition-colors">
-                  <Zap className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-primary group-hover:bg-primary/10 transition-colors">
+                  <Zap className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Quick Spec</CardTitle>
                 <CardDescription>
@@ -256,8 +256,8 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-primary group-hover:text-black font-bold uppercase tracking-tight text-sm transition-colors">
-                  Open Quick Spec <ArrowRight className="w-4 h-4 ml-2" />
+                <div className="flex items-center text-primary font-bold uppercase tracking-tight text-sm transition-all group-hover:translate-x-0.5">
+                  Open Quick Spec <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>

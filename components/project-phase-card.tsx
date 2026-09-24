@@ -51,11 +51,11 @@ export function ProjectPhaseCard({
     >
       <Link href={`/project/${projectId}/phase/${phaseId}`} className="block flex-1 focus:outline-none">
         <CardHeader>
-          <div className="text-6xl font-bold text-muted/20 absolute top-4 right-4 group-hover:text-black/10 transition-colors select-none">
+          <div className="text-6xl font-bold text-muted/20 absolute top-4 right-4 group-hover:text-primary/20 transition-colors select-none">
             {String(index + 1).padStart(2, "0")}
           </div>
-          <div className="w-12 h-12 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-black group-hover:bg-black/10 transition-colors">
-            <Icon className="w-6 h-6 text-muted-foreground group-hover:text-black transition-colors" />
+          <div className="w-12 h-12 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-primary group-hover:bg-primary/10 transition-colors">
+            <Icon className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -77,9 +77,9 @@ export function ProjectPhaseCard({
         <div className="flex items-center justify-between">
           <Link
             href={`/project/${projectId}/phase/${phaseId}`}
-            className="flex items-center text-primary group-hover:text-black font-bold uppercase tracking-tight text-sm transition-colors"
+            className="flex items-center text-primary font-bold uppercase tracking-tight text-sm transition-all group-hover:translate-x-0.5"
           >
-            Enter Phase <ArrowRight className="w-4 h-4 ml-2" />
+            Enter Phase <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
           </Link>
           {onToggleSkip && (
             <Button

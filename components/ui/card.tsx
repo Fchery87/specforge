@@ -3,12 +3,13 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "rounded-none border-2 border-border bg-card text-card-foreground shadow-none transition-all duration-300",
+  "rounded-none border-2 border-border bg-card text-card-foreground shadow-none transition-all duration-200",
   {
     variants: {
       variant: {
         default: "hover:border-primary/50",
-        interactive: "group hover:bg-primary hover:border-primary hover:text-primary-foreground cursor-pointer",
+        interactive:
+          "group hover:border-primary hover:shadow-lg hover:-translate-y-1 cursor-pointer",
         static: "",
       },
     },
@@ -49,7 +50,7 @@ const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HT
     <h3
       ref={ref}
       className={cn(
-        "text-2xl md:text-3xl font-bold uppercase leading-none tracking-tighter group-hover:text-black transition-colors duration-300",
+        "text-2xl md:text-3xl font-bold uppercase leading-none tracking-tighter group-hover:text-primary transition-colors duration-200",
         className
       )}
       {...props}
@@ -63,7 +64,7 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttribu
     <p
       ref={ref}
       className={cn(
-        "text-base md:text-lg text-muted-foreground group-hover:text-black/70 transition-colors duration-300",
+        "text-base md:text-lg text-muted-foreground group-hover:text-foreground/90 transition-colors duration-200",
         className
       )}
       {...props}
