@@ -226,8 +226,8 @@ export default function ProjectPage() {
         </div>
       </section>
 
-      {/* Decorative Element */}
-      <div className="text-[12vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden mt-12">
+      {/* Decorative Watermark */}
+      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
         {project.title?.split(' ')[0]?.toUpperCase() || 'PROJECT'}
       </div>
 

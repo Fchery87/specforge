@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Loader2, CheckCircle, XCircle, AlertTriangle, FileSearch } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, AlertTriangle, FileSearch, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import type { Finding, FindingCategory, FindingSeverity, VerificationStatus } from "@/lib/verification/spec-checker";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -42,6 +41,7 @@ const statusConfig: Record<VerificationStatus, { icon: typeof CheckCircle; label
 export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps) {
   const [gitDiff, setGitDiff] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [copiedCommand, setCopiedCommand] = useState(false);
   const [result, setResult] = useState<{
     findings: Finding[];
     overallScore: number;
@@ -52,6 +52,20 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
   const verificationHistory = useQuery(api.evidence.listVerificationResults, {
     projectId: projectId as Id<"projects">,
   });
+
+  async function handleCopyCommand() {
+    const command = "git diff origin/main...HEAD";
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopiedCommand(true);
+      toast.success("Copied to clipboard", {
+        description: command,
+      });
+      setTimeout(() => setCopiedCommand(false), 2000);
+    } catch {
+      toast.error("Failed to copy command to clipboard");
+    }
+  }
 
   async function handleVerify() {
     if (!gitDiff.trim()) {
@@ -112,9 +126,24 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
       <CardContent className="space-y-4">
         {!result ? (
           <>
-            <p className="text-sm text-muted-foreground">
-              Paste your git diff to verify that your implementation matches the specification requirements.
-            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Paste your git diff to verify implementation against requirements.
+              </p>
+              <button
+                type="button"
+                onClick={handleCopyCommand}
+                className="inline-flex items-center gap-1.5 font-mono text-xs bg-muted/60 hover:bg-muted text-foreground border border-border rounded px-2.5 py-1 transition-colors self-start sm:self-auto shrink-0"
+                title="Copy git diff command: git diff origin/main...HEAD"
+              >
+                {copiedCommand ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+                <span>{copiedCommand ? "Copied command" : "Copy diff command"}</span>
+              </button>
+            </div>
             <Textarea
               placeholder={`Paste git diff here...
 Example:
@@ -243,21 +272,21 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
       
       {finding.suggestion && (
         <div className="bg-white/5 rounded p-3 text-sm">
-          <div className="font-medium text-xs text-muted-foreground mb-1">Suggestion:</div>
+          <div className="font-medium text-xs text-muted-foreground mb-1">Suggestion</div>
           <div className="text-sm">{finding.suggestion}</div>
         </div>
       )}
       
       {finding.specReference && (
         <div className="text-xs text-muted-foreground">
-          Reference: <span className="font-mono">{finding.specReference}</span>
+          Reference <span className="font-mono">{finding.specReference}</span>
         </div>
       )}
       {finding.requirementId && (
-        <div className="text-xs text-muted-foreground">Requirement: <span className="font-mono">{finding.requirementId}</span></div>
+        <div className="text-xs text-muted-foreground">Requirement <span className="font-mono">{finding.requirementId}</span></div>
       )}
       {finding.changedFilePath && (
-        <div className="text-xs text-muted-foreground">Changed file: <span className="font-mono">{finding.changedFilePath}</span></div>
+        <div className="text-xs text-muted-foreground">Changed file <span className="font-mono">{finding.changedFilePath}</span></div>
       )}
     </div>
   );

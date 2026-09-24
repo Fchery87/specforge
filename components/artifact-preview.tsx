@@ -189,7 +189,7 @@ export function ArtifactPreview({ artifact, projectId, onDelete, onEdit }: Artif
                 ZIP
               </Button>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => {
                   if (onEdit) {
@@ -200,7 +200,7 @@ export function ArtifactPreview({ artifact, projectId, onDelete, onEdit }: Artif
                 }}
               >
                 <Edit className="w-4 h-4 mr-2" />
-                Edit
+                Edit & Validate
               </Button>
               {onDelete && (
                 <Button 
