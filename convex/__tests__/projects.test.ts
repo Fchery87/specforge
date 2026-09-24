@@ -48,6 +48,17 @@ describe("applyAnswerUpdate", () => {
     expect(result[0].answer).toBe("A1");
     expect(result[0].aiGenerated).toBe(false);
   });
+
+  it("updates selectedSuggestionIndex when provided", () => {
+    const questions = [
+      { id: "q1", text: "Q1", aiGenerated: false, suggestions: ["Opt 1", "Opt 2"] },
+    ];
+
+    const result = applyAnswerUpdate(questions as any, "q1", "Opt 2", true, 1);
+    expect(result[0].answer).toBe("Opt 2");
+    expect(result[0].aiGenerated).toBe(true);
+    expect(result[0].selectedSuggestionIndex).toBe(1);
+  });
 });
 
 describe("getNextUpdatedAt", () => {

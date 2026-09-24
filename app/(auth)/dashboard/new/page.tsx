@@ -9,17 +9,56 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, GitBranch } from "lucide-react";
+import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, GitBranch, Zap, Compass, Server } from "lucide-react";
 import Link from "next/link";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 import { CodebaseConnector } from "@/components/codebase-connector";
 import { toast } from "sonner";
+
+type ProjectMode = 'full' | 'quick' | 'backend';
+
+interface ProjectModeOption {
+  id: ProjectMode;
+  name: string;
+  badge: string;
+  description: string;
+  phasesSummary: string;
+  icon: React.ReactNode;
+}
+
+const PROJECT_MODES: ProjectModeOption[] = [
+  {
+    id: 'quick',
+    name: 'Quick Feature Spec',
+    badge: 'Fast-Track',
+    description: 'Brisk specification for a targeted feature or bug fix. Focuses on requirements, technical architecture, and stories.',
+    phasesSummary: 'Brief → PRD → Specs → Stories → Handoff',
+    icon: <Zap className="w-4 h-4 text-amber-500" />,
+  },
+  {
+    id: 'full',
+    name: 'Full System Blueprint',
+    badge: 'Enterprise',
+    description: 'Comprehensive 8-phase architecture specification for greenfield systems and major platform initiatives.',
+    phasesSummary: 'All 8 phases: Constitution through Handoff',
+    icon: <Compass className="w-4 h-4 text-primary" />,
+  },
+  {
+    id: 'backend',
+    name: 'API & Backend Service',
+    badge: 'Architecture',
+    description: 'Service contracts, domain models, schemas, and API specifications for microservices and backend platforms.',
+    phasesSummary: 'Constitution → Domain → Specs → Artifacts → Handoff',
+    icon: <Server className="w-4 h-4 text-blue-500" />,
+  },
+];
 
 export default function NewProjectPage() {
   const router = useRouter();
   const createProject = useMutation(api.projects.createProject);
   const templates = useQuery(api.constitutionTemplates.listTemplates);
 
+  const [selectedMode, setSelectedMode] = useState<ProjectMode>('quick');
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -40,6 +79,7 @@ export default function NewProjectPage() {
         title: title.slice(0, 100),
         description: description.slice(0, 5000),
         constitutionTemplateId: selectedTemplateId ?? undefined,
+        mode: selectedMode,
       });
       // Show repo connector step instead of immediately redirecting
       setCreatedProjectId(id);
@@ -57,7 +97,11 @@ export default function NewProjectPage() {
 
   function handleSkipRepo() {
     if (createdProjectId) {
-      router.push(`/project/${createdProjectId}`);
+      if (selectedMode === 'quick') {
+        router.push(`/project/${createdProjectId}/phase/brief`);
+      } else {
+        router.push(`/project/${createdProjectId}`);
+      }
     }
   }
 
@@ -145,6 +189,49 @@ export default function NewProjectPage() {
                   </CardDescription>
                 </CardHeader>
             <CardContent className="space-y-8">
+              {/* Specification Mode Selector */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                  Specification Mode
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {PROJECT_MODES.map((mode) => {
+                    const isSelected = selectedMode === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setSelectedMode(mode.id)}
+                        disabled={isCreating}
+                        className={`text-left p-4 border transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/40 shadow-sm"
+                            : "border-border hover:border-muted-foreground/50 bg-secondary/10"
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="font-semibold text-sm flex items-center gap-1.5">
+                              {mode.icon}
+                              {mode.name}
+                            </span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-muted text-muted-foreground">
+                              {mode.badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                            {mode.description}
+                          </p>
+                        </div>
+                        <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground font-mono">
+                          {mode.phasesSummary}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Title Input - Hero Style */}
               <div className="space-y-3">
                 <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
@@ -181,7 +268,13 @@ export default function NewProjectPage() {
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value.slice(0, 5000))}
-                  placeholder="Describe the system in detail. Specify user personas, critical workflows, integrations, data structures, and architectural non-goals..."
+                  placeholder={
+                    selectedMode === "quick"
+                      ? "Describe the feature or problem statement. Specify key user actions, acceptance criteria, constraints, and integration boundaries..."
+                      : selectedMode === "backend"
+                      ? "Describe the service, API endpoints, core data models, throughput requirements, and database/storage preferences..."
+                      : "Describe the system in detail. Specify user personas, critical workflows, integrations, data structures, and architectural non-goals..."
+                  }
                   className="min-h-[200px] text-base"
                   disabled={isCreating}
                 />

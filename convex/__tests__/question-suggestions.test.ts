@@ -67,6 +67,20 @@ describe('buildQuestionPrompt (generateQuestions)', () => {
     expect(prompt).toContain('brief');
     expect(prompt).toContain('5-8');
   });
+
+  test('prompt includes upstream and codebase context when provided', () => {
+    const prompt = buildQuestionPrompt({
+      title: 'My App',
+      description: 'A SaaS product',
+      phaseId: 'specs',
+      range: { min: 5, max: 8 },
+      upstreamContext: 'Database: PostgreSQL with Drizzle',
+      codebaseContext: 'Repository: acme/myapp (main)',
+    });
+    expect(prompt).toContain('Database: PostgreSQL with Drizzle');
+    expect(prompt).toContain('Repository: acme/myapp (main)');
+    expect(prompt).toContain('Do NOT ask questions that have already been definitively answered');
+  });
 });
 
 describe('selectQuestions', () => {

@@ -40,6 +40,14 @@ export const createProject = mutation({
     title: v.string(),
     description: v.string(),
     constitutionTemplateId: v.optional(v.id('constitutionTemplates')),
+    mode: v.optional(
+      v.union(
+        v.literal('full'),
+        v.literal('quick'),
+        v.literal('backend'),
+      ),
+    ),
+    skippedPhases: v.optional(v.array(v.string())),
   },
   handler: async (ctx: MutationCtx, args) => {
     const normalized = normalizeProjectInput({
@@ -61,6 +69,14 @@ export const createProject = mutation({
       });
     }
 
+    const skippedPhases = args.skippedPhases ?? (
+      args.mode === 'quick'
+        ? ['constitution', 'domainModel', 'artifacts']
+        : args.mode === 'backend'
+        ? ['brief', 'stories']
+        : undefined
+    );
+
     const now = Date.now();
     const projectId = await ctx.db.insert('projects', {
       userId,
@@ -70,6 +86,8 @@ export const createProject = mutation({
       createdAt: now,
       updatedAt: now,
       constitutionTemplate,
+      ...(args.mode ? { mode: args.mode } : {}),
+      ...(skippedPhases ? { skippedPhases } : {}),
     });
 
     for (const phaseId of DEFAULT_PHASES) {
@@ -211,6 +229,7 @@ export const saveAnswer = mutation({
     questionId: v.string(),
     answer: v.string(),
     aiGenerated: v.optional(v.boolean()),
+    selectedSuggestionIndex: v.optional(v.number()),
   },
   handler: async (ctx: MutationCtx, args) => {
     const project = await ctx.db.get(args.projectId);
@@ -233,6 +252,7 @@ export const saveAnswer = mutation({
       args.questionId,
       args.answer,
       args.aiGenerated,
+      args.selectedSuggestionIndex,
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
@@ -419,7 +439,7 @@ export const saveGrillAnswers = mutation({
         revisionLabel: `Grilling answer in ${args.phaseId}`,
         content: answer.answer,
         capturedBy: identity.subject,
-        origin: 'user',
+        origin: answer.acceptedRecommendation ? 'assistant' : 'user',
       });
     }
 
@@ -468,12 +488,18 @@ export const resetGrillSession = mutation({
 });
 
 export function applyAnswerUpdate<
-  T extends { id: string; aiGenerated?: boolean; answer?: string },
+  T extends {
+    id: string;
+    aiGenerated?: boolean;
+    answer?: string;
+    selectedSuggestionIndex?: number;
+  },
 >(
   questions: T[],
   questionId: string,
   answer: string,
   aiGenerated?: boolean,
+  selectedSuggestionIndex?: number,
 ): T[] {
   return questions.map((q) =>
     q.id === questionId
@@ -481,6 +507,9 @@ export function applyAnswerUpdate<
           ...q,
           answer,
           ...(aiGenerated !== undefined ? { aiGenerated } : {}),
+          ...(selectedSuggestionIndex !== undefined
+            ? { selectedSuggestionIndex }
+            : {}),
         }
       : q,
   );
@@ -620,6 +649,8 @@ export const updatePhaseQuestions = mutation({
         answer: v.optional(v.string()),
         aiGenerated: v.boolean(),
         required: v.optional(v.boolean()),
+        suggestions: v.optional(v.array(v.string())),
+        selectedSuggestionIndex: v.optional(v.number()),
       }),
     ),
   },

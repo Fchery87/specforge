@@ -18,6 +18,7 @@ import { retryWithBackoff } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
+import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -170,10 +171,20 @@ export function buildQuestionPrompt(params: {
   description: string;
   phaseId: string;
   range: { min: number; max: number };
+  upstreamContext?: string;
+  codebaseContext?: string;
 }): string {
   const phaseCtx = PHASE_CONTEXT[params.phaseId];
   const phaseDesc = phaseCtx?.description ?? params.phaseId;
   const sectionsList = phaseCtx?.sections?.join(', ') ?? '';
+
+  const upstreamBlock = params.upstreamContext
+    ? `Existing Project Decisions & Prior Phase Answers:\n${params.upstreamContext}\n\n`
+    : '';
+
+  const codebaseBlock = params.codebaseContext
+    ? `Repository & Codebase Context:\n${params.codebaseContext}\n\n`
+    : '';
 
   return (
     `Generate ${params.range.min}-${params.range.max} specific, high-value questions for the "${params.phaseId}" phase.\n\n` +
@@ -181,8 +192,11 @@ export function buildQuestionPrompt(params: {
     (sectionsList ? `Sections this phase will generate: ${sectionsList}\n\n` : '\n') +
     `Project Title: ${params.title}\n` +
     `Project Description: ${params.description}\n\n` +
+    upstreamBlock +
+    codebaseBlock +
     `Ask questions whose answers will directly inform the content of the sections listed above. ` +
-    `Focus on decisions, constraints, and preferences that the user must clarify before generating each section.\n\n` +
+    `Focus on decisions, constraints, and preferences that the user must clarify before generating each section.\n` +
+    `CRITICAL: Do NOT ask questions that have already been definitively answered or decided in the existing project decisions or codebase context above.\n\n` +
     `For each question, also provide 3-5 selectable suggestion options that represent common answers.\n\n` +
     `Return JSON only in this shape:\n` +
     `{"questions":[{"text":"...","required":true,"suggestions":["Option A","Option B","Option C"]}]}`
@@ -323,11 +337,61 @@ export const generateQuestions = action({
         console.warn('[generateQuestions] No LLM client — credentials missing or invalid. Falling back to base questions.');
       }
       if (llmClient) {
+        // Gather upstream answers from dependent phases
+        const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
+        const upstreamAnswersList: string[] = [];
+
+        if (project.constitutionTemplate?.lockedConstraints) {
+          const constraints = project.constitutionTemplate.lockedConstraints;
+          const constraintParts: string[] = [];
+          if (constraints.architecture) constraintParts.push(`Architecture: ${constraints.architecture}`);
+          if (constraints.stateManagement) constraintParts.push(`State Management: ${constraints.stateManagement}`);
+          if (constraints.apiDesign) constraintParts.push(`API Design: ${constraints.apiDesign}`);
+          if (constraints.securityProtocols?.length) {
+            constraintParts.push(`Security Protocols: ${constraints.securityProtocols.join(', ')}`);
+          }
+          if (constraintParts.length > 0) {
+            upstreamAnswersList.push(`[Constitution Constraints]\n${constraintParts.join('\n')}`);
+          }
+        }
+
+        for (const upstreamPhaseId of upstreamPhaseIds) {
+          const upstreamPhase = await ctx.runQuery(
+            internalApi.internal.getPhaseInternal,
+            { projectId: args.projectId, phaseId: upstreamPhaseId },
+          );
+          if (upstreamPhase?.questions) {
+            const answered = upstreamPhase.questions
+              .filter((q: { answer?: string }) => q.answer?.trim())
+              .map((q: { text: string; answer?: string }) => `Q: [${upstreamPhaseId}] ${q.text}\nA: ${q.answer}`);
+            if (answered.length > 0) {
+              upstreamAnswersList.push(answered.join('\n\n'));
+            }
+          }
+        }
+        const upstreamContext = upstreamAnswersList.join('\n\n');
+
+        let codebaseContext: string | undefined;
+        try {
+          const codebase = await ctx.runQuery(
+            internalApi.internal.getCodebaseInternal,
+            { projectId: args.projectId },
+          );
+          if (codebase) {
+            const keyFilePaths = (codebase.keyFiles || []).map((f: { path: string }) => f.path).slice(0, 10);
+            codebaseContext = `Repository: ${codebase.repoOwner}/${codebase.repoName} (${codebase.defaultBranch})\nKey Files: ${keyFilePaths.join(', ')}`;
+          }
+        } catch {
+          // Codebase lookup is optional
+        }
+
         const prompt = buildQuestionPrompt({
           title: project.title,
           description: project.description,
           phaseId: args.phaseId,
           range,
+          upstreamContext: upstreamContext || undefined,
+          codebaseContext,
         });
 
         const telemetryProvider = credentials?.provider ?? model.provider;
@@ -797,10 +861,46 @@ export const generateGrillRound = action({
 
       const llmClient = createLlmClient(credentials, providerApiEndpoint);
       if (llmClient) {
-        const upstreamAnswers = (phase?.questions || [])
+        const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
+        const upstreamAnswersList: string[] = [];
+
+        if (project.constitutionTemplate?.lockedConstraints) {
+          const constraints = project.constitutionTemplate.lockedConstraints;
+          const constraintParts: string[] = [];
+          if (constraints.architecture) constraintParts.push(`Architecture: ${constraints.architecture}`);
+          if (constraints.stateManagement) constraintParts.push(`State Management: ${constraints.stateManagement}`);
+          if (constraints.apiDesign) constraintParts.push(`API Design: ${constraints.apiDesign}`);
+          if (constraints.securityProtocols?.length) {
+            constraintParts.push(`Security Protocols: ${constraints.securityProtocols.join(', ')}`);
+          }
+          if (constraintParts.length > 0) {
+            upstreamAnswersList.push(`[Constitution Constraints]\n${constraintParts.join('\n')}`);
+          }
+        }
+
+        for (const upstreamPhaseId of upstreamPhaseIds) {
+          const upstreamPhase = await ctx.runQuery(
+            internalApi.internal.getPhaseInternal,
+            { projectId: args.projectId, phaseId: upstreamPhaseId },
+          );
+          if (upstreamPhase?.questions) {
+            const answered = upstreamPhase.questions
+              .filter((q: { answer?: string }) => q.answer?.trim())
+              .map((q: { text: string; answer?: string }) => `Q: [${upstreamPhaseId}] ${q.text}\nA: ${q.answer}`);
+            if (answered.length > 0) {
+              upstreamAnswersList.push(answered.join('\n\n'));
+            }
+          }
+        }
+
+        const currentPhaseAnswers = (phase?.questions || [])
           .filter((q: { answer?: string }) => q.answer?.trim())
-          .map((q: { text: string; answer?: string }) => `Q: ${q.text}\nA: ${q.answer}`)
-          .join('\n\n');
+          .map((q: { text: string; answer?: string }) => `Q: ${q.text}\nA: ${q.answer}`);
+        if (currentPhaseAnswers.length > 0) {
+          upstreamAnswersList.push(currentPhaseAnswers.join('\n\n'));
+        }
+
+        const upstreamAnswers = upstreamAnswersList.join('\n\n');
 
         const priorGrillHistory = grillSession?.rounds
           ? grillSession.rounds

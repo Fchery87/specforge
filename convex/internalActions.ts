@@ -926,79 +926,77 @@ export const generateQuestionsWorker = internalAction({
     }
 
     try {
-      const CONCURRENCY_LIMIT = 3;
       let currentStep = task.currentStep;
+      const accumulatedSessionAnswers: string[] = [];
 
-      while (currentStep < task.totalSteps) {
-        const chunk = plan.slice(currentStep, currentStep + CONCURRENCY_LIMIT);
+      for (let i = currentStep; i < task.totalSteps; i++) {
+        const question = plan[i] as { id: string; text: string };
+        let attempts = 0;
+        let success = false;
+        let lastError;
 
-        await Promise.all(
-          (chunk as Array<{ id: string; text: string }>).map(async (question) => {
-            let attempts = 0;
-            let success = false;
-            let lastError;
+        while (attempts < 3 && !success) {
+          try {
+            const phase = await ctx.runQuery(
+              internal.internal.getPhaseInternal,
+              {
+                projectId,
+                phaseId,
+              },
+            );
+            const dbAnswers = (phase?.questions || [])
+              .filter((q: Question) => q.answer && q.id !== question.id)
+              .map((q: Question) => `${q.text}\nAnswer: ${q.answer}`);
 
-            while (attempts < 3 && !success) {
-              try {
-                const phase = await ctx.runQuery(
-                  internal.internal.getPhaseInternal,
-                  {
-                    projectId,
-                    phaseId,
-                  },
-                );
-                const previousAnswers = (phase?.questions || [])
-                  .filter((q: Question) => q.answer && q.id !== question.id)
-                  .map((q: Question) => `${q.text}\nAnswer: ${q.answer}`)
-                  .join('\n\n');
+            const allPrevious = [...dbAnswers, ...accumulatedSessionAnswers]
+              .filter((ans, idx, self) => self.indexOf(ans) === idx)
+              .join('\n\n');
 
-                const prompt = `You are a senior software architect helping answer clarification questions for a software project specification.
+            const prompt = `You are a senior software architect helping answer clarification questions for a software project specification.
 
 Project Title: ${projectContext.title}
 Project Description: ${projectContext.description}
 
-${previousAnswers ? `Previously answered questions in this session:\n${previousAnswers}\n\n` : ''}Question: ${question.text}
+${allPrevious ? `Previously answered questions in this session:\n${allPrevious}\n\n` : ''}Question: ${question.text}
 
 Provide a clear, specific, and actionable answer. Include concrete details (e.g., specific technologies, patterns, metrics) rather than generic guidance. Maintain consistency with any previous answers above. Keep the answer concise (2-4 sentences).`;
 
-                const response = await llmClient.complete(prompt, {
-                  model: model.id,
-                  maxTokens: Math.min(model.maxOutputTokens || 2000, 2000),
-                  temperature: 0.7,
-                });
+            const response = await llmClient.complete(prompt, {
+              model: model.id,
+              maxTokens: Math.min(model.maxOutputTokens || 2000, 2000),
+              temperature: 0.5,
+            });
 
-                await ctx.runMutation(internal.internal.saveAnswerInternal, {
-                  projectId,
-                  phaseId,
-                  questionId: question.id,
-                  answer: response.content.trim(),
-                  aiGenerated: true,
-                });
-                success = true;
-              } catch (err) {
-                attempts++;
-                lastError = err;
-                const errMsg = err instanceof Error ? err.message : String(err);
-                if (
-                  errMsg.includes('429') ||
-                  errMsg.includes('rate limit')
-                ) {
-                  // Rate limit, backoff
-                  await new Promise((resolve) =>
-                    setTimeout(resolve, 1000 * Math.pow(2, attempts)),
-                  );
-                } else if (attempts >= 3) {
-                  throw err; // max retries reached
-                }
-              }
+            const answerText = response.content.trim();
+            accumulatedSessionAnswers.push(`${question.text}\nAnswer: ${answerText}`);
+
+            await ctx.runMutation(internal.internal.saveAnswerInternal, {
+              projectId,
+              phaseId,
+              questionId: question.id,
+              answer: answerText,
+              aiGenerated: true,
+            });
+            success = true;
+          } catch (err) {
+            attempts++;
+            lastError = err;
+            const errMsg = err instanceof Error ? err.message : String(err);
+            if (
+              errMsg.includes('429') ||
+              errMsg.includes('rate limit')
+            ) {
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * Math.pow(2, attempts)),
+              );
+            } else if (attempts >= 3) {
+              throw err;
             }
-            if (!success) throw lastError;
-          }),
-        );
+          }
+        }
+        if (!success) throw lastError;
 
-        currentStep += chunk.length;
-
-        // Update task progress after chunk
+        currentStep = i + 1;
         await ctx.runMutation(internal.internal.updateGenerationTask, {
           taskId: args.taskId,
           currentStep,

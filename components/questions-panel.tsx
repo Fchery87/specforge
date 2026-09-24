@@ -61,6 +61,8 @@ export function QuestionsPanel({
 
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
   const [localAiGenerated, setLocalAiGenerated] = useState<Record<string, boolean>>({});
+  const [localSelectedSuggestions, setLocalSelectedSuggestions] = useState<Record<string, number | undefined>>({});
+  const [stagedSuggestions, setStagedSuggestions] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -77,6 +79,7 @@ export function QuestionsPanel({
   // Track pending saves
   const pendingSaveRef = useRef<Record<string, string>>({});
   const pendingAiGeneratedRef = useRef<Record<string, boolean>>({});
+  const pendingSuggestionIndexRef = useRef<Record<string, number | undefined>>({});
   const batchAnswers = useMemo(() => collectBatchAnswers(questions), [questions]);
   const batchTask = useQuery(
     getGenerationTaskAction,
@@ -91,14 +94,19 @@ export function QuestionsPanel({
     const initial: Record<string, string> = {};
     const initialAi: Record<string, boolean> = {};
     const initialSuggestions: Record<string, string[]> = {};
+    const initialSelectedSuggestions: Record<string, number | undefined> = {};
     questions.forEach(q => {
       if (q.answer) initial[q.id] = q.answer;
       if (q.aiGenerated !== undefined) initialAi[q.id] = q.aiGenerated;
       if (q.suggestions?.length) initialSuggestions[q.id] = q.suggestions;
+      if (q.selectedSuggestionIndex !== undefined) {
+        initialSelectedSuggestions[q.id] = q.selectedSuggestionIndex;
+      }
     });
     setLocalAnswers(initial);
     setLocalAiGenerated(initialAi);
     setQuestionSuggestions(initialSuggestions);
+    setLocalSelectedSuggestions(initialSelectedSuggestions);
   }, [questions]);
 
   useEffect(() => {
@@ -135,10 +143,22 @@ export function QuestionsPanel({
   const allAnswered = unansweredRequired === 0;
 
   // Debounced save function
-  const handleSaveAnswer = useCallback(async (questionId: string, value: string, aiGenerated?: boolean) => {
+  const handleSaveAnswer = useCallback(async (
+    questionId: string,
+    value: string,
+    aiGenerated?: boolean,
+    selectedSuggestionIndex?: number,
+  ) => {
     setSavingId(questionId);
     try {
-      await saveAnswer({ projectId: projectId as Id<"projects">, phaseId, questionId, answer: value, aiGenerated });
+      await saveAnswer({
+        projectId: projectId as Id<"projects">,
+        phaseId,
+        questionId,
+        answer: value,
+        aiGenerated,
+        selectedSuggestionIndex,
+      });
       setSavedId(questionId);
       setTimeout(() => setSavedId(null), 2000);
     } catch (error) {
@@ -152,20 +172,33 @@ export function QuestionsPanel({
   const handleAnswerChange = useCallback((questionId: string, value: string) => {
     setLocalAnswers(prev => ({ ...prev, [questionId]: value }));
     setLocalAiGenerated(prev => ({ ...prev, [questionId]: false }));
+    setLocalSelectedSuggestions(prev => {
+      const currentIndex = prev[questionId];
+      const suggestions = questionSuggestions[questionId] ?? questions.find(q => q.id === questionId)?.suggestions;
+      if (currentIndex !== undefined && suggestions?.[currentIndex] !== value) {
+        return { ...prev, [questionId]: undefined };
+      }
+      return prev;
+    });
     pendingSaveRef.current[questionId] = value;
     pendingAiGeneratedRef.current[questionId] = false;
-  }, []);
+    pendingSuggestionIndexRef.current[questionId] = undefined;
+  }, [questionSuggestions, questions]);
 
   // Debounced save effect
   const debouncedAnswers = useDebounce(localAnswers, 500);
   useEffect(() => {
-
     Object.entries(pendingSaveRef.current).forEach(([id, value]) => {
       if (debouncedAnswers[id] === value) {
-        handleSaveAnswer(id, value, pendingAiGeneratedRef.current[id]);
+        handleSaveAnswer(
+          id,
+          value,
+          pendingAiGeneratedRef.current[id],
+          pendingSuggestionIndexRef.current[id],
+        );
         delete pendingSaveRef.current[id];
         delete pendingAiGeneratedRef.current[id];
-      } else {
+        delete pendingSuggestionIndexRef.current[id];
       }
     });
   }, [debouncedAnswers, handleSaveAnswer]);
@@ -208,24 +241,16 @@ export function QuestionsPanel({
         questionId,
       });
 
-      setLocalAnswers(prev => {
-        const updated = {
-          ...prev,
-          [questionId]: result.suggestedAnswer,
-        };
-        return updated;
-      });
-      setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
-
-      // Store suggestions for chip display
-      if (result.suggestions && result.suggestions.length > 0) {
-        setQuestionSuggestions(prev => ({ ...prev, [questionId]: result.suggestions }));
-      } else {
-        setQuestionSuggestions(prev => ({ ...prev, [questionId]: [] }));
+      // Stage suggested answer for user review to prevent evidence contamination
+      if (result.suggestedAnswer) {
+        setStagedSuggestions(prev => ({ ...prev, [questionId]: result.suggestedAnswer }));
       }
 
-      pendingSaveRef.current[questionId] = result.suggestedAnswer;
-      pendingAiGeneratedRef.current[questionId] = true;
+      // Store suggestions for chip display without clearing existing ones
+      if (result.suggestions && result.suggestions.length > 0) {
+        setQuestionSuggestions(prev => ({ ...prev, [questionId]: result.suggestions }));
+      }
+
       const doneToast = getToastMessage("ai_answer_done");
       toast.success(doneToast.title, {
         id: toastId,
@@ -244,13 +269,49 @@ export function QuestionsPanel({
     }
   }
 
-  function handleSuggestionSelect(questionId: string, suggestion: string) {
+  const handleSuggestionSelect = useCallback((questionId: string, suggestion: string, index: number) => {
     setLocalAnswers(prev => ({ ...prev, [questionId]: suggestion }));
     setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
-    setQuestionSuggestions(prev => ({ ...prev, [questionId]: [] }));
+    setLocalSelectedSuggestions(prev => ({ ...prev, [questionId]: index }));
+    setStagedSuggestions(prev => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
     pendingSaveRef.current[questionId] = suggestion;
     pendingAiGeneratedRef.current[questionId] = true;
-  }
+    pendingSuggestionIndexRef.current[questionId] = index;
+  }, []);
+
+  const handleAcceptStaged = useCallback(async (questionId: string) => {
+    const staged = stagedSuggestions[questionId];
+    if (!staged) return;
+
+    setLocalAnswers(prev => ({ ...prev, [questionId]: staged }));
+    setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
+    setStagedSuggestions(prev => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+
+    const suggestions = questionSuggestions[questionId] ?? questions.find(q => q.id === questionId)?.suggestions;
+    const matchedIdx = suggestions?.findIndex(s => s === staged);
+    const selectedIdx = matchedIdx !== undefined && matchedIdx >= 0 ? matchedIdx : undefined;
+    if (selectedIdx !== undefined) {
+      setLocalSelectedSuggestions(prev => ({ ...prev, [questionId]: selectedIdx }));
+    }
+
+    await handleSaveAnswer(questionId, staged, true, selectedIdx);
+  }, [stagedSuggestions, questionSuggestions, questions, handleSaveAnswer]);
+
+  const handleDismissStaged = useCallback((questionId: string) => {
+    setStagedSuggestions(prev => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+  }, []);
 
   async function handleBatchAiGenerate() {
     setBatchTaskId(null);
@@ -386,12 +447,16 @@ export function QuestionsPanel({
                 isSaved={savedId === question.id}
                 isAiGenerating={aiGeneratingId === question.id}
                 aiGenerated={getAiGeneratedForQuestion(question)}
-                suggestions={questionSuggestions[question.id] ?? []}
+                suggestions={questionSuggestions[question.id] ?? question.suggestions ?? []}
+                selectedSuggestionIndex={localSelectedSuggestions[question.id] ?? question.selectedSuggestionIndex}
+                stagedAnswer={stagedSuggestions[question.id] ?? null}
                 isPhaseGenerating={isGenerating}
                 maxLength={2000}
                 onAnswerChange={handleAnswerChange}
                 onAiSuggest={handleAiSuggest}
                 onSuggestionSelect={handleSuggestionSelect}
+                onAcceptStaged={handleAcceptStaged}
+                onDismissStaged={handleDismissStaged}
               />
             ))}
           </div>

@@ -1,11 +1,17 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, test, expect, vi } from "vitest";
 import { QuestionsPanel } from "../questions-panel";
 
+const mockSaveAnswer = vi.fn();
+const mockGenerateQuestionAnswer = vi.fn().mockResolvedValue({
+  suggestedAnswer: "Test answer",
+  suggestions: ["Option A", "Option B"],
+});
+
 // Mock Convex hooks
 vi.mock("convex/react", () => ({
-  useMutation: () => vi.fn(),
-  useAction: () => vi.fn().mockResolvedValue({ suggestedAnswer: "Test answer", suggestions: ["Option A", "Option B"] }),
+  useMutation: () => mockSaveAnswer,
+  useAction: () => mockGenerateQuestionAnswer,
   useQuery: () => null,
 }));
 
@@ -59,8 +65,8 @@ describe("QuestionsPanel suggestion chips", () => {
     expect((textarea as HTMLTextAreaElement).value).toBe("Option A");
   });
 
-  test("clicking a chip hides the chip row", () => {
-    const question = { ...baseQuestion, suggestions: ["Option A"] };
+  test("clicking a chip marks it active and preserves option chips", () => {
+    const question = { ...baseQuestion, suggestions: ["Option A", "Option B"] };
     render(
       <QuestionsPanel
         projectId="proj1"
@@ -68,10 +74,18 @@ describe("QuestionsPanel suggestion chips", () => {
         questions={[question]}
       />
     );
-    fireEvent.click(screen.getByText("Option A"));
-    // After clicking, the chip button should no longer be in the document
-    // (the text moves into the textarea value, but no chip button remains)
-    expect(screen.queryByRole("button", { name: "Option A" })).not.toBeInTheDocument();
+    const chipA = screen.getByRole("button", { name: "Option A" });
+    fireEvent.click(chipA);
+
+    expect(chipA).toHaveAttribute("aria-pressed", "true");
+    const chipB = screen.getByRole("button", { name: "Option B" });
+    expect(chipB).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(chipB);
+    const textarea = screen.getByPlaceholderText("Enter your answer...");
+    expect((textarea as HTMLTextAreaElement).value).toBe("Option B");
+    expect(chipB).toHaveAttribute("aria-pressed", "true");
+    expect(chipA).toHaveAttribute("aria-pressed", "false");
   });
 
   test("no chips rendered when suggestions array is empty", () => {
@@ -82,12 +96,68 @@ describe("QuestionsPanel suggestion chips", () => {
         questions={[baseQuestion]}
       />
     );
-    // Textarea renders normally
     expect(screen.getByPlaceholderText("Enter your answer...")).toBeInTheDocument();
-    // No chips (there are no suggestions on this question)
-    // The only buttons should be the standard UI buttons (AI suggest, batch, regenerate)
-    // None should have suggestion text
     const allButtons = screen.getAllByRole("button");
     expect(allButtons.every(btn => !["Monolith", "Microservices", "Option A", "Option B"].includes(btn.textContent ?? ""))).toBe(true);
+  });
+
+  test("ai suggest stages recommendation with accept and dismiss controls", async () => {
+    mockGenerateQuestionAnswer.mockResolvedValueOnce({
+      suggestedAnswer: "Microservices with gRPC",
+      suggestions: ["Option A", "Option B"],
+    });
+
+    render(
+      <QuestionsPanel
+        projectId="proj1"
+        phaseId="brief"
+        questions={[baseQuestion]}
+      />
+    );
+
+    const suggestButton = screen.getByRole("button", { name: /Get AI suggestion for question 1/i });
+    await act(async () => {
+      fireEvent.click(suggestButton);
+    });
+
+    expect(await screen.findByText("Suggested answer")).toBeInTheDocument();
+    expect(screen.getByText("Microservices with gRPC")).toBeInTheDocument();
+
+    const textarea = screen.getByPlaceholderText("Enter your answer...");
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Accept/i }));
+    });
+    expect((textarea as HTMLTextAreaElement).value).toBe("Microservices with gRPC");
+    expect(screen.queryByText("Suggested answer")).not.toBeInTheDocument();
+  });
+
+  test("dismissing staged ai recommendation does not modify textarea", async () => {
+    mockGenerateQuestionAnswer.mockResolvedValueOnce({
+      suggestedAnswer: "Serverless lambda",
+    });
+
+    render(
+      <QuestionsPanel
+        projectId="proj1"
+        phaseId="brief"
+        questions={[baseQuestion]}
+      />
+    );
+
+    const suggestButton = screen.getByRole("button", { name: /Get AI suggestion for question 1/i });
+    await act(async () => {
+      fireEvent.click(suggestButton);
+    });
+
+    expect(await screen.findByText("Suggested answer")).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Dismiss/i }));
+    });
+
+    expect(screen.queryByText("Suggested answer")).not.toBeInTheDocument();
+    const textarea = screen.getByPlaceholderText("Enter your answer...");
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
   });
 });
