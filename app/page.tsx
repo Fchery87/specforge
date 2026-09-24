@@ -107,7 +107,7 @@ export default function HomePage() {
         >
           <div className="flex items-center justify-center mb-6">
             <div className="px-4 py-1.5 border border-primary text-primary uppercase text-xs font-bold tracking-widest">
-              SpecForge 2.0 Active
+              SpecForge 3.1 Active
             </div>
           </div>
 
