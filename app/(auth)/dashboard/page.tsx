@@ -22,6 +22,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { DashboardSearch } from "@/components/dashboard/dashboard-search";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { SpecForgeLogo } from "@/components/ui/logo";
 
 function getRelativeTime(timestamp: number): string {
   const now = Date.now();
@@ -155,9 +156,7 @@ export default function DashboardPage() {
         <div className="page-container relative z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-black" />
-              </div>
+              <SpecForgeLogo size="sm" showWordmark={false} />
               <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
                 Command Center
               </span>

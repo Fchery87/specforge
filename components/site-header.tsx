@@ -12,10 +12,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Sparkles, LayoutDashboard, Zap, Settings, Shield, Menu } from "lucide-react";
+import { LayoutDashboard, Zap, Settings, Shield, Menu } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { clerkUserButtonAppearance } from "@/lib/clerk-theme";
 import { cn } from "@/lib/utils";
+import { SpecForgeLogo } from "@/components/ui/logo";
 
 const navLinks = (isAdmin: boolean) => [
   {
@@ -145,9 +146,7 @@ function MobileMenu() {
             Access site navigation and account actions.
           </DialogDescription>
           <div className="flex items-center gap-3 border-b-2 border-border px-6 py-5">
-            <div className="w-7 h-7 bg-primary flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-black" />
-            </div>
+            <SpecForgeLogo size="sm" showWordmark={false} />
             <span className="text-lg font-bold uppercase tracking-tight">
               Menu
             </span>
@@ -216,13 +215,8 @@ export function SiteHeader() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b-2 border-border bg-background/90 backdrop-blur-sm">
       <div className="page-container py-4 flex items-center justify-between gap-8">
-        <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-          <div className="w-8 h-8 bg-primary flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
-            <Sparkles className="w-5 h-5 text-black" />
-          </div>
-          <span className="text-2xl font-bold uppercase tracking-tighter">
-            SpecForge
-          </span>
+        <Link href="/" className="flex items-center flex-shrink-0">
+          <SpecForgeLogo size="md" />
         </Link>
         <NavLinks />
         <div className="flex items-center gap-4">

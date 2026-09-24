@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Sparkles } from "lucide-react";
+import { SpecForgeLogo } from "@/components/ui/logo";
 
 export function SiteFooter() {
   const { isSignedIn, user } = useUser();
@@ -12,13 +12,8 @@ export function SiteFooter() {
     <footer className="border-t-2 border-border bg-background py-12 mt-auto">
       <div className="page-container flex flex-col md:flex-row justify-between items-start gap-12">
         <div className="flex flex-col gap-4 max-w-sm">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-primary flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
-              <Sparkles className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-2xl font-bold uppercase tracking-tighter">
-              SpecForge
-            </span>
+          <Link href="/" className="flex items-center">
+            <SpecForgeLogo size="md" />
           </Link>
           <p className="text-sm text-muted-foreground uppercase tracking-tight leading-relaxed">
             Idea → Specs → Handoff. 
