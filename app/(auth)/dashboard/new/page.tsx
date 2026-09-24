@@ -338,8 +338,8 @@ export default function NewProjectPage() {
         </div>
       </div>
 
-      {/* Decorative Element */}
-      <div className="absolute bottom-0 left-0 right-0 text-[20vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden">
+      {/* Decorative Watermark */}
+      <div className="absolute bottom-0 left-0 right-0 max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
         CREATE
       </div>
     </main>

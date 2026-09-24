@@ -304,7 +304,7 @@ export function QuestionsPanel({
 
   return (
     <Card variant="static">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex-1">
           <CardTitle className="text-xl normal-case tracking-normal font-semibold">
             Questions & Clarifications

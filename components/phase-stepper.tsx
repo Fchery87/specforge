@@ -18,7 +18,7 @@ export function PhaseStepper({
   phaseStatuses?: Record<string, PhaseStatus>;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <nav aria-label="Project phases" className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin md:flex-wrap md:pb-0">
       {PROJECT_PHASES.map((p, idx) => {
         const active = p.id === currentPhase;
         const status = phaseStatuses?.[p.id] ?? "pending";
@@ -36,7 +36,7 @@ export function PhaseStepper({
             key={p.id}
             href={`/project/${projectId}/phase/${p.id}`}
             className={cn(
-              "px-3 py-2 rounded-xl border border-border bg-background hover:bg-card transition",
+              "shrink-0 px-3 py-2 rounded-xl border border-border bg-background hover:bg-card transition",
               active && "shadow-brutal",
               statusAccent
             )}
@@ -68,6 +68,6 @@ export function PhaseStepper({
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

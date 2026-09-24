@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
-import { Sparkles } from "lucide-react";
+import { SpecForgeLogo } from "@/components/ui/logo";
 
 export function SiteFooter() {
   const { isSignedIn, user } = useUser();
@@ -10,15 +10,10 @@ export function SiteFooter() {
 
   return (
     <footer className="border-t-2 border-border bg-background py-12 mt-auto">
-      <div className="container px-6 flex flex-col md:flex-row justify-between items-start gap-12">
+      <div className="page-container flex flex-col md:flex-row justify-between items-start gap-12">
         <div className="flex flex-col gap-4 max-w-sm">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-primary flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
-              <Sparkles className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-2xl font-bold uppercase tracking-tighter">
-              SpecForge
-            </span>
+          <Link href="/" className="flex items-center">
+            <SpecForgeLogo size="md" />
           </Link>
           <p className="text-sm text-muted-foreground uppercase tracking-tight leading-relaxed">
             Idea → Specs → Handoff. 
@@ -49,7 +44,7 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="container px-6 mt-12 pt-8 border-t border-border/50 flex justify-between items-center">
+      <div className="page-container mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           © 2026 SpecForge. All rights reserved.
         </p>

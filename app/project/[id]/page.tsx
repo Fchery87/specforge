@@ -185,11 +185,11 @@ export default function ProjectPage() {
 
       {/* Phase Cards */}
       <section className="page-container page-section border-t-2 border-border relative z-10">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
             Workflow Phases
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline">
               <Link href={`/project/${params.id}/quick` as Route}>Quick Spec history</Link>
             </Button>
@@ -226,8 +226,8 @@ export default function ProjectPage() {
         </div>
       </section>
 
-      {/* Decorative Element */}
-      <div className="text-[12vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden mt-12">
+      {/* Decorative Watermark */}
+      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
         {project.title?.split(' ')[0]?.toUpperCase() || 'PROJECT'}
       </div>
 

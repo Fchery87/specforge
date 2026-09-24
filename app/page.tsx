@@ -107,7 +107,7 @@ export default function HomePage() {
         >
           <div className="flex items-center justify-center mb-6">
             <div className="px-4 py-1.5 border border-primary text-primary uppercase text-xs font-bold tracking-widest">
-              SpecForge 2.0 Active
+              SpecForge 3.1 Active
             </div>
           </div>
 
@@ -200,21 +200,21 @@ export default function HomePage() {
             {workflowSteps.map((step, i) => (
               <div
                 key={i}
-                className={`relative p-8 h-80 flex flex-col justify-between border-2 border-border transition-all hover:bg-primary hover:text-black group ${step.bg}`}
+                className={`relative p-8 h-80 flex flex-col justify-between border-2 border-border transition-all hover:border-primary hover:shadow-lg hover:-translate-y-1 group ${step.bg}`}
               >
-                <div className="text-[8rem] font-bold leading-none opacity-20 group-hover:opacity-100 transition-opacity absolute top-0 right-0 -mr-2 -mt-4 text-foreground group-hover:text-black select-none pointer-events-none">
+                <div className="text-[8rem] font-bold leading-none opacity-20 group-hover:opacity-30 transition-opacity absolute top-0 right-0 -mr-2 -mt-4 text-foreground group-hover:text-primary/30 select-none pointer-events-none">
                   {step.step}
                 </div>
                 <div className="z-10 mt-auto">
-                  <h3 className="text-3xl font-bold uppercase tracking-tight mb-2">
+                  <h3 className="text-3xl font-bold uppercase tracking-tight mb-2 group-hover:text-primary transition-colors">
                     {step.title}
                   </h3>
                   {step.subtitle && (
-                    <p className="text-sm uppercase tracking-widest font-bold text-muted-foreground group-hover:text-black/70">
+                    <p className="text-sm uppercase tracking-widest font-bold text-muted-foreground group-hover:text-foreground/90 transition-colors">
                       {step.subtitle}
                     </p>
                   )}
-                  <div className="h-1 w-12 bg-primary mt-4 group-hover:bg-black" />
+                  <div className="h-1 w-12 bg-primary mt-4 group-hover:w-16 transition-all" />
                 </div>
               </div>
             ))}

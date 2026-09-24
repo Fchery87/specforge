@@ -56,7 +56,10 @@ describe("SiteHeader mobile menu", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByRole("link", { name: /dashboard/i })
+      within(dialog).getByRole("link", { name: /^dashboard$/i })
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("link", { name: /quick spec/i })
     ).toBeInTheDocument();
     expect(
       within(dialog).getByRole("link", { name: /settings/i })

@@ -337,7 +337,7 @@ export default function PhasePage() {
 
       {/* Back Navigation */}
       <div className="page-container py-6 relative z-10">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <Breadcrumbs
             items={[
               { label: "Dashboard", href: "/dashboard" },
@@ -392,8 +392,16 @@ export default function PhasePage() {
             </h2>
             {showSectionPlan ? (
               <div className="space-y-4">
-                {!aiSectionPlans && !isLoadingAiPlan && (
-                  <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSectionPlan(false)}
+                    disabled={isGenerating}
+                  >
+                    ← Back to questions
+                  </Button>
+                  {!aiSectionPlans && !isLoadingAiPlan && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -403,8 +411,8 @@ export default function PhasePage() {
                       <Sparkles className="w-4 h-4 mr-2" />
                       Generate Plan with AI
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
                 <SectionPlanPreview
                   phaseId={phaseId}
                   phaseName={phaseConfig.label}
@@ -543,8 +551,8 @@ export default function PhasePage() {
         </section>
       )}
 
-      {/* Decorative Element */}
-      <div className="text-[15vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden mt-12">
+      {/* Decorative Watermark */}
+      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
         {phaseConfig.label.split(' ')[0]?.toUpperCase()}
       </div>
     </main>

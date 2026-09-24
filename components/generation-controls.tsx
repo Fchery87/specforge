@@ -23,15 +23,15 @@ export function GenerationControls(props: {
   } = props;
 
   return (
-    <div className="flex items-center justify-between pt-6 border-t border-border">
+    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pt-6 border-t border-border">
       <p className="text-sm text-muted-foreground">
         {canResume
           ? "Previous generation paused. You can resume from the last completed step."
           : canGenerate
-            ? "All required questions answered"
-            : "Answer required questions to generate"}
+            ? "All required questions answered."
+            : "Answer required questions to generate."}
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
         {isGenerating && onCancel && (
           <Button
             variant="outline"

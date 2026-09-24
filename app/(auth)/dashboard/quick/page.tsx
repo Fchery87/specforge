@@ -10,6 +10,13 @@ import { generateQuickSpecAction } from "@/lib/convex-actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Save, Zap } from "lucide-react";
 import { MermaidAwareContent } from "@/components/ui/mermaid-aware-content";
 import { toast } from "sonner";
@@ -153,18 +160,27 @@ export default function QuickSpecPage() {
                 <CardContent className="pt-0">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <label htmlFor="quick-spec-project" className="sr-only">Save to project</label>
-                    <select
-                      id="quick-spec-project"
-                      value={projectId}
-                      onChange={(event) => { setProjectId(event.target.value); setSavedArtifactId(null); }}
-                      className="min-w-0 flex-1 border border-border bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">Save to project…</option>
-                      {(projects ?? []).map((project) => (
-                        <option key={project._id} value={project._id}>{project.title}</option>
-                      ))}
-                    </select>
-                    <Button onClick={handleSave} disabled={!projectId || isSaving} variant="outline" className="gap-2">
+                    <div className="min-w-[200px] flex-1">
+                      <Select
+                        value={projectId}
+                        onValueChange={(value) => {
+                          setProjectId(value);
+                          setSavedArtifactId(null);
+                        }}
+                      >
+                        <SelectTrigger id="quick-spec-project" className="w-full">
+                          <SelectValue placeholder="Save to project…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(projects ?? []).map((project) => (
+                            <SelectItem key={project._id} value={project._id}>
+                              {project.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={handleSave} disabled={!projectId || isSaving} variant="outline" className="gap-2 shrink-0">
                       {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       {isSaving ? "Saving…" : savedArtifactId ? "Save new version" : "Save Quick Spec"}
                     </Button>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2, Trash2, Activity } from "lucide-react";
+import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { DashboardSearch } from "@/components/dashboard/dashboard-search";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { SpecForgeLogo } from "@/components/ui/logo";
 
 function getRelativeTime(timestamp: number): string {
   const now = Date.now();
@@ -37,7 +38,6 @@ function getRelativeTime(timestamp: number): string {
   return "Just now";
 }
 
-const PHASE_ORDER = ['brief', 'constitution', 'prd', 'domainModel', 'spec', 'userStories', 'handoff'];
 
 export default function DashboardPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -156,9 +156,7 @@ export default function DashboardPage() {
         <div className="page-container relative z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-black" />
-              </div>
+              <SpecForgeLogo size="sm" showWordmark={false} />
               <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
                 Command Center
               </span>
@@ -193,8 +191,8 @@ export default function DashboardPage() {
           <Link href="/dashboard/new" className="md:col-span-2 lg:col-span-1 block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-primary bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-black group-hover:border-black transition-colors">
-                  <Plus className="w-7 h-7 text-primary group-hover:text-primary transition-colors" />
+                <div className="w-14 h-14 border-2 border-primary bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:border-primary transition-colors">
+                  <Plus className="w-7 h-7 text-primary transition-colors" />
                 </div>
                 <CardTitle>New Project</CardTitle>
                 <CardDescription>
@@ -202,8 +200,8 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-primary group-hover:text-black font-bold uppercase tracking-tight transition-colors">
-                  Create Project <ArrowRight className="w-4 h-4 ml-2" />
+                <div className="flex items-center text-primary font-bold uppercase tracking-tight transition-all group-hover:translate-x-0.5">
+                  Create Project <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -247,8 +245,8 @@ export default function DashboardPage() {
           <Link href={"/dashboard/quick" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-black group-hover:bg-black/10 transition-colors">
-                  <Zap className="w-7 h-7 text-muted-foreground group-hover:text-black transition-colors" />
+                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-primary group-hover:bg-primary/10 transition-colors">
+                  <Zap className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Quick Spec</CardTitle>
                 <CardDescription>
@@ -256,8 +254,8 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-primary group-hover:text-black font-bold uppercase tracking-tight text-sm transition-colors">
-                  Open Quick Spec <ArrowRight className="w-4 h-4 ml-2" />
+                <div className="flex items-center text-primary font-bold uppercase tracking-tight text-sm transition-all group-hover:translate-x-0.5">
+                  Open Quick Spec <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </div>
               </CardContent>
             </Card>
@@ -280,9 +278,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <div className="relative flex-1 max-w-md">
-              <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="search"
                 placeholder="Search projects by title or description..."
@@ -292,7 +290,7 @@ export default function DashboardPage() {
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               {['draft', 'active', 'complete'].map((status) => (
                 <button
                   key={status}
@@ -313,19 +311,19 @@ export default function DashboardPage() {
                   {status}
                 </button>
               ))}
-            </div>
 
-            {(searchQuery || statusFilter.length > 0) && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter([]);
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Clear filters
-              </button>
-            )}
+              {(searchQuery || statusFilter.length > 0) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter([]);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
           </div>
 
           <p className="text-xs text-muted-foreground">
@@ -366,89 +364,18 @@ export default function DashboardPage() {
           /* Projects Grid with Progress */
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {sortedProjects.map((project) => (
-              <div key={project._id} className="relative group">
-                <Link href={`/project/${project._id}`} className="block">
-                  <Card
-                    variant="interactive"
-                    className={cn(
-                      "h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1",
-                      "border-l-4",
-                      project.status === "complete" && "border-l-emerald-500",
-                      project.status === "active" && "border-l-primary",
-                      project.status === "draft" && "border-l-muted"
-                    )}
-                  >
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg font-bold truncate group-hover:text-primary transition-colors">
-                        {project.title}
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2 text-sm">
-                        {project.description}
-                      </CardDescription>
-
-                      {/* Status Badges */}
-                      <div className="flex items-center gap-2 mt-3">
-                        {project.status === "complete" && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                            Complete
-                          </span>
-                        )}
-                        {project.status === "active" && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-secondary text-muted-foreground">
-                            Active
-                          </span>
-                        )}
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      {/* Progress Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Progress</span>
-                          <span className="font-medium">0%</span>
-                        </div>
-                        <Progress value={0} className="h-1.5" />
-                      </div>
-
-                      {/* Phase Indicators */}
-                      <div className="flex gap-0.5">
-                        {PHASE_ORDER.map((_, idx) => (
-                          <div
-                            key={idx}
-                            className="h-1 flex-1 rounded-full bg-muted/50"
-                          />
-                        ))}
-                      </div>
-
-                      {/* Footer */}
-                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-                        <span className="capitalize">{project.status}</span>
-                        <span>Updated {getRelativeTime(project.updatedAt)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                {/* Action Menu */}
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setDeleteDialogState({
-                        open: true,
-                        projectId: project._id,
-                        projectTitle: project.title,
-                      });
-                    }}
-                    className="w-8 h-8 bg-background/90 backdrop-blur border border-border hover:border-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
-                    aria-label={`Delete ${project.title}`}
-                  >
-                    <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
-                  </button>
-                </div>
-              </div>
+              <ProjectCard
+                key={project._id}
+                project={project}
+                isPinned={pinnedIds.has(project._id)}
+                onDelete={() => {
+                  setDeleteDialogState({
+                    open: true,
+                    projectId: project._id,
+                    projectTitle: project.title,
+                  });
+                }}
+              />
             ))}
           </div>
         )}
@@ -497,8 +424,8 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Decorative Footer Element */}
-      <div className="text-[15vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden">
+      {/* Decorative Watermark */}
+      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
         FORGE
       </div>
     </main>
