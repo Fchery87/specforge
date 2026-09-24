@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2, Trash2, Activity } from "lucide-react";
+import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -280,9 +280,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <div className="relative flex-1 max-w-md">
-              <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="search"
                 placeholder="Search projects by title or description..."
@@ -292,7 +292,7 @@ export default function DashboardPage() {
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               {['draft', 'active', 'complete'].map((status) => (
                 <button
                   key={status}
@@ -313,19 +313,19 @@ export default function DashboardPage() {
                   {status}
                 </button>
               ))}
-            </div>
 
-            {(searchQuery || statusFilter.length > 0) && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter([]);
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Clear filters
-              </button>
-            )}
+              {(searchQuery || statusFilter.length > 0) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter([]);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
           </div>
 
           <p className="text-xs text-muted-foreground">
@@ -431,7 +431,7 @@ export default function DashboardPage() {
                 </Link>
 
                 {/* Action Menu */}
-                <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="absolute top-3 right-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                   <button
                     onClick={(e) => {
                       e.preventDefault();
@@ -497,8 +497,8 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Decorative Footer Element */}
-      <div className="text-[15vw] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none overflow-hidden">
+      {/* Decorative Watermark */}
+      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
         FORGE
       </div>
     </main>

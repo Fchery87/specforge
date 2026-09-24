@@ -66,18 +66,27 @@ export function AdminNav() {
   return (
     <div className="sticky top-20 z-40 border-b-2 border-border bg-background/95 backdrop-blur-md">
       <div className="page-container py-2 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 text-black" />
+        <div className="flex items-center justify-between md:justify-start gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-black" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold uppercase tracking-wider text-foreground">
+                Admin Console
+              </span>
+              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-primary/20 text-primary border border-primary/40">
+                System
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold uppercase tracking-wider text-foreground">
-              Admin Console
-            </span>
-            <span className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-primary/20 text-primary border border-primary/40">
-              System
-            </span>
-          </div>
+          <Link
+            href="/dashboard"
+            className="md:hidden flex items-center gap-1 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors border border-border/50 rounded"
+          >
+            <span>Exit</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {/* Navigation Tabs */}
@@ -110,7 +119,7 @@ export function AdminNav() {
         </nav>
 
         {/* Exit Admin */}
-        <div className="hidden lg:flex items-center">
+        <div className="hidden md:flex items-center">
           <Link
             href="/dashboard"
             className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
   Tabs,
   TabsContent,
@@ -775,7 +776,14 @@ function AccountProfileSection() {
 
 export default function SettingsHubPage() {
   return (
-    <main className="page-container py-10 max-w-4xl mx-auto space-y-8">
+    <main className="page-container py-8 max-w-4xl mx-auto space-y-8">
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Settings" },
+        ]}
+      />
+
       <div className="space-y-2 border-b-2 border-border pb-6">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary">
           <Settings className="w-4 h-4" />
@@ -791,24 +799,24 @@ export default function SettingsHubPage() {
         <TabsList className="grid w-full grid-cols-3 max-w-md border-2 border-border p-1 bg-secondary/30">
           <TabsTrigger
             value="ai"
-            className="flex items-center gap-2 py-2 text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-black transition-colors"
+            className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-black transition-colors"
           >
-            <Settings className="w-3.5 h-3.5" />
-            <span>AI Models</span>
+            <Settings className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">AI Models</span>
           </TabsTrigger>
           <TabsTrigger
             value="preferences"
-            className="flex items-center gap-2 py-2 text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-black transition-colors"
+            className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-black transition-colors"
           >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Workspace</span>
+            <Sliders className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Workspace</span>
           </TabsTrigger>
           <TabsTrigger
             value="account"
-            className="flex items-center gap-2 py-2 text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-black transition-colors"
+            className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-black transition-colors"
           >
-            <UserIcon className="w-3.5 h-3.5" />
-            <span>Account</span>
+            <UserIcon className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Account</span>
           </TabsTrigger>
         </TabsList>
 

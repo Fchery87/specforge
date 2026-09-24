@@ -16,6 +16,7 @@ describe("AdminNav", () => {
     expect(screen.getByRole("link", { name: /projects/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /ai & models/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /settings/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^exit$/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /exit admin/i })).toBeInTheDocument();
   });
 });

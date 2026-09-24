@@ -32,10 +32,10 @@ export function DecorativeText({
   opacity = 5,
 }: DecorativeTextProps) {
   const variants = {
-    hero: "text-[15vw] md:text-[12vw]",
-    section: "text-[12vw] md:text-[8vw]",
-    background: "text-[20vw] md:text-[15vw]",
-    project: "text-[12vw] font-bold leading-none",
+    hero: "text-[clamp(2.5rem,10vw,7.5rem)]",
+    section: "text-[clamp(2rem,8vw,6rem)]",
+    background: "text-[clamp(2.5rem,10vw,7.5rem)]",
+    project: "text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none",
   };
 
   const positions = {
@@ -47,7 +47,7 @@ export function DecorativeText({
   return (
     <div
       className={cn(
-        "font-bold uppercase tracking-tighter pointer-events-none select-none overflow-hidden",
+        "max-w-full truncate font-bold uppercase tracking-tighter pointer-events-none select-none overflow-hidden",
         "text-muted-foreground",
         variants[variant],
         positions[position],
