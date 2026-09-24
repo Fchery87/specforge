@@ -13,8 +13,23 @@ export default defineSchema({
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
+    nextClaimNumber: v.optional(v.number()),
     skippedPhases: v.optional(v.array(v.string())),
     zipStorageId: v.optional(v.id('_storage')),
+    constitutionTemplate: v.optional(
+      v.object({
+        name: v.string(),
+        constitutionContent: v.string(),
+        lockedConstraints: v.optional(
+          v.object({
+            architecture: v.optional(v.string()),
+            stateManagement: v.optional(v.string()),
+            apiDesign: v.optional(v.string()),
+            securityProtocols: v.optional(v.array(v.string())),
+          }),
+        ),
+      }),
+    ),
   }).index('by_user', ['userId']),
 
   phases: defineTable({
@@ -92,6 +107,7 @@ export default defineSchema({
       v.literal('techSpec'),
       v.literal('userStories'),
       v.literal('handoff'),
+      v.literal('quickSpec'),
     ),
     title: v.string(),
     content: v.string(),
@@ -163,6 +179,7 @@ export default defineSchema({
         parentArtifactIds: v.optional(v.array(v.id('artifacts'))),
       }),
     ),
+    evidenceSourceIds: v.optional(v.array(v.id('evidenceSources'))),
   })
     .index('by_project', ['projectId'])
     .index('by_phase', ['projectId', 'phaseId']),
@@ -256,6 +273,20 @@ export default defineSchema({
         title: v.string(),
         description: v.string(),
         questions: v.string(),
+        constitutionTemplate: v.optional(
+          v.object({
+            name: v.string(),
+            constitutionContent: v.string(),
+            lockedConstraints: v.optional(
+              v.object({
+                architecture: v.optional(v.string()),
+                stateManagement: v.optional(v.string()),
+                apiDesign: v.optional(v.string()),
+                securityProtocols: v.optional(v.array(v.string())),
+              }),
+            ),
+          }),
+        ),
       }),
       providerApiEndpoint: v.optional(v.string()),
       sectionPreferences: v.optional(
@@ -317,6 +348,88 @@ export default defineSchema({
     .index('by_artifact', ['artifactId'])
     .index('by_artifact_version', ['artifactId', 'version']),
 
+  evidenceSources: defineTable({
+    projectId: v.id('projects'),
+    sourceKey: v.string(),
+    revision: v.number(),
+    kind: v.union(
+      v.literal('answer'),
+      v.literal('repository_file'),
+      v.literal('user_note'),
+    ),
+    locator: v.string(),
+    revisionLabel: v.string(),
+    contentHash: v.string(),
+    excerpt: v.string(),
+    capturedAt: v.number(),
+    capturedBy: v.string(),
+    origin: v.optional(v.union(v.literal('user'), v.literal('assistant'), v.literal('repository_scan'))),
+    commitSha: v.optional(v.string()),
+  })
+    .index('by_project', ['projectId'])
+    .index('by_source', ['projectId', 'sourceKey'])
+    .index('by_source_revision', ['projectId', 'sourceKey', 'revision']),
+
+  claims: defineTable({
+    projectId: v.id('projects'),
+    phaseId: v.string(),
+    claimId: v.string(),
+    artifactId: v.id('artifacts'),
+    artifactVersion: v.optional(v.number()),
+    kind: v.union(
+      v.literal('decision'),
+      v.literal('requirement'),
+      v.literal('acceptance_criterion'),
+    ),
+    text: v.string(),
+    decisionStatus: v.union(
+      v.literal('confirmed'),
+      v.literal('observed'),
+      v.literal('proposed'),
+      v.literal('unresolved'),
+    ),
+    reviewStatus: v.union(v.literal('current'), v.literal('needs_review')),
+    retiredAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_project', ['projectId'])
+    .index('by_artifact', ['artifactId'])
+    .index('by_project_claim_id', ['projectId', 'claimId']),
+
+  evidenceLinks: defineTable({
+    projectId: v.id('projects'),
+    claimId: v.id('claims'),
+    sourceId: v.id('evidenceSources'),
+    supportStatus: v.union(
+      v.literal('suggested'),
+      v.literal('confirmed'),
+      v.literal('rejected'),
+    ),
+    locatorDetail: v.optional(v.string()),
+    createdAt: v.number(),
+    reviewedAt: v.optional(v.number()),
+    reviewedBy: v.optional(v.string()),
+  })
+    .index('by_project', ['projectId'])
+    .index('by_claim', ['claimId'])
+    .index('by_source', ['sourceId']),
+
+  evidenceReviews: defineTable({
+    projectId: v.id('projects'),
+    claimId: v.id('claims'),
+    actorId: v.string(),
+    action: v.union(
+      v.literal('confirmed'),
+      v.literal('revised'),
+      v.literal('unresolved'),
+    ),
+    note: v.optional(v.string()),
+    reviewedAt: v.number(),
+  })
+    .index('by_project', ['projectId'])
+    .index('by_claim', ['claimId']),
+
   // Models.dev cache for persistent storage of model directory
   // Enables fast lookups without hitting the external API
   modelDirectoryCache: defineTable({
@@ -356,6 +469,8 @@ export default defineSchema({
     ),
     blockedByTitles: v.optional(v.array(v.string())),
     filesToTouch: v.optional(v.array(v.string())),
+    claimIds: v.optional(v.array(v.string())),
+    evidenceReviewStatus: v.optional(v.union(v.literal('current'), v.literal('needs_review'))),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index('by_project', ['projectId'])
@@ -384,6 +499,7 @@ export default defineSchema({
     repoOwner: v.string(),
     repoName: v.string(),
     defaultBranch: v.string(),
+    commitSha: v.optional(v.string()),
     fileTree: v.string(), // JSON serialized directory tree
     keyFiles: v.array(
       v.object({
@@ -402,6 +518,11 @@ export default defineSchema({
     projectId: v.id('projects'),
     phaseId: v.string(),
     checkedAt: v.number(),
+    artifactVersion: v.optional(v.number()),
+    artifactVersionSet: v.optional(v.array(v.string())),
+    sourceRevisionSet: v.optional(v.array(v.string())),
+    diffDigest: v.optional(v.string()),
+    outdatedAt: v.optional(v.number()),
     findings: v.array(v.object({
       category: v.union(
         v.literal('bug'),
@@ -415,6 +536,8 @@ export default defineSchema({
       description: v.string(),
       suggestion: v.string(),
       specReference: v.optional(v.string()),
+      requirementId: v.optional(v.string()),
+      changedFilePath: v.optional(v.string()),
     })),
     overallScore: v.number(),
     status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),

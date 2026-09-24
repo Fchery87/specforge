@@ -1,6 +1,10 @@
 # SpecForge remediation plan
+**Status:** Historical archive record; retained for project context
+
 
 Eight PRs bring the stack to September 2026 standards and fix one correctness bug. The bug restores user-supplied API keys in generation. The upgrades close the version gaps the audit measured. The PR ids run PR1 to PR8 in a linear stack. The operator lands each PR bottom-up as it turns merge-ready.
+
+> **Planning snapshot:** This September 8, 2026 plan records the state and proposed PR sequence from that date. Its unchecked boxes are not a verified current backlog. Check [the implementation checklist](../IMPLEMENTATION_CHECKLIST.md), [the handoff](../HANDOFF.md), and the current repository workflow before acting on any item.
 
 ## How to read this
 

@@ -86,6 +86,8 @@ import { X, Plus, ChevronDown } from "lucide-react";
 - **Button variants**: `components/ui/button.tsx` (CVA pattern reference)
 - **Dialogs**: `components/ui/dialog.tsx`, `components/ui/confirm-dialog.tsx`
 - **Artifact Editor**: `components/artifact-editor-modal.tsx` (Split, Edit, Preview, and Schema modes)
+- **Evidence Review**: `components/evidence-review-panel.tsx` (requirement status and source review)
+- **Verification**: `components/verification-panel.tsx` (diff findings with requirement references)
 - **Schema Validator**: `components/schema-validator-panel.tsx` (Monaco-style JSON/YAML validator)
 - **Stress-Test Interview**: `components/stress-test-modal.tsx` (Interactive grilling modal)
 - **Ticket Board**: `components/ticket-board.tsx`, `components/ticket-card.tsx` (Tracer bullets & blocking edges)

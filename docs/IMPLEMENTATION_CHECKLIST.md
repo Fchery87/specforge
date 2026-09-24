@@ -1,16 +1,16 @@
 # SpecForge Implementation Checklist
 
-**Last Updated:** January 26, 2026  
-**Status:** Core MVP complete (streaming + cancel implemented)
+**Last Updated:** September 23, 2026
+**Status:** Core MVP and evidence-backed specification workflow implemented; live deployment walkthrough pending
 
 ---
 
 ## Completed Items
 
-- [x] Next.js 16.1.1 + React 19.2.0 + Convex 1.22.0 + Clerk 6.36.7 setup
+- [x] Next.js 16 + React 19 + Convex + Clerk application setup (see `package.json` for current versions)
 - [x] Convex schema: projects, phases, artifacts, llmModels, userLlmConfigs (+ streaming fields/indexes on artifacts)
 - [x] Clerk middleware (middleware.ts) for auth protection
-- [x] Dashboard auth fix (async auth() for Clerk v6)
+- [x] Dashboard auth configured for the installed Clerk version
 - [x] Convex dev server running at localhost:3000
 - [x] Basic CRUD: createProject, getProject, getPhase queries
 - [x] lib/llm/registry.ts with FALLBACK_MODELS
@@ -22,9 +22,22 @@
 - [x] Real-time UX (pseudo-streaming): incremental persistence + reactive live preview during generation
 - [x] Cancel generation: stops worker and preserves partial output (`streamStatus='cancelled'`)
 
+### Evidence-backed Specifications & Quick Spec History ✅ IMPLEMENTED
+
+- [x] Capture immutable answer and commit-pinned repository evidence revisions with bounded redacted excerpts.
+- [x] Assign stable requirement IDs and validate generated source references against the request's project-scoped allowlist.
+- [x] Keep model-suggested evidence distinct from owner-confirmed links; review claims and record review events.
+- [x] Mark linked claims, tickets, phase summaries, and verification results for review when source revisions change.
+- [x] Carry requirement IDs and statuses through tickets, agent/ZIP exports, and pasted-diff verification.
+- [x] Save Quick Specs as versioned project artifacts without creating phase records.
+- [x] Cover the new data and validation paths with tests; local lint, typecheck, test suite, and Turbopack build passed on September 23, 2026.
+- [ ] Complete live walkthrough against a configured Convex deployment and GitHub OAuth app; regenerate Convex API types when network access is available.
+
+Implementation detail and rollout limits: [evidence workflow evaluation](evaluations/2026-09-22-evidence-workflow-evaluation.md).
+
 ---
 
-## 📋 Remaining Work
+## 📋 Completed Implementation Milestones
 
 ### Week 1: Project Intake & Questions ✅ COMPLETE
 
@@ -88,7 +101,8 @@ app/
 ├── (auth)/                       # Auth-protected routes
 │   ├── dashboard/
 │   │   ├── page.tsx              # Project list
-│   │   └── new/                  # New project form ✅
+│   │   ├── new/                  # New project form ✅
+│   │   └── quick/                # Quick Spec generation and save ✅
 │   ├── admin/
 │   │   ├── dashboard/            # Admin dashboard ✅
 │   │   └── llm-models/           # LLM models management ✅
@@ -99,6 +113,7 @@ app/
 └── project/
     └── [id]/
         ├── page.tsx              # Project overview
+        ├── quick/                 # Saved Quick Spec
         └── phase/
             └── [phaseId]/        # Phase detail ✅
 
@@ -132,18 +147,7 @@ lib/
 
 ## Dependencies
 
-```bash
-# Current installed packages
-next@16.1.1
-react@19.2.0
-react-dom@19.2.0
-convex@1.22.0
-@clerk/nextjs@6.36.7
-@clerk/clerk-react@5.59.3
-@tanstack/react-query@5.71.10
-jszip@3.10.1
-adm-zip@0.5.14
-```
+`package.json` and `package-lock.json` are authoritative for dependency versions. Older version snapshots in historical implementation notes should not be used to install or configure the current application.
 
 ---
 

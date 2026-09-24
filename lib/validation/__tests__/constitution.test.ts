@@ -94,6 +94,33 @@ describe('ConstitutionSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts a decision register without breaking older constitution documents', () => {
+    const legacyResult = ConstitutionSchema.safeParse(validConstitution);
+    const currentResult = ConstitutionSchema.safeParse({
+      ...validConstitution,
+      assumptions: [
+        {
+          statement: 'Traffic volume is moderate',
+          basis: 'No traffic estimate was supplied',
+          impact: 'Performance targets may need revision',
+        },
+      ],
+      openQuestions: ['Which regions must the first release support?'],
+      decisionRegister: [
+        {
+          area: 'Accessibility',
+          decision: 'Target WCAG 2.2 AA for the public web app',
+          status: 'proposed',
+          source: 'Current W3C recommendation',
+          rationale: 'The product serves users through a web interface',
+        },
+      ],
+    });
+
+    expect(legacyResult.success).toBe(true);
+    expect(currentResult.success).toBe(true);
+  });
+
   it('rejects constitution missing required architectural fields', () => {
     const invalidConstitution = {
       ...validConstitution,

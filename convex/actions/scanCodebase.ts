@@ -107,9 +107,26 @@ export const scanCodebase = action({
       const repoData = await repoResponse.json();
       const defaultBranch = repoData.default_branch;
 
+      const commitResponse = await fetch(
+        `https://api.github.com/repos/${args.repoOwner}/${args.repoName}/commits/${encodeURIComponent(defaultBranch)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+        },
+      );
+      if (!commitResponse.ok) {
+        throw new Error(`Failed to resolve repository commit: ${commitResponse.status}`);
+      }
+      const commitData = await commitResponse.json();
+      const commitSha: string = commitData.sha;
+      const treeSha: string = commitData.commit.tree.sha;
+
       // Fetch the tree recursively
       const treeResponse = await fetch(
-        `https://api.github.com/repos/${args.repoOwner}/${args.repoName}/git/trees/${defaultBranch}?recursive=1`,
+        `https://api.github.com/repos/${args.repoOwner}/${args.repoName}/git/trees/${treeSha}?recursive=1`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -158,7 +175,8 @@ export const scanCodebase = action({
               accessToken,
               args.repoOwner,
               args.repoName,
-              filePath
+              filePath,
+              commitSha,
             );
             if (content !== null) {
               return {
@@ -188,6 +206,7 @@ export const scanCodebase = action({
         repoOwner: args.repoOwner,
         repoName: args.repoName,
         defaultBranch,
+        commitSha,
         fileTree: JSON.stringify(fileTree),
         keyFiles,
         totalFiles,
@@ -324,10 +343,11 @@ async function fetchFileContent(
   accessToken: string,
   owner: string,
   repo: string,
-  path: string
+  path: string,
+  ref: string,
 ): Promise<string | null> {
   const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path.split('/').map(encodeURIComponent).join('/')}?ref=${encodeURIComponent(ref)}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useConvex } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { Download, FileCode, Bot, FileText, Archive, Loader2, Check, Clipboard } from "lucide-react";
 import { formatForClaudeCode, formatForCursor } from "@/lib/export/clipboard-formats";
 import { Button } from "@/components/ui/button";
@@ -8,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { generateSkillMd, type SkillMdInput } from "@/lib/export/skill-formatter";
 import { generateAgentsMd, type AgentsMdInput } from "@/lib/export/agents-formatter";
+import { formatClaimManifest } from "@/lib/evidence";
 
 interface ExportOption {
   id: string;
@@ -96,6 +100,7 @@ export function ExportOptionsPanel({
   isDownloadingZip,
 }: ExportOptionsPanelProps) {
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
+  const convex = useConvex();
 
   async function handleExport(option: ExportOption) {
     if (!option.available) {
@@ -108,13 +113,17 @@ export function ExportOptionsPanel({
     setExportingFormat(option.id);
 
     try {
+      const evidenceWorkspace = await convex.query(api.evidence.listWorkspace, {
+        projectId: project._id as Id<"projects">,
+      });
+      const traceabilityManifest = formatClaimManifest(evidenceWorkspace.claims);
       switch (option.format) {
         case "zip":
           await onDownloadZip();
           break;
 
         case "skill": {
-          const skillContent = generateSkillMd({
+          const skillContent = `${generateSkillMd({
             project: {
               _id: project._id,
               title: project.title,
@@ -122,7 +131,7 @@ export function ExportOptionsPanel({
               createdAt: project.createdAt,
             },
             artifacts,
-          });
+          })}${traceabilityManifest}`;
           downloadFile(
             skillContent,
             `${kebabCase(project.title)}-skill.md`,
@@ -135,7 +144,7 @@ export function ExportOptionsPanel({
         }
 
         case "agents": {
-          const agentsContent = generateAgentsMd({
+          const agentsContent = `${generateAgentsMd({
             project: {
               _id: project._id,
               title: project.title,
@@ -143,7 +152,7 @@ export function ExportOptionsPanel({
               createdAt: project.createdAt,
             },
             artifacts,
-          });
+          })}${traceabilityManifest}`;
           downloadFile(agentsContent, "AGENTS.md", "text/markdown");
           toast.success("AGENTS.md Downloaded", {
             description: "Place this file in your project root for AI context.",
@@ -152,7 +161,7 @@ export function ExportOptionsPanel({
         }
 
         case "clipboard-claude": {
-          const skillContent = generateSkillMd({
+          const skillContent = `${generateSkillMd({
             project: {
               _id: project._id,
               title: project.title,
@@ -160,7 +169,7 @@ export function ExportOptionsPanel({
               createdAt: project.createdAt,
             },
             artifacts,
-          });
+          })}${traceabilityManifest}`;
           const formatted = formatForClaudeCode({ title: project.title, content: skillContent });
           await navigator.clipboard.writeText(formatted);
           toast.success("Copied to Clipboard", {
@@ -170,7 +179,7 @@ export function ExportOptionsPanel({
         }
 
         case "clipboard-cursor": {
-          const skillContent = generateSkillMd({
+          const skillContent = `${generateSkillMd({
             project: {
               _id: project._id,
               title: project.title,
@@ -178,7 +187,7 @@ export function ExportOptionsPanel({
               createdAt: project.createdAt,
             },
             artifacts,
-          });
+          })}${traceabilityManifest}`;
           const formatted = formatForCursor({ title: project.title, content: skillContent });
           await navigator.clipboard.writeText(formatted);
           toast.success("Copied to Clipboard", {

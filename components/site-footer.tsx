@@ -31,6 +31,7 @@ export function SiteFooter() {
             <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Platform</h4>
             <nav className="flex flex-col gap-2">
               <Link href="/dashboard" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Dashboard</Link>
+              <Link href="/dashboard/quick" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Quick Spec</Link>
               <Link href="/settings" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Settings</Link>
               {isAdmin && (
                 <Link href="/admin/dashboard" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Admin</Link>

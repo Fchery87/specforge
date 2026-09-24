@@ -1,8 +1,8 @@
 # SpecForge Architecture
 
-**Version:** 1.2  
-**Date:** January 26, 2026  
-**Tech Stack:** Next.js 16 (App Router) · Convex (Free Tier) · Clerk Auth · Multi‑LLM Backend
+**Version:** 1.3
+**Date:** September 23, 2026
+**Tech Stack:** Next.js 16 (App Router + Turbopack) · Convex · Clerk Auth · Multi‑LLM Backend
 
 ---
 
@@ -14,12 +14,16 @@ SpecForge transforms a project title and description into a complete, structured
 Brief → PRD → Specs/Architecture → Stories → Artifacts → Handoff + ZIP Export
 ```
 
+Quick Specs can also be generated separately and saved into an existing project. Project artifacts can carry requirement IDs and reviewed evidence links through tickets, exports, and pasted-diff verification.
+
 ### Core guarantees
 
-- **No truncation:** Chunked generation with model‑aware `max_tokens` per model.
+- **Truncation control:** Chunked generation uses model-aware token budgets to reduce incomplete artifacts.
 - **Multi‑tenant:** System vs. user LLM/MCP credentials.
 - **Real‑time UX (pseudo-streaming):** incremental persistence + reactive queries for a live preview during generation.
-- **Free‑tier friendly:** Text content in Convex DB; one ZIP per project in Convex file storage.
+- **Storage-aware:** Artifact text and metadata live in Convex; ZIP exports use Convex file storage.
+- **Evidence-aware:** Captured answer and commit-pinned repository revisions can support generated claims. Model suggestions remain unconfirmed until owner review.
+- **Reviewable history:** Source changes preserve prior revisions and mark affected claims, tickets, phases, and verification results for review.
 
 ---
 
@@ -45,111 +49,17 @@ Brief → PRD → Specs/Architecture → Stories → Artifacts → Handoff + ZIP
 
 ## 3. Data model (Convex schema)
 
-This reflects the current repo’s schema at a high level (see `convex/schema.ts` for source of truth).
+`convex/schema.ts` is the source of truth. The main records are:
 
-```ts
-// convex/schema.ts (high level)
+- **Projects and phases** hold owner-scoped project state, phase questions, answers, and phase-level staleness.
+- **Artifacts and artifact versions** hold generated Markdown and revision history. `quickSpec` artifacts use the `quick` grouping key without creating a phase record.
+- **Evidence sources and revisions** record answer, repository-file, and user-note snapshots with stable IDs, content digests, and bounded excerpts. Repository sources are pinned to a commit and path.
+- **Claims and evidence links** connect requirement statements to artifact versions and project sources. Decision status and review status are separate; model-suggested links are not owner-confirmed.
+- **Tickets** can carry requirement IDs into implementation work.
+- **Verification results** preserve the artifact/source revisions and diff digest used for an advisory check.
+- **Generation tasks, credentials, and project scans** support background generation, encrypted user keys, and repository context.
 
-export default schema({
-  projects: table({
-    userId: v.string(), // Clerk user ID
-    title: v.string(),
-    description: v.string(),
-    status: v.union(v.literal("draft"), v.literal("active"), v.literal("complete")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    skippedPhases: v.optional(v.array(v.string())),
-    zipStorageId: v.optional(v.id("_storage")),
-  }),
-
-  phases: table({
-    projectId: v.id("projects"),
-    phaseId: v.string(),
-    status: v.union(v.literal("pending"), v.literal("generating"), v.literal("ready"), v.literal("error")),
-    questions: v.array(
-      v.object({
-        id: v.string(),
-        text: v.string(),
-        answer: v.optional(v.string()),
-        aiGenerated: v.boolean(),
-        suggestions: v.optional(v.array(v.string())),
-      })
-    ),
-    isStale: v.optional(v.boolean()),
-    grillSession: v.optional(
-      v.object({
-        totalQuestionsAsked: v.number(),
-        currentRound: v.number(),
-        isComplete: v.boolean(),
-        rounds: v.array(
-          v.object({
-            roundNumber: v.number(),
-            questions: v.array(
-              v.object({
-                id: v.string(),
-                text: v.string(),
-                recommendedAnswer: v.string(),
-                options: v.optional(v.array(v.string())),
-                category: v.optional(v.string()),
-                userAnswer: v.optional(v.string()),
-                acceptedRecommendation: v.optional(v.boolean()),
-              })
-            ),
-          })
-        ),
-      })
-    ),
-  }),
-
-  artifacts: table({
-    projectId: v.id("projects"),
-    phaseId: v.string(),
-    type: v.union(
-      v.literal("brief"),
-      v.literal("constitution"),
-      v.literal("hidden_constitution"),
-      v.literal("prd"),
-      v.literal("domainModel"),
-      v.literal("spec"),
-      v.literal("techSpec"),
-      v.literal("userStories"),
-      v.literal("handoff"),
-    ),
-    title: v.string(),
-    content: v.string(), // Full Markdown (DB text)
-    previewHtml: v.string(), // Rendered HTML for UI
-    previewHtmlUpdatedAt: v.optional(v.number()),
-    sections: v.array(v.object({ name: v.string(), tokens: v.number(), model: v.string() })),
-    streamStatus: v.optional(v.union(v.literal("idle"), v.literal("streaming"), v.literal("paused"), v.literal("complete"), v.literal("cancelled"))),
-    critique: v.optional(v.object({ passes: v.boolean(), score: v.number(), violations: v.array(v.any()) })),
-  }),
-
-  tickets: table({
-    projectId: v.id("projects"),
-    phaseId: v.string(),
-    artifactId: v.optional(v.id("artifacts")),
-    title: v.string(),
-    description: v.string(),
-    acceptanceCriteria: v.array(v.string()),
-    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
-    priority: v.union(v.literal("critical"), v.literal("high"), v.literal("medium"), v.literal("low")),
-    order: v.number(),
-    sliceType: v.optional(v.union(v.literal("tracer_bullet"), v.literal("wide_refactor"))),
-    blockedByTitles: v.optional(v.array(v.string())),
-    filesToTouch: v.optional(v.array(v.string())),
-  }),
-
-  userLlmConfigs: table({
-    userId: v.string(),
-    provider: v.string(),
-    apiKey: v.optional(v.bytes()), // Encrypted user key
-    defaultModel: v.string(),
-    useSystem: v.boolean(),
-  }),
-});
-```
-
-**Design intent:** keep artifacts as text in the database to minimize file storage usage, and store **a single ZIP** per project in Convex file storage for export.
+The schema evolves frequently. Do not copy an old schema snapshot into new code; inspect `convex/schema.ts` and generated Convex types for exact fields and indexes.
 
 ---
 
@@ -214,7 +124,7 @@ For each artifact:
    - Generate `previewHtml`.
    - Write everything into `artifacts` DB records.
 
-This approach avoids relying on a single long LLM response and stays robust across model token limits.
+This approach reduces reliance on a single long LLM response and helps handle model token limits.
 
 ---
 
@@ -286,9 +196,9 @@ This approach avoids relying on a single long LLM response and stays robust acro
 app/
 ├── layout.tsx                              // Clerk + Convex providers
 ├── (auth)/
-│   ├── dashboard/page.tsx                  // Project list & creation intake
-│   ├── project/[id]/page.tsx               // Project overview & phase graph
-│   ├── project/[id]/phase/[phaseId]/page.tsx // Interactive phase workflow
+│   ├── dashboard/page.tsx                  // Project list
+│   ├── dashboard/new/page.tsx              // Project creation intake
+│   ├── dashboard/quick/page.tsx            // Quick Spec generation and save
 │   ├── settings/
 │   │   ├── page.tsx                        // User account preferences
 │   │   └── llm-config/page.tsx             // User LLM API keys & model defaults
@@ -304,12 +214,25 @@ app/
 │       ├── projects/page.tsx               // Cross-tenant project inspect
 │       ├── activity/page.tsx               // Global activity log
 │       └── settings/page.tsx               // System-wide parameters
+├── project/[id]/page.tsx                   // Project overview & phase graph
+├── project/[id]/quick/page.tsx             // Saved Quick Spec
+└── project/[id]/phase/[phaseId]/page.tsx   // Interactive phase workflow
 ```
 
 - Uses App Router and React Server Components where possible.
 - Phase pages use Convex hooks for live updates of status and artifacts.
+- Saved Quick Specs use `/project/[id]/quick`; their `quick` artifact grouping key does not create a phase row.
+- Next.js 16 development and production builds use Turbopack by default. Keep `next dev` and `next build`; do not select Webpack.
 
-### 5.2 UX patterns
+### 5.2 Constitution and evidence workflow
+
+- The constitution prompt distinguishes **confirmed**, **observed**, **proposed**, and **unresolved** decisions. Locked constraints contain only confirmed, project-specific rules.
+- Standards and versions are recorded only when supplied by the user or supported by current evidence. Recommendations are labeled proposed; conformance is never claimed without verification.
+- Answer updates and repository rescans create immutable evidence revisions. Generation can cite only sources included in its request; links remain suggestions until an owner reviews them.
+- Changes flag linked claims, dependent tickets, phase summaries, and verification results for review. Historical records remain available.
+- See [Evidence-backed specifications](specs/2026-09-22-evidence-backed-specs.md), [the implementation plan](plans/2026-09-22-evidence-backed-specs.md), and [the local evaluation](evaluations/2026-09-22-evidence-workflow-evaluation.md) for the detailed contract and current rollout limit.
+
+### 5.3 UX patterns
 
 #### Phase page
 
@@ -333,7 +256,7 @@ app/
 
 - Clerk manages user identities and roles (user vs. super admin).
 - Convex receives validated tokens and enforces `userId` scoping on all reads/writes.
-- System LLM/MCP keys live in environment variables and are used only in backend actions.
+- Convex backend secrets and Next.js server secrets are configured in their respective environments; GitHub OAuth secrets stay server-side.
 - User keys are stored **encrypted** in `userLlmConfigs` and never returned to the client or logs.
 
 ---
@@ -341,16 +264,9 @@ app/
 ## 7. Deployment and limits
 
 - Next.js 16 deployed on a platform like Vercel.
-- Convex free tier used for:
-  - Up to **0.5 GB** DB (text artifacts and metadata)
-  - Up to **1 GB** file storage (ZIPs)
-  - Up to **1 GB/month** file bandwidth (full project downloads)
-
-Monitor:
-
-- Storage usage
-- Number of projects
-- Downloads per month
+- Convex deployment variables are configured with the Convex CLI, separately from Next.js `.env.local`.
+- Limits depend on the selected Convex plan. Monitor database/storage use and export traffic against the active plan rather than relying on fixed quota figures in this document.
+- GitHub OAuth is optional for repository connection; callback URLs must match each environment.
 
 ---
 
@@ -361,5 +277,3 @@ Monitor:
 - Team collaboration (shared projects) and commenting on artifacts.
 
 ---
-
-> Save this as `ARCHITECTURE.md` at the root of the SpecForge repo and iterate from there.

@@ -92,29 +92,40 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
     }
   }
 
-  function handleGitHubOAuth() {
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-    if (!clientId) {
-      setError('GitHub OAuth is not configured');
-      return;
+  async function handleGitHubOAuth() {
+    if (!projectId) return;
+    setError(null);
+    setIsConnecting(true);
+
+    try {
+      const response = await fetch('/api/github/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId }),
+      });
+      const result: unknown = await response.json();
+      if (!response.ok) {
+        const message =
+          typeof result === 'object' && result !== null && 'error' in result &&
+          typeof result.error === 'string'
+            ? result.error
+            : 'GitHub OAuth could not be started';
+        throw new Error(message);
+      }
+      if (
+        typeof result !== 'object' ||
+        result === null ||
+        !('url' in result) ||
+        typeof result.url !== 'string'
+      ) {
+        throw new Error('GitHub OAuth returned an invalid authorization URL');
+      }
+
+      window.location.assign(result.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'GitHub OAuth could not be started');
+      setIsConnecting(false);
     }
-
-    // Generate CSRF nonce and store for validation
-    const nonce = crypto.randomUUID();
-    sessionStorage.setItem('github_oauth_nonce', nonce);
-
-    const state = Buffer.from(
-      JSON.stringify({
-        redirect: `/project/${projectId}`,
-        projectId,
-        nonce,
-      })
-    ).toString('base64');
-
-    const redirectUri = `${window.location.origin}/api/github/callback`;
-    const scope = 'repo read:user';
-
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&state=${state}`;
   }
 
   // Parse file tree for display

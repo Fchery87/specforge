@@ -98,6 +98,10 @@ import { saveBatchAnswers, getBatchAnswerPrompt } from './batch-answers';
 
 - **Types**: `lib/llm/types.ts`
 - **LLM Registry**: `lib/llm/registry.ts` (all provider models)
+- **Evidence contracts**: `lib/evidence.ts` (source IDs and generation allowlists)
+- **Constitution contract**: `lib/llm/prompts/constitution.ts`, `lib/validation/constitution-schema.ts`
+- **Implementation verification**: `lib/verification/spec-checker.ts`
+- **GitHub OAuth validation**: `lib/github-oauth.ts`
 - **Model Metadata**: `lib/llm/providers/metadata.ts`
 - **Client factory**: `lib/llm/client-factory.ts`
 - **Chunking strategy**: `lib/llm/chunking.ts`

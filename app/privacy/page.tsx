@@ -21,7 +21,7 @@ export default function PrivacyPage() {
                 1. Data Collection
               </h2>
               <p>
-                We collect information necessary to forge your project specifications. This includes account data from Clerk (email, name) and the Input Content you provide (project goals, requirements).
+                We collect information needed to run your specification pipeline. This includes account details managed by Clerk (name and email), project briefs, interview responses, notes, and repository metadata when you connect GitHub.
               </p>
             </section>
 
@@ -30,25 +30,25 @@ export default function PrivacyPage() {
                 2. Encrypted Credentials
               </h2>
               <p>
-                If you opt to use your own LLM provider keys, they are encrypted at rest using system-level AES encryption. We do not store keys in plaintext. They are decrypted temporarily in memory only when a generation request is executed.
+                If you provide your own LLM provider API keys, they are encrypted at rest with AES-256-GCM. We never store keys in plaintext. Keys are decrypted temporarily in memory only when executing authorized requests.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold uppercase tracking-tight text-foreground mb-4 border-l-4 border-primary pl-4">
-                3. Third-Party Processing
+                3. Third-Party LLM Processing
               </h2>
               <p>
-                To generate Artifacts, your Input Content is transmitted to third-party LLM providers (e.g., DeepSeek, OpenAI, Anthropic). These partners process data according to their respective privacy protocols. SpecForge does not share your account identity with these providers.
+                To generate artifacts, your input prompts and attached evidence excerpts are sent to configured LLM providers (such as Anthropic, OpenAI, Google, DeepSeek, or Mistral). These providers process requests under their respective terms. SpecForge does not share your user identity with model providers.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold uppercase tracking-tight text-foreground mb-4 border-l-4 border-primary pl-4">
-                4. Data Retention
+                4. Data Retention and Tenancy
               </h2>
               <p>
-                Artifacts and project data are stored in your Convex instance for as long as your account remains active. You can purge any project or artifact at your discretion, which results in permanent removal from our active database.
+                Artifacts, claims, and project evidence are stored in your Convex database while your account is active. Project queries and mutations strictly verify user ownership at every boundary. Deleting a project permanently cascades to all linked artifacts and claim records.
               </p>
             </section>
 
@@ -57,13 +57,13 @@ export default function PrivacyPage() {
                 5. Security Protocols
               </h2>
               <p>
-                We employ modern security standards to isolate user environments and protect data integrity. However, no digital forge is absolute. Users are encouraged to maintain independent backups of all critical specifications.
+                We isolate project data per user and authenticate every operation. You can inspect all captured revisions and export complete archive bundles at any time.
               </p>
             </section>
 
             <section className="pt-8 border-t border-border">
-              <p className="text-xs uppercase tracking-widest">
-                Last Updated: January 14, 2026 // Secure Protocol Active
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">
+                Last updated: September 2026
               </p>
             </section>
           </div>

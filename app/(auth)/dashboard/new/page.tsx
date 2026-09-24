@@ -18,7 +18,6 @@ import { toast } from "sonner";
 export default function NewProjectPage() {
   const router = useRouter();
   const createProject = useMutation(api.projects.createProject);
-  const incrementUsageCount = useMutation(api.constitutionTemplates.incrementUsageCount);
   const templates = useQuery(api.constitutionTemplates.listTemplates);
 
   const [title, setTitle] = useState("");
@@ -37,15 +36,11 @@ export default function NewProjectPage() {
     if (!isValid || isCreating) return;
     setIsCreating(true);
     try {
-      // TODO: Pass selectedTemplateId to createProject once the mutation supports it.
-      // For now the selected template is stored locally and usage is tracked below.
       const id = await createProject({
         title: title.slice(0, 100),
         description: description.slice(0, 5000),
+        constitutionTemplateId: selectedTemplateId ?? undefined,
       });
-      if (selectedTemplateId) {
-        await incrementUsageCount({ templateId: selectedTemplateId });
-      }
       // Show repo connector step instead of immediately redirecting
       setCreatedProjectId(id);
       setShowRepoConnector(true);
@@ -101,7 +96,7 @@ export default function NewProjectPage() {
               Start <span className="text-primary">Building</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Provide a project title and initial scope. The more context and constraints you supply, the higher the precision of the generated specifications.
+              Provide a project title and initial scope. Detailed requirements, user personas, and system boundaries yield sharper specifications.
             </p>
           </div>
 
@@ -122,7 +117,7 @@ export default function NewProjectPage() {
                     Connect Your Repository (Optional)
                   </CardTitle>
                   <CardDescription>
-                    Link an existing GitHub repository to enable codebase-aware specification generation. SpecForge will ground generated specifications in your current architecture and dependencies.
+                    Link a GitHub repository to pin file citations to specific commits. SpecForge references your file paths and architectural patterns during generation.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -146,7 +141,7 @@ export default function NewProjectPage() {
                 <CardHeader>
                   <CardTitle className="text-xl normal-case tracking-normal font-semibold">Project Details</CardTitle>
                   <CardDescription>
-                    Define your project name and core requirements (max 5,000 characters).
+                    Define your project title and core requirements. The initial brief establishes your evidence baseline.
                   </CardDescription>
                 </CardHeader>
             <CardContent className="space-y-8">
@@ -186,7 +181,7 @@ export default function NewProjectPage() {
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value.slice(0, 5000))}
-                  placeholder="Describe your project in detail. What problem does it solve? Who is the target audience? What are the key features you envision? Include any technical requirements, integrations, or constraints..."
+                  placeholder="Describe the system in detail. Specify user personas, critical workflows, integrations, data structures, and architectural non-goals..."
                   className="min-h-[200px] text-base"
                   disabled={isCreating}
                 />

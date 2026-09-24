@@ -171,7 +171,7 @@ export default function DashboardPage() {
             Your <span className="text-primary">Projects</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl">
-            Create, manage, and forge your requirements into fully-specified, production-ready systems.
+            Manage specification pipelines, review evidence changes, and export agent-native handoffs.
           </p>
         </div>
       </section>
@@ -198,7 +198,7 @@ export default function DashboardPage() {
                 </div>
                 <CardTitle>New Project</CardTitle>
                 <CardDescription>
-                  Launch the 8-phase specification pipeline from an initial brief
+                  Run the complete specification pipeline with codebase scanning, evidence linking, and tracer bullet decomposition
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 </div>
                 <CardTitle>Quick Spec</CardTitle>
                 <CardDescription>
-                  Generate an immediate technical spec and diagram from a single prompt
+                  Generate a fast one-page architectural spec and Mermaid diagram, then save directly to project history
                 </CardDescription>
               </CardHeader>
               <CardContent>

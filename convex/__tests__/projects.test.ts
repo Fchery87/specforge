@@ -1,5 +1,31 @@
 import { describe, it, expect } from "vitest";
-import { applyAnswerUpdate, getNextUpdatedAt } from "../projects";
+import {
+  applyAnswerUpdate,
+  buildConstitutionTemplateSnapshot,
+  getNextUpdatedAt,
+} from "../projects";
+
+describe("buildConstitutionTemplateSnapshot", () => {
+  it("copies template content and locked constraints onto the project snapshot", () => {
+    const snapshot = buildConstitutionTemplateSnapshot({
+      name: "Web application",
+      constitutionContent: "Prefer accessible, keyboard friendly controls.",
+      lockedConstraints: {
+        architecture: "Modular monolith",
+        securityProtocols: ["Validate authorization on the server"],
+      },
+    });
+
+    expect(snapshot).toEqual({
+      name: "Web application",
+      constitutionContent: "Prefer accessible, keyboard friendly controls.",
+      lockedConstraints: {
+        architecture: "Modular monolith",
+        securityProtocols: ["Validate authorization on the server"],
+      },
+    });
+  });
+});
 
 describe("applyAnswerUpdate", () => {
   it("updates answer and aiGenerated when provided", () => {

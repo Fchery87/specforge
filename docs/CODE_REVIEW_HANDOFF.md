@@ -4,6 +4,8 @@
 **Date:** January 12, 2026  
 **Purpose:** Comprehensive code review, diff analysis, and feature implementation verification
 
+> **Historical handoff:** This January 2026 review brief predates the current evidence and Quick Spec workflows. Use [HANDOFF.md](HANDOFF.md), [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md), and the [evidence workflow evaluation](evaluations/2026-09-22-evidence-workflow-evaluation.md) for current paths and rollout status.
+
 ---
 
 ## 🎯 Your Mission

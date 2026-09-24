@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { verifyImplementationAction } from "@/lib/convex-actions";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Loader2, CheckCircle, XCircle, AlertTriangle, FileSearch } from "lucide-react";
 import { toast } from "sonner";
 import type { Finding, FindingCategory, FindingSeverity, VerificationStatus } from "@/lib/verification/spec-checker";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface VerificationPanelProps {
   projectId: string;
@@ -48,6 +49,9 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
   } | null>(null);
 
   const verifyAction = useAction(verifyImplementationAction);
+  const verificationHistory = useQuery(api.evidence.listVerificationResults, {
+    projectId: projectId as Id<"projects">,
+  });
 
   async function handleVerify() {
     if (!gitDiff.trim()) {
@@ -174,6 +178,19 @@ index 0000000..1234567
             </Button>
           </div>
         )}
+        {verificationHistory && verificationHistory.length > 0 && (
+          <div className="border-t border-border pt-4">
+            <h3 className="mb-2 text-sm font-semibold">Previous checks</h3>
+            <ul className="space-y-2">
+              {verificationHistory.map((item) => (
+                <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <span>{new Date(item.checkedAt).toLocaleString()} · {item.overallScore}/100 · {item.artifactVersionSet?.length ? `${item.artifactVersionSet.length} artifact revision${item.artifactVersionSet.length === 1 ? '' : 's'}` : `artifact v${item.artifactVersion ?? "?"}`}</span>
+                  {item.outdatedAt ? <Badge variant="outline">Outdated</Badge> : <StatusBadge status={item.status} />}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -235,6 +252,12 @@ function FindingCard({ finding, index }: { finding: Finding; index: number }) {
         <div className="text-xs text-muted-foreground">
           Reference: <span className="font-mono">{finding.specReference}</span>
         </div>
+      )}
+      {finding.requirementId && (
+        <div className="text-xs text-muted-foreground">Requirement: <span className="font-mono">{finding.requirementId}</span></div>
+      )}
+      {finding.changedFilePath && (
+        <div className="text-xs text-muted-foreground">Changed file: <span className="font-mono">{finding.changedFilePath}</span></div>
       )}
     </div>
   );

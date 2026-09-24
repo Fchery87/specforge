@@ -22,6 +22,8 @@ interface TicketCardProps {
     dependencies?: Id<"tickets">[];
     blockedByTitles?: string[];
     filesToTouch?: string[];
+    claimIds?: string[];
+    evidenceReviewStatus?: "current" | "needs_review";
   };
   isBlocked?: boolean;
   onStatusChange: (id: Id<"tickets">, newStatus: TicketStatus) => void;
@@ -92,6 +94,9 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
               {ticket.estimatedEffort}
             </Badge>
           )}
+          {ticket.evidenceReviewStatus === "needs_review" && (
+            <Badge variant="outline" className="border-amber-500/40 text-amber-600 text-[10px]">Evidence needs review</Badge>
+          )}
         </div>
 
         {hasBlockers && ticket.blockedByTitles && (
@@ -99,6 +104,10 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
             <span className="font-semibold text-muted-foreground/80">Blocked by:</span>{" "}
             {ticket.blockedByTitles.join(", ")}
           </div>
+        )}
+
+        {ticket.claimIds && ticket.claimIds.length > 0 && (
+          <div className="text-[11px] text-muted-foreground">Requirements: {ticket.claimIds.join(", ")}</div>
         )}
 
         {ticket.filesToTouch && ticket.filesToTouch.length > 0 && (

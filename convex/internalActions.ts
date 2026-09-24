@@ -331,12 +331,17 @@ export const generatePhaseWorker = internalAction({
       sectionInstructions = `${sectionInstructions}\n\n## CUSTOM INSTRUCTIONS\n${customInstructions}`;
     }
 
-    // Add codebase context if available (Task 19: Codebase Awareness)
+    const evidenceSources = await ctx.runQuery(internal.evidence.listEvidenceSourcesInternal, {
+      projectId,
+    });
+
+    // Add repository and captured evidence context to the section prompt.
     sectionInstructions = await buildSectionInstructionsWithCodebase(
       ctx,
       projectId,
       sectionInstructions,
       phaseId,
+      evidenceSources,
     );
 
     try {
@@ -351,6 +356,7 @@ export const generatePhaseWorker = internalAction({
             sectionsCompleted: 0,
             sectionsTotal: task.totalSteps,
             currentSection: section.name,
+            evidenceSourceIds: evidenceSources.map((source) => source._id),
           },
         );
       } else {
@@ -363,6 +369,7 @@ export const generatePhaseWorker = internalAction({
             sectionsCompleted: currentStep,
             sectionsTotal: task.totalSteps,
             currentSection: section.name,
+            evidenceSourceIds: evidenceSources.map((source) => source._id),
           },
         );
       }
@@ -681,6 +688,7 @@ export const generatePhaseWorker = internalAction({
                   title: projectContext.title || 'Project',
                   description: content,
                   questions: answeredQuestions, // PASS ACTUAL USER ANSWERS
+                  constitutionTemplate: project.constitutionTemplate,
                 },
                 model,
                 llmClient,
@@ -1585,23 +1593,25 @@ async function buildSectionInstructionsWithCodebase(
   projectId: Id<'projects'>,
   baseInstructions: string,
   phaseId: string,
+  evidenceSources: Array<{
+    _id: Id<'evidenceSources'>;
+    kind: string;
+    locator: string;
+    revisionLabel: string;
+    excerpt: string;
+    origin?: string;
+  }> = [],
 ): Promise<string> {
-  // Only include codebase for phases that benefit from it
+  const evidenceContext = evidenceSources.length
+    ? `\n\n## Captured evidence sources\n${evidenceSources.map((source) => `- ID: ${source._id}; ${source.kind}; origin=${source.origin ?? 'unknown'}; ${source.revisionLabel}; ${source.locator}\n  Excerpt: ${source.excerpt.replace(/\s+/g, ' ').slice(0, 240)}`).join('\n')}\n\nWhen a generated requirement or decision is directly supported by one of these sources, append an HTML comment marker with its exact ID to that bullet, for example: \`<!-- evidence-source: ${evidenceSources[0]._id} -->\`. Use only listed IDs. A marker is a suggested link for the user to review, never proof of support. Do not cite a source that does not support the claim. Do not put markers inside code blocks.`
+    : '';
+
+  // Only include repository context for phases that benefit from it.
   const codebaseRelevantPhases = ['specs', 'stories', 'artifacts'];
-  if (!codebaseRelevantPhases.includes(phaseId)) {
-    return baseInstructions;
-  }
+  const codebase = codebaseRelevantPhases.includes(phaseId)
+    ? await fetchCodebaseForProject(ctx, projectId)
+    : null;
+  const codebaseContext = codebase ? `\n\n---\n\n${formatCodebaseContext(codebase)}` : '';
 
-  const codebase = await fetchCodebaseForProject(ctx, projectId);
-  if (!codebase) {
-    return baseInstructions;
-  }
-
-  const codebaseContext = formatCodebaseContext(codebase);
-
-  return `${baseInstructions}
-
----
-
-${codebaseContext}`;
+  return `${baseInstructions}${evidenceContext}${codebaseContext}`;
 }

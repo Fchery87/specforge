@@ -1,6 +1,10 @@
 # SpecForge Code Review Remediation Plan
+**Status:** Historical archive record; retained for project context
+
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+> **Historical plan:** This March 2026 remediation draft predates the current repository state. Its examples and package-manager suggestions are historical; use the current [handoff](../HANDOFF.md) and [implementation checklist](../IMPLEMENTATION_CHECKLIST.md) for verified commands and status.
 
 **Goal:** Fix all confirmed defects from the SpecForge code review, organized into three sprints by severity: critical security fixes, high-severity reliability fixes, and medium-severity cleanup.
 

@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useAction } from "convex/react";
+import Link from "next/link";
+import type { Route } from "next";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { generateQuickSpecAction } from "@/lib/convex-actions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2, Save, Zap } from "lucide-react";
 import { MermaidAwareContent } from "@/components/ui/mermaid-aware-content";
+import { toast } from "sonner";
 
 export default function QuickSpecPage() {
   const [title, setTitle] = useState("");
@@ -15,8 +20,13 @@ export default function QuickSpecPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [projectId, setProjectId] = useState("");
+  const [savedArtifactId, setSavedArtifactId] = useState<Id<"artifacts"> | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const generateQuickSpec = useAction(generateQuickSpecAction);
+  const projects = useQuery(api.projects.getProjects);
+  const saveQuickSpec = useMutation(api.artifacts.saveQuickSpec);
 
   async function handleGenerate() {
     if (!title.trim() || !description.trim()) return;
@@ -29,10 +39,29 @@ export default function QuickSpecPage() {
         description: description.trim(),
       });
       setResult(res.content);
+      setSavedArtifactId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!result || !projectId) return;
+    setIsSaving(true);
+    try {
+      const artifactId = await saveQuickSpec({
+        projectId: projectId as Id<"projects">,
+        title: title.trim(),
+        content: result,
+      });
+      setSavedArtifactId(artifactId);
+      toast.success("Quick Spec saved to project history");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Unable to save Quick Spec");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -62,7 +91,7 @@ export default function QuickSpecPage() {
           Generate a Quick Spec
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl">
-          Describe a feature, task, or architectural refactor to generate a complete technical specification with architecture decisions, implementation steps, and a Mermaid diagram.
+          Describe a feature, task, or refactor to generate a fast one-page specification with architectural decisions, sequence diagrams, and direct project saving.
         </p>
       </section>
 
@@ -91,7 +120,7 @@ export default function QuickSpecPage() {
                 id="quick-spec-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the desired behavior, affected components, state changes, security constraints, and error handling..."
+                placeholder="Specify the desired behavior, affected components, state changes, error handling, and test criteria..."
                 rows={6}
                 className="w-full bg-secondary/30 border border-border px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
               />
@@ -119,9 +148,32 @@ export default function QuickSpecPage() {
                   <CardTitle className="text-base normal-case tracking-normal font-semibold">
                     {title}
                   </CardTitle>
-                  <CardDescription>Quick Spec Result</CardDescription>
+                  <CardDescription>Architectural Blueprint & Diagram</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <label htmlFor="quick-spec-project" className="sr-only">Save to project</label>
+                    <select
+                      id="quick-spec-project"
+                      value={projectId}
+                      onChange={(event) => { setProjectId(event.target.value); setSavedArtifactId(null); }}
+                      className="min-w-0 flex-1 border border-border bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">Save to project…</option>
+                      {(projects ?? []).map((project) => (
+                        <option key={project._id} value={project._id}>{project.title}</option>
+                      ))}
+                    </select>
+                    <Button onClick={handleSave} disabled={!projectId || isSaving} variant="outline" className="gap-2">
+                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {isSaving ? "Saving…" : savedArtifactId ? "Save new version" : "Save Quick Spec"}
+                    </Button>
+                  </div>
+                  {savedArtifactId && (
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      Saved. <Link className="underline" href={`/project/${projectId}/quick` as Route}>Open project history</Link>
+                    </p>
+                  )}
                   <div className="bg-secondary/30 border-t border-border p-4 max-h-[600px] overflow-y-auto">
                     <MermaidAwareContent markdown={result} />
                   </div>
@@ -134,7 +186,7 @@ export default function QuickSpecPage() {
               >
                 <CardContent className="text-center text-muted-foreground">
                   <Zap className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Your generated specification and architecture diagram will render here</p>
+                  <p className="text-sm">Your generated specification and architecture diagram will render here. You can then save it directly to project history.</p>
                 </CardContent>
               </Card>
             )}

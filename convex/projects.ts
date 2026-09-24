@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 import { canAccessProject } from '../lib/authz';
 import { normalizeProjectInput } from '../lib/project-input';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
+import { captureEvidenceSource } from './lib/evidence';
 
 const DEFAULT_PHASES = [
   'constitution',
@@ -17,10 +18,29 @@ const DEFAULT_PHASES = [
   'handoff',
 ];
 
+type ConstitutionTemplateSnapshot = Pick<
+  Doc<'constitutionTemplates'>,
+  'name' | 'constitutionContent' | 'lockedConstraints'
+>;
+
+export function buildConstitutionTemplateSnapshot(
+  template: ConstitutionTemplateSnapshot,
+): ConstitutionTemplateSnapshot {
+  return {
+    name: template.name,
+    constitutionContent: template.constitutionContent,
+    lockedConstraints: template.lockedConstraints,
+  };
+}
+
 // mapPhaseToArtifactType is now imported from './lib/phase-utils'
 
 export const createProject = mutation({
-  args: { title: v.string(), description: v.string() },
+  args: {
+    title: v.string(),
+    description: v.string(),
+    constitutionTemplateId: v.optional(v.id('constitutionTemplates')),
+  },
   handler: async (ctx: MutationCtx, args) => {
     const normalized = normalizeProjectInput({
       title: args.title,
@@ -30,6 +50,17 @@ export const createProject = mutation({
     if (!identity) throw new Error('Unauthenticated');
     const userId = identity.subject;
 
+    let constitutionTemplate: ConstitutionTemplateSnapshot | undefined;
+    if (args.constitutionTemplateId) {
+      const template = await ctx.db.get(args.constitutionTemplateId);
+      if (!template) throw new Error('Constitution template not found');
+      if (template.userId !== userId) throw new Error('Forbidden');
+      constitutionTemplate = buildConstitutionTemplateSnapshot(template);
+      await ctx.db.patch(template._id, {
+        usageCount: (template.usageCount ?? 0) + 1,
+      });
+    }
+
     const now = Date.now();
     const projectId = await ctx.db.insert('projects', {
       userId,
@@ -38,6 +69,7 @@ export const createProject = mutation({
       status: 'active',
       createdAt: now,
       updatedAt: now,
+      constitutionTemplate,
     });
 
     for (const phaseId of DEFAULT_PHASES) {
@@ -204,6 +236,18 @@ export const saveAnswer = mutation({
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
+    if (args.answer.trim()) {
+      await captureEvidenceSource(ctx, {
+        projectId: args.projectId,
+        sourceKey: `answer:${args.phaseId}:${args.questionId}`,
+        kind: 'answer',
+        locator: `${args.phaseId}/${args.questionId}`,
+        revisionLabel: `Answer in ${args.phaseId}`,
+        content: args.answer,
+        capturedBy: identity.subject,
+        origin: args.aiGenerated ? 'assistant' : 'user',
+      });
+    }
     await ctx.db.patch(args.projectId, {
       updatedAt: getNextUpdatedAt(project.updatedAt, now),
     });
@@ -365,6 +409,19 @@ export const saveGrillAnswers = mutation({
       questions: updatedQuestions,
       grillSession: updatedSession,
     });
+    for (const answer of args.answers) {
+      if (!answer.answer.trim()) continue;
+      await captureEvidenceSource(ctx, {
+        projectId: args.projectId,
+        sourceKey: `answer:${args.phaseId}:${answer.questionId}`,
+        kind: 'answer',
+        locator: `${args.phaseId}/${answer.questionId}`,
+        revisionLabel: `Grilling answer in ${args.phaseId}`,
+        content: answer.answer,
+        capturedBy: identity.subject,
+        origin: 'user',
+      });
+    }
 
     await ctx.db.patch(args.projectId, {
       updatedAt: getNextUpdatedAt(project.updatedAt, now),
@@ -519,6 +576,29 @@ export async function deleteProjectHandler(
   for (const ticket of tickets) {
     await ctx.db.delete(ticket._id);
   }
+
+  const claims = await ctx.db
+    .query('claims')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const claim of claims) {
+    const links = await ctx.db
+      .query('evidenceLinks')
+      .withIndex('by_claim', (q) => q.eq('claimId', claim._id))
+      .collect();
+    for (const link of links) await ctx.db.delete(link._id);
+    const reviews = await ctx.db
+      .query('evidenceReviews')
+      .withIndex('by_claim', (q) => q.eq('claimId', claim._id))
+      .collect();
+    for (const review of reviews) await ctx.db.delete(review._id);
+    await ctx.db.delete(claim._id);
+  }
+  const sources = await ctx.db
+    .query('evidenceSources')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const source of sources) await ctx.db.delete(source._id);
 
   // Delete the project
   await ctx.db.delete(args.projectId);

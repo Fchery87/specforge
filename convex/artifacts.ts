@@ -2,6 +2,9 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+import { renderPreviewHtml } from "../lib/markdown-render";
+import { createEvidenceDigest } from "../lib/evidence";
+import { reconcileArtifactClaims } from './lib/evidence';
 
 export async function cancelArtifactStreamingHandler(
   ctx: Pick<MutationCtx, "db" | "auth">,
@@ -51,7 +54,8 @@ export const upsertArtifact = mutation({
       v.literal('spec'),
       v.literal('techSpec'),
       v.literal('userStories'),
-      v.literal('handoff')
+      v.literal('handoff'),
+      v.literal('quickSpec'),
     ),
     title: v.string(),
     content: v.string(),
@@ -66,6 +70,69 @@ export const upsertArtifact = mutation({
     return await ctx.db.insert("artifacts", { ...args });
   },
 });
+
+export const saveQuickSpec = mutation({
+  args: {
+    projectId: v.id('projects'),
+    title: v.string(),
+    content: v.string(),
+  },
+  handler: saveQuickSpecHandler,
+});
+
+export async function saveQuickSpecHandler(
+  ctx: MutationCtx,
+  args: { projectId: Id<'projects'>; title: string; content: string },
+) {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) throw new Error('Project not found');
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== project.userId) throw new Error('Forbidden');
+    const title = args.title.trim();
+    const content = args.content.trim();
+    if (!title || !content) throw new Error('Title and content are required');
+    if (content.length > 100_000) throw new Error('Quick Spec exceeds the 100 KB limit');
+
+    const existing = await ctx.db
+      .query('artifacts')
+      .withIndex('by_phase', (q) => q.eq('projectId', args.projectId).eq('phaseId', 'quick'))
+      .first();
+    const previewHtml = renderPreviewHtml(content);
+    if (!existing) {
+      const artifactId = await ctx.db.insert('artifacts', {
+        projectId: args.projectId,
+        phaseId: 'quick',
+        type: 'quickSpec',
+        title,
+        content,
+        previewHtml,
+        sections: [],
+      });
+      await reconcileArtifactClaims(ctx, { projectId: args.projectId, phaseId: 'quick', artifactId, content });
+      return artifactId;
+    }
+    if (existing.type !== 'quickSpec') throw new Error('Quick Spec artifact slot is occupied by another artifact');
+    if (existing.content === content && existing.title === title) return existing._id;
+    const latestVersion = await ctx.db
+      .query('artifactVersions')
+      .withIndex('by_artifact', (q) => q.eq('artifactId', existing._id))
+      .order('desc')
+      .first();
+    await ctx.db.insert('artifactVersions', {
+      artifactId: existing._id,
+      version: (latestVersion?.version ?? 0) + 1,
+      content: existing.content,
+      contentHash: await createEvidenceDigest(existing.content),
+      previewHtml: existing.previewHtml,
+      provenance: existing.provenance,
+      createdAt: Date.now(),
+      createdBy: 'user',
+      changeReason: 'Quick Spec updated',
+    });
+    await ctx.db.patch(existing._id, { title, content, previewHtml });
+    await reconcileArtifactClaims(ctx, { projectId: args.projectId, phaseId: 'quick', artifactId: existing._id, content });
+    return existing._id;
+}
 
 export const cancelArtifactStreaming = mutation({
   args: { projectId: v.id("projects"), phaseId: v.string() },
@@ -131,6 +198,14 @@ export const deleteArtifact = mutation({
 
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
+
+    const claims = await ctx.db
+      .query('claims')
+      .withIndex('by_artifact', (q) => q.eq('artifactId', args.artifactId))
+      .collect();
+    for (const claim of claims) {
+      await ctx.db.patch(claim._id, { retiredAt: Date.now(), updatedAt: Date.now() });
+    }
 
     await ctx.db.delete(args.artifactId);
   },

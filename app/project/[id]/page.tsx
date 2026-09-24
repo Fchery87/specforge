@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import type { Route } from "next";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -18,14 +19,14 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 const PHASES = [
-  { id: "constitution", label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
-  { id: "brief", label: "Brief", icon: BookOpen, description: "Define your project scope and requirements" },
-  { id: "prd", label: "PRD", icon: Target, description: "Formal product requirements and goals" },
-  { id: "domainModel", label: "Domain Model", icon: Layers, description: "Entities, rules, and state transitions" },
-  { id: "specs", label: "Spec & Architecture", icon: Code, description: "Technical specifications and design" },
-  { id: "stories", label: "Tasks/Stories", icon: ClipboardList, description: "User stories and task breakdown" },
-  { id: "artifacts", label: "Artifacts", icon: Sparkles, description: "Generated assets and codebase models" },
-  { id: "handoff", label: "Handoff + ZIP", icon: Package, description: "Final deliverables and documentation" },
+  { id: "constitution", label: "Constitution", icon: FileText, description: "Core invariants, non-goals, and architectural boundaries" },
+  { id: "brief", label: "Brief", icon: BookOpen, description: "Project scope, user personas, and initial evidence baseline" },
+  { id: "prd", label: "PRD", icon: Target, description: "Evidence-backed requirements with stable claim IDs" },
+  { id: "domainModel", label: "Domain Model", icon: Layers, description: "Entities, invariant rules, and state transitions" },
+  { id: "specs", label: "Spec & Architecture", icon: Code, description: "Deep interface contracts, explicit test seams, and architecture" },
+  { id: "stories", label: "Tasks/Stories", icon: ClipboardList, description: "Vertical tracer bullets with blocking dependency graphs" },
+  { id: "artifacts", label: "Artifacts", icon: Sparkles, description: "Live schema validation, in-browser editor, and code models" },
+  { id: "handoff", label: "Handoff + ZIP", icon: Package, description: "Agent-native bundle, SKILL.md, and verified requirement traceability" },
 ];
 
 export default function ProjectPage() {
@@ -188,15 +189,19 @@ export default function ProjectPage() {
           <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
             Workflow Phases
           </h2>
-          {/* Generate All button */}
-          <Button
-            onClick={() => setShowGenerateAllConfirm(true)}
-            disabled={isGeneratingAll || !hasPendingPhases}
-            className="gap-2"
-          >
-            {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            Generate All Phases
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/project/${params.id}/quick` as Route}>Quick Spec history</Link>
+            </Button>
+            <Button
+              onClick={() => setShowGenerateAllConfirm(true)}
+              disabled={isGeneratingAll || !hasPendingPhases}
+              className="gap-2"
+            >
+              {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Generate All Phases
+            </Button>
+          </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {PHASES.map((phase, idx) => (
@@ -231,7 +236,7 @@ export default function ProjectPage() {
         open={showGenerateAllConfirm}
         onOpenChange={setShowGenerateAllConfirm}
         title="Generate All Pending Phases"
-        description="This will sequentially queue all remaining un-generated phases for AI generation. Tasks run asynchronously in the background. Are you sure you want to proceed?"
+        description="This will sequentially queue all remaining un-generated phases for generation. Each phase preserves invariants from prior outputs and extracts verifiable contracts. Are you sure you want to proceed?"
         confirmLabel="Generate All"
         variant="default"
         onConfirm={handleGenerateAll}

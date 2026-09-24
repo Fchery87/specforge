@@ -1,122 +1,126 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '@/convex/_generated/api';
 import { auth } from '@clerk/nextjs/server';
-import { encrypt } from '@/lib/encryption';
-import { getRequiredEncryptionKey } from '@/lib/encryption-key';
+import {
+  GITHUB_OAUTH_COOKIE_NAMES,
+  getGitHubProjectRedirect,
+  isGitHubTokenResponse,
+  matchesGitHubOAuthState,
+} from '@/lib/github-oauth';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * GitHub OAuth callback handler
- * Exchanges the authorization code for an access token and stores it encrypted
- */
+function redirectAndClearCookies(
+  request: NextRequest,
+  projectId: string | null,
+  error?: string,
+) {
+  const projectPath = projectId ? getGitHubProjectRedirect(projectId) : null;
+  const destination = new URL(projectPath ?? '/dashboard', request.nextUrl.origin);
+  if (error) destination.searchParams.set('error', error);
+
+  const response = NextResponse.redirect(destination);
+  response.headers.set('Cache-Control', 'no-store');
+  const cookieOptions = {
+    httpOnly: true,
+    secure: request.nextUrl.protocol === 'https:',
+    sameSite: 'lax' as const,
+    path: '/api/github/callback',
+    maxAge: 0,
+  };
+  response.cookies.set(GITHUB_OAUTH_COOKIE_NAMES.state, '', cookieOptions);
+  response.cookies.set(GITHUB_OAUTH_COOKIE_NAMES.verifier, '', cookieOptions);
+  response.cookies.set(GITHUB_OAUTH_COOKIE_NAMES.projectId, '', cookieOptions);
+  return response;
+}
+
 export async function GET(request: NextRequest) {
   await auth.protect();
-  const searchParams = request.nextUrl.searchParams;
-  const code = searchParams.get('code');
-  const state = searchParams.get('state'); // Contains redirect URL and project info
-  const error = searchParams.get('error');
 
-  // Handle OAuth errors
-  if (error) {
-    const errorDescription = searchParams.get('error_description') || 'Unknown error';
-    console.error('[GitHub OAuth] Error:', error, errorDescription);
-    return NextResponse.redirect(
-      new URL(`/dashboard?error=github_${error}`, request.url)
-    );
+  const searchParams = request.nextUrl.searchParams;
+  const state = searchParams.get('state');
+  const expectedState = request.cookies.get(
+    GITHUB_OAUTH_COOKIE_NAMES.state,
+  )?.value;
+  const verifier = request.cookies.get(
+    GITHUB_OAUTH_COOKIE_NAMES.verifier,
+  )?.value;
+  const projectId = request.cookies.get(
+    GITHUB_OAUTH_COOKIE_NAMES.projectId,
+  )?.value ?? null;
+  const projectPath = projectId ? getGitHubProjectRedirect(projectId) : null;
+
+  if (
+    !projectPath ||
+    !verifier ||
+    !matchesGitHubOAuthState(state, expectedState)
+  ) {
+    return redirectAndClearCookies(request, null, 'github_state_invalid');
   }
 
+  const githubError = searchParams.get('error');
+  if (githubError) {
+    return redirectAndClearCookies(request, projectId, 'github_authorization_denied');
+  }
+
+  const code = searchParams.get('code');
   if (!code) {
-    return NextResponse.redirect(
-      new URL('/dashboard?error=missing_code', request.url)
-    );
+    return redirectAndClearCookies(request, projectId, 'github_code_missing');
   }
 
   try {
-    // Exchange code for access token
     const clientId = process.env.GITHUB_CLIENT_ID;
     const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-      throw new Error('GitHub OAuth credentials not configured');
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!clientId || !clientSecret || !convexUrl) {
+      throw new Error('OAuth or backend configuration is missing');
     }
 
+    const callbackUrl = new URL('/api/github/callback', request.nextUrl.origin);
     const tokenResponse = await fetch(
       'https://github.com/login/oauth/access_token',
       {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           client_id: clientId,
           client_secret: clientSecret,
           code,
+          code_verifier: verifier,
+          redirect_uri: callbackUrl.toString(),
         }),
-      }
+        cache: 'no-store',
+      },
     );
-
     if (!tokenResponse.ok) {
-      throw new Error(`Token exchange failed: ${tokenResponse.status}`);
+      throw new Error(`GitHub token exchange failed (${tokenResponse.status})`);
     }
 
-    const tokenData = await tokenResponse.json();
-
-    if (tokenData.error) {
-      throw new Error(`GitHub OAuth error: ${tokenData.error_description}`);
+    const tokenData: unknown = await tokenResponse.json();
+    if (!isGitHubTokenResponse(tokenData)) {
+      throw new Error('GitHub did not return an access token');
     }
 
-    const accessToken = tokenData.access_token;
+    const { getToken } = await auth();
+    const convexToken = await getToken({ template: 'convex' });
+    if (!convexToken) throw new Error('Convex authentication token is unavailable');
 
-    // Parse state to get redirect info and validate nonce
-    let redirectUrl = '/dashboard';
-    let projectId: string | null = null;
-    let nonce: string | null = null;
-    
-    if (state) {
-      try {
-        const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-        redirectUrl = stateData.redirect || '/dashboard';
-        projectId = stateData.projectId || null;
-        nonce = stateData.nonce || null;
-      } catch {
-        // Invalid state, use defaults
-      }
-    }
+    const convex = new ConvexHttpClient(convexUrl);
+    convex.setAuth(convexToken);
+    await convex.action(api.actions.githubAuth.saveGitHubToken, {
+      accessToken: tokenData.access_token,
+    });
 
-    // Validate redirect URL against allowlist to prevent open redirects
-    const ALLOWED_REDIRECT_PATTERNS = [
-      /^\/project\/[a-zA-Z0-9_-]+$/,
-      /^\/dashboard$/,
-    ];
-    if (!ALLOWED_REDIRECT_PATTERNS.some((pattern) => pattern.test(redirectUrl))) {
-      redirectUrl = '/dashboard';
-    }
-
-    // Encrypt the access token (key resolved per request so the
-    // module imports cleanly at build time without env present)
-    const encrypted = encrypt(accessToken, getRequiredEncryptionKey());
-    const encryptedJson = JSON.stringify(encrypted);
-
-    // TODO: Store encrypted token server-side in Convex instead of URL
-    // This requires a Convex mutation that stores the token keyed by nonce
-    // For now, we redirect with the encrypted token (safe since it's encrypted)
-    // and the client validates the nonce on page load
-    const redirectWithToken = new URL(redirectUrl, request.url);
-    redirectWithToken.searchParams.set('github_token', Buffer.from(encryptedJson).toString('base64'));
-    if (projectId) {
-      redirectWithToken.searchParams.set('project_id', projectId);
-    }
-    if (nonce) {
-      redirectWithToken.searchParams.set('nonce', nonce);
-    }
-
-    return NextResponse.redirect(redirectWithToken);
-
+    return redirectAndClearCookies(request, projectId);
   } catch (error) {
-    console.error('[GitHub OAuth] Callback error:', error);
-    return NextResponse.redirect(
-      new URL('/dashboard?error=oauth_failed', request.url)
+    console.error(
+      '[GitHub OAuth] Callback failed:',
+      error instanceof Error ? error.message : 'Unknown error',
     );
+    return redirectAndClearCookies(request, projectId, 'github_oauth_failed');
   }
 }

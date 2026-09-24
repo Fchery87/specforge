@@ -147,7 +147,7 @@ export default function AdminDashboardPage() {
             System <span className="text-primary">Control</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl">
-            Monitor and configure system-wide settings, LLM providers, and credentials.
+            Inspect system metrics, manage global LLM providers, and audit generation activity.
           </p>
         </div>
       </section>

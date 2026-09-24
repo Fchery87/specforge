@@ -117,6 +117,9 @@ await rateLimiter(ctx, { key: userId });
 - **Generation action**: `convex/actions/generatePhase.ts`
 - **Questions generation**: `convex/actions/generateQuestions.ts` (10-question cap, recommended answers)
 - **Ticket parsing**: `convex/actions/parseTickets.ts` (Tracer bullets & blocking edges)
+- **Evidence and claim review**: `convex/evidence.ts`, `convex/lib/evidence.ts`, `convex/internal.ts`
+- **Source capture**: `convex/projects.ts` (answer revisions), `convex/actions/scanCodebase.ts` (commit-pinned repository files)
+- **Quick Spec persistence**: `convex/artifacts.ts` (`quickSpec` artifact history)
 - **Credential management**: `convex/systemCredentials.ts`, `convex/userConfigs.ts`
 - **LLM models config**: `convex/llmModels.ts`
 

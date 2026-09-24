@@ -8,6 +8,7 @@ import { generateSkillMd } from '../../lib/export/skill-formatter';
 import { generateAgentsMd } from '../../lib/export/agents-formatter';
 import { createZip, sanitizeZipPathSegment } from '../../lib/zip';
 import { rateLimiter } from '../rateLimiter';
+import { formatClaimManifest } from '../../lib/evidence';
 
 export const generateProjectZip = action({
   args: { projectId: v.id('projects') },
@@ -39,6 +40,12 @@ export const generateProjectZip = action({
       internalApi.internal.getPhaseArtifactsInternal,
       { projectId: args.projectId },
     );
+    const claims = await ctx.runQuery(internalApi.evidence.listClaimsInternal, {
+      projectId: args.projectId,
+    });
+    const traceabilityManifest = formatClaimManifest(
+      (claims ?? []).filter((claim) => claim.retiredAt === undefined),
+    );
 
     const entries = artifacts.map((a) => ({
       path: `${sanitizeZipPathSegment(a.phaseId)}/${sanitizeZipPathSegment(a.title)}.md`,
@@ -62,11 +69,14 @@ export const generateProjectZip = action({
     };
 
     try {
-      const skillContent = generateSkillMd(exportInput);
+      const skillContent = `${generateSkillMd(exportInput)}${traceabilityManifest}`;
       entries.push({ path: 'SKILL.md', content: skillContent });
 
-      const agentsContent = generateAgentsMd(exportInput);
+      const agentsContent = `${generateAgentsMd(exportInput)}${traceabilityManifest}`;
       entries.push({ path: 'AGENTS.md', content: agentsContent });
+      if (traceabilityManifest) {
+        entries.push({ path: 'handoff/requirements.md', content: traceabilityManifest.trimStart() });
+      }
     } catch (e) {
       console.warn('Could not generate agent handoff files', e);
     }

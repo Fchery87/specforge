@@ -14,6 +14,7 @@ import type { LlmModel } from '../../lib/llm/types';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import { retryWithBackoff } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
+import { createEvidenceDigest } from '../../lib/evidence';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import {
   parseGitDiff,
@@ -54,7 +55,7 @@ export const verifyImplementation = action({
     });
 
     // Verify project ownership and fetch artifacts in parallel
-    const [project, allArtifacts] = await Promise.all([
+    const [project, allArtifacts, claims] = await Promise.all([
       ctx.runQuery(
         internalApi.internal.getProjectInternal,
         { projectId: args.projectId },
@@ -63,6 +64,7 @@ export const verifyImplementation = action({
         api.artifacts.getAllProjectArtifacts,
         { projectId: args.projectId },
       ),
+      ctx.runQuery(internalApi.evidence.listClaimsInternal, { projectId: args.projectId }),
     ]);
     if (!project) throw new Error('Project not found');
     if (project.userId !== identity.subject) throw new Error('Forbidden');
@@ -88,6 +90,16 @@ export const verifyImplementation = action({
 
     // Extract relevant spec content
     const specContent = extractRelevantSpecs(changedFiles, specArtifacts);
+    const eligibleArtifactIds = new Set(
+      (allArtifacts ?? [])
+        .filter((artifact: Artifact) => ['constitution', 'brief', 'prd', 'techSpec', 'userStories'].includes(artifact.type))
+        .map((artifact: Artifact) => artifact._id),
+    );
+    const validClaims = (claims ?? []).filter((claim) =>
+      claim.reviewStatus === 'current' && eligibleArtifactIds.has(String(claim.artifactId)),
+    );
+    const claimIds = new Set(validClaims.map((claim) => claim.claimId));
+    const changedFilePaths = new Set(changedFiles.map((file) => file.path));
 
     // Resolve LLM credentials and model
     const userConfig = await ctx.runAction(
@@ -123,6 +135,7 @@ export const verifyImplementation = action({
       specContent,
       gitDiff: args.gitDiff,
       changedFiles,
+      claims: validClaims.map(({ claimId, text, decisionStatus, reviewStatus }) => ({ claimId, text, decisionStatus, reviewStatus })),
     });
 
     // Create LLM client - takes credentials first
@@ -147,7 +160,7 @@ export const verifyImplementation = action({
       );
 
       // Parse LLM response
-      verificationResult = parseVerificationResponse(response.content);
+      verificationResult = parseVerificationResponse(response.content, { claimIds, changedFilePaths });
 
       // Recalculate score based on findings for consistency
       const calculatedScore = calculateScoreFromFindings(verificationResult.findings);
@@ -182,6 +195,10 @@ export const verifyImplementation = action({
         projectId: args.projectId,
         phaseId: args.phaseId,
         checkedAt: Date.now(),
+        artifactVersion: Math.max(0, ...validClaims.map((claim) => claim.artifactVersion ?? 0)),
+        artifactVersionSet: [...new Set(validClaims.map((claim) => `${claim.artifactId}:v${claim.artifactVersion ?? 1}`))],
+        sourceRevisionSet: [...new Set(validClaims.flatMap((claim) => claim.sourceRevisionIds))],
+        diffDigest: await createEvidenceDigest(args.gitDiff),
         findings: verificationResult.findings,
         overallScore: verificationResult.overallScore,
         status: verificationResult.status,

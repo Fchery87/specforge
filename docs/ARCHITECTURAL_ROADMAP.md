@@ -5,6 +5,8 @@
 **Status:** Approved — Ready for execution
 **Origin:** Comprehensive Architectural Audit (EXA-powered industry research across 15+ specification engineering standards)
 
+> **Planning snapshot:** This roadmap was written in February 2026. Its tier status and timelines are historical and are not a current release checklist. Use the [current implementation checklist](IMPLEMENTATION_CHECKLIST.md), [architecture guide](ARCHITECTURE.md), and [evidence-backed specification](specs/2026-09-22-evidence-backed-specs.md) for current implementation state.
+
 ---
 
 ## Executive Summary

@@ -90,6 +90,27 @@ export const ConstitutionSchema = z.object({
       constraints: z.array(z.string()),
     }),
   }),
+  assumptions: z
+    .array(
+      z.object({
+        statement: z.string(),
+        basis: z.string(),
+        impact: z.string(),
+      }),
+    )
+    .optional(),
+  openQuestions: z.array(z.string()).optional(),
+  decisionRegister: z
+    .array(
+      z.object({
+        area: z.string(),
+        decision: z.string(),
+        status: z.enum(['confirmed', 'observed', 'proposed', 'unresolved']),
+        source: z.string(),
+        rationale: z.string(),
+      }),
+    )
+    .optional(),
 });
 
 export type ProjectConstitution = z.infer<typeof ConstitutionSchema>;

@@ -123,6 +123,40 @@ deleted file mode 100644
   });
 
   describe('parseVerificationResponse', () => {
+    it('keeps only requirement IDs and file paths from the verified input set', () => {
+      const response = JSON.stringify({
+        findings: [{
+          category: 'missing',
+          severity: 'major',
+          title: 'Requirement not implemented',
+          description: 'The requirement is not present.',
+          suggestion: 'Implement it.',
+          requirementId: 'REQ-0001',
+          changedFilePath: 'src/app.ts',
+        }, {
+          category: 'bug',
+          severity: 'minor',
+          title: 'Unknown reference',
+          description: '',
+          suggestion: '',
+          requirementId: 'REQ-9999',
+          changedFilePath: '../outside.ts',
+        }],
+        overallScore: 80,
+        status: 'warning',
+      });
+
+      const result = parseVerificationResponse(response, {
+        claimIds: new Set(['REQ-0001']),
+        changedFilePaths: new Set(['src/app.ts']),
+      });
+
+      expect(result.findings[0].requirementId).toBe('REQ-0001');
+      expect(result.findings[0].changedFilePath).toBe('src/app.ts');
+      expect(result.findings[1].requirementId).toBeUndefined();
+      expect(result.findings[1].changedFilePath).toBeUndefined();
+    });
+
     it('should parse valid JSON response', () => {
       const response = JSON.stringify({
         findings: [

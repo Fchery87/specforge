@@ -16,6 +16,8 @@ export interface Finding {
   description: string;
   suggestion: string;
   specReference?: string;
+  requirementId?: string;
+  changedFilePath?: string;
 }
 
 export interface VerificationResult {
@@ -112,12 +114,16 @@ export function buildVerificationPrompt(params: {
   specContent: string;
   gitDiff: string;
   changedFiles: ChangedFile[];
+  claims?: Array<{ claimId: string; text: string; decisionStatus: string; reviewStatus: string }>;
 }): string {
-  const { projectTitle, specContent, gitDiff, changedFiles } = params;
+  const { projectTitle, specContent, gitDiff, changedFiles, claims = [] } = params;
 
   const fileSummary = changedFiles
     .map((f) => `- ${f.path} (${f.status}, +${f.additions}/-${f.deletions})`)
     .join('\n');
+  const claimSummary = claims.length
+    ? claims.map((claim) => `- ${claim.claimId} [${claim.decisionStatus}; ${claim.reviewStatus}]: ${claim.text}`).join('\n')
+    : 'No validated requirement IDs were supplied.';
 
   return `You are a Principal Engineer performing a code review to verify that an implementation matches its specification.
 
@@ -138,6 +144,10 @@ ${fileSummary}
 ## Specification
 ${specContent.slice(0, 10000)}
 
+## Validated Requirements
+Only use IDs from this list. Omit requirementId when a finding does not map to one.
+${claimSummary.slice(0, 5000)}
+
 ## Git Diff (Implementation)
 \`\`\`diff
 ${gitDiff.slice(0, 8000)}
@@ -153,7 +163,9 @@ Return ONLY a JSON object with this structure:
       "title": "Brief issue title",
       "description": "Detailed description of the issue",
       "suggestion": "Specific recommendation to fix",
-      "specReference": "Optional reference to spec section"
+      "specReference": "Optional reference to spec section",
+      "requirementId": "One ID from Validated Requirements, if applicable",
+      "changedFilePath": "One path from Changed Files, if applicable"
     }
   ],
   "overallScore": 0-100,
@@ -171,7 +183,10 @@ Be thorough but constructive. Every finding should be actionable.`;
 /**
  * Parse LLM response into structured findings
  */
-export function parseVerificationResponse(response: string): VerificationResult {
+export function parseVerificationResponse(
+  response: string,
+  allowed?: { claimIds: Set<string>; changedFilePaths: Set<string> },
+): VerificationResult {
   try {
     // Try to extract JSON from code block first
     const codeBlockMatch = response.match(/\`\`\`(?:json)?\s*([\s\S]*?)\s*\`\`\`/);
@@ -187,6 +202,8 @@ export function parseVerificationResponse(response: string): VerificationResult 
       description: f.description || '',
       suggestion: f.suggestion || '',
       specReference: f.specReference,
+      ...(allowed?.claimIds.has(f.requirementId ?? '') ? { requirementId: f.requirementId } : {}),
+      ...(allowed?.changedFilePaths.has(f.changedFilePath ?? '') ? { changedFilePath: f.changedFilePath } : {}),
     }));
 
     const overallScore = Math.max(0, Math.min(100, Math.round(parsed.overallScore || 0)));

@@ -37,7 +37,9 @@ import { renderPreviewHtml } from '../../lib/markdown-render';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import {
   CONSTITUTION_PROMPT,
+  formatConstitutionTemplateGuidance,
   injectConstitutionContext,
+  type ConstitutionTemplateGuidance,
 } from '../../lib/llm/prompts/constitution';
 import {
   CRITIC_PROMPT,
@@ -71,6 +73,13 @@ interface Question {
   answer?: string;
   aiGenerated: boolean;
   required?: boolean;
+}
+
+export interface ProjectGenerationContext {
+  title: string;
+  description: string;
+  questions: string;
+  constitutionTemplate?: ConstitutionTemplateGuidance;
 }
 
 export function hasMissingRequiredAnswers(questions: Question[]): boolean {
@@ -278,6 +287,10 @@ export const generatePhase = action({
             title: project.title,
             description: project.description,
             questions: questionsText,
+            constitutionTemplate:
+              args.phaseId === 'constitution'
+                ? project.constitutionTemplate
+                : undefined,
           },
           // Pass section preferences to worker for custom instructions
           sectionPreferences: args.sectionPreferences ?? [],
@@ -370,11 +383,7 @@ export const resumePhase = action({
 interface GenerateSectionsParams {
   ctx: ActionCtx;
   projectId: Id<'projects'>;
-  projectContext: {
-    title: string;
-    description: string;
-    questions: string;
-  };
+  projectContext: ProjectGenerationContext;
   sectionPlan: SectionPlan[];
   model: LlmModel;
   questions: Question[];
@@ -498,7 +507,7 @@ async function generateSectionsWithSelfCritique(
 }
 
 export async function generateSectionContent(params: {
-  projectContext: { title: string; description: string; questions: string };
+  projectContext: ProjectGenerationContext;
   sectionName: string;
   sectionInstructions: string;
   sectionQuestions: string[];
@@ -588,7 +597,7 @@ export async function generateSectionContent(params: {
 }
 
 export function buildSectionPrompts(params: {
-  projectContext: { title: string; description: string; questions: string };
+  projectContext: ProjectGenerationContext;
   sectionName: string;
   sectionInstructions?: string;
   sectionQuestions: string[];
@@ -622,7 +631,11 @@ Requirements:
     systemPrompt = injectConstitutionContext(systemPrompt, params.constitution);
   }
 
-  const userPrompt = `${
+const userPrompt = `${
+  params.phaseId === 'constitution'
+    ? `${formatConstitutionTemplateGuidance(params.projectContext.constitutionTemplate)}\n\n`
+    : ''
+}${
     params.upstreamContext
       ? `Upstream Architecture & Specifications:\n${params.upstreamContext}\n\n`
       : ''
@@ -648,7 +661,7 @@ Generate the "${params.sectionName}" section now:`;
  * provider request with stream:true instead of chunked continuation turns.
  */
 export async function generateSectionContentRealtime(params: {
-  projectContext: { title: string; description: string; questions: string };
+  projectContext: ProjectGenerationContext;
   sectionName: string;
   sectionInstructions?: string;
   sectionQuestions: string[];
@@ -710,7 +723,7 @@ export async function generateSectionContentRealtime(params: {
 }
 
 export async function generateSectionContentStreaming(params: {
-  projectContext: { title: string; description: string; questions: string };
+  projectContext: ProjectGenerationContext;
   sectionName: string;
   sectionInstructions: string;
   sectionQuestions: string[];
@@ -1064,11 +1077,7 @@ function getPhaseTitle(phaseId: string): string {
 export async function generateConstitution(params: {
   ctx: ActionCtx;
   projectId: Id<'projects'>;
-  projectContext: {
-    title: string;
-    description: string;
-    questions: string;
-  };
+  projectContext: ProjectGenerationContext;
   model: LlmModel;
   llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
@@ -1091,6 +1100,8 @@ export async function generateConstitution(params: {
   }
 
   const constitutionPrompt = `${CONSTITUTION_PROMPT}
+
+${formatConstitutionTemplateGuidance(projectContext.constitutionTemplate)}
 
 ## Project Context
 Title: ${projectContext.title}
@@ -1390,7 +1401,7 @@ export async function critiqueSection(params: {
  * Implements the Recursive Self-Critique pattern from Phase 2 P1.
  */
 export async function generateSectionWithCritique(params: {
-  projectContext: { title: string; description: string; questions: string };
+  projectContext: ProjectGenerationContext;
   sectionName: string;
   sectionInstructions: string;
   sectionQuestions: string[];
@@ -1533,11 +1544,7 @@ export function getCritiqueConfig(): CritiqueConfig {
 export async function detectPrdDrift(params: {
   ctx: ActionCtx;
   projectId: Id<'projects'>;
-  projectContext: {
-    title: string;
-    description: string;
-    questions: string;
-  };
+  projectContext: ProjectGenerationContext;
   model: LlmModel;
   llmClient: ReturnType<typeof createLlmClient>;
   providerInfo: string;
@@ -1610,11 +1617,7 @@ export async function detectPhaseDrift(params: {
   projectId: Id<'projects'>;
   phaseId: string;
   phaseContent: string;
-  projectContext: {
-    title: string;
-    description: string;
-    questions: string;
-  };
+  projectContext: ProjectGenerationContext;
   model: LlmModel;
   llmClient: ReturnType<typeof createLlmClient>;
   constitution: string;

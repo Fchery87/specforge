@@ -5,6 +5,7 @@ import { getNextUpdatedAt } from './projects';
 import { renderPreviewHtml } from '../lib/markdown-render';
 import { getAffectedPhases } from '../lib/specification/dependency-graph';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
+import { captureEvidenceSource, markEvidenceImpact, reconcileArtifactClaims } from './lib/evidence';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },
@@ -369,6 +370,20 @@ export const initGenerationTask = internalMutation({
         title: v.string(),
         description: v.string(),
         questions: v.string(),
+        constitutionTemplate: v.optional(
+          v.object({
+            name: v.string(),
+            constitutionContent: v.string(),
+            lockedConstraints: v.optional(
+              v.object({
+                architecture: v.optional(v.string()),
+                stateManagement: v.optional(v.string()),
+                apiDesign: v.optional(v.string()),
+                securityProtocols: v.optional(v.array(v.string())),
+              }),
+            ),
+          }),
+        ),
       }),
       providerApiEndpoint: v.optional(v.string()),
       sectionPreferences: v.optional(
@@ -696,6 +711,7 @@ export const setArtifactStreamStatusInternal = internalMutation({
     currentSection: v.optional(v.string()),
     sectionsCompleted: v.optional(v.number()),
     sectionsTotal: v.optional(v.number()),
+    evidenceSourceIds: v.optional(v.array(v.id('evidenceSources'))),
   },
   handler: async (ctx, args) => {
     const artifact = await ctx.db
@@ -711,7 +727,27 @@ export const setArtifactStreamStatusInternal = internalMutation({
       currentSection: args.currentSection,
       sectionsCompleted: args.sectionsCompleted,
       sectionsTotal: args.sectionsTotal,
+      ...(args.evidenceSourceIds ? { evidenceSourceIds: args.evidenceSourceIds } : {}),
     });
+    if (args.streamStatus === 'complete') {
+      await reconcileArtifactClaims(ctx, {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        artifactId: artifact._id,
+        content: artifact.content,
+        evidenceSourceIds: artifact.evidenceSourceIds ?? [],
+      });
+      const cleanedContent = artifact.content
+        .replace(/\s*<!--\s*evidence-source:\s*[A-Za-z0-9_-]+\s*-->/g, '')
+        .replace(/[ \t]+\n/g, '\n');
+      if (cleanedContent !== artifact.content) {
+        await ctx.db.patch(artifact._id, {
+          content: cleanedContent,
+          previewHtml: renderPreviewHtml(cleanedContent),
+          previewHtmlUpdatedAt: Date.now(),
+        });
+      }
+    }
   },
 });
 
@@ -766,6 +802,18 @@ export const saveAnswerInternal = internalMutation({
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
+    if (args.answer.trim()) {
+      await captureEvidenceSource(ctx, {
+        projectId: args.projectId,
+        sourceKey: `answer:${args.phaseId}:${args.questionId}`,
+        kind: 'answer',
+        locator: `${args.phaseId}/${args.questionId}`,
+        revisionLabel: `Answer in ${args.phaseId}`,
+        content: args.answer,
+        capturedBy: project?.userId ?? 'system',
+        origin: args.aiGenerated ? 'assistant' : 'user',
+      });
+    }
     if (project) {
       await ctx.db.patch(args.projectId, {
         updatedAt: getNextUpdatedAt(project.updatedAt, now),
@@ -1197,6 +1245,7 @@ export const createTicketInternal = internalMutation({
     ),
     blockedByTitles: v.optional(v.array(v.string())),
     filesToTouch: v.optional(v.array(v.string())),
+    claimIds: v.optional(v.array(v.string())),
     dependencies: v.optional(v.array(v.id('tickets'))),
   },
   handler: async (ctx, args) => {
@@ -1246,15 +1295,25 @@ export const createVerificationResult = internalMutation({
       description: v.string(),
       suggestion: v.string(),
       specReference: v.optional(v.string()),
+      requirementId: v.optional(v.string()),
+      changedFilePath: v.optional(v.string()),
     })),
     overallScore: v.number(),
     status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),
+    artifactVersion: v.optional(v.number()),
+    artifactVersionSet: v.optional(v.array(v.string())),
+    sourceRevisionSet: v.optional(v.array(v.string())),
+    diffDigest: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert('verificationResults', {
       projectId: args.projectId,
       phaseId: args.phaseId,
       checkedAt: args.checkedAt,
+      artifactVersion: args.artifactVersion,
+      artifactVersionSet: args.artifactVersionSet,
+      sourceRevisionSet: args.sourceRevisionSet,
+      diffDigest: args.diffDigest,
       findings: args.findings,
       overallScore: args.overallScore,
       status: args.status,
@@ -1289,6 +1348,7 @@ export const storeCodebaseInternal = internalMutation({
     repoOwner: v.string(),
     repoName: v.string(),
     defaultBranch: v.string(),
+    commitSha: v.string(),
     fileTree: v.string(),
     keyFiles: v.array(
       v.object({
@@ -1307,12 +1367,26 @@ export const storeCodebaseInternal = internalMutation({
       .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
       .first();
 
+    const currentSourceKeys = new Set(args.keyFiles.map((file) =>
+      `repository_file:${args.repoOwner}/${args.repoName}:${file.path}`,
+    ));
+    const previousSources = await ctx.db
+      .query('evidenceSources')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect();
+    for (const source of previousSources) {
+      if (source.kind === 'repository_file' && source.sourceKey.startsWith(`repository_file:${args.repoOwner}/${args.repoName}:`) && !currentSourceKeys.has(source.sourceKey)) {
+        await markEvidenceImpact(ctx, source._id, Date.now());
+      }
+    }
+
     const data = {
       projectId: args.projectId,
       repoUrl: args.repoUrl,
       repoOwner: args.repoOwner,
       repoName: args.repoName,
       defaultBranch: args.defaultBranch,
+      commitSha: args.commitSha,
       fileTree: args.fileTree,
       keyFiles: args.keyFiles,
       analyzedAt: Date.now(),
@@ -1320,12 +1394,28 @@ export const storeCodebaseInternal = internalMutation({
       totalDirectories: args.totalDirectories,
     };
 
+    let codebaseId;
     if (existing) {
       await ctx.db.patch(existing._id, data);
-      return existing._id;
+      codebaseId = existing._id;
     } else {
-      return await ctx.db.insert('projectCodebase', data);
+      codebaseId = await ctx.db.insert('projectCodebase', data);
     }
+
+    for (const file of args.keyFiles) {
+      await captureEvidenceSource(ctx, {
+        projectId: args.projectId,
+        sourceKey: `repository_file:${args.repoOwner}/${args.repoName}:${file.path}`,
+        kind: 'repository_file',
+        locator: file.path,
+        revisionLabel: `${args.repoOwner}/${args.repoName}@${args.commitSha.slice(0, 12)}`,
+        content: file.content,
+        capturedBy: 'repository_scan',
+        origin: 'repository_scan',
+        commitSha: args.commitSha,
+      });
+    }
+    return codebaseId;
   },
 });
 

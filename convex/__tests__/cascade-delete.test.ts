@@ -19,6 +19,10 @@ function makeCascadeCtx({
     projectCodebase: new Map([['pc1', { _id: 'pc1', projectId }]]),
     verificationResults: new Map([['vr1', { _id: 'vr1', projectId }]]),
     tickets: new Map([['t1', { _id: 't1', projectId }]]),
+    evidenceSources: new Map([['es1', { _id: 'es1', projectId }]]),
+    claims: new Map([['c1', { _id: 'c1', projectId }]]),
+    evidenceLinks: new Map([['el1', { _id: 'el1', projectId, claimId: 'c1' }]]),
+    evidenceReviews: new Map([['er1', { _id: 'er1', projectId, claimId: 'c1' }]]),
   };
 
   const ctx: any = {

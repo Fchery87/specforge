@@ -1,5 +1,7 @@
 # SpecForge Dashboard Enhancement - Architectural Implementation Plan
 
+> **Historical proposal:** This document contains design sketches and standards/tooling proposals from an earlier dashboard planning pass. WCAG targets and analyzer/tool commands here are not current project requirements. Use the current [constitution authoring guide](Constitution%20Document.md) for standards policy and the [architecture guide](ARCHITECTURE.md) for implemented architecture.
+
 ## Executive Summary
 
 This plan details the architecture for transforming the SpecForge user dashboard from a static project list into an intelligent, real-time command center. The implementation leverages existing Convex infrastructure while adding strategic capabilities for search, analytics, and real-time collaboration.

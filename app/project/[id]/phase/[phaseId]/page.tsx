@@ -32,6 +32,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TicketBoard } from "@/components/ticket-board";
 import { GenerationActivityStream } from "@/components/generation-activity-stream";
 import { VerificationPanel } from "@/components/verification-panel";
+import { EvidenceReviewPanel } from "@/components/evidence-review-panel";
 
 function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
   return {
@@ -46,14 +47,14 @@ function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
 }
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
-  constitution: { label: "Constitution", icon: FileText, description: "Immutable truths and core constraints" },
-  brief: { label: "Brief", icon: BookOpen, description: "Define your project scope and requirements" },
-  prd: { label: "PRD", icon: Target, description: "Formal product requirements and goals" },
-  domainModel: { label: "Domain Model", icon: Layers, description: "Entities, rules, and state transitions" },
-  specs: { label: "Specifications", icon: Code, description: "Technical specifications and design" },
-  stories: { label: "User Stories", icon: ClipboardList, description: "User stories and task breakdown" },
-  artifacts: { label: "Artifacts", icon: Sparkles, description: "Generated assets and codebase models" },
-  handoff: { label: "Handoff", icon: Package, description: "Final deliverables and documentation" },
+  constitution: { label: "Constitution", icon: FileText, description: "Core invariants, non-goals, and architectural boundaries" },
+  brief: { label: "Brief", icon: BookOpen, description: "Project scope, user personas, and initial evidence baseline" },
+  prd: { label: "PRD", icon: Target, description: "Evidence-backed requirements with stable claim IDs" },
+  domainModel: { label: "Domain Model", icon: Layers, description: "Entities, invariant rules, and state transitions" },
+  specs: { label: "Specifications", icon: Code, description: "Deep interface contracts, explicit test seams, and architecture" },
+  stories: { label: "User Stories", icon: ClipboardList, description: "Vertical tracer bullets with blocking dependency graphs" },
+  artifacts: { label: "Artifacts", icon: Sparkles, description: "Live schema validation, in-browser editor, and code models" },
+  handoff: { label: "Handoff", icon: Package, description: "Agent-native bundle, SKILL.md, and verified requirement traceability" },
 };
 
 export default function PhasePage() {
@@ -87,7 +88,6 @@ export default function PhasePage() {
   
   // Interactive section planning state (Phase 4 P2)
   const [showSectionPlan, setShowSectionPlan] = useState(false);
-  const [sectionPreferences, setSectionPreferences] = useState<UserSectionPreference[]>([]);
   const staticSectionPlans = getSectionPlansForPhase(phaseId);
   // AI-generated section plans (Task 16)
   const generateSectionPlanFn = useAction(generateSectionPlanAction);
@@ -145,17 +145,11 @@ export default function PhasePage() {
   function handleInitiateGenerate() {
     // Show section plan preview
     setShowSectionPlan(true);
-    setSectionPreferences([]);
   }
 
   // Handle generation with preferences from section plan
   async function handleGenerateWithPreferences(preferences: UserSectionPreference[]) {
     setShowSectionPlan(false);
-    setSectionPreferences(preferences);
-    
-    // TODO: Save preferences to backend
-    // await saveSectionPreferences({ projectId, phaseId, preferences });
-    
     setIsPhaseStarting(true);
     setPhaseTaskId(null);
     phaseStatusRef.current = null;
@@ -169,8 +163,7 @@ export default function PhasePage() {
       const result = await generatePhase({ 
         projectId, 
         phaseId,
-        // TODO: Pass preferences to generation when backend supports it
-        // sectionPreferences: preferences,
+        sectionPreferences: preferences,
       });
       setPhaseTaskId(result?.taskId ?? null);
       if (!result?.taskId) {
@@ -474,19 +467,21 @@ export default function PhasePage() {
                 {(phase.artifacts ?? []).length > 0 ? (
                   <div className="space-y-4">
                     {phase.artifacts.map((a) => (
-                      <ArtifactPreview 
-                        key={a._id} 
-                        artifact={a}
-                        projectId={projectId}
-                        onDelete={() => {}}
-                      />
+                      <div key={a._id}>
+                        <ArtifactPreview
+                          artifact={a}
+                          projectId={projectId}
+                          onDelete={() => {}}
+                        />
+                        <EvidenceReviewPanel projectId={projectId} artifactId={a._id} />
+                      </div>
                     ))}
                   </div>
                 ) : (
                   <EmptyState
                     variant="inbox"
                     title="No Artifacts Yet"
-                    description="Answer the questions and click 'Generate Phase' to create artifacts."
+                    description="Answer the interview questions or complete stress-test grilling to generate verified artifacts."
                     className="py-12"
                   />
                 )}
@@ -519,11 +514,11 @@ export default function PhasePage() {
         </div>
       </section>
 
-      {/* Ticket Board — only for stories phase */}
+      {/* Ticket Board for stories phase */}
       {phaseId === 'stories' && (
         <section className="page-container page-section border-t-2 border-border relative z-10">
           <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
-            Ticket Board
+            Ticket Board & Tracer Bullets
           </h2>
           <TicketBoard
             projectId={projectId}
@@ -533,11 +528,11 @@ export default function PhasePage() {
         </section>
       )}
 
-      {/* Verification Panel — for specs and stories phases */}
+      {/* Verification Panel for specs and stories phases */}
       {(phaseId === 'specs' || phaseId === 'stories') && (
         <section className="page-container page-section border-t-2 border-border relative z-10">
           <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
-            Verification
+            Implementation Verification
           </h2>
           <div className="max-w-2xl">
             <VerificationPanel

@@ -1,6 +1,10 @@
 # Traycer Feature Parity Implementation Plan
+**Status:** Historical archive record; retained for project context
+
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+> **Historical plan:** This March 2026 feature proposal includes implementation steps that may already be complete or may have changed. Treat its examples and unchecked steps as historical; use the current [implementation checklist](../IMPLEMENTATION_CHECKLIST.md), [architecture guide](../ARCHITECTURE.md), and [handoff](../HANDOFF.md) for current behavior.
 
 **Goal:** Close the 13 feature gaps between SpecForge and Traycer.ai, transforming SpecForge from a spec-generation tool into a full spec-driven development platform.
 

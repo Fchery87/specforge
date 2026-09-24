@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Installed by keel. Enforces the document lifecycle on every commit.
+# Remove the keel block below to disable it, or delete .keel/ entirely.
+
+if [ -f .keel/validate-docs-lifecycle.mjs ]; then
+	if command -v node >/dev/null 2>&1; then
+		node .keel/validate-docs-lifecycle.mjs || {
+			echo ""
+			echo "Document lifecycle check failed. Fix the items above, or run"
+			echo "the keel-close skill if a plan is finished and should be deleted."
+			exit 1
+		}
+	else
+		echo "keel: node is not on PATH, skipping the document lifecycle check." >&2
+	fi
+fi

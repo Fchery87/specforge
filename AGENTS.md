@@ -34,6 +34,7 @@ npm run convex
 
 ## Universal Conventions
 
+- **Next.js bundler**: Next.js 16 development and production builds use Turbopack. Keep the default `next dev` / `next build` scripts; do not switch to Webpack.
 - **TypeScript**: Strict mode enabled (`strict: true` in tsconfig.json)
 - **Formatting**: Prettier not configured, rely on ESLint for code style
 - **Imports**: Use `@/` alias for absolute imports (configured in tsconfig.json)
@@ -64,6 +65,38 @@ npm run convex
 - Monaco-Style Schema Validator Panel: `components/schema-validator-panel.tsx`
 - Stress-Test Grilling Modal: `components/stress-test-modal.tsx`
 - Ticket Parser & Tracer Bullet Extractor: `lib/ticket-parser.ts`
+
+### Recent feature entry points
+
+- Evidence capture and requirement validation: `lib/evidence.ts`, `convex/evidence.ts`, `convex/lib/evidence.ts`
+- Constitution generation and validation: `lib/llm/prompts/constitution.ts`, `lib/validation/constitution-schema.ts`
+- GitHub OAuth: `lib/github-oauth.ts`, `app/api/github/`
+
+<!-- keel:start -->
+## Keel workflow
+
+### Inviolable rule
+
+Never commit secrets, API keys, or tokens.
+
+### Validation gates
+
+- Run `npm run typecheck` while editing TypeScript.
+- Run the narrowest relevant test file before broadening scope.
+- Run `npm run test -- --run --reporter=dot --testTimeout=20000` after an implementation slice.
+- Run `npm run lint` before committing.
+- Report only checks that were actually run and their observed results.
+
+### Documentation lifecycle
+
+- Roadmap: `docs/roadmap.md` tracks the current phase and links its spec and active plan.
+- Specs: `docs/specs/YYYY-MM-DD-<slug>.md` are permanent and include a deletion inventory.
+- Plans: `docs/plans/YYYY-MM-DD-<slug>.md` describe active work, have a `**Status:**` line in the first five lines, and are deleted when complete. Existing plans marked `Historical archive record` remain linked from the roadmap's historical index.
+- ADRs: `docs/adr/NNNN-<slug>.md` record settled architectural decisions.
+- Keep plan status and roadmap phase status current. Verify a commit SHA before recording it.
+
+The pre-commit hook runs `.keel/validate-docs-lifecycle.mjs` to check the roadmap, plan links and status, and spec deletion inventories.
+<!-- keel:end -->
 
 ## Security & Secrets
 

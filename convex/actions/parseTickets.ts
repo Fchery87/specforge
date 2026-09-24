@@ -31,6 +31,12 @@ export const parseTicketsFromArtifact = action({
 
     // Parse tickets from markdown
     const parsed = parseTicketsFromMarkdown(artifact.content);
+    const projectClaims = await ctx.runQuery(internalApi.evidence.listClaimsInternal, {
+      projectId: args.projectId,
+    });
+    const artifactClaims = (projectClaims ?? []).filter((claim) =>
+      claim.artifactId === args.artifactId && claim.retiredAt === undefined,
+    );
 
     // Clear existing tickets for this phase (idempotency)
     await ctx.runMutation(internalApi.internal.deleteTicketsByPhaseInternal, {
@@ -55,6 +61,9 @@ export const parseTicketsFromArtifact = action({
         sliceType: ticket.sliceType,
         blockedByTitles: ticket.blockedBy,
         filesToTouch: ticket.filesToTouch,
+        claimIds: artifactClaims
+          .filter((claim) => ticket.acceptanceCriteria.some((criterion) => sameRequirementText(criterion, claim.text)))
+          .map((claim) => claim.claimId),
         order: i,
       });
       ticketIds.push(id);
@@ -108,3 +117,10 @@ export const parseTicketsFromArtifact = action({
     return { ticketCount: ticketIds.length, ticketIds };
   },
 });
+
+function sameRequirementText(left: string, right: string): boolean {
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const first = normalize(left);
+  const second = normalize(right);
+  return first.length > 0 && second.length > 0 && (first === second || first.includes(second) || second.includes(first));
+}

@@ -4,6 +4,8 @@
 **Status:** Draft - Ready for specdriven-agent execution  
 **Priority:** P0 → P1 → P2
 
+> **Historical plan:** This February 2026 proposal predates the current constitution contract. The constitution now separates confirmed, observed, proposed, and unresolved decisions, validates structured output with `ProjectConstitution`, and does not treat every architectural choice as immutable. See the [current constitution guide](Constitution%20Document.md) and the [evidence-backed specification](specs/2026-09-22-evidence-backed-specs.md) for current behavior.
+
 ---
 
 ## Executive Summary

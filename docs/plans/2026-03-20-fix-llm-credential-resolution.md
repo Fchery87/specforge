@@ -1,4 +1,6 @@
 # Fix LLM Credential Resolution Implementation Plan
+**Status:** Historical archive record; retained for project context
+
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 

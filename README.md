@@ -28,6 +28,10 @@ SpecForge is a high-performance scaffold designed for building **repo-native**, 
 - **Multi-LLM Intelligence**: Model registry supporting OpenAI, Anthropic, DeepSeek, Mistral, Z.AI, and Minimax with automatic token budgeting.
 - **Admin Console & Settings**: Super-admin management for users, projects, health, security, analytics, moderation, and LLM model catalogs.
 - **Project Export**: Download individual artifacts or complete full-project ZIP archives.
+- **Evidence-backed requirements**: Generated bullet requirements receive stable project IDs, proposed answer or commit-pinned repository references, and an owner review state. Source revisions stay available so changes can mark affected requirements, tickets, phases, and verification results for review.
+- **Quick Spec history**: Save a short-form spec as a versioned project artifact without creating workflow phases.
+- **Requirement-aware verification**: Pasted-diff findings can cite validated requirement IDs and changed files; prior checks show when their inputs have become outdated.
+- **Evidence-aware constitution**: Confirmed rules, observed repository facts, proposals, and open questions stay distinct. Standards and versions are not presented as requirements unless the project evidence supports them.
 - **Encrypted Credentials**: AES-encrypted system and user API keys stored securely in Convex.
 
 ## Architecture Overview
@@ -44,7 +48,8 @@ SpecForge uses a **Coordinator-Worker** pattern to handle complex generation tas
 
 - **Input**: User Project Brief + Answered Phase Questions.
 - **Context**: For each section, the worker retrieves previous sections to maintain coherence.
-- **Output**: Markdown content appended to the phase's `artifact` record incrementally.
+- **Output**: Markdown content persisted to artifact records incrementally.
+- **Evidence**: Answer updates and commit-pinned repository files are captured as immutable revisions. Generation receives a project-scoped source allowlist; citations outside that list are discarded, and accepted links remain suggestions until an owner confirms them.
 
 ## Quickstart
 
@@ -67,12 +72,26 @@ Copy `.env.example` to `.env.local` and configure:
 cp .env.example .env.local
 ```
 
-Required variables:
+Required Next.js variables:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk publishable key
 - `CLERK_SECRET_KEY` - Clerk secret key
 - `NEXT_PUBLIC_CONVEX_URL` - Convex deployment URL (auto-set by `npx convex dev`)
-- `CONVEX_ENCRYPTION_KEY` - required for encrypting stored credentials
+
+Optional, required only for GitHub repository connection:
+
+- `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` - server-only GitHub OAuth credentials
+
+Convex functions use a separate deployment environment. Convex does not load these values from `.env.local`. Set the Clerk issuer and encryption key for your development deployment:
+
+```bash
+npx convex env set CLERK_JWT_ISSUER_DOMAIN
+npx convex env set CONVEX_ENCRYPTION_KEY
+```
+
+The CLI prompts for each value. Set the same variables on production with `npx convex env --prod set NAME`. The issuer must match the Clerk JWT template configured for the Convex application. Set `CONVEX_ENCRYPTION_KEY` to a 32-byte hex key.
+
+For GitHub OAuth, register the exact callback URL for each environment, such as `http://localhost:3000/api/github/callback` for local development or `https://your-domain/api/github/callback` in production. Store the OAuth client ID and secret in the Next.js host's server environment. Never prefix the secret with `NEXT_PUBLIC_`.
 
 ### Development
 
@@ -136,7 +155,11 @@ specforge/
 ## Documentation
 
 - [Architecture Guide](docs/ARCHITECTURE.md) - System architecture, data schema, and streaming patterns
+- [Current Roadmap](docs/roadmap.md) - Active phase, rollout state, and historical plan index
 - [Implementation Checklist](docs/IMPLEMENTATION_CHECKLIST.md) - Feature milestone tracking
+- [Evidence-backed specification](docs/specs/2026-09-22-evidence-backed-specs.md) and [implementation plan](docs/plans/2026-09-22-evidence-backed-specs.md)
+- [Evidence workflow baseline](docs/evaluations/2026-09-22-evidence-baseline.md) and [local evaluation](docs/evaluations/2026-09-22-evidence-workflow-evaluation.md)
+- [Constitution authoring guide](docs/Constitution%20Document.md)
 - [Architectural Roadmap](docs/ARCHITECTURAL_ROADMAP.md) - Strategic technical evolution
 - [AI Question Answering](docs/features/ai-question-answering.md) - Clarification and grilling interview design
 
