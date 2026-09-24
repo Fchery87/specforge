@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Sparkles, LayoutDashboard, Settings, Shield, Menu } from "lucide-react";
+import { Sparkles, LayoutDashboard, Zap, Settings, Shield, Menu } from "lucide-react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { clerkUserButtonAppearance } from "@/lib/clerk-theme";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,11 @@ const navLinks = (isAdmin: boolean) => [
     href: "/dashboard" as Route,
     label: "Dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    href: "/dashboard/quick" as Route,
+    label: "Quick Spec",
+    icon: Zap,
   },
   {
     href: "/settings" as Route,
@@ -52,7 +57,10 @@ function NavLinks() {
   return (
     <div className="hidden md:flex items-center gap-1">
       {links.map((link) => {
-        const isActive = pathname?.startsWith(link.href);
+        const isActive =
+          link.href === "/dashboard"
+            ? pathname === "/dashboard" || pathname === "/dashboard/new"
+            : pathname?.startsWith(link.href);
         const Icon = link.icon;
         
         return (
@@ -87,7 +95,7 @@ function AuthNav({ className }: { className?: string }) {
   if (isSignedIn && user) {
     return (
       <div className={cn("flex items-center gap-6", className)}>
-        <span className="hidden lg:block text-lg font-medium text-muted-foreground uppercase tracking-tight">
+        <span className="hidden lg:block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Hi, {user.firstName || "Forgemaster"}
         </span>
         <UserButton
@@ -148,7 +156,10 @@ function MobileMenu() {
             {isSignedIn ? (
               <div className="flex flex-col">
                 {links.map((link) => {
-                  const isActive = pathname?.startsWith(link.href);
+                  const isActive =
+                    link.href === "/dashboard"
+                      ? pathname === "/dashboard" || pathname === "/dashboard/new"
+                      : pathname?.startsWith(link.href);
                   const Icon = link.icon;
 
                   return (
@@ -187,7 +198,7 @@ function MobileMenu() {
           </div>
           {isSignedIn && user ? (
             <div className="flex items-center justify-between border-t-2 border-border px-6 py-5">
-              <span className="text-sm font-bold uppercase tracking-tight text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Hi, {user.firstName || "Forgemaster"}
               </span>
               <UserButton
@@ -204,7 +215,7 @@ function MobileMenu() {
 export function SiteHeader() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b-2 border-border bg-background/90 backdrop-blur-sm">
-      <div className="w-full px-6 py-4 flex items-center justify-between gap-8">
+      <div className="page-container py-4 flex items-center justify-between gap-8">
         <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
           <div className="w-8 h-8 bg-primary flex items-center justify-center group-hover:rotate-12 transition-transform duration-300">
             <Sparkles className="w-5 h-5 text-black" />

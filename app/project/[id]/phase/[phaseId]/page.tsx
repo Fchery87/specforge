@@ -337,7 +337,7 @@ export default function PhasePage() {
 
       {/* Back Navigation */}
       <div className="page-container py-6 relative z-10">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <Breadcrumbs
             items={[
               { label: "Dashboard", href: "/dashboard" },
