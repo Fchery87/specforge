@@ -113,10 +113,14 @@ export default function PhasePage() {
   );
   const isGenerating =
     isPhaseStarting || generationTask?.status === "in_progress";
-  const hasStreamingPreview =
-    !!streamingArtifact?.streamStatus ||
-    !!streamingArtifact?.previewHtml ||
-    !!streamingArtifact?.content;
+  const isStreamingActive =
+    isGenerating ||
+    streamingArtifact?.streamStatus === "streaming" ||
+    streamingArtifact?.streamStatus === "paused";
+  const isStreamingCancelled =
+    streamingArtifact?.streamStatus === "cancelled";
+  const showStreamingPreview =
+    isStreamingActive || isStreamingCancelled;
 
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
@@ -504,21 +508,18 @@ export default function PhasePage() {
 
             <Card variant="static">
               <CardContent className="p-6">
-                {hasStreamingPreview && (
-                  <div className="mb-4">
-                    <StreamingArtifactPreview
-                      title={streamingArtifact?.title ?? "Generating…"}
-                      previewHtml={streamingArtifact?.previewHtml ?? ""}
-              streamStatus={streamingArtifact?.streamStatus}
-                      currentSection={streamingArtifact?.currentSection}
-                      sectionsCompleted={streamingArtifact?.sectionsCompleted}
-                      sectionsTotal={streamingArtifact?.sectionsTotal}
-                      onCancel={handleCancelGeneration}
-                      isCancelling={isCancelling}
-                    />
-                  </div>
-                )}
-                {(phase.artifacts ?? []).length > 0 ? (
+                {showStreamingPreview ? (
+                  <StreamingArtifactPreview
+                    title={streamingArtifact?.title ?? "Generating…"}
+                    previewHtml={streamingArtifact?.previewHtml ?? ""}
+                    streamStatus={streamingArtifact?.streamStatus ?? (isGenerating ? "streaming" : undefined)}
+                    currentSection={streamingArtifact?.currentSection}
+                    sectionsCompleted={streamingArtifact?.sectionsCompleted}
+                    sectionsTotal={streamingArtifact?.sectionsTotal}
+                    onCancel={handleCancelGeneration}
+                    isCancelling={isCancelling}
+                  />
+                ) : (phase.artifacts ?? []).length > 0 ? (
                   <div className="space-y-4">
                     {phase.artifacts.map((a) => (
                       <div key={a._id}>

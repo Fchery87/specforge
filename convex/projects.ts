@@ -165,7 +165,10 @@ export const getPhase = query({
       .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .collect();
 
-    return { ...(phase ?? { questions: [] }), artifacts };
+    return {
+      ...(phase ?? { questions: [] }),
+      artifacts: artifacts.filter((a) => !a.isHidden),
+    };
   },
 });
 

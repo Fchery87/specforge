@@ -90,10 +90,17 @@ export function StreamingArtifactPreview(props: {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div
-          className="prose prose-invert max-w-none text-sm p-4 bg-secondary/30 border-t border-border max-h-96 overflow-y-auto"
-          dangerouslySetInnerHTML={{ __html: previewHtml || "" }}
-        />
+        {previewHtml && previewHtml.trim().length > 0 ? (
+          <div
+            className="prose prose-invert max-w-none text-sm p-4 bg-secondary/30 border-t border-border max-h-96 overflow-y-auto"
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
+        ) : (
+          <div className="flex items-center justify-center p-8 bg-secondary/30 border-t border-border text-sm text-muted-foreground gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span>Generating content preview…</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

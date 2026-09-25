@@ -252,4 +252,21 @@ describe('buildSectionPrompts and technical contracts', () => {
     const architecture = getSectionInstructions('specs', 'architecture-overview');
     expect(architecture).toContain('Mermaid');
   });
+
+  it('preserves previous sections when assembling cumulative sanitized content', () => {
+    const section1Content = '## Core Invariants\n\nAll state must be valid.';
+    const section2Raw = '<think>Thinking about architecture</think>\n\n## Architecture\n\nModular monolith.';
+
+    const sanitized1 = sanitizeGeneratedContent(section1Content).trim();
+    const cumulativeAfterStep1 = sanitized1;
+
+    const sanitized2 = sanitizeGeneratedContent(section2Raw).trim();
+    const cumulativeAfterStep2 = `${cumulativeAfterStep1.trimEnd()}\n\n${sanitized2}`;
+
+    expect(cumulativeAfterStep2).toContain('## Core Invariants');
+    expect(cumulativeAfterStep2).toContain('All state must be valid.');
+    expect(cumulativeAfterStep2).toContain('## Architecture');
+    expect(cumulativeAfterStep2).toContain('Modular monolith.');
+    expect(cumulativeAfterStep2).not.toContain('Thinking about architecture');
+  });
 });
