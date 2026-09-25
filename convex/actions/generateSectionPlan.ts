@@ -7,9 +7,7 @@ import { v } from 'convex/values';
 import { createLlmClient } from '../../lib/llm/client-factory';
 import {
   resolveCredentials,
-  getModelById,
-  getFallbackModel,
-  getFirstEnabledModelForProvider,
+  resolveModelForCredentials,
   validateProviderModelMatch,
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
@@ -91,16 +89,11 @@ export const generateSectionPlan = action({
     }
 
     // Resolve model
-    const model =
-      credentials.modelId
-        ? (getModelById(credentials.modelId, enabledModelsFromDb ?? []) ??
-          getFallbackModel())
-        : credentials.provider
-          ? (getModelById(
-              getFirstEnabledModelForProvider(credentials.provider, enabledModels),
-              enabledModelsFromDb ?? [],
-            ) ?? getFallbackModel())
-          : getFallbackModel();
+    const model = resolveModelForCredentials(
+      credentials,
+      enabledModelsFromDb ?? [],
+      enabledModels,
+    );
 
     // Validate provider-model match
     const validation = validateProviderModelMatch(

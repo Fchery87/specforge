@@ -58,6 +58,68 @@ export const FALLBACK_REGISTRY: RegistryEntry[] = [
     provider: 'deepseek',
     displayName: 'DeepSeek V4 Flash',
   },
+  {
+    model: {
+      id: 'deepseek-flash',
+      provider: 'deepseek',
+      contextTokens: 1000000,
+      maxOutputTokens: 384000,
+      defaultMax: 8000,
+      enabled: true,
+    },
+    provider: 'deepseek',
+    displayName: 'DeepSeek Flash',
+  },
+  {
+    model: {
+      id: 'deepseek-chat',
+      provider: 'deepseek',
+      contextTokens: 128000,
+      maxOutputTokens: 8192,
+      defaultMax: 8000,
+      enabled: true,
+    },
+    provider: 'deepseek',
+    displayName: 'DeepSeek Chat',
+  },
+  {
+    model: {
+      id: 'deepseek-reasoner',
+      provider: 'deepseek',
+      contextTokens: 128000,
+      maxOutputTokens: 8192,
+      defaultMax: 8000,
+      enabled: true,
+    },
+    provider: 'deepseek',
+    displayName: 'DeepSeek Reasoner',
+  },
+
+  // Google Gemini Models
+  {
+    model: {
+      id: 'gemini-2.5-pro',
+      provider: 'google',
+      contextTokens: 2000000,
+      maxOutputTokens: 65536,
+      defaultMax: 8000,
+      enabled: true,
+    },
+    provider: 'google',
+    displayName: 'Gemini 2.5 Pro',
+  },
+  {
+    model: {
+      id: 'gemini-2.5-flash',
+      provider: 'google',
+      contextTokens: 1000000,
+      maxOutputTokens: 65536,
+      defaultMax: 8000,
+      enabled: true,
+    },
+    provider: 'google',
+    displayName: 'Gemini 2.5 Flash',
+  },
 
   // Anthropic Models
   {

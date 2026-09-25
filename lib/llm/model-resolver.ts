@@ -38,6 +38,20 @@ export function getModelById(
   return null;
 }
 
+const MULTI_MODEL_PROVIDERS = new Set(['openrouter', 'chutes', 'groq', 'together', 'fireworks', 'ollama']);
+
+export function inferProviderFromModelId(modelId: string): string | null {
+  const lower = modelId.toLowerCase();
+  if (lower.startsWith('deepseek-') || lower.startsWith('deepseek/') || lower.startsWith('deepseek-ai/')) return 'deepseek';
+  if (lower.startsWith('claude-') || lower.startsWith('anthropic/')) return 'anthropic';
+  if (lower.startsWith('gpt-') || lower.startsWith('o1-') || lower.startsWith('o3-') || lower.startsWith('o4-') || lower.startsWith('openai/')) return 'openai';
+  if (lower.startsWith('gemini-') || lower.startsWith('google/')) return 'google';
+  if (lower.startsWith('mistral-') || lower.startsWith('codestral-') || lower.startsWith('pixtral-') || lower.startsWith('mistralai/') || lower.startsWith('mistral/')) return 'mistral';
+  if (lower.startsWith('glm-') || lower.startsWith('zhipuai/') || lower.startsWith('zai/')) return 'zai';
+  if (lower.startsWith('minimax-') || lower.startsWith('minimax/')) return 'minimax';
+  return null;
+}
+
 export function validateProviderModelMatch(
   provider: string,
   modelId: string,
@@ -45,16 +59,31 @@ export function validateProviderModelMatch(
 ): { valid: boolean; error?: string } {
   if (!modelId) return { valid: false, error: 'No model specified' };
 
-  const model = getModelById(modelId, dbModels);
-  if (!model) {
-    return { valid: false, error: `Unknown model: ${modelId}` };
+  if (MULTI_MODEL_PROVIDERS.has(provider)) {
+    return { valid: true };
   }
 
-  if (model.provider !== provider) {
-    return {
-      valid: false,
-      error: `Model ${modelId} (${model.provider}) doesn't match provider ${provider}`,
-    };
+  const model = getModelById(modelId, dbModels);
+  if (model) {
+    const isAzureOpenAi = provider === 'azure' && model.provider === 'openai';
+    if (model.provider !== provider && !isAzureOpenAi) {
+      return {
+        valid: false,
+        error: `Model ${modelId} (${model.provider}) doesn't match provider ${provider}`,
+      };
+    }
+    return { valid: true };
+  }
+
+  const inferredProvider = inferProviderFromModelId(modelId);
+  if (inferredProvider) {
+    const isAzureOpenAi = provider === 'azure' && inferredProvider === 'openai';
+    if (inferredProvider !== provider && !isAzureOpenAi) {
+      return {
+        valid: false,
+        error: `Model ${modelId} (${inferredProvider}) doesn't match provider ${provider}`,
+      };
+    }
   }
 
   return { valid: true };
