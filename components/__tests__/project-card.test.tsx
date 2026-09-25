@@ -57,4 +57,12 @@ describe("ProjectCard component", () => {
 
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
+
+  it("renders mode badge when mode is provided", () => {
+    render(<ProjectCard project={{ ...mockProject, mode: "quick" }} />);
+    expect(screen.getByText("Quick Spec")).toBeInTheDocument();
+
+    render(<ProjectCard project={{ ...mockProject, mode: "backend" }} />);
+    expect(screen.getByText("API & Backend")).toBeInTheDocument();
+  });
 });

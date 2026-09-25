@@ -89,4 +89,21 @@ describe("PhaseSwitcher", () => {
     fireEvent.click(briefButton!);
     expect(mockPush).not.toHaveBeenCalled();
   });
+
+  test("renders skipped badge for phases with skipped status", () => {
+    const phasesWithSkipped = [
+      { phaseId: "constitution", status: "skipped" },
+      { phaseId: "brief", status: "ready" },
+    ];
+
+    render(
+      <PhaseSwitcher
+        currentPhaseId="brief"
+        phases={phasesWithSkipped}
+        projectId="proj123"
+      />
+    );
+    const popoverContent = screen.getByTestId("popover-content");
+    expect(popoverContent).toHaveTextContent("Skipped");
+  });
 });

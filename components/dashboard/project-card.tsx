@@ -47,6 +47,7 @@ export interface ProjectCardProps {
     title: string;
     description: string;
     status: 'draft' | 'active' | 'complete';
+    mode?: 'full' | 'quick' | 'backend';
     createdAt: number;
     updatedAt: number;
   };
@@ -213,6 +214,23 @@ export function ProjectCard({
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-secondary/60 text-muted-foreground border border-border/60 rounded">
                     <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
                     Draft
+                  </span>
+                )}
+
+                {/* Mode Badge */}
+                {project.mode === 'quick' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-500 border border-sky-500/30 rounded">
+                    Quick Spec
+                  </span>
+                )}
+                {project.mode === 'backend' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-500 border border-purple-500/30 rounded">
+                    API & Backend
+                  </span>
+                )}
+                {project.mode === 'full' && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-secondary/80 text-foreground border border-border rounded">
+                    Full Blueprint
                   </span>
                 )}
 

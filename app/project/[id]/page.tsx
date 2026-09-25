@@ -157,6 +157,21 @@ export default function ProjectPage() {
           <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
             Project
           </span>
+          {project.mode === 'quick' && (
+            <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-500 border border-sky-500/30 rounded-full">
+              Quick Feature Spec
+            </span>
+          )}
+          {project.mode === 'backend' && (
+            <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-500 border border-purple-500/30 rounded-full">
+              API & Backend Service
+            </span>
+          )}
+          {project.mode === 'full' && (
+            <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-secondary text-foreground border border-border rounded-full">
+              Full System Blueprint
+            </span>
+          )}
         </div>
         <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
           {project.title}
@@ -173,11 +188,11 @@ export default function ProjectPage() {
         <PhaseStepper
           projectId={params.id}
           currentPhase={
-            // Find the first phase that is not 'ready' (i.e., the current active phase)
+            // Find the first phase that is not 'ready' and not 'skipped'
             PHASES.find((p) => {
               const status = phaseStatusMap.get(p.id);
-              return !status || status !== 'ready';
-            })?.id ?? 'constitution'
+              return !status || (status !== 'ready' && status !== 'skipped');
+            })?.id ?? 'brief'
           }
           phaseStatuses={Object.fromEntries(phaseStatusMap)}
         />
@@ -216,7 +231,7 @@ export default function ProjectPage() {
               status={phaseStatusMap.get(phase.id)}
               isSkipped={skippedPhases.includes(phase.id)}
               onToggleSkip={
-                phase.id !== "constitution"
+                phase.id !== "constitution" || skippedPhases.includes("constitution")
                   ? (skip: boolean) =>
                       toggleSkip({ projectId: params.id as Id<"projects">, phaseId: phase.id, skip })
                   : undefined

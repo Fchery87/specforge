@@ -26,17 +26,19 @@ export const getProjectMetrics = query({
       .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
       .collect();
 
-    const completedPhases = phases.filter((p) => p.status === 'ready').length;
-    const totalPhases = phases.length;
+    const skippedPhases = new Set(project.skippedPhases ?? []);
+    const activePhases = phases.filter((p) => !skippedPhases.has(p.phaseId));
+    const completedPhases = activePhases.filter((p) => p.status === 'ready').length;
+    const totalPhases = activePhases.length;
 
     return {
       projectId: args.projectId,
       totalPhases,
       completedPhases,
       completionPercentage: totalPhases > 0 ? Math.round((completedPhases / totalPhases) * 100) : 0,
-      currentPhaseId: phases.find((p) => p.status === 'generating')?.phaseId,
+      currentPhaseId: activePhases.find((p) => p.status === 'generating')?.phaseId,
       healthScore: 100,
-      stalenessFlags: phases
+      stalenessFlags: activePhases
         .filter((p) => p.isStale)
         .map((p) => ({
           phaseId: p.phaseId,
@@ -72,15 +74,17 @@ export const updateProjectMetrics = mutation({
       .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
       .collect();
 
-    const completedPhases = phases.filter((p) => p.status === 'ready').length;
-    const totalPhases = phases.length;
+    const skippedPhases = new Set(project.skippedPhases ?? []);
+    const activePhases = phases.filter((p) => !skippedPhases.has(p.phaseId));
+    const completedPhases = activePhases.filter((p) => p.status === 'ready').length;
+    const totalPhases = activePhases.length;
 
     const verificationResults = await ctx.db
       .query('verificationResults')
       .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
       .first();
 
-    const staleFlags = phases
+    const staleFlags = activePhases
       .filter((p) => p.isStale)
       .map((p) => ({
         phaseId: p.phaseId,
@@ -88,7 +92,7 @@ export const updateProjectMetrics = mutation({
         reason: p.staleReason,
       }));
 
-    const healthScore = calculateHealthScore(phases, staleFlags, verificationResults);
+    const healthScore = calculateHealthScore(activePhases, staleFlags, verificationResults);
 
     const existing = await ctx.db
       .query('projectMetrics')
@@ -105,7 +109,7 @@ export const updateProjectMetrics = mutation({
       totalPhases,
       completedPhases,
       completionPercentage: totalPhases > 0 ? Math.round((completedPhases / totalPhases) * 100) : 0,
-      currentPhaseId: phases.find((p) => p.status === 'generating')?.phaseId,
+      currentPhaseId: activePhases.find((p) => p.status === 'generating')?.phaseId,
       healthScore,
       stalenessFlags: staleFlags,
       verificationStatus,
