@@ -13,7 +13,9 @@ import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, Git
 import Link from "next/link";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 import { CodebaseConnector } from "@/components/codebase-connector";
+import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { toast } from "sonner";
+
 import { TITLE_MAX, DESCRIPTION_MAX } from "@/lib/project-input";
 
 type ProjectMode = 'full' | 'quick' | 'backend';
@@ -58,6 +60,8 @@ export default function NewProjectPage() {
   const router = useRouter();
   const createProject = useMutation(api.projects.createProject);
   const templates = useQuery(api.constitutionTemplates.listTemplates);
+  const readiness = useQuery(api.userConfigs.getGenerationReadiness);
+
 
   const [selectedMode, setSelectedMode] = useState<ProjectMode>('quick');
   const [title, setTitle] = useState("");
@@ -145,9 +149,13 @@ export default function NewProjectPage() {
             </p>
           </div>
 
+          {/* Generation Readiness Banner */}
+          <GenerationReadinessBanner ready={readiness?.ready ?? true} className="mb-6" />
+
           {/* Form Card */}
           <Card variant="static" className="border-2">
             {showRepoConnector && createdProjectId ? (
+
               <>
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-4">

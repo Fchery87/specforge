@@ -19,5 +19,9 @@ export {
   validateModelForArtifact,
 } from './model-resolver';
 
+export { checkGenerationReadiness } from './credential-readiness';
+export type { GenerationReadiness } from './credential-readiness';
+
 export type { SystemCredential } from './model-resolver';
 export type { LlmModel } from './types';
+

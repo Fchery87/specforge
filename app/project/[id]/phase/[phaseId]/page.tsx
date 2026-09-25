@@ -33,6 +33,8 @@ import { TicketBoard } from "@/components/ticket-board";
 import { GenerationActivityStream } from "@/components/generation-activity-stream";
 import { VerificationPanel } from "@/components/verification-panel";
 import { EvidenceReviewPanel } from "@/components/evidence-review-panel";
+import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
+
 
 function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
   return {
@@ -75,7 +77,9 @@ export default function PhasePage() {
     api.projects.getProjectPhases,
     isLoaded && isSignedIn ? { projectId } : "skip"
   );
+  const readiness = useQuery(api.userConfigs.getGenerationReadiness);
   const generatePhase = useAction(generatePhaseAction);
+
   const resumePhase = useAction(resumePhaseAction);
   const generateZip = useAction(generateProjectZipAction);
   const cancelArtifactStreaming = useMutation(cancelArtifactStreamingAction);
@@ -382,9 +386,15 @@ export default function PhasePage() {
         </p>
       </section>
 
+      {/* Generation Readiness Banner */}
+      <section className={readiness?.ready === false ? "page-container pb-6 relative z-10" : undefined}>
+        <GenerationReadinessBanner ready={readiness?.ready ?? true} />
+      </section>
+
       {/* Skipped Phase Banner */}
       {isSkipped && (
         <section className="page-container pb-6 relative z-10">
+
           <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">

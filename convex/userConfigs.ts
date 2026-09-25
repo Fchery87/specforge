@@ -2,6 +2,7 @@ import { internalQuery, mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import { getRequiredEncryptionKey } from '../lib/encryption-key';
+import { checkGenerationReadiness } from '../lib/llm/credential-readiness';
 
 const ENCRYPTION_KEY = getRequiredEncryptionKey();
 
@@ -195,3 +196,34 @@ export const getGitHubTokenRaw = query({
     return config?.githubAccessToken ?? null;
   },
 });
+
+// Check whether user has usable credentials without decrypting keys
+export const getGenerationReadiness = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    let userConfig = null;
+    if (identity) {
+      userConfig = await ctx.db
+        .query('userLlmConfigs')
+        .withIndex('by_user', (q) => q.eq('userId', identity.subject))
+        .first();
+    }
+
+    const systemCredentials = await ctx.db
+      .query('systemCredentials')
+      .collect();
+
+    const enabledModels = await ctx.db
+      .query('llmModels')
+      .filter((q) => q.eq(q.field('enabled'), true))
+      .collect();
+
+    return checkGenerationReadiness({
+      userConfig,
+      systemCredentials,
+      enabledModels,
+    });
+  },
+});
+

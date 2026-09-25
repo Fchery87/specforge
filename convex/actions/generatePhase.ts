@@ -530,14 +530,9 @@ export async function generateSectionContent(params: {
 
   // Guard: No LLM client available
   if (!llmClient) {
-    console.warn(
-      '[generateSectionContent] No LLM client available, using fallback',
-    );
-    return {
-      content: `## ${formatSectionName(params.sectionName)}\n\n_Content generation requires LLM configuration. Please configure your API keys in Settings._`,
-      continued: false,
-    };
+    throw new Error('No LLM credentials configured');
   }
+
 
   const { systemPrompt, userPrompt } = buildSectionPrompts({
     projectContext: params.projectContext,
@@ -748,11 +743,9 @@ export async function generateSectionContentStreaming(params: {
   const { llmClient, model } = params;
 
   if (!llmClient) {
-    return {
-      content: `## ${formatSectionName(params.sectionName)}\n\n_Content generation requires LLM configuration. Please configure your API keys in Settings._`,
-      continued: false,
-    };
+    throw new Error('No LLM credentials configured');
   }
+
 
   const { systemPrompt, userPrompt } = buildSectionPrompts({
     projectContext: params.projectContext,
