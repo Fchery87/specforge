@@ -241,10 +241,12 @@ export const getAllProjectArtifacts = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject) throw new Error("Forbidden");
 
-    return await ctx.db
+    const artifacts = await ctx.db
       .query("artifacts")
       .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
       .collect();
+
+    return artifacts.filter((a) => !a.isHidden);
   },
 });
 

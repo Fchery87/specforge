@@ -41,6 +41,7 @@ interface ArtifactPreviewProps {
   projectId?: string;
   onDelete?: () => void;
   onEdit?: () => void;
+  defaultExpanded?: boolean;
 }
 
 function downloadMarkdown(content: string, filename: string) {
@@ -57,8 +58,14 @@ function downloadZip(artifactId: string, title: string) {
   console.log("Downloading ZIP for artifact:", artifactId);
 }
 
-export function ArtifactPreview({ artifact, projectId, onDelete, onEdit }: ArtifactPreviewProps) {
-  const [expanded, setExpanded] = useState(false);
+export function ArtifactPreview({
+  artifact,
+  projectId,
+  onDelete,
+  onEdit,
+  defaultExpanded = true,
+}: ArtifactPreviewProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);

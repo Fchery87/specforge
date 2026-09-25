@@ -712,6 +712,7 @@ export const setArtifactStreamStatusInternal = internalMutation({
     sectionsCompleted: v.optional(v.number()),
     sectionsTotal: v.optional(v.number()),
     evidenceSourceIds: v.optional(v.array(v.id('evidenceSources'))),
+    resetContent: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const artifact = await ctx.db
@@ -720,13 +721,42 @@ export const setArtifactStreamStatusInternal = internalMutation({
         q.eq('projectId', args.projectId).eq('phaseId', args.phaseId),
       )
       .first();
-    if (!artifact) return;
+
+    const now = Date.now();
+    if (!artifact) {
+      await ctx.db.insert('artifacts', {
+        projectId: args.projectId,
+        phaseId: args.phaseId,
+        type: mapPhaseToArtifactType(args.phaseId),
+        title: `${args.phaseId.charAt(0).toUpperCase() + args.phaseId.slice(1)} Document`,
+        content: '',
+        previewHtml: '',
+        sections: [],
+        sectionsTotal: args.sectionsTotal,
+        sectionsCompleted: args.sectionsCompleted ?? 0,
+        tokensGenerated: 0,
+        streamStatus: args.streamStatus,
+        currentSection: args.currentSection,
+        previewHtmlUpdatedAt: now,
+        ...(args.evidenceSourceIds ? { evidenceSourceIds: args.evidenceSourceIds } : {}),
+      });
+      return;
+    }
 
     await ctx.db.patch(artifact._id, {
       streamStatus: args.streamStatus,
       currentSection: args.currentSection,
       sectionsCompleted: args.sectionsCompleted,
       sectionsTotal: args.sectionsTotal,
+      ...(args.resetContent
+        ? {
+            content: '',
+            previewHtml: '',
+            sections: [],
+            tokensGenerated: 0,
+            previewHtmlUpdatedAt: now,
+          }
+        : {}),
       ...(args.evidenceSourceIds ? { evidenceSourceIds: args.evidenceSourceIds } : {}),
     });
     if (args.streamStatus === 'complete') {
@@ -766,7 +796,10 @@ export const getPhaseInternal = internalQuery({
       .filter((q) => q.eq(q.field('phaseId'), args.phaseId))
       .collect();
 
-    return { ...(phase ?? { questions: [] }), artifacts };
+    return {
+      ...(phase ?? { questions: [] }),
+      artifacts: artifacts.filter((a) => !a.isHidden),
+    };
   },
 });
 

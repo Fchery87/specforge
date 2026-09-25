@@ -357,6 +357,7 @@ export const generatePhaseWorker = internalAction({
             sectionsTotal: task.totalSteps,
             currentSection: section.name,
             evidenceSourceIds: evidenceSources.map((source) => source._id),
+            resetContent: true,
           },
         );
       } else {
@@ -418,12 +419,14 @@ export const generatePhaseWorker = internalAction({
 
       // Fetch previous sections' content for coherence
       let previousSections: Array<{ name: string; content: string }> = [];
+      let contentBeforeSection = '';
       if (currentStep > 0) {
         const artifact = await ctx.runQuery(
           internal.internal.getArtifactByPhaseInternal,
           { projectId, phaseId },
         );
         if (artifact?.content) {
+          contentBeforeSection = artifact.content;
           const prevContent = artifact.content;
           const boundedContent =
             prevContent.length > 15000
@@ -512,7 +515,7 @@ export const generatePhaseWorker = internalAction({
         );
 
         const supportsRealtime =
-          currentStep === 0 && llmClient !== null && llmClient.supportsStreaming();
+          llmClient !== null && llmClient.supportsStreaming();
 
         if (supportsRealtime && llmClient !== null) {
           const realtime = await generateSectionContentRealtime({
@@ -571,13 +574,17 @@ export const generatePhaseWorker = internalAction({
         }
       }
 
-      // Post-streaming sanitization: the deltas flushed to the DB are raw.
-      // Replace the artifact's content with the sanitized final version.
-      // `finalContent` is already sanitized by generateSectionContent[Streaming].
+      // Post-streaming sanitization: compute cumulative sanitized content
+      // and update the artifact with all sections preserved.
+      const sanitizedSection = sanitizeGeneratedContent(finalContent).trim();
+      const cumulativeContent = contentBeforeSection
+        ? `${contentBeforeSection.trimEnd()}\n\n${sanitizedSection}`
+        : sanitizedSection;
+
       await ctx.runMutation(internal.internal.sanitizeArtifactContentInternal, {
         projectId,
         phaseId,
-        sanitizedContent: sanitizeGeneratedContent(finalContent),
+        sanitizedContent: cumulativeContent,
       });
 
       // Record section metadata at end (content already appended via streaming)

@@ -29,4 +29,26 @@ describe("StreamingArtifactPreview", () => {
       screen.getByText((_, el) => el?.textContent === "Section 2 of 3: requirements")
     ).toBeInTheDocument();
   });
+
+  it("shows a loading indicator when previewHtml is empty", () => {
+    render(
+      <StreamingArtifactPreview
+        title="Generating…"
+        previewHtml=""
+        streamStatus="streaming"
+      />
+    );
+    expect(screen.getByText("Generating content preview…")).toBeInTheDocument();
+  });
+
+  it("renders preview HTML when provided", () => {
+    render(
+      <StreamingArtifactPreview
+        title="Doc"
+        previewHtml="<p>Generated spec content</p>"
+        streamStatus="streaming"
+      />
+    );
+    expect(screen.getByText("Generated spec content")).toBeInTheDocument();
+  });
 });
