@@ -29,4 +29,10 @@ describe("deepseek registry", () => {
     expect(model?.provider).toBe("deepseek");
     expect(model?.contextTokens).toBe(128000);
   });
+
+  it("includes deepseek-v4-pro model", () => {
+    const model = getModelById("deepseek-v4-pro");
+    expect(model?.provider).toBe("deepseek");
+    expect(model?.contextTokens).toBe(1000000);
+  });
 });
