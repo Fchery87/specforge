@@ -109,6 +109,29 @@ describe("StressTestModal", () => {
     );
   });
 
+  test("clicking a suggestion option chip updates textarea", async () => {
+    render(
+      <StressTestModal
+        open={true}
+        onOpenChange={vi.fn()}
+        projectId="proj1"
+        phaseId="specs"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Linear 3 retries")).toBeInTheDocument();
+    });
+
+    const optionBtn = screen.getByText("Linear 3 retries");
+    fireEvent.click(optionBtn);
+
+    const textarea = screen.getByPlaceholderText(
+      "Write your decision or edit the recommendation..."
+    ) as HTMLTextAreaElement;
+    expect(textarea.value).toBe("Linear 3 retries");
+  });
+
   test("displays capped state when totalQuestionsAsked is 10", () => {
     render(
       <StressTestModal

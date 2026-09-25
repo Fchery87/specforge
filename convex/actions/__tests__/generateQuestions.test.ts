@@ -94,16 +94,39 @@ describe("grill-me helpers", () => {
     expect(parsed[0].suggestions?.length).toBe(3);
   });
 
-  it("normalizeGrillQuestions uses fallback when AI questions are insufficient", async () => {
+  it("parseGrillQuestionsResponse handles markdown codeblocks and field aliases", async () => {
+    const { parseGrillQuestionsResponse } = await import(
+      "../generateQuestions"
+    );
+    const raw = "```json\n" + JSON.stringify({
+      questions: [
+        {
+          question: "How will traffic spikes be absorbed?",
+          recommended_answer: "Deploy Redis rate limiting and token bucket throttles.",
+          options: ["Redis rate limiting", "Cloudflare rules", "No throttling"],
+        },
+      ],
+    }) + "\n```";
+
+    const parsed = parseGrillQuestionsResponse(raw);
+    expect(parsed.length).toBe(1);
+    expect(parsed[0].text).toContain("traffic spikes");
+    expect(parsed[0].recommendedAnswer).toContain("Redis rate limiting");
+    expect(parsed[0].suggestions?.length).toBe(3);
+  });
+
+  it("normalizeGrillQuestions guarantees recommendedAnswer and suggestions", async () => {
     const { normalizeGrillQuestions, GRILL_FALLBACK_QUESTIONS } = await import(
       "../generateQuestions"
     );
-    const ai = [{ text: "Custom Q1", recommendedAnswer: "Custom A1" }];
+    // Question with missing recommendedAnswer and missing suggestions
+    const ai = [{ text: "Bare Question" }];
     const fallback = GRILL_FALLBACK_QUESTIONS.specs;
 
-    const normalized = normalizeGrillQuestions(ai, fallback, 3);
-    expect(normalized.length).toBe(3);
-    expect(normalized[0].text).toBe("Custom Q1");
-    expect(normalized[1].text).toBe(fallback[0].text);
+    const normalized = normalizeGrillQuestions(ai, fallback, 2);
+    expect(normalized.length).toBe(2);
+    expect(normalized[0].text).toBe("Bare Question");
+    expect(normalized[0].recommendedAnswer).toBeTruthy();
+    expect(normalized[0].suggestions && normalized[0].suggestions.length > 0).toBe(true);
   });
 });

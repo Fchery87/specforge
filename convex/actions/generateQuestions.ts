@@ -673,53 +673,111 @@ export function buildGrillRoundPrompt(params: {
   );
 }
 
+function extractGrillText(item: Record<string, unknown>): string | undefined {
+  if (typeof item.text === 'string' && item.text.trim()) return item.text.trim();
+  if (typeof item.question === 'string' && item.question.trim()) return item.question.trim();
+  if (typeof item.prompt === 'string' && item.prompt.trim()) return item.prompt.trim();
+  return undefined;
+}
+
+function extractGrillRecommendation(item: Record<string, unknown>): string | undefined {
+  const candidate =
+    item.recommendedAnswer ??
+    item.recommended_answer ??
+    item.recommendation ??
+    item.recommended ??
+    item.suggestedAnswer ??
+    item.suggested_answer ??
+    item.suggested ??
+    item.best_practice ??
+    item.answer;
+  if (typeof candidate === 'string' && candidate.trim()) return candidate.trim();
+  return undefined;
+}
+
+function extractGrillSuggestions(item: Record<string, unknown>): string[] | undefined {
+  const candidate =
+    item.suggestions ??
+    item.options ??
+    item.choices ??
+    item.alternatives;
+  if (Array.isArray(candidate)) {
+    const list = candidate.filter((s): s is string => typeof s === 'string' && s.trim().length > 0);
+    return list.length > 0 ? list : undefined;
+  }
+  return undefined;
+}
+
+function mapToGrillItem(rawItem: unknown): GrillQuestionItem | null {
+  if (!rawItem || typeof rawItem !== 'object') return null;
+  const obj = rawItem as Record<string, unknown>;
+  const text = extractGrillText(obj);
+  if (!text) return null;
+  const recommendedAnswer = extractGrillRecommendation(obj);
+  const suggestions = extractGrillSuggestions(obj);
+  return {
+    text,
+    recommendedAnswer,
+    suggestions,
+  };
+}
+
 export function parseGrillQuestionsResponse(raw: string): GrillQuestionItem[] {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  }
+
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(cleaned);
     if (Array.isArray(parsed)) {
-      return parsed
-        .filter((item) => item && typeof item === 'object' && typeof item.text === 'string')
-        .map((item) => ({
-          text: item.text,
-          recommendedAnswer: typeof item.recommendedAnswer === 'string' ? item.recommendedAnswer : undefined,
-          suggestions: Array.isArray(item.suggestions)
-            ? item.suggestions.filter((s: unknown): s is string => typeof s === 'string')
-            : undefined,
-        }));
+      const items = parsed.map(mapToGrillItem).filter((item): item is GrillQuestionItem => item !== null);
+      if (items.length > 0) return items;
     }
-    if (parsed && Array.isArray(parsed.questions)) {
-      return parsed.questions
-        .filter((item: unknown) => item && typeof item === 'object' && typeof (item as { text: unknown }).text === 'string')
-        .map((item: { text: string; recommendedAnswer?: unknown; suggestions?: unknown }) => ({
-          text: item.text,
-          recommendedAnswer: typeof item.recommendedAnswer === 'string' ? item.recommendedAnswer : undefined,
-          suggestions: Array.isArray(item.suggestions)
-            ? item.suggestions.filter((s: unknown): s is string => typeof s === 'string')
-            : undefined,
-        }));
-    }
-  } catch {
-    const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      try {
-        const parsed = JSON.parse(raw.slice(start, end + 1));
-        if (parsed && Array.isArray(parsed.questions)) {
-          return parsed.questions
-            .filter((item: unknown) => item && typeof item === 'object' && typeof (item as { text: unknown }).text === 'string')
-            .map((item: { text: string; recommendedAnswer?: unknown; suggestions?: unknown }) => ({
-              text: item.text,
-              recommendedAnswer: typeof item.recommendedAnswer === 'string' ? item.recommendedAnswer : undefined,
-              suggestions: Array.isArray(item.suggestions)
-                ? item.suggestions.filter((s: unknown): s is string => typeof s === 'string')
-                : undefined,
-            }));
-        }
-      } catch {
-        return [];
+    if (parsed && typeof parsed === 'object') {
+      const arrayCandidate = (parsed as Record<string, unknown>).questions || (parsed as Record<string, unknown>).items || (parsed as Record<string, unknown>).data;
+      if (Array.isArray(arrayCandidate)) {
+        const items = arrayCandidate.map(mapToGrillItem).filter((item): item is GrillQuestionItem => item !== null);
+        if (items.length > 0) return items;
       }
     }
+  } catch {
+    // Continue to substring extraction
   }
+
+  const firstBrace = cleaned.indexOf('{');
+  const firstBracket = cleaned.indexOf('[');
+  let start = -1;
+  let end = -1;
+
+  if (firstBracket >= 0 && (firstBrace === -1 || firstBracket < firstBrace)) {
+    start = firstBracket;
+    end = cleaned.lastIndexOf(']');
+  } else if (firstBrace >= 0) {
+    start = firstBrace;
+    end = cleaned.lastIndexOf('}');
+  }
+
+  if (start >= 0 && end > start) {
+    try {
+      const substring = cleaned.slice(start, end + 1);
+      const parsed = JSON.parse(substring);
+      if (Array.isArray(parsed)) {
+        const items = parsed.map(mapToGrillItem).filter((item): item is GrillQuestionItem => item !== null);
+        if (items.length > 0) return items;
+      }
+      if (parsed && typeof parsed === 'object') {
+        const arrayCandidate = (parsed as Record<string, unknown>).questions || (parsed as Record<string, unknown>).items || (parsed as Record<string, unknown>).data;
+        if (Array.isArray(arrayCandidate)) {
+          const items = arrayCandidate.map(mapToGrillItem).filter((item): item is GrillQuestionItem => item !== null);
+          if (items.length > 0) return items;
+        }
+      }
+    } catch {
+      // Substring extraction failed
+    }
+  }
+
   return [];
 }
 
@@ -729,9 +787,6 @@ export function normalizeGrillQuestions(
   count: number,
 ): GrillQuestionItem[] {
   const valid = questions.filter((q) => q.text?.trim().length > 0);
-  if (valid.length >= count) {
-    return valid.slice(0, count);
-  }
   const merged = [...valid];
   for (const item of fallback) {
     if (merged.length >= count) break;
@@ -739,7 +794,28 @@ export function normalizeGrillQuestions(
       merged.push(item);
     }
   }
-  return merged.slice(0, count);
+
+  return merged.slice(0, count).map((item, idx) => {
+    const fallbackItem = fallback[idx % (fallback.length || 1)];
+    let rec = item.recommendedAnswer?.trim();
+    if (!rec && item.suggestions && item.suggestions.length > 0) {
+      rec = item.suggestions[0];
+    }
+    if (!rec) {
+      rec = fallbackItem?.recommendedAnswer || "Standard production practice";
+    }
+
+    let suggestions = item.suggestions;
+    if (!suggestions || suggestions.length === 0) {
+      suggestions = fallbackItem?.suggestions || [rec];
+    }
+
+    return {
+      text: item.text.trim(),
+      recommendedAnswer: rec,
+      suggestions,
+    };
+  });
 }
 
 export interface GeneratedGrillQuestion {
