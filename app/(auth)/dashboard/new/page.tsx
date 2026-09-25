@@ -17,8 +17,48 @@ import { GenerationReadinessBanner } from "@/components/generation-readiness-ban
 import { toast } from "sonner";
 
 import { TITLE_MAX, DESCRIPTION_MAX } from "@/lib/project-input";
+import { MODE_POLICIES, WORKFLOW_STAGES, type ProjectMode } from "@/lib/workflow";
 
-type ProjectMode = 'full' | 'quick' | 'backend';
+const MODE_METADATA: Record<
+  ProjectMode,
+  {
+    badge: string;
+    description: string;
+    icon: React.ReactNode;
+  }
+> = {
+  quick: {
+    badge: 'Fast-Track',
+    description:
+      'Brisk specification for a targeted feature or bug fix. Focuses on requirements, technical architecture, and stories.',
+    icon: <Zap className="w-4 h-4 text-amber-500" />,
+  },
+  full: {
+    badge: 'Enterprise',
+    description:
+      'Comprehensive 8-phase architecture specification for greenfield systems and major platform initiatives.',
+    icon: <Compass className="w-4 h-4 text-primary" />,
+  },
+  backend: {
+    badge: 'Architecture',
+    description:
+      'Service contracts, domain models, schemas, and API specifications for microservices and backend platforms.',
+    icon: <Server className="w-4 h-4 text-blue-500" />,
+  },
+};
+
+const MODE_ORDER: readonly ProjectMode[] = ['quick', 'full', 'backend'] as const;
+
+const stagesSummaryPrefix = WORKFLOW_STAGES.map((s) => s.label).join(', ');
+
+function buildFlowSummary(mode: ProjectMode): string {
+  const policy = MODE_POLICIES[mode];
+  const reviewText =
+    policy.reviewAfter.length === 0
+      ? 'No review stops.'
+      : 'Review after each stage.';
+  return `${stagesSummaryPrefix}. ${reviewText}`;
+}
 
 interface ProjectModeOption {
   id: ProjectMode;
@@ -29,32 +69,14 @@ interface ProjectModeOption {
   icon: React.ReactNode;
 }
 
-const PROJECT_MODES: ProjectModeOption[] = [
-  {
-    id: 'quick',
-    name: 'Quick Feature Spec',
-    badge: 'Fast-Track',
-    description: 'Brisk specification for a targeted feature or bug fix. Focuses on requirements, technical architecture, and stories.',
-    phasesSummary: 'Brief → PRD → Specs → Stories → Handoff',
-    icon: <Zap className="w-4 h-4 text-amber-500" />,
-  },
-  {
-    id: 'full',
-    name: 'Full System Blueprint',
-    badge: 'Enterprise',
-    description: 'Comprehensive 8-phase architecture specification for greenfield systems and major platform initiatives.',
-    phasesSummary: 'All 8 phases: Constitution through Handoff',
-    icon: <Compass className="w-4 h-4 text-primary" />,
-  },
-  {
-    id: 'backend',
-    name: 'API & Backend Service',
-    badge: 'Architecture',
-    description: 'Service contracts, domain models, schemas, and API specifications for microservices and backend platforms.',
-    phasesSummary: 'Constitution → Domain → Specs → Artifacts → Handoff',
-    icon: <Server className="w-4 h-4 text-blue-500" />,
-  },
-];
+const PROJECT_MODE_OPTIONS: ProjectModeOption[] = MODE_ORDER.map((mode) => ({
+  id: mode,
+  name: MODE_POLICIES[mode].label,
+  badge: MODE_METADATA[mode].badge,
+  description: MODE_METADATA[mode].description,
+  phasesSummary: buildFlowSummary(mode),
+  icon: MODE_METADATA[mode].icon,
+}));
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -204,7 +226,7 @@ export default function NewProjectPage() {
                   Specification Mode
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {PROJECT_MODES.map((mode) => {
+                  {PROJECT_MODE_OPTIONS.map((mode) => {
                     const isSelected = selectedMode === mode.id;
                     return (
                       <button

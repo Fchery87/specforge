@@ -29,7 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { WORKFLOW_STAGES, PHASE_ORDER, type ProjectMode } from "@/lib/workflow";
+import { WORKFLOW_STAGES, PHASE_ORDER, MODE_POLICIES, type ProjectMode } from "@/lib/workflow";
 import { getToastMessage } from "@/lib/notifications";
 
 export default function ProjectPage() {
@@ -209,17 +209,17 @@ export default function ProjectPage() {
             </span>
             {project.mode === 'quick' && (
               <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-500 border border-sky-500/30 rounded-full">
-                Quick Feature Spec
+                {MODE_POLICIES.quick.label}
               </span>
             )}
             {project.mode === 'backend' && (
               <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-500 border border-purple-500/30 rounded-full">
-                API & Backend Service
+                {MODE_POLICIES.backend.label}
               </span>
             )}
             {project.mode === 'full' && (
               <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-secondary text-foreground border border-border rounded-full">
-                Full System Blueprint
+                {MODE_POLICIES.full.label}
               </span>
             )}
           </div>

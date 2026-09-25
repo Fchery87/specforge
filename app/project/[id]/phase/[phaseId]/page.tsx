@@ -35,7 +35,7 @@ import { GenerationReadinessBanner } from "@/components/generation-readiness-ban
 import { StageStepper } from "@/components/stage-stepper";
 import { StageTabs } from "@/components/stage-tabs";
 import { NextActionButton } from "@/components/next-action-button";
-import { nextAction, type PhaseId, type ProjectMode } from "@/lib/workflow";
+import { nextAction, MODE_POLICIES, type PhaseId, type ProjectMode } from "@/lib/workflow";
 
 
 function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
@@ -436,7 +436,7 @@ export default function PhasePage() {
                 </span>
                 {project?.mode && (
                   <span className="text-xs text-muted-foreground">
-                    ({project.mode === 'quick' ? 'Quick Feature Spec' : project.mode === 'backend' ? 'API & Backend Service' : 'Custom Workflow'})
+                    ({MODE_POLICIES[project.mode as ProjectMode]?.label ?? 'Custom Workflow'})
                   </span>
                 )}
               </div>
