@@ -1,6 +1,13 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { ProjectRulesCard } from "../project-rules-card";
+
+vi.mock("convex/react", () => ({
+  useAction: () => vi.fn(),
+  useMutation: () => vi.fn(),
+  useQuery: () => null,
+}));
 
 describe("ProjectRulesCard", () => {
   const validBaseConstitution = {
@@ -151,5 +158,61 @@ describe("ProjectRulesCard", () => {
     );
 
     expect(screen.queryByText(/proposed rule/i)).not.toBeInTheDocument();
+  });
+
+  it("renders Draft rules button for full and backend projects with no constitution", () => {
+    const { rerender } = render(
+      <ProjectRulesCard
+        projectId="proj-123"
+        constitutionContent={null}
+        mode="full"
+      />
+    );
+    expect(screen.getByRole("button", { name: "Draft rules" })).toBeInTheDocument();
+
+    rerender(
+      <ProjectRulesCard
+        projectId="proj-123"
+        constitutionContent={null}
+        mode="backend"
+      />
+    );
+    expect(screen.getByRole("button", { name: "Draft rules" })).toBeInTheDocument();
+  });
+
+  it("does not render Draft rules button when constitution exists or mode is quick", () => {
+    const { rerender } = render(
+      <ProjectRulesCard
+        projectId="proj-123"
+        constitutionContent={JSON.stringify(validBaseConstitution)}
+        mode="full"
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Draft rules" })).not.toBeInTheDocument();
+
+    rerender(
+      <ProjectRulesCard
+        projectId="proj-123"
+        constitutionContent={null}
+        mode="quick"
+      />
+    );
+    expect(screen.queryByRole("button", { name: "Draft rules" })).not.toBeInTheDocument();
+  });
+
+  it("calls onDraftRules when Draft rules button is clicked", async () => {
+    const onDraftRules = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ProjectRulesCard
+        projectId="proj-123"
+        constitutionContent={null}
+        mode="full"
+        onDraftRules={onDraftRules}
+      />
+    );
+
+    const draftButton = screen.getByRole("button", { name: "Draft rules" });
+    await userEvent.click(draftButton);
+    expect(onDraftRules).toHaveBeenCalledTimes(1);
   });
 });

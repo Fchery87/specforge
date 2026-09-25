@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, GitBranch, Zap, Compass, Server } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 import { CodebaseConnector } from "@/components/codebase-connector";
 import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
@@ -125,7 +126,7 @@ export default function NewProjectPage() {
   function handleSkipRepo() {
     if (createdProjectId) {
       if (selectedMode === 'quick') {
-        router.push(`/project/${createdProjectId}/phase/brief`);
+        router.push(`/project/${createdProjectId}/questions` as Route);
       } else {
         router.push(`/project/${createdProjectId}`);
       }
