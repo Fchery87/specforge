@@ -385,9 +385,16 @@ export const generateQuestions = action({
           // Codebase lookup is optional
         }
 
+        const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
+        const projectDescription = isEarlyPhase
+          ? project.description
+          : (project.description.length > 3000
+              ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
+              : project.description);
+
         const prompt = buildQuestionPrompt({
           title: project.title,
-          description: project.description,
+          description: projectDescription,
           phaseId: args.phaseId,
           range,
           upstreamContext: upstreamContext || undefined,
@@ -911,9 +918,16 @@ export const generateGrillRound = action({
               }))
           : [];
 
+        const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
+        const projectDescription = isEarlyPhase
+          ? project.description
+          : (project.description.length > 3000
+              ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
+              : project.description);
+
         const prompt = buildGrillRoundPrompt({
           title: project.title,
-          description: project.description,
+          description: projectDescription,
           phaseId: args.phaseId,
           count: countToAsk,
           upstreamAnswers: upstreamAnswers || undefined,

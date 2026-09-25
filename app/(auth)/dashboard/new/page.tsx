@@ -14,6 +14,7 @@ import Link from "next/link";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
 import { CodebaseConnector } from "@/components/codebase-connector";
 import { toast } from "sonner";
+import { TITLE_MAX, DESCRIPTION_MAX } from "@/lib/project-input";
 
 type ProjectMode = 'full' | 'quick' | 'backend';
 
@@ -67,8 +68,8 @@ export default function NewProjectPage() {
   const [showRepoConnector, setShowRepoConnector] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<Id<"projects"> | null>(null);
 
-  const titleLeft = 100 - title.length;
-  const descLeft = 5000 - description.length;
+  const titleLeft = TITLE_MAX - title.length;
+  const descLeft = DESCRIPTION_MAX - description.length;
   const isValid = title.trim().length > 0 && description.trim().length > 0;
 
   async function onSubmit() {
@@ -76,8 +77,8 @@ export default function NewProjectPage() {
     setIsCreating(true);
     try {
       const id = await createProject({
-        title: title.slice(0, 100),
-        description: description.slice(0, 5000),
+        title: title.slice(0, TITLE_MAX),
+        description: description.slice(0, DESCRIPTION_MAX),
         constitutionTemplateId: selectedTemplateId ?? undefined,
         mode: selectedMode,
       });
@@ -263,11 +264,12 @@ export default function NewProjectPage() {
                     onEnhance={setDescription}
                     disabled={isCreating}
                     minLength={10}
+                    maxLength={4000}
                   />
                 </div>
                 <Textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value.slice(0, 5000))}
+                  onChange={(e) => setDescription(e.target.value.slice(0, DESCRIPTION_MAX))}
                   placeholder={
                     selectedMode === "quick"
                       ? "Describe the feature or problem statement. Specify key user actions, acceptance criteria, constraints, and integration boundaries..."
@@ -280,7 +282,7 @@ export default function NewProjectPage() {
                 />
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Be as detailed as possible</span>
-                  <span className={descLeft < 500 ? "text-warning" : "text-muted-foreground"}>
+                  <span className={descLeft < 1000 ? "text-warning" : "text-muted-foreground"}>
                     {descLeft.toLocaleString()} characters left
                   </span>
                 </div>
