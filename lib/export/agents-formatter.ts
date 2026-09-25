@@ -56,6 +56,57 @@ export function generateAgentsMd(input: AgentsMdInput): string {
   sections.push(project.description || 'No description available.');
   sections.push('');
 
+  // Decision Register Groups
+  const register = constitution?.decisionRegister ?? [];
+  const confirmed = register.filter((d) => d.status === 'confirmed');
+  const observed = register.filter((d) => d.status === 'observed');
+  const proposed = register.filter((d) => d.status === 'proposed');
+  const unresolved = register.filter((d) => d.status === 'unresolved');
+  const openQuestions = constitution?.openQuestions ?? [];
+
+  if (confirmed.length > 0) {
+    sections.push('## Rules');
+    sections.push('');
+    confirmed.forEach((d) => {
+      const line = d.area ? `- **${d.area}:** ${d.decision}` : `- ${d.decision}`;
+      sections.push(line);
+    });
+    sections.push('');
+  }
+
+  if (observed.length > 0) {
+    sections.push('## Observed in the repository');
+    sections.push('');
+    observed.forEach((d) => {
+      const line = d.area ? `- **${d.area}:** ${d.decision}` : `- ${d.decision}`;
+      sections.push(line);
+    });
+    sections.push('');
+  }
+
+  if (proposed.length > 0) {
+    sections.push('## Proposed, not confirmed');
+    sections.push('');
+    proposed.forEach((d) => {
+      const line = d.area ? `- **${d.area}:** ${d.decision}` : `- ${d.decision}`;
+      sections.push(line);
+    });
+    sections.push('');
+  }
+
+  if (unresolved.length > 0 || openQuestions.length > 0) {
+    sections.push('## Open questions');
+    sections.push('');
+    unresolved.forEach((d) => {
+      const line = d.area ? `- **${d.area}:** ${d.decision}` : `- ${d.decision}`;
+      sections.push(line);
+    });
+    openQuestions.forEach((q) => {
+      sections.push(`- ${q}`);
+    });
+    sections.push('');
+  }
+
   if (constitution?.lockedConstraints) {
     sections.push('## 🔒 Locked Constraints (Zero-Drift Rules)');
     sections.push(
@@ -296,6 +347,14 @@ interface ParsedConstitution {
   forbiddenPatterns?: Array<{
     pattern: string;
     reason: string;
+  }>;
+  openQuestions?: string[];
+  decisionRegister?: Array<{
+    area: string;
+    decision: string;
+    status: 'confirmed' | 'observed' | 'proposed' | 'unresolved';
+    source?: string;
+    rationale?: string;
   }>;
   /** Raw content when JSON parsing fails */
   _raw?: string;
