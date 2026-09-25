@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getModelById, getProviderDisplayName, resolveModelForCredentials, getFallbackModel } from '../registry';
+import {
+  getModelById,
+  getProviderDisplayName,
+  resolveModelForCredentials,
+  getFallbackModel,
+  validateProviderModelMatch,
+} from '../registry';
 import type { LlmModel } from '../types';
 
 describe('LLM Model Registry', () => {
@@ -72,5 +78,43 @@ describe('resolveModelForCredentials', () => {
     );
     const fallback = getFallbackModel();
     expect(model.id).toBe(fallback.id);
+  });
+});
+
+describe('validateProviderModelMatch', () => {
+  it('validates known deepseek models for deepseek provider', () => {
+    expect(validateProviderModelMatch('deepseek', 'deepseek-flash').valid).toBe(true);
+    expect(validateProviderModelMatch('deepseek', 'deepseek-v4-flash').valid).toBe(true);
+    expect(validateProviderModelMatch('deepseek', 'deepseek-chat').valid).toBe(true);
+    expect(validateProviderModelMatch('deepseek', 'deepseek-reasoner').valid).toBe(true);
+  });
+
+  it('allows dynamic unlisted models matching provider prefix', () => {
+    expect(validateProviderModelMatch('deepseek', 'deepseek-coder-v3').valid).toBe(true);
+  });
+
+  it('rejects cross-provider mismatch for known models', () => {
+    const result = validateProviderModelMatch('openai', 'deepseek-flash');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("doesn't match provider openai");
+  });
+
+  it('rejects cross-provider mismatch for prefixed dynamic models', () => {
+    const result = validateProviderModelMatch('anthropic', 'deepseek-custom-70b');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("doesn't match provider anthropic");
+  });
+
+  it('allows openai models on azure', () => {
+    expect(validateProviderModelMatch('azure', 'gpt-5.4').valid).toBe(true);
+  });
+
+  it('allows any model on multi-model aggregators like openrouter and chutes', () => {
+    expect(validateProviderModelMatch('openrouter', 'anthropic/claude-sonnet-4').valid).toBe(true);
+    expect(validateProviderModelMatch('chutes', 'deepseek-ai/DeepSeek-V3').valid).toBe(true);
+  });
+
+  it('requires a modelId', () => {
+    expect(validateProviderModelMatch('deepseek', '').valid).toBe(false);
   });
 });
