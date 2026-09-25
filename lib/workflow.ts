@@ -147,7 +147,7 @@ function getPhaseInfo(
 function isPhaseSkipped(
   phaseId: PhaseId,
   phases: PhaseStatusMap,
-  skipped: readonly PhaseId[],
+  skipped: readonly (PhaseId | string)[],
 ): boolean {
   if (skipped.includes(phaseId)) return true;
   const info = getPhaseInfo(phases, phaseId);
@@ -157,7 +157,7 @@ function isPhaseSkipped(
 export function stageStatus(
   stage: WorkflowStage,
   phases: PhaseStatusMap,
-  skipped: readonly PhaseId[],
+  skipped: readonly (PhaseId | string)[],
 ): StageStatus {
   const enabledPhaseIds = stage.phaseIds.filter(
     (id) => !isPhaseSkipped(id, phases, skipped),
@@ -197,7 +197,7 @@ export function stageStatus(
 
 export function nextAction(
   phases: PhaseStatusMap,
-  skipped: readonly PhaseId[],
+  skipped: readonly (PhaseId | string)[],
   mode: ProjectMode,
 ): NextAction {
   // If all enabled phases across all WORKFLOW_STAGES are ready, return { kind: 'export' }.

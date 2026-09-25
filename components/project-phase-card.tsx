@@ -4,9 +4,25 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { StatusBadge } from "@/components/phase-status";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+    pending: { label: "Pending", variant: "outline" },
+    generating: { label: "Generating", variant: "secondary" },
+    ready: { label: "Ready", variant: "default" },
+    error: { label: "Error", variant: "destructive" },
+    draft: { label: "Draft", variant: "outline" },
+    active: { label: "Active", variant: "default" },
+    complete: { label: "Complete", variant: "default" },
+  };
+
+  const { label, variant } = config[status] || { label: status, variant: "outline" };
+
+  return <Badge variant={variant}>{label}</Badge>;
+}
 
 type PhaseStatus = "pending" | "generating" | "ready" | "error" | "skipped";
 
