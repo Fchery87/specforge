@@ -214,13 +214,19 @@ export const generatePhase = action({
       }
     }
 
+    const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
+    const phaseDescription = isEarlyPhase
+      ? project.description
+      : (project.description.length > 3000
+          ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
+          : project.description);
+
     const artifactType = getArtifactTypeForPhase(args.phaseId);
     const sectionNames = getSectionPlan(artifactType, args.phaseId);
     const questionsText = serializeQAPairs(allQAPairs);
-    const estimatedTokens =
-      estimateTokenCount(
-        `${project.title}\n${project.description}\n${questionsText}`,
-      ) * 6;
+    const estimatedTokens = estimateTokenCount(
+      `${project.title}\n${phaseDescription}\n${questionsText}`,
+    );
 
     const sectionPlan = planSectionsForPhase({
       sectionNames,
@@ -285,7 +291,7 @@ export const generatePhase = action({
           providerApiEndpoint: providerApiEndpoint ?? undefined,
           projectContext: {
             title: project.title,
-            description: project.description,
+            description: phaseDescription,
             questions: questionsText,
             constitutionTemplate:
               args.phaseId === 'constitution'

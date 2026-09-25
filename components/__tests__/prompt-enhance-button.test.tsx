@@ -121,4 +121,36 @@ describe("PromptEnhanceButton", () => {
     // The button should be an outline variant (from our component)
     expect(button).toBeInTheDocument();
   });
+
+  it("disables button and updates title when prompt exceeds default maxLength", () => {
+    const longPrompt = "a".repeat(4001);
+    render(
+      <PromptEnhanceButton
+        prompt={longPrompt}
+        onEnhance={mockOnEnhance}
+      />
+    );
+
+    const button = screen.getByRole("button", { name: /enhance/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", "Description is already detailed (4,001 characters)");
+  });
+
+  it("respects custom maxLength prop", () => {
+    const prompt = "Custom length test prompt value";
+    render(
+      <PromptEnhanceButton
+        prompt={prompt}
+        onEnhance={mockOnEnhance}
+        maxLength={20}
+      />
+    );
+
+    const button = screen.getByRole("button", { name: /enhance/i });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute(
+      "title",
+      `Description is already detailed (${prompt.length} characters)`
+    );
+  });
 });

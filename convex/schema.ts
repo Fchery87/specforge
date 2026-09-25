@@ -15,6 +15,13 @@ export default defineSchema({
     updatedAt: v.number(),
     nextClaimNumber: v.optional(v.number()),
     skippedPhases: v.optional(v.array(v.string())),
+    mode: v.optional(
+      v.union(
+        v.literal('full'),
+        v.literal('quick'),
+        v.literal('backend'),
+      ),
+    ),
     zipStorageId: v.optional(v.id('_storage')),
     constitutionTemplate: v.optional(
       v.object({

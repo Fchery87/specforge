@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import {
   ShieldAlert,
   Loader2,
@@ -123,15 +123,22 @@ export function StressTestModal({
       setCurrentRound(typedResult.currentRound);
       setReachedLimit(typedResult.reachedLimit);
 
-      const mapped: LocalGrillQuestion[] = typedResult.questions.map((q) => ({
-        id: q.id,
-        text: q.text,
-        recommendedAnswer: q.recommendedAnswer,
-        suggestions: q.suggestions,
-        answer: q.recommendedAnswer ?? "",
-        userConfirmed: !!q.recommendedAnswer,
-        round: typedResult.currentRound,
-      }));
+      const mapped: LocalGrillQuestion[] = typedResult.questions.map((q) => {
+        const rec =
+          q.recommendedAnswer?.trim() ||
+          (q.suggestions && q.suggestions.length > 0
+            ? q.suggestions[0]
+            : "Standard 2026 production-grade architecture practice");
+        return {
+          id: q.id,
+          text: q.text,
+          recommendedAnswer: rec,
+          suggestions: q.suggestions && q.suggestions.length > 0 ? q.suggestions : [rec],
+          answer: rec,
+          userConfirmed: true,
+          round: typedResult.currentRound,
+        };
+      });
 
       setCurrentQuestions(mapped);
     } catch (err) {
@@ -241,8 +248,8 @@ export function StressTestModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader className="space-y-2">
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[88vh] h-[88vh] flex flex-col p-6 overflow-hidden">
+        <DialogHeader className="shrink-0 space-y-2 pb-3 border-b border-border">
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
               <ShieldAlert className="w-5 h-5 text-amber-500" />
@@ -268,12 +275,12 @@ export function StressTestModal({
         </DialogHeader>
 
         {errorMessage && (
-          <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+          <div className="shrink-0 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-sm text-destructive">
             {errorMessage}
           </div>
         )}
 
-        <ScrollArea className="flex-1 pr-4 max-h-[55vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-3 py-2 space-y-6">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -335,48 +342,90 @@ export function StressTestModal({
                   </div>
 
                   {q.recommendedAnswer && (
-                    <div className="p-3 rounded-md bg-amber-500/10 border border-amber-500/20 space-y-2">
+                    <div
+                      className={cn(
+                        "p-3.5 rounded-md border space-y-2 transition-colors cursor-pointer",
+                        q.answer.trim() === q.recommendedAnswer.trim()
+                          ? "bg-amber-500/15 border-amber-500/40 ring-1 ring-amber-500/30"
+                          : "bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/15",
+                      )}
+                      onClick={() => handleAcceptRecommendation(q.id)}
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5" />
+                          <Sparkles className="w-3.5 h-3.5 shrink-0" />
                           Recommended 2026 Standard
+                          {q.answer.trim() === q.recommendedAnswer.trim() && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40 ml-1 py-0 px-1.5"
+                            >
+                              Selected
+                            </Badge>
+                          )}
                         </span>
                         <Button
                           type="button"
-                          variant="outline"
+                          variant={
+                            q.answer.trim() === q.recommendedAnswer.trim()
+                              ? "default"
+                              : "outline"
+                          }
                           size="sm"
-                          className="h-7 text-xs bg-background/80 hover:bg-background"
-                          onClick={() => handleAcceptRecommendation(q.id)}
+                          className="h-7 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAcceptRecommendation(q.id);
+                          }}
                         >
-                          <Check className="w-3.5 h-3.5 mr-1 text-emerald-500" />
+                          <Check className="w-3.5 h-3.5 mr-1" />
                           Accept
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
+                      <p className="text-xs text-foreground/90 leading-relaxed">
                         {q.recommendedAnswer}
                       </p>
                     </div>
                   )}
 
                   {q.suggestions && q.suggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      <span className="text-xs text-muted-foreground mr-1">
-                        Options:
+                    <div className="space-y-1.5">
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                        Select an Option:
                       </span>
-                      {q.suggestions.map((suggestion, sIdx) => (
-                        <button
-                          key={sIdx}
-                          type="button"
-                          className="text-xs px-2 py-0.5 rounded-full border border-border bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={() => handleUpdateAnswer(q.id, suggestion)}
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
+                      <div className="flex flex-wrap gap-2">
+                        {q.suggestions.map((suggestion, sIdx) => {
+                          const isSelected = q.answer.trim() === suggestion.trim();
+                          return (
+                            <button
+                              key={sIdx}
+                              type="button"
+                              aria-pressed={isSelected}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border transition-colors cursor-pointer text-left",
+                                isSelected
+                                  ? "border-primary bg-primary/10 text-primary font-medium shadow-xs"
+                                  : "border-border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+                              )}
+                              onClick={() => handleUpdateAnswer(q.id, suggestion)}
+                            >
+                              {isSelected ? (
+                                <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                              ) : (
+                                <Sparkles className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+                              )}
+                              <span>{suggestion}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
                   <div className="space-y-1">
+                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                      Decision / Custom Refinements
+                    </label>
                     <Textarea
                       value={q.answer}
                       onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
@@ -388,9 +437,9 @@ export function StressTestModal({
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
+        <DialogFooter className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
           <div>
             {totalAsked > 0 && (
               <Button

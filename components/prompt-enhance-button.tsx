@@ -29,6 +29,8 @@ interface PromptEnhanceButtonProps {
   disabled?: boolean;
   /** Minimum characters required before enhancement */
   minLength?: number;
+  /** Maximum characters allowed for enhancement */
+  maxLength?: number;
 }
 
 /**
@@ -56,6 +58,7 @@ export function PromptEnhanceButton({
   className,
   disabled = false,
   minLength = 10,
+  maxLength = 4000,
 }: PromptEnhanceButtonProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -75,8 +78,9 @@ export function PromptEnhanceButton({
     if (disabled) return false;
     if (isEnhancing) return false;
     if (!prompt || prompt.trim().length < minLength) return false;
+    if (maxLength !== undefined && prompt.trim().length > maxLength) return false;
     return true;
-  }, [disabled, isEnhancing, prompt, minLength]);
+  }, [disabled, isEnhancing, prompt, minLength, maxLength]);
 
   /**
    * Handles the enhancement request
@@ -87,6 +91,10 @@ export function PromptEnhanceButton({
       if (prompt.trim().length < minLength) {
         toast.error(`Please write at least ${minLength} characters`, {
           description: "The AI needs more context to provide meaningful enhancements.",
+        });
+      } else if (maxLength !== undefined && prompt.trim().length > maxLength) {
+        toast.info("Prompt is already comprehensive", {
+          description: `Enhancement is designed for descriptions under ${maxLength.toLocaleString()} characters.`,
         });
       }
       return;
@@ -179,6 +187,10 @@ export function PromptEnhanceButton({
 
   const isEnabled = canEnhance();
   const hasBeenEnhanced = originalPrompt !== null && originalPrompt !== prompt;
+  const isTooLong = maxLength !== undefined && prompt.trim().length > maxLength;
+  const buttonTitle = isTooLong
+    ? `Description is already detailed (${prompt.trim().length.toLocaleString()} characters)`
+    : "Enhance with AI (Ctrl/Cmd + E)";
 
   return (
     <>
@@ -193,7 +205,7 @@ export function PromptEnhanceButton({
           onKeyDown={handleKeyDown}
           className={className}
           aria-label="Enhance prompt with AI"
-          title="Enhance with AI (Ctrl/Cmd + E)"
+          title={buttonTitle}
         >
           <AnimatePresence mode="wait" initial={false}>
             {isEnhancing ? (

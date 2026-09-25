@@ -15,4 +15,23 @@ describe("normalizeProjectInput", () => {
     });
     expect(result.title).toBe("Test");
   });
+
+  it("accepts descriptions up to 20000 characters", () => {
+    const validDesc = "a".repeat(20000);
+    const result = normalizeProjectInput({
+      title: "Valid Project",
+      description: validDesc,
+    });
+    expect(result.description.length).toBe(20000);
+  });
+
+  it("rejects descriptions exceeding 20000 characters", () => {
+    const tooLongDesc = "a".repeat(20001);
+    expect(() =>
+      normalizeProjectInput({
+        title: "Valid Project",
+        description: tooLongDesc,
+      })
+    ).toThrow("Description must be <= 20000 characters");
+  });
 });

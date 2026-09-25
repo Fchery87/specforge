@@ -1,5 +1,5 @@
-const TITLE_MAX = 100;
-const DESCRIPTION_MAX = 5000;
+export const TITLE_MAX = 100;
+export const DESCRIPTION_MAX = 20000;
 
 export function normalizeProjectInput(params: {
   title: string;

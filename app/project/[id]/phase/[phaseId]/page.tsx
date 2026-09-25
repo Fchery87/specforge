@@ -79,6 +79,7 @@ export default function PhasePage() {
   const resumePhase = useAction(resumePhaseAction);
   const generateZip = useAction(generateProjectZipAction);
   const cancelArtifactStreaming = useMutation(cancelArtifactStreamingAction);
+  const toggleSkip = useMutation(api.projects.toggleSkipPhase);
   const getGenerationTaskQuery = getGenerationTaskAction;
   const convex = useConvex();
   const [isPhaseStarting, setIsPhaseStarting] = useState(false);
@@ -119,6 +120,7 @@ export default function PhasePage() {
 
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
+  const isSkipped = project?.skippedPhases?.includes(phaseId) ?? false;
 
   // Handle AI plan generation (Task 16)
   async function handleGenerateAiPlan() {
@@ -348,7 +350,10 @@ export default function PhasePage() {
           {phases && (
             <PhaseSwitcher
               currentPhaseId={phaseId}
-              phases={phases.map(p => ({ phaseId: p.phaseId, status: p.status ?? "pending" }))}
+              phases={phases.map(p => ({
+                phaseId: p.phaseId,
+                status: project?.skippedPhases?.includes(p.phaseId) ? "skipped" : (p.status ?? "pending"),
+              }))}
               projectId={projectId}
             />
           )}
@@ -373,10 +378,51 @@ export default function PhasePage() {
         </p>
       </section>
 
+      {/* Skipped Phase Banner */}
+      {isSkipped && (
+        <section className="page-container pb-6 relative z-10">
+          <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Skipped Phase
+                </span>
+                {project?.mode && (
+                  <span className="text-xs text-muted-foreground">
+                    ({project.mode === 'quick' ? 'Quick Feature Spec' : project.mode === 'backend' ? 'API & Backend Service' : 'Custom Workflow'})
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-foreground/80">
+                This phase is skipped in your current project workflow. You can enable it anytime to answer questions and generate its artifact.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await toggleSkip({ projectId, phaseId, skip: false });
+                  toast.success(`Enabled ${phaseConfig.label} phase`);
+                } catch {
+                  toast.error(`Failed to enable ${phaseConfig.label}`);
+                }
+              }}
+              className="border-amber-500/40 hover:bg-amber-500/20 shrink-0 self-start sm:self-auto"
+            >
+              Enable This Phase
+            </Button>
+          </div>
+        </section>
+      )}
+
       {/* Phase Status Indicator */}
       <section className="page-container pb-8 relative z-10">
         <PhaseStatusIndicator
-          phases={phases ?? []}
+          phases={(phases ?? []).map(p => ({
+            ...p,
+            status: project?.skippedPhases?.includes(p.phaseId) ? "skipped" : (p.status ?? "pending"),
+          }))}
           currentPhase={phaseId}
           projectId={projectId}
         />

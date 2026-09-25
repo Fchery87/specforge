@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Check, Loader2, Circle, AlertTriangle } from "lucide-react";
+import { ChevronDown, Check, Loader2, Circle, AlertTriangle, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,8 @@ function StatusIcon({ status }: { status: string }) {
       return <Loader2 className="w-3 h-3 text-primary animate-spin" />;
     case "error":
       return <AlertTriangle className="w-3 h-3 text-destructive" />;
+    case "skipped":
+      return <Minus className="w-3 h-3 text-muted-foreground" />;
     default:
       return <Circle className="w-3 h-3 text-muted-foreground" />;
   }
@@ -51,6 +53,7 @@ export function PhaseSwitcher({ currentPhaseId, phases, projectId }: PhaseSwitch
         {phases.map((phase) => {
           const label = PHASE_LABELS[phase.phaseId] ?? phase.phaseId;
           const isCurrent = phase.phaseId === currentPhaseId;
+          const isSkipped = phase.status === "skipped";
           return (
             <button
               key={phase.phaseId}
@@ -59,11 +62,19 @@ export function PhaseSwitcher({ currentPhaseId, phases, projectId }: PhaseSwitch
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors",
                 "hover:bg-secondary/50",
-                isCurrent && "bg-secondary/30 font-medium"
+                isCurrent && "bg-secondary/30 font-medium",
+                isSkipped && "text-muted-foreground opacity-80"
               )}
             >
               <StatusIcon status={phase.status} />
-              <span className="flex-1">{label}</span>
+              <span className={cn("flex-1", isSkipped && "line-through decoration-muted-foreground/40")}>
+                {label}
+              </span>
+              {isSkipped && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                  Skipped
+                </span>
+              )}
               {isCurrent && <Check className="w-4 h-4 text-primary" aria-hidden />}
             </button>
           );

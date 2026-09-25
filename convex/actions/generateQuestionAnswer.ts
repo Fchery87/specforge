@@ -17,6 +17,7 @@ import { retryWithBackoff } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
+import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
 
 interface Question {
   id: string;
@@ -119,12 +120,47 @@ export const generateQuestionAnswer = action({
       }
     }
 
+    // Gather upstream answers from dependent phases
+    const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
+    const upstreamAnswersList: string[] = [];
+
+    if (project.constitutionTemplate?.lockedConstraints) {
+      const constraints = project.constitutionTemplate.lockedConstraints;
+      const constraintParts: string[] = [];
+      if (constraints.architecture) constraintParts.push(`Architecture: ${constraints.architecture}`);
+      if (constraints.stateManagement) constraintParts.push(`State Management: ${constraints.stateManagement}`);
+      if (constraints.apiDesign) constraintParts.push(`API Design: ${constraints.apiDesign}`);
+      if (constraints.securityProtocols?.length) {
+        constraintParts.push(`Security Protocols: ${constraints.securityProtocols.join(', ')}`);
+      }
+      if (constraintParts.length > 0) {
+        upstreamAnswersList.push(`[Constitution Constraints]\n${constraintParts.join('\n')}`);
+      }
+    }
+
+    for (const upstreamPhaseId of upstreamPhaseIds) {
+      const upstreamPhase = await ctx.runQuery(
+        internalApi.internal.getPhaseInternal,
+        { projectId: args.projectId, phaseId: upstreamPhaseId },
+      );
+      if (upstreamPhase?.questions) {
+        const answered = upstreamPhase.questions
+          .filter((q: Question) => q.answer?.trim())
+          .map((q: Question) => `Q: [${upstreamPhaseId}] ${q.text}\nA: ${q.answer}`);
+        if (answered.length > 0) {
+          upstreamAnswersList.push(answered.join('\n\n'));
+        }
+      }
+    }
+    const upstreamContext = upstreamAnswersList.join('\n\n');
+
     // Build prompt
     const prompt = buildQuestionPrompt({
       projectTitle: project.title,
       projectDescription: project.description,
       questionText: targetQuestion.text,
       previousQuestions,
+      upstreamContext: upstreamContext || undefined,
     });
 
     // Generate answer using LLM with dynamic API endpoint
@@ -144,20 +180,25 @@ function buildQuestionPrompt(params: {
   projectDescription: string;
   questionText: string;
   previousQuestions: string;
+  upstreamContext?: string;
 }): string {
+  const upstreamBlock = params.upstreamContext
+    ? `Existing Project Decisions & Prior Phase Answers:\n${params.upstreamContext}\n\n`
+    : '';
+
   return `You are helping answer questions for a software project.
 
 Project Title: ${params.projectTitle}
 Project Description: ${params.projectDescription}
 
-${params.previousQuestions ? `Previous answers:\n${params.previousQuestions}\n\n` : ''}Question: ${params.questionText}
+${upstreamBlock}${params.previousQuestions ? `Previous answers in this phase:\n${params.previousQuestions}\n\n` : ''}Question: ${params.questionText}
 
 Respond ONLY with valid JSON in this exact shape:
 {
   "suggestedAnswer": "<full answer, clear and specific>",
   "suggestions": ["<option 1, 5-15 words>", "<option 2>", "<option 3>", "<option 4>"]
 }
-Provide 3-5 concise selectable options in "suggestions". No explanation outside the JSON.`;
+Provide 3-5 concise selectable options in "suggestions". Maintain strict consistency with all existing project decisions above. No explanation outside the JSON.`;
 }
 
 export function parseSuggestionsResponse(raw: string): { suggestedAnswer: string; suggestions: string[] } {

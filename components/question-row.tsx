@@ -13,6 +13,7 @@ interface QuestionRowProps {
     aiGenerated?: boolean;
     required?: boolean;
     suggestions?: string[];
+    selectedSuggestionIndex?: number;
   };
   index: number;
   answer: string;
@@ -21,11 +22,15 @@ interface QuestionRowProps {
   isAiGenerating: boolean;
   aiGenerated: boolean;
   suggestions: string[];
+  selectedSuggestionIndex?: number;
+  stagedAnswer?: string | null;
   isPhaseGenerating: boolean;
   maxLength: number;
   onAnswerChange: (questionId: string, value: string) => void;
   onAiSuggest: (questionId: string) => void;
-  onSuggestionSelect: (questionId: string, suggestion: string) => void;
+  onSuggestionSelect: (questionId: string, suggestion: string, index: number) => void;
+  onAcceptStaged?: (questionId: string) => void;
+  onDismissStaged?: (questionId: string) => void;
 }
 
 export function QuestionRow({
@@ -37,11 +42,15 @@ export function QuestionRow({
   isAiGenerating,
   aiGenerated,
   suggestions,
+  selectedSuggestionIndex,
+  stagedAnswer,
   isPhaseGenerating,
   maxLength,
   onAnswerChange,
   onAiSuggest,
   onSuggestionSelect,
+  onAcceptStaged,
+  onDismissStaged,
 }: QuestionRowProps) {
   const charCount = answer.length;
 
@@ -65,7 +74,7 @@ export function QuestionRow({
       </div>
       <div className="ml-11 space-y-2">
         <label htmlFor={`answer-${question.id}`} className="sr-only">
-          Answer for question {index + 1}: {question.text}
+          Answer for question {index + 1}. {question.text}
         </label>
         <div className="flex items-center gap-2">
           <Textarea
@@ -116,23 +125,72 @@ export function QuestionRow({
             {charCount.toLocaleString()}/{maxLength.toLocaleString()}
           </span>
         </div>
+
+        {stagedAnswer && (
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-md space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
+                <Sparkles className="w-3.5 h-3.5" />
+                Suggested answer
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => onDismissStaged?.(question.id)}
+                >
+                  Dismiss
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="default"
+                  className="h-7 px-2.5 text-xs gap-1"
+                  onClick={() => onAcceptStaged?.(question.id)}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  Accept
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {stagedAnswer}
+            </p>
+          </div>
+        )}
+
         {suggestions.length > 0 && (
           <div className="mt-3 space-y-2">
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Suggested answers
+              Suggested options
             </span>
-            <div className="flex flex-col gap-1.5">
-              {suggestions.map((suggestion, chipIdx) => (
-                <button
-                  key={`${suggestion}-${chipIdx}`}
-                  type="button"
-                  onClick={() => onSuggestionSelect(question.id, suggestion)}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-xs text-left border border-border/60 bg-secondary/30 hover:bg-secondary/60 hover:border-border transition-colors cursor-pointer rounded-sm"
-                >
-                  <Sparkles className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                  {suggestion}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((suggestion, chipIdx) => {
+                const isSelected = selectedSuggestionIndex === chipIdx;
+                return (
+                  <button
+                    key={`${suggestion}-${chipIdx}`}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => onSuggestionSelect(question.id, suggestion, chipIdx)}
+                    className={cn(
+                      "inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left border rounded transition-colors cursor-pointer",
+                      isSelected
+                        ? "border-primary bg-primary/10 text-primary font-medium shadow-xs"
+                        : "border-border/60 bg-secondary/30 text-muted-foreground hover:bg-secondary/60 hover:text-foreground hover:border-border",
+                    )}
+                  >
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-muted-foreground/70 flex-shrink-0" />
+                    )}
+                    <span>{suggestion}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

@@ -69,7 +69,7 @@ The schema evolves frequently. Do not copy an old schema snapshot into new code;
 
 #### Create project
 
-- **Input:** `title` (≤ 100 chars), `description` (≤ 5000 chars)
+- **Input:** `title` (≤ 100 chars), `description` (≤ 20,000 chars)
 - A mutation initializes a `projects` record with the **brief** phase in `pending` status.
 
 #### Run phase

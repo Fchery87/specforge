@@ -24,5 +24,20 @@ describe("PhaseStepper", () => {
     // "constitution" (badge 1) has no status → defaults to pending → renders number
     expect(screen.getByText("1")).toBeInTheDocument();
   });
+
+  it("renders skipped status with skipped indicator badge", () => {
+    render(
+      <PhaseStepper
+        {...({
+          projectId: "p1",
+          currentPhase: "brief",
+          phaseStatuses: { constitution: "skipped", brief: "ready" },
+        } as any)}
+      />
+    );
+
+    expect(screen.getByText("Skipped")).toBeInTheDocument();
+    expect(screen.queryByText("1")).not.toBeInTheDocument();
+  });
 });
 
