@@ -65,4 +65,38 @@ describe("ProjectCard component", () => {
     render(<ProjectCard project={{ ...mockProject, mode: "backend" }} />);
     expect(screen.getByText("API & Backend")).toBeInTheDocument();
   });
+
+  it("asserts 'Resume at Design' and the Design href for a project whose Requirements stage is ready", () => {
+    const mockPhases = [
+      { phaseId: "brief", status: "ready" as const },
+      { phaseId: "prd", status: "ready" as const },
+      { phaseId: "domainModel", status: "pending" as const },
+      { phaseId: "specs", status: "pending" as const },
+      { phaseId: "artifacts", status: "pending" as const },
+      { phaseId: "stories", status: "pending" as const },
+    ];
+
+    render(<ProjectCard project={mockProject} phases={mockPhases} />);
+
+    expect(screen.getByText("Resume at Design")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /resume at design/i });
+    expect(link).toHaveAttribute("href", "/project/test-proj-123/phase/domainModel");
+  });
+
+  it("asserts 'Export' and the Export href when all phases are ready", () => {
+    const allReadyPhases = [
+      { phaseId: "brief", status: "ready" as const },
+      { phaseId: "prd", status: "ready" as const },
+      { phaseId: "domainModel", status: "ready" as const },
+      { phaseId: "specs", status: "ready" as const },
+      { phaseId: "artifacts", status: "ready" as const },
+      { phaseId: "stories", status: "ready" as const },
+    ];
+
+    render(<ProjectCard project={mockProject} phases={allReadyPhases} />);
+
+    expect(screen.getByText("Export")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /export/i });
+    expect(link).toHaveAttribute("href", "/project/test-proj-123/phase/handoff");
+  });
 });
