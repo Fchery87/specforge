@@ -94,6 +94,18 @@ export const FALLBACK_REGISTRY: RegistryEntry[] = [
     provider: 'deepseek',
     displayName: 'DeepSeek Reasoner',
   },
+  {
+    model: {
+      id: 'deepseek-v4-pro',
+      provider: 'deepseek',
+      contextTokens: 1000000,
+      maxOutputTokens: 393216,
+      defaultMax: 8000,
+      enabled: true,
+    },
+    provider: 'deepseek',
+    displayName: 'DeepSeek V4 Pro',
+  },
 
   // Google Gemini Models
   {
