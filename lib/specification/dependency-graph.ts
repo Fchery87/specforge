@@ -5,6 +5,8 @@
  * Used for staleness detection and generation ordering.
  */
 
+import { PHASE_ORDER } from '../workflow';
+
 export const PHASE_DEPENDENCIES: Record<string, string[]> = {
   constitution: [],
   brief: [],
@@ -57,16 +59,7 @@ export function canGeneratePhase(
  * Returns the topological order of phases for sequential generation.
  */
 export function getPhaseOrder(): string[] {
-  return [
-    'constitution',
-    'brief',
-    'prd',
-    'domainModel',
-    'specs',
-    'stories',
-    'artifacts',
-    'handoff',
-  ];
+  return [...PHASE_ORDER];
 }
 
 /**

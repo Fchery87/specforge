@@ -13,21 +13,11 @@ import { generateAllPhasesAction } from "@/lib/convex-actions";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ProjectPhaseCard } from "@/components/project-phase-card";
-import { Sparkles, Layers, FileText, BookOpen, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
-
-const PHASES = [
-  { id: "constitution", label: "Constitution", icon: FileText, description: "Core invariants, non-goals, and architectural boundaries" },
-  { id: "brief", label: "Brief", icon: BookOpen, description: "Project scope, user personas, and initial evidence baseline" },
-  { id: "prd", label: "PRD", icon: Target, description: "Evidence-backed requirements with stable claim IDs" },
-  { id: "domainModel", label: "Domain Model", icon: Layers, description: "Entities, invariant rules, and state transitions" },
-  { id: "specs", label: "Spec & Architecture", icon: Code, description: "Deep interface contracts, explicit test seams, and architecture" },
-  { id: "stories", label: "Tasks/Stories", icon: ClipboardList, description: "Vertical tracer bullets with blocking dependency graphs" },
-  { id: "artifacts", label: "Artifacts", icon: Sparkles, description: "Live schema validation, in-browser editor, and code models" },
-  { id: "handoff", label: "Handoff + ZIP", icon: Package, description: "Agent-native bundle, SKILL.md, and verified requirement traceability" },
-];
+import { PROJECT_PHASES } from "@/lib/phase-config";
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
@@ -117,7 +107,7 @@ export default function ProjectPage() {
 
   const hasPendingPhases = [...phaseStatusMap.values()].some(
     s => s === 'pending'
-  ) || PHASES.some(p => !skippedPhases.includes(p.id) && !phaseStatusMap.has(p.id));
+  ) || PROJECT_PHASES.some(p => !skippedPhases.includes(p.id) && !phaseStatusMap.has(p.id));
 
   async function handleGenerateAll() {
     setShowGenerateAllConfirm(false);
@@ -189,7 +179,7 @@ export default function ProjectPage() {
           projectId={params.id}
           currentPhase={
             // Find the first phase that is not 'ready' and not 'skipped'
-            PHASES.find((p) => {
+            PROJECT_PHASES.find((p) => {
               const status = phaseStatusMap.get(p.id);
               return !status || (status !== 'ready' && status !== 'skipped');
             })?.id ?? 'brief'
@@ -219,7 +209,7 @@ export default function ProjectPage() {
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {PHASES.map((phase, idx) => (
+          {PROJECT_PHASES.map((phase, idx) => (
             <ProjectPhaseCard
               key={phase.id}
               projectId={params.id}

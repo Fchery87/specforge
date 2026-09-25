@@ -6,17 +6,7 @@ import { canAccessProject } from '../lib/authz';
 import { normalizeProjectInput } from '../lib/project-input';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource } from './lib/evidence';
-
-const DEFAULT_PHASES = [
-  'constitution',
-  'brief',
-  'prd',
-  'domainModel',
-  'specs',
-  'stories',
-  'artifacts',
-  'handoff',
-];
+import { PHASE_ORDER } from '../lib/workflow';
 
 type ConstitutionTemplateSnapshot = Pick<
   Doc<'constitutionTemplates'>,
@@ -90,7 +80,7 @@ export const createProject = mutation({
       ...(skippedPhases ? { skippedPhases } : {}),
     });
 
-    for (const phaseId of DEFAULT_PHASES) {
+    for (const phaseId of PHASE_ORDER) {
       await ctx.db.insert('phases', {
         projectId,
         phaseId,
