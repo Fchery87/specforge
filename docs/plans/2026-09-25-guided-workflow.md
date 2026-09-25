@@ -18,15 +18,15 @@ Tests alone are not sufficient verification. A PR is verified only when its unit
 
 | # | Task | State | SHA | Verified by |
 | --- | --- | --- | --- | --- |
-| 1 | Add an authenticated Playwright suite | Not started | none | `npm run test:e2e` passes the signed-in smoke test |
-| 2 | Delete duplicate phase definitions | Not started | none | Gates pass and `rg` finds one phase list |
-| 3 | Add the workflow model in `lib/workflow.ts` | Not started | none | `lib/workflow.test.ts` passes |
-| 4 | Check model credentials before intake | Not started | none | Unit tests and the no-credentials e2e case pass |
-| 5 | Replace phase navigation with the stage stepper | Not started | none | E2e stage cases pass and the operator approves screenshots |
-| 6 | Rebuild the project page and dashboard cards around stages | Not started | none | E2e project-page cases pass and the operator approves screenshots |
-| 7 | Rename modes and move defaults to `MODE_POLICIES` | Not started | none | Unit tests and the e2e creation cases pass |
-| 8 | Export `AGENTS.md` as the only rules file | Not started | none | ZIP test and a Claude Code `/context` check |
-| 9 | Add the Lite combined question round and Draft rules | Not started | none | E2e Lite flow passes and the operator approves the video |
+| 1 | Add an authenticated Playwright suite | Done | 6a5c1e8 | `npm run test:e2e` passes the signed-in smoke test |
+| 2 | Delete duplicate phase definitions | Done | b13eba0 | Gates pass and `rg` finds one phase list |
+| 3 | Add the workflow model in `lib/workflow.ts` | Done | 7e6d3ec | `lib/workflow.test.ts` passes |
+| 4 | Check model credentials before intake | Done | cf259a3 | Unit tests and the no-credentials e2e case pass |
+| 5 | Replace phase navigation with the stage stepper | Done | 42a43d3 | E2e stage cases pass and the operator approves screenshots |
+| 6 | Rebuild the project page and dashboard cards around stages | Done | d8e569a | E2e project-page cases pass and the operator approves screenshots |
+| 7 | Rename modes and move defaults to `MODE_POLICIES` | Done | a4ae410 | Unit tests and the e2e creation cases pass |
+| 8 | Export `AGENTS.md` as the only rules file | Done | 9d522eb | ZIP test and a Claude Code `/context` check |
+| 9 | Add the Lite combined question round and Draft rules | Done | 4be3291 | E2e Lite flow passes and the operator approves the video |
 
 States are `Not started`, `In progress`, `Done, unverified`, and `Done`. `Done` requires a real SHA and a verification that ran. `Done, unverified` names what is missing.
 
