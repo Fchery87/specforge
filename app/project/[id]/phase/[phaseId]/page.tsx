@@ -34,6 +34,7 @@ import { GenerationReadinessBanner } from "@/components/generation-readiness-ban
 import { StageStepper } from "@/components/stage-stepper";
 import { NextActionButton } from "@/components/next-action-button";
 import { AddSectionMenu } from "@/components/add-section-menu";
+import { StagePhaseLinks } from "@/components/stage-phase-links";
 import { nextAction, MODE_POLICIES, type PhaseId, type ProjectMode } from "@/lib/workflow";
 
 
@@ -383,17 +384,24 @@ export default function PhasePage() {
       {nextActionItem || (project.skippedPhases ?? []).length > 0 ? (
         <section className="page-container pb-8">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
-            <AddSectionMenu
-              skippedPhases={project.skippedPhases ?? []}
-              onEnable={async (phaseToEnable) => {
-                try {
-                  await toggleSkip({ projectId, phaseId: phaseToEnable, skip: false });
-                  toast.success(`Enabled ${PHASE_CONFIG[phaseToEnable]?.label ?? phaseToEnable}`);
-                } catch {
-                  toast.error("Failed to enable section");
-                }
-              }}
-            />
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <StagePhaseLinks
+                projectId={projectId}
+                currentPhase={phaseId}
+                skippedPhases={project.skippedPhases ?? []}
+              />
+              <AddSectionMenu
+                skippedPhases={project.skippedPhases ?? []}
+                onEnable={async (phaseToEnable) => {
+                  try {
+                    await toggleSkip({ projectId, phaseId: phaseToEnable, skip: false });
+                    toast.success(`Enabled ${PHASE_CONFIG[phaseToEnable]?.label ?? phaseToEnable}`);
+                  } catch {
+                    toast.error("Failed to enable section");
+                  }
+                }}
+              />
+            </div>
             {nextActionItem && (
               <div className="ml-auto shrink-0">
                 <NextActionButton
