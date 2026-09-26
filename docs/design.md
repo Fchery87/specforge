@@ -120,16 +120,20 @@ all render through one of the two, so the reader meets one notation everywhere.
   bullets. Readers learn it once.
 - The table of contents doubles as a gap map. A clause whose claims are unsettled says so, with a
   count and a state word.
-- A mermaid fence stays a diagram. `ArtifactDocument` splits the body at fences and advances the
-  heading cursor by `countSpecHeadings`, so the anchors stay aligned with the outline.
+- A mermaid fence stays a diagram. `ArtifactDocument` splits the body at fences, and each piece
+  derives its heading ids from the heading text, so a piece needs no knowledge of where it sits in
+  the document. Do not reintroduce a positional cursor: the one that existed drifted whenever the
+  outline and the renderer disagreed about what counted as a heading.
 
 ## One description per page
 
 The workflow is described once per page. `components/stage-stepper.tsx` is the map,
 `components/next-action-button.tsx` is the instruction, and `components/add-section-menu.tsx` is the
-one control that brings a skipped phase back. **`lib/workflow.ts` owns the phase labels**, so a
-renamed phase is renamed once. The earlier `StageCard` and `StageTabs` were deleted with the
-collapse. Do not add a fourth description of the same eight phases.
+one control that brings a skipped phase back. `components/stage-phase-links.tsx` sits beside the
+instruction and lists only the current stage's phases, so a generated document stays reachable once
+its stage has finished. **`lib/workflow.ts` owns the phase labels**, so a renamed phase is renamed
+once. The earlier `StageCard` and `StageTabs` were deleted with the collapse. Do not add a fifth
+description of the same eight phases.
 
 ## Components
 
