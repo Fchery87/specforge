@@ -12,8 +12,8 @@ so no project needs a data migration.
 
 | # | Task | State | SHA | Verified by |
 | --- | --- | --- | --- | --- |
-| 1 | Add `lib/llm/prompts/stages.ts` exporting `REQUIREMENTS_PROMPT`, `DESIGN_PROMPT`, `TASKS_PROMPT` and `stagePromptFor(phaseId)` built on `WORKFLOW_STAGES`. Compose it into `buildSectionPrompts` in `convex/actions/generatePhase.ts`, in the order stage prompt, section instructions, project context, questions. | Done | 8e898dd | `npx vitest --run lib/llm/prompts/__tests__/stages.test.ts` (15 tests) asserts each prompt states the property its documents depend on, and the composition tests in `convex/actions/__tests__/generatePhase.test.ts` (7 tests) assert the stage reaches all three call sites, that a phase outside a stage gets none, and the part order. typecheck, lint and the palette lint clean. |
-| 2 | Add `lib/validation/acceptance-criteria.ts` with `classifyCriterion(criterion)` returning `observable`, `unobservable` or `vague`. No model call. | Done | 4a2a8f0 | `npx vitest --run lib/validation/__tests__/acceptance-criteria.test.ts` (44 tests) over a fixed corpus whose expected classes are written out, so the classifier cannot drift silently. A probe of the first draft found a false `observable` on "responds quickly", now a corpus case; the corpus then found the missing adverb stem. |
+| 1 | Add `lib/llm/prompts/stages.ts` exporting `REQUIREMENTS_PROMPT`, `DESIGN_PROMPT`, `TASKS_PROMPT` and `stagePromptFor(phaseId)` built on `WORKFLOW_STAGES`. Compose it into `buildSectionPrompts` in `convex/actions/generatePhase.ts`, in the order stage prompt, section instructions, project context, questions. | Done | 86ec93c | `npx vitest --run lib/llm/prompts/__tests__/stages.test.ts` (15 tests) asserts each prompt states the property its documents depend on, and the composition tests in `convex/actions/__tests__/generatePhase.test.ts` assert the stage reaches all three call sites, that a phase outside a stage gets none, that the universal quality rules reach every phase, and the part order. typecheck, lint and the palette lint clean. |
+| 2 | Add `lib/validation/acceptance-criteria.ts` with `classifyCriterion(criterion)` returning `observable`, `unobservable` or `vague`. No model call. | Done | 86ec93c | `npx vitest --run lib/validation/__tests__/acceptance-criteria.test.ts` (51 tests) over a fixed corpus whose expected classes are written out, plus a block locking the seven defect classes a review found. A probe of the first draft found a false `observable` on "responds quickly"; the review found six more, including common specification nouns (report, record, log, display) matching the verb list. |
 | 3 | Carry the class onto tickets. Add `acceptanceCriteriaQuality` as a parallel array in `convex/schema.ts`, populate it from `lib/ticket-parser.ts`, and read a criterion with no class as `unclassified` rather than labelling it retroactively. | Not started | — | `npx vitest --run lib/__tests__/ticket-parser.test.ts convex/__tests__/tickets-schema.test.ts` asserts a classed criterion, an `unclassified` legacy row, and that `acceptanceCriteria` keeps its shape for existing readers |
 | 4 | Add `lib/quality/budgets.ts`: words per token ratio, a budget per section from `estimatedTokens`, a budget per stage, and the derivation written down. | Not started | — | `npx vitest --run lib/quality/__tests__/budgets.test.ts` asserts the ratio, a single-section budget, and a stage budget as the sum of its sections |
 | 5 | Add `lib/quality/stage-report.ts`: `buildStageReport({ markdown, claims, sectionPlan })` returning `traceability`, `testability`, `coverage` and `length` as four separate objects with no combined score. Traceability calls `claimState` from `lib/claims.ts` rather than counting a second way. | Not started | — | `npx vitest --run lib/quality/__tests__/stage-report.test.ts` covers a fully traced stage, an untraced claim, an empty required section, a missing required section, and a stage over budget |
@@ -34,6 +34,28 @@ actually ran. `Done, unverified` is honest and must say what is missing.
 independently. Task 6 is the first that touches the database. Task 7 is the first the user sees, and
 it is deliberately after the data it renders. Tasks 1 and 3 are the only two that change generation
 output; the rest only observe it.
+
+**Squashed SHAs.** Tasks 1 and 2 were reviewed and fixed on `feature/stage-prompts`, then landed
+together as the squash commit `86ec93c` when PR #24 merged. Their individual branch commits are not in
+`main`'s history, so the table names the squash commit for both. `86ec93c` passes `git cat-file -t`.
+
+**Open decision: the `artifacts` phase inherits the design prompt.** `lib/workflow.ts` puts
+`artifacts` in the Design stage, so every section of that phase receives the design prompt's failure
+modes — a contract with no test seam, a recorded rejected alternative — while its own section
+instructions ask for documentation, configuration and a deployment guide. One section is asked to
+satisfy two contracts that do not overlap. Not fixed here because `WORKFLOW_STAGES` is owned by
+`docs/specs/2026-09-25-guided-workflow.md` and the stepper, the next-action resolver and the phase
+labels all derive from it, so moving a phase between stages is a change to that spec's model. The
+label and the sections already disagree independently: the phase reads "Schemas" while
+`lib/llm/chunking.ts` gives it documentation, configuration and deployment.
+
+**Task 4 will need a prompt-size answer, not only a document-length one.** The stage prompt adds
+roughly 1,100 to 1,900 input tokens per phase (435 for Requirements, 375 for Design, 364 for Tasks),
+re-sent on every continuation turn. Nothing measures it: `estimatedTokens` and `planSectionsForPhase`
+count only the title, the phase description and the questions, and `estimateTokenCount` sizes output.
+The risk is low because the codebase-context block dominates it by an order of magnitude and there is
+no truncation path to trip, but `lib/quality/budgets.ts` should account for prompt size as well as
+document length, or say explicitly why it does not.
 
 **What this plan does not do.** It does not rename, merge or remove a phase id. `phases`,
 `artifacts.phaseId`, section plans and evidence records stay keyed by the eight ids, so no existing
