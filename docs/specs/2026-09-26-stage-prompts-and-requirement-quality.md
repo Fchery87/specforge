@@ -25,11 +25,13 @@ heading. Nothing requires a criterion to be observable or falsifiable. "Should b
 archive endpoint returns 204 for an editor and 403 for a viewer" are stored identically, and the
 exported pack sends both to a coding agent as if they were equivalent.
 
-**The readiness signal is a model's opinion.** `lib/llm/prompts/critic.ts` scores each section 0 to
-100 with `passThreshold: 80` and retries twice. That score measures whether the prose reads like a
-specification. It does not measure whether the requirements are traceable, whether a requirement
-states an outcome, or whether a document has a gap in the middle. A user cannot see the score, and it
-is not about requirements.
+**The readiness signal is a model's opinion, and only on half the stages.**
+`lib/llm/prompts/critic.ts` scores each section 0 to 100 with `passThreshold: 80` and retries twice.
+That score measures whether the prose reads like a specification. It does not measure whether the
+requirements are traceable, whether a requirement states an outcome, or whether a document has a gap
+in the middle. A user cannot see the score, and it is not about requirements. `shouldCritiquePhase`
+gates it to `specs`, `techSpec`, `stories` and `artifacts`, so the Requirements stage, which produces
+the brief and the PRD that every later document depends on, receives no critique at all.
 
 **No length budget.** `estimatedTokens` on a `SectionPlanConfig` sizes the generation request. Nothing
 constrains the length of what comes back, so a brief can arrive at 400 words or 4,000 and the
@@ -228,9 +230,14 @@ Deleted outright, once its replacement is in place:
   "Be thorough and detailed", "Include specific, actionable content", "Reference the project context
   throughout". The mechanical anti-reasoning rules and the output-format rules stay, because they
   guard the worker contract rather than the document's quality.
-- The per-section instruction duplication in `lib/llm/section-plans.ts` where an instruction restates
-  what the stage prompt now requires. This is a review of the eight section arrays, not a blanket
-  deletion, and each removal is justified in the commit message.
+- The per-section instruction duplication between `getSectionInstructions` in
+  `convex/actions/generatePhase.ts` and the `description` on each `SectionPlanConfig` in
+  `lib/llm/section-plans.ts`. The two carry near-identical prose for the same section, one shown in
+  the plan preview and one sent to the model, so they drift. This is a review of the eight section
+  arrays and the instruction map together, not a blanket deletion, and each removal is justified in
+  the commit message. Where a stage prompt now states the requirement, the per-section copy goes;
+  where it describes the section's own subject such as the Mermaid diagrams the domain model
+  requires, it stays.
 - Any second definition of traceability. The report calls `claimState` from `lib/claims.ts`; if
   implementing it reveals a parallel count, that copy goes.
 
