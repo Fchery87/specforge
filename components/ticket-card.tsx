@@ -31,9 +31,9 @@ interface TicketCardProps {
 
 const PRIORITY_CLASS: Record<TicketPriority, string> = {
   critical: "text-destructive border-destructive/40",
-  high: "text-orange-400 border-orange-400/40",
-  medium: "text-yellow-400 border-yellow-400/40",
-  low: "text-muted-foreground border-border",
+  high: "text-amber border-amber/40",
+  medium: "text-amber border-amber/40",
+  low: "text-muted-foreground border-line",
 };
 
 const STATUS_CYCLE: Record<TicketStatus, TicketStatus> = {
@@ -56,7 +56,7 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
     <Card variant="static" className="mb-3">
       <CardContent className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-bold text-sm leading-tight">{ticket.title}</p>
+          <p className="font-bold text-ui leading-tight">{ticket.title}</p>
           <div className="flex items-center gap-1 shrink-0">
             <Badge variant="outline" className={PRIORITY_CLASS[ticket.priority]}>
               {ticket.priority}
@@ -64,13 +64,13 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-caption">
           <Badge
             variant="outline"
             className={
               isTracer
-                ? "bg-primary/10 text-primary border-primary/30 text-[10px]"
-                : "bg-muted text-muted-foreground text-[10px]"
+                ? "bg-primary/10 text-primary border-primary/30 text-caption"
+                : "bg-raised text-muted-foreground text-caption"
             }
           >
             {isTracer ? "Tracer Bullet" : "Wide Refactor"}
@@ -81,8 +81,8 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
               variant="outline"
               className={
                 isBlocked
-                  ? "bg-destructive/10 text-destructive border-destructive/30 text-[10px]"
-                  : "bg-green-500/10 text-green-400 border-green-500/30 text-[10px]"
+                  ? "bg-destructive/10 text-destructive border-destructive/30 text-caption"
+                  : "bg-sage/10 text-sage border-sage/30 text-caption"
               }
             >
               {isBlocked ? "Blocked" : "Ready (Frontier)"}
@@ -90,41 +90,41 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
           )}
 
           {ticket.estimatedEffort && (
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-caption">
               {ticket.estimatedEffort}
             </Badge>
           )}
           {ticket.evidenceReviewStatus === "needs_review" && (
-            <Badge variant="outline" className="border-amber-500/40 text-amber-600 text-[10px]">Evidence needs review</Badge>
+            <Badge variant="outline" className="border-amber/40 text-amber text-caption">Evidence needs review</Badge>
           )}
         </div>
 
         {hasBlockers && ticket.blockedByTitles && (
-          <div className="text-[11px] text-muted-foreground bg-secondary/30 rounded px-2 py-1">
+          <div className="text-caption text-muted-foreground bg-raised/30 rounded-sm px-2 py-1">
             <span className="font-semibold text-muted-foreground/80">Blocked by:</span>{" "}
             {ticket.blockedByTitles.join(", ")}
           </div>
         )}
 
         {ticket.claimIds && ticket.claimIds.length > 0 && (
-          <div className="text-[11px] text-muted-foreground">Requirements: {ticket.claimIds.join(", ")}</div>
+          <div className="text-caption text-muted-foreground">Requirements: {ticket.claimIds.join(", ")}</div>
         )}
 
         {ticket.filesToTouch && ticket.filesToTouch.length > 0 && (
-          <div className="text-[11px] text-muted-foreground/80 font-mono truncate">
+          <div className="text-caption text-muted-foreground/80 font-mono truncate">
             {ticket.filesToTouch.length} file{ticket.filesToTouch.length > 1 ? "s" : ""}: {ticket.filesToTouch.slice(0, 2).join(", ")}
             {ticket.filesToTouch.length > 2 && "..."}
           </div>
         )}
 
         <div className="flex items-center justify-between pt-1">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-caption text-muted-foreground">
             {ticket.acceptanceCriteria.length} criteria
           </span>
           <Button
             size="sm"
             variant="ghost"
-            className="text-xs h-7 px-2"
+            className="text-caption h-7 px-2"
             onClick={() => onStatusChange(ticket._id, STATUS_CYCLE[ticket.status])}
           >
             {STATUS_LABEL[ticket.status]}

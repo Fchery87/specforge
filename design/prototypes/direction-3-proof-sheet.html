@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en" data-density="comfortable">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>SpecForge proof sheet, direction 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+
+<!--
+  Direction 3, proof sheet
+  SpecForge redesign prototype. Self-contained: inline CSS, Google Fonts from the CDN, one
+  small script for the density control. Renders three stacked sections at a 1440px design
+  width: landing hero, spec review surface, pipeline state.
+
+  TRACEABILITY NOTATION (planned before any CSS was written)
+  --------------------------------------------------------------------------------
+  1. How a claim is marked.
+     A claim is a clause paragraph in Source Serif 4. Its identity is a claim ID, C-0xx,
+     set in JetBrains Mono with tabular numerals and right-aligned in a 64px margin column
+     at the left edge of the document. Section numbers use the same 64px column, so every
+     number in the document sits on one axis. The claim ID is muted by default and ember
+     when the claim is the one under review. A claim never carries a pill. State is a word.
+
+  2. How its evidence trail is drawn.
+     The trace is a hairline spine: the left border of the claim body, 1px in --line,
+     starting at the claim's first line and ending at the last evidence row of that same
+     claim. One 16px horizontal tick starts at the edge of the claim ID and runs toward the
+     spine, stopping 4px short of it, so the margin number and the trail read as one object.
+     No bracket, no colour band, no per-row rules inside the evidence block. Evidence rows
+     hang off the spine in four fixed columns: kind, source, pin, state, so every date and
+     every hash in the document shares two axes. The pin is mono because interview dates
+     and commit hashes both need to align as numerals.
+
+  3. How the connector stays legible when three claims stack.
+     Each claim owns its own spine, and spines never merge into one continuous ladder:
+     consecutive clauses are separated by 40px of margin (24px in compact density), so the
+     line reads as three attributable segments, and each segment carries exactly one tick
+     back to exactly one claim ID. A claim with no evidence keeps its spine and turns it
+     amber, so a gap is drawn rather than left invisible. The pipeline section reuses the
+     same spine for a blocking edge between two tracer bullets. One mark, two kinds of
+     trace (evidence, dependency), never two marks.
+
+  4. Typeface per role.
+     Claim and spec text: Source Serif 4, 17px/28px, measure capped at 624px, about 78
+     characters per line, so the prose stays under the 80-character limit. Identifiers and
+     hashes: JetBrains Mono for claim IDs, clause numbers, tracer IDs, commit pins, dates,
+     and counts, with tabular numerals wherever numbers align. Chrome: Inter for
+     navigation, controls, region labels, state words, and evidence kinds. Three roles, no
+     fourth face.
+
+  CONTRAST (WCAG 2.2, computed with the sRGB relative-luminance formula)
+  --------------------------------------------------------------------------------
+  Body text, 4.5:1 required, all pass:
+    text on void 16.43:1        text on surface 15.57:1
+    text on panel 14.76:1       text on sel 13.40:1
+    muted on void 6.13:1        muted on surface 5.81:1
+    muted on panel 5.51:1       muted on sel 5.00:1
+    ember on void 6.00:1        ember on surface 5.68:1
+    ember on panel 5.39:1       ember on sel 4.89:1
+    emberSoft on void 9.25:1    emberSoft on surface 8.76:1
+    sage on void 7.03:1         sage on surface 6.67:1
+    amber on void 8.10:1        amber on surface 7.68:1
+    brick on void 5.72:1        brick on surface 5.42:1
+    slate on void 6.01:1        slate on surface 5.69:1
+    void on ember 6.00:1 (label on the primary button)
+
+  Graphics and indicators, 3:1 required, all pass:
+    ember focus ring on void 6.00:1, on surface 5.68:1, on panel 5.39:1, on sel 4.89:1
+    sage check icon on panel 6.32:1
+    emberDeep progress track on void 2.66:1 (non-text track fill, threshold 1.3:1)
+
+  Hairlines and quiet marks, perceptible, never text:
+    line on void 1.32:1, line on surface 1.25:1
+    dim on void 3.15:1, used only for the full-width section dividers
+
+  --dim is never used for text. It measures 3.15:1 on void and 2.98:1 on surface, so it
+  fails the 4.5:1 body-text threshold and is reserved for non-text rules. --sel is a
+  1.16:1 step on surface, so selection never depends on the fill: every selected row also
+  carries a 2px ember rail, and ember on sel is 4.89:1. Ember always means "you are here
+  or under review": the claim ID in review, the current outline section, the current
+  phase, the next action.
+
+  Radius: 6px controls, 12px containers, 999px pills. Three values.
+  Spacing: 4px scale. Durations: 0 / 100 / 200 / 400ms, and prefers-reduced-motion
+  collapses every duration to 0.
+-->
+
+<style>
+  :root{
+    --void:#09090a;
+    --surface:#111113;
+    --panel:#17171a;
+    --sel:#202024;
+    --line:#26262b;
+    --dim:#5f5f68;
+    --muted:#8e8e97;
+    --text:#e9e9ec;
+    --ember:#c87a46;
+    --ember-soft:#e0a479;
+    --ember-deep:#7d4726;
+    --sage:#7fa37a;
+    --brick:#c97070;
+    --amber:#c6a052;
+    --slate:#6f92a6;
+
+    --r-control:6px;
+    --r-panel:12px;
+    --r-pill:999px;
+
+    --d100:100ms;
+    --d200:200ms;
+    --d400:400ms;
+
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+
+  html{
+    background:var(--void);
+    scroll-behavior:smooth;
+  }
+
+  body{
+    margin:0;
+    background:var(--void);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:20px;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* Focus is never suppressed. The outline is 2px ember at a 2px offset; the 6px shadow
+     ring is the page ground, which reads as the outer tone of a two-tone ring on any
+     raised surface and disappears on the ground itself. */
+  :focus-visible{
+    outline:2px solid var(--ember);
+    outline-offset:2px;
+    box-shadow:0 0 0 6px var(--void);
+    border-radius:inherit;
+  }
+
+  ::selection{background:var(--sel);color:var(--text)}
+
+  a{color:var(--slate);text-decoration:none}
+  a:hover{text-decoration:underline;text-underline-offset:3px}
+
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .serif{font-family:var(--serif)}
+  .ta-right{text-align:right}
+
+  .sr-only{
+    position:absolute;
+    width:1px;height:1px;
+    padding:0;margin:-1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    white-space:nowrap;
+    border:0;
+  }
+
+  /* ------------------------------------------------------------------ shells */
+
+  .wrap{
+    max-width:1248px;
+    margin:0 auto;
+    padding:0 48px;
+  }
+
+  .divider{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding-left:48px;
+    background:var(--void);
+  }
+  .divider::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--dim);
+  }
+  .divider span{
+    font-size:12px;
+    line-height:16px;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .divider .divider-mark{
+    flex:none;
+    width:16px;
+    height:1px;
+    background:var(--ember);
+  }
+
+  /* ------------------------------------------------------------------ controls */
+
+  .btn-primary{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 20px;
+    background:var(--ember);
+    color:var(--void);
+    border:0;
+    border-radius:var(--r-control);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:20px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background-color var(--d100) ease-out;
+  }
+  .btn-primary:hover{background:var(--ember-soft)}
+  .btn-primary:active{background:var(--ember)}
+
+  .btn-ghost{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 16px;
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:var(--r-control);
+    font-family:var(--sans);
+    font-size:13px;
+    line-height:18px;
+    font-weight:500;
+    cursor:pointer;
+    transition:border-color var(--d100) ease-out,color var(--d100) ease-out;
+  }
+  .btn-ghost:hover{border-color:var(--muted)}
+
+  .seg{
+    display:inline-flex;
+    border:1px solid var(--line);
+    border-radius:var(--r-control);
+    overflow:hidden;
+    background:var(--surface);
+  }
+  .seg button{
+    appearance:none;
+    padding:12px;
+    background:transparent;
+    color:var(--muted);
+    border:0;
+    border-right:1px solid var(--line);
+    font-family:var(--sans);
+    font-size:12px;
+    line-height:18px;
+    font-weight:500;
+    cursor:pointer;
+    transition:background-color var(--d100) ease-out,color var(--d100) ease-out;
+  }
+  .seg button:last-child{border-right:0}
+  .seg button:hover{color:var(--text)}
+  .seg button[aria-pressed="true"]{background:var(--sel);color:var(--ember)}
+
+  /* ------------------------------------------------------------------ states */
+
+  .state{font-size:12px;line-height:16px;font-weight:500}
+  .state-ok{color:var(--sage)}
+  .state-warn{color:var(--amber)}
+  .state-quiet{color:var(--muted)}
+
+  .ico{flex:none;display:block}
+
+  /* ------------------------------------------------------------------ spine */
+
+  /* One notation for a trace. A claim's evidence trail and a tracer's blocking edge are
+     both drawn as this hairline, and every traced unit carries exactly one tick. */
+  .spine{
+    position:relative;
+    border-left:1px solid var(--line);
+    padding-left:24px;
+  }
+  /* The tick sits at 10px, the vertical centre of the 20px first line box in the margin
+     column. That is line-box alignment, not layout spacing. */
+  .spine::before{
+    content:"";
+    position:absolute;
+    left:-20px;
+    top:10px;
+    width:16px;
+    height:1px;
+    background:var(--line);
+  }
+
+  /* ------------------------------------------------------------------ 1. hero */
+
+  #landing{padding:0 0 112px}
+
+  .nav{
+    display:flex;
+    align-items:center;
+    gap:32px;
+    padding:24px 0;
+  }
+  .brand{
+    font-size:15px;
+    line-height:24px;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    color:var(--text);
+  }
+  .nav-links{
+    display:flex;
+    align-items:center;
+    gap:24px;
+    margin-left:auto;
+  }
+  .nav-links a{font-size:13px;line-height:20px;color:var(--muted)}
+  .nav-links a:hover{color:var(--text)}
+  .nav-signin{font-size:13px;line-height:20px;color:var(--text);font-weight:500}
+
+  .hero{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 640px;
+    gap:48px;
+    align-items:center;
+    padding-top:80px;
+  }
+
+  .hero h1{
+    margin:0 0 24px;
+    font-family:var(--serif);
+    font-size:52px;
+    line-height:56px;
+    font-weight:600;
+    letter-spacing:-0.022em;
+    color:var(--text);
+  }
+  .lede{
+    margin:0 0 32px;
+    max-width:480px;
+    font-size:16px;
+    line-height:26px;
+    color:var(--muted);
+  }
+  .cta{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+  .cta-note{margin:0;font-size:13px;line-height:20px;color:var(--muted);max-width:420px}
+
+  /* the proof card: one claim and its whole trail, in the same notation as the document */
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--r-panel);
+    padding:24px;
+  }
+
+  .claim{
+    display:grid;
+    grid-template-columns:64px minmax(0,1fr);
+    column-gap:20px;
+  }
+
+  .claim-id{
+    font-size:13px;
+    line-height:20px;
+    color:var(--muted);
+    text-align:right;
+  }
+
+  .claim--active .claim-id{color:var(--ember)}
+  .claim--active .spine{border-left-color:var(--ember)}
+  .claim--active .spine::before{background:var(--ember)}
+
+  .claim-meta{
+    font-size:12px;
+    line-height:20px;
+    color:var(--muted);
+    display:flex;
+    gap:12px;
+    align-items:baseline;
+  }
+
+  .claim-text{
+    margin:8px 0 0;
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:28px;
+    letter-spacing:-0.003em;
+    color:var(--text);
+    max-width:624px;
+  }
+  .claim-text code{
+    font-family:var(--mono);
+    font-size:15px;
+    color:var(--ember-soft);
+  }
+
+  .evidence{
+    margin-top:16px;
+    padding-top:12px;
+    border-top:1px solid var(--line);
+  }
+
+  /* The pin and state columns are fixed so every date and every hash in the document
+     starts on the same two axes. */
+  .ev{
+    display:grid;
+    grid-template-columns:80px minmax(0,1fr) 88px 72px;
+    gap:12px;
+    align-items:baseline;
+  }
+  .ev + .ev{margin-top:8px}
+
+  .ev-kind{font-size:13px;line-height:20px;color:var(--muted)}
+  .ev-src{font-size:13px;line-height:20px;color:var(--text);overflow-wrap:anywhere}
+  .ev-pin{font-size:12px;line-height:20px;color:var(--slate);white-space:nowrap}
+  .ev-state{font-size:12px;line-height:20px;white-space:nowrap}
+
+  .ev-missing{
+    display:block;
+    font-size:13px;
+    line-height:20px;
+    color:var(--amber);
+  }
+
+  .ev-foot{
+    display:flex;
+    align-items:baseline;
+    gap:16px;
+    margin-top:16px;
+    font-size:13px;
+    line-height:20px;
+    color:var(--muted);
+  }
+  .ev-foot .ico{color:var(--sage)}
+  .ev-foot a{margin-left:auto}
+
+  /* ------------------------------------------------------------------ 2. review */
+
+  #review{padding:96px 0 112px}
+
+  .review-bar{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:32px;
+    padding-bottom:16px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:48px;
+  }
+  .rb-sub{
+    margin:4px 0 0;
+    font-size:13px;
+    line-height:20px;
+    color:var(--muted);
+  }
+  .rb-title{
+    margin:0;
+    font-family:var(--serif);
+    font-size:30px;
+    line-height:38px;
+    font-weight:600;
+    letter-spacing:-0.018em;
+    color:var(--text);
+  }
+  .rb-tools{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex:none;
+  }
+
+  .review{
+    display:grid;
+    grid-template-columns:200px minmax(0,1fr);
+    gap:48px;
+    align-items:start;
+  }
+
+  .outline-label{
+    font-size:12px;
+    line-height:16px;
+    color:var(--muted);
+    margin-bottom:12px;
+  }
+
+  .outline{position:sticky;top:32px}
+
+  .outline-list{
+    list-style:none;
+    margin:0 0 40px;
+    padding:0;
+  }
+  .outline-item{
+    display:grid;
+    grid-template-columns:16px minmax(0,1fr) 16px;
+    gap:12px;
+    align-items:baseline;
+    padding:8px 12px 8px 12px;
+    border-left:2px solid transparent;
+    border-radius:0 var(--r-control) var(--r-control) 0;
+    color:var(--muted);
+    transition:background-color var(--d100) ease-out,color var(--d100) ease-out;
+  }
+  .outline-item:hover{background:var(--surface);color:var(--text);text-decoration:none}
+  .outline-item.is-current{
+    background:var(--sel);
+    border-left-color:var(--ember);
+    color:var(--text);
+  }
+  .outline-item.is-current .outline-num{color:var(--ember)}
+  .outline-num{font-size:12px;line-height:20px}
+  .outline-name{font-size:13px;line-height:20px}
+  .outline-count{font-size:12px;line-height:20px;text-align:right;color:var(--muted)}
+
+  .legend{
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+  .legend-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-size:12px;
+    line-height:20px;
+    color:var(--muted);
+  }
+  .legend-row + .legend-row{margin-top:8px}
+  .legend-id{font-size:12px;color:var(--muted);min-width:64px;text-align:right}
+  .legend-pin{font-size:12px;color:var(--slate);min-width:64px;text-align:right}
+  .legend-spine{
+    min-width:64px;
+    height:16px;
+    border-right:1px solid var(--line);
+    position:relative;
+  }
+  .legend-spine::after{
+    content:"";
+    position:absolute;
+    right:0;
+    top:8px;
+    width:12px;
+    height:1px;
+    background:var(--line);
+  }
+
+  .doc{max-width:784px}
+
+  .doc-section + .doc-section{margin-top:64px}
+
+  .doc-sec-head{
+    display:grid;
+    grid-template-columns:64px minmax(0,1fr);
+    column-gap:20px;
+    align-items:baseline;
+    padding-bottom:12px;
+    margin-bottom:32px;
+    border-bottom:1px solid var(--line);
+  }
+  .sec-num{
+    font-size:13px;
+    line-height:24px;
+    color:var(--muted);
+    text-align:right;
+  }
+  .sec-title{
+    margin:0;
+    padding-left:24px;
+    font-family:var(--serif);
+    font-size:24px;
+    line-height:32px;
+    font-weight:600;
+    letter-spacing:-0.012em;
+    color:var(--text);
+  }
+
+  .clause + .clause{margin-top:40px}
+  .clause{
+    display:grid;
+    grid-template-columns:64px minmax(0,1fr);
+    column-gap:20px;
+  }
+
+  .clause-head{
+    margin:0;
+    font-family:var(--serif);
+    font-size:20px;
+    line-height:28px;
+    font-weight:600;
+    letter-spacing:-0.008em;
+    color:var(--text);
+  }
+  .clause-num{
+    font-size:12px;
+    color:var(--muted);
+    margin-right:12px;
+  }
+
+  .clause--gap .spine{border-left-color:var(--amber)}
+  .clause--gap .spine::before{background:var(--amber)}
+
+  /* ------------------------------------------------------------------ index */
+
+  .index{
+    margin-top:64px;
+    padding-top:32px;
+    border-top:1px solid var(--line);
+  }
+  .index-title{
+    margin:0 0 4px;
+    font-family:var(--serif);
+    font-size:20px;
+    line-height:28px;
+    font-weight:600;
+    letter-spacing:-0.008em;
+    color:var(--text);
+  }
+  .index-sub{
+    margin:0 0 24px;
+    font-size:13px;
+    line-height:20px;
+    color:var(--muted);
+  }
+
+  .table{
+    width:100%;
+    border-collapse:collapse;
+  }
+  .table th{
+    position:sticky;
+    top:0;
+    background:var(--void);
+    padding:8px 12px;
+    border-bottom:1px solid var(--line);
+    text-align:left;
+    font-size:11px;
+    line-height:16px;
+    font-weight:500;
+    color:var(--muted);
+  }
+  .table td{
+    padding:12px;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+    line-height:20px;
+    color:var(--text);
+  }
+  .table tbody tr:hover{background:var(--surface)}
+  .table .state{font-weight:400}
+  .row-warn td{background:var(--surface)}
+
+  .index-foot{
+    margin:20px 0 0;
+    font-size:13px;
+    line-height:20px;
+    color:var(--muted);
+    max-width:560px;
+  }
+
+  /* ------------------------------------------------------------------ 3. pipeline */
+
+  #pipeline{padding:96px 0 128px}
+
+  .sec-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 400px;
+    gap:64px;
+    align-items:end;
+    margin-bottom:48px;
+  }
+  .sec-h2{
+    margin:0 0 12px;
+    font-family:var(--serif);
+    font-size:28px;
+    line-height:36px;
+    font-weight:600;
+    letter-spacing:-0.015em;
+    color:var(--text);
+    max-width:20ch;
+  }
+  .sec-lede{
+    margin:0;
+    font-size:15px;
+    line-height:24px;
+    color:var(--muted);
+  }
+
+  .progress{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    margin-bottom:32px;
+  }
+  .progress-track{
+    flex:1;
+    height:2px;
+    background:var(--ember-deep);
+    border-radius:var(--r-pill);
+  }
+  .progress-fill{
+    width:25%;
+    height:2px;
+    background:var(--ember);
+    border-radius:var(--r-pill);
+  }
+  .progress-label{
+    font-family:var(--mono);
+    font-variant-numeric:tabular-nums;
+    font-size:12px;
+    line-height:16px;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+
+  .pipeline{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:24px;
+  }
+
+  .stage{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--r-panel);
+    overflow:hidden;
+  }
+  .stage-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:16px;
+    padding:16px 20px;
+    border-bottom:1px solid var(--line);
+  }
+  .stage-name{
+    font-size:14px;
+    line-height:20px;
+    font-weight:600;
+    color:var(--text);
+  }
+  .stage-meta{font-size:12px;line-height:16px;color:var(--muted)}
+
+  .phase-list{
+    list-style:none;
+    margin:0;
+    padding:8px;
+  }
+  .phase{
+    display:grid;
+    grid-template-columns:32px minmax(0,1fr) auto;
+    gap:12px;
+    align-items:baseline;
+    padding:12px;
+    border-left:2px solid transparent;
+    border-radius:var(--r-control);
+    transition:background-color var(--d100) ease-out;
+  }
+  .phase:hover{background:var(--panel)}
+  .phase.is-current{
+    background:var(--sel);
+    border-left-color:var(--ember);
+  }
+  .phase-num{font-size:12px;line-height:20px;color:var(--muted)}
+  .phase.is-current .phase-num{color:var(--ember)}
+  .phase-name{font-size:13px;line-height:20px;color:var(--text)}
+  .phase.is-future .phase-name{color:var(--muted)}
+
+  .pipeline-foot{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:24px;
+    margin-top:32px;
+    align-items:start;
+  }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--r-panel);
+    padding:24px;
+  }
+  .panel-title{
+    margin:0 0 4px;
+    font-family:var(--serif);
+    font-size:20px;
+    line-height:28px;
+    font-weight:600;
+    letter-spacing:-0.008em;
+    color:var(--text);
+  }
+  .panel-sub{
+    margin:0 0 24px;
+    font-size:13px;
+    line-height:20px;
+    color:var(--muted);
+  }
+
+  .tracer{
+    display:grid;
+    grid-template-columns:48px minmax(0,1fr);
+    column-gap:16px;
+  }
+  .tracer + .tracer{margin-top:16px}
+  .tracer-id{
+    font-size:12px;
+    line-height:20px;
+    color:var(--muted);
+    text-align:right;
+  }
+  .tracer-body{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto auto;
+    gap:16px;
+    align-items:baseline;
+  }
+  .tracer-name{font-size:13px;line-height:20px;color:var(--text)}
+  .tracer-ref{font-size:12px;line-height:20px;color:var(--slate);white-space:nowrap}
+
+  .next{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:32px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-left:2px solid var(--ember);
+    border-radius:var(--r-panel);
+    padding:24px 32px;
+  }
+  .next-label{
+    font-size:12px;
+    line-height:16px;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .next-title{
+    margin:0 0 8px;
+    font-family:var(--serif);
+    font-size:20px;
+    line-height:28px;
+    font-weight:600;
+    letter-spacing:-0.008em;
+    color:var(--text);
+  }
+  .next-desc{
+    margin:0;
+    font-size:13px;
+    line-height:20px;
+    color:var(--muted);
+    max-width:56ch;
+  }
+  .next .btn-primary{flex:none}
+
+  /* ------------------------------------------------------------------ density */
+
+  :root[data-density="compact"] .table td{padding:8px 12px}
+  :root[data-density="compact"] .clause + .clause{margin-top:24px}
+  :root[data-density="compact"] .ev + .ev{margin-top:4px}
+  :root[data-density="compact"] .evidence{margin-top:12px;padding-top:8px}
+  :root[data-density="compact"] .clause-head{font-size:18px;line-height:26px}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{
+      transition-duration:0ms !important;
+      animation-duration:0ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================================================================== 1. hero -->
+
+<section id="landing">
+  <div class="wrap">
+    <header class="nav">
+      <div class="brand">SpecForge</div>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#review">Specifications</a>
+        <a href="#review">Evidence model</a>
+        <a href="#pipeline">Pipeline</a>
+        <a href="#landing">Docs</a>
+      </nav>
+      <a class="nav-signin" href="#landing">Sign in</a>
+    </header>
+
+    <div class="hero">
+      <div class="hero-copy">
+        <h1>A claim without evidence is a guess.</h1>
+        <p class="lede">SpecForge writes a specification where every clause carries its sources: an interview answer, a file pinned to a commit, or a confirmed rule. When a clause has no source, the margin says so.</p>
+        <div class="cta">
+          <a class="btn-primary" href="#review">Start a specification</a>
+        </div>
+        <p class="cta-note">Exports one handoff pack for Claude Code, Cursor, and Codex. Nothing leaves the specification without a trail.</p>
+      </div>
+
+      <article class="card">
+        <div class="claim claim--active">
+          <div class="claim-id mono">C-014</div>
+          <div class="claim-main spine">
+            <div class="claim-meta">
+              <span>Clause 3.1, Project lifecycle</span>
+              <span class="state state-ok">Confirmed</span>
+            </div>
+            <p class="claim-text">A workspace member with the <code>editor</code> role may archive a project. Archiving sets <code>status = archived</code>, keeps all artifacts readable, and writes one audit event. Archived projects do not accept new generation runs.</p>
+
+            <div class="evidence">
+              <div class="ev">
+                <span class="ev-kind">Interview</span>
+                <span class="ev-src">Priya Raman, platform lead</span>
+                <span class="ev-pin mono">2026-02-11</span>
+                <span class="ev-state state-quiet">Verified</span>
+              </div>
+              <div class="ev">
+                <span class="ev-kind">File</span>
+                <span class="ev-src">src/policy/archive-project.ts:41</span>
+                <span class="ev-pin mono">8f2c1a4</span>
+                <span class="ev-state state-quiet">Verified</span>
+              </div>
+              <div class="ev">
+                <span class="ev-kind">Rule</span>
+                <span class="ev-src">Project Rules, clause 7</span>
+                <span class="ev-pin mono">2026-02-09</span>
+                <span class="ev-state state-quiet">Verified</span>
+              </div>
+            </div>
+
+            <div class="ev-foot">
+              <svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 8.6 6.4 11.8 12.8 4.6"/></svg>
+              <span>3 of 3 sources verified</span>
+              <a href="#sec-3">Open clause in the PRD</a>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<div class="divider" role="presentation">
+  <span class="divider-mark" aria-hidden="true"></span>
+  <span>Spec review surface</span>
+</div>
+
+<!-- ================================================================ 2. review -->
+
+<section id="review">
+  <div class="wrap">
+
+    <header class="review-bar">
+      <div>
+        <h2 class="rb-title">Atlas product requirements</h2>
+        <p class="rb-sub">Phase PRD, version v0.4, updated 2026-02-14. Mode Full.</p>
+      </div>
+      <div class="rb-tools">
+        <span class="state state-warn">Needs review</span>
+        <div class="seg" data-density role="group" aria-label="Table density">
+          <button type="button" data-value="comfortable" aria-pressed="true">Comfortable</button>
+          <button type="button" data-value="compact" aria-pressed="false">Compact</button>
+        </div>
+        <button class="btn-ghost" type="button">Compare v0.3</button>
+        <button class="btn-primary" type="button">Confirm PRD</button>
+      </div>
+    </header>
+
+    <div class="review">
+
+      <nav class="outline" aria-label="Document sections">
+        <div class="outline-label">Document</div>
+        <ol class="outline-list">
+          <li>
+            <a class="outline-item" href="#sec-1">
+              <span class="mono outline-num">1</span>
+              <span class="outline-name">Roles and permissions</span>
+              <span class="mono outline-count">3</span>
+            </a>
+          </li>
+          <li>
+            <a class="outline-item" href="#sec-2">
+              <span class="mono outline-num">2</span>
+              <span class="outline-name">Generation runs</span>
+              <span class="mono outline-count">4</span>
+            </a>
+          </li>
+          <li>
+            <a class="outline-item is-current" href="#sec-3" aria-current="true">
+              <span class="mono outline-num">3</span>
+              <span class="outline-name">Project lifecycle</span>
+              <span class="mono outline-count">4</span>
+            </a>
+          </li>
+          <li>
+            <a class="outline-item" href="#sec-4">
+              <span class="mono outline-num">4</span>
+              <span class="outline-name">Export and handoff</span>
+              <span class="mono outline-count">2</span>
+            </a>
+          </li>
+        </ol>
+
+        <div class="legend">
+          <div class="outline-label">Reading the margin</div>
+          <div class="legend-row">
+            <span class="mono legend-id">C-014</span>
+            <span>Claim ID</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-spine" aria-hidden="true"></span>
+            <span>Evidence trail</span>
+          </div>
+          <div class="legend-row">
+            <span class="mono legend-pin">8f2c1a4</span>
+            <span>Commit pin</span>
+          </div>
+        </div>
+      </nav>
+
+      <div class="doc">
+
+        <section class="doc-section" id="sec-1">
+          <div class="doc-sec-head">
+            <div class="sec-num mono">1</div>
+            <h3 class="sec-title">Roles and permissions</h3>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-007</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">1.1</span>Workspace roles</h4>
+              <p class="claim-text">A workspace has three roles: <code>viewer</code>, <code>editor</code>, and <code>owner</code>. A role change takes effect on the next request and writes one audit event that names the actor, the target member, and the previous role.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Rule</span>
+                  <span class="ev-src">Project Rules, clause 2</span>
+                  <span class="ev-pin mono">2026-02-09</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/domain/role.ts:9</span>
+                  <span class="ev-pin mono">3b91d0e</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>2 of 2 sources verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-008</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">1.2</span>Inviting a member</h4>
+              <p class="claim-text">Only an <code>owner</code> may invite a member. An invitation expires after seven days and can be revoked by any owner before it is accepted. Accepting an invitation creates one audit event.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Marcus Oyelaran, security</span>
+                  <span class="ev-pin mono">2026-02-13</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/policy/invite.ts:22</span>
+                  <span class="ev-pin mono">6d2e711</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>2 of 2 sources verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-009</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">1.3</span>Reading without a role</h4>
+              <p class="claim-text">A reviewer who holds no role in the workspace may read a specification but cannot change claim state, comment, or export. Access is granted per specification, not per workspace.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Priya Raman, platform lead</span>
+                  <span class="ev-pin mono">2026-02-11</span>
+                  <span class="ev-state state-warn">Unverified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>No source verified yet</span><span class="state state-warn">Needs review</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="sec-2">
+          <div class="doc-sec-head">
+            <div class="sec-num mono">2</div>
+            <h3 class="sec-title">Generation runs</h3>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-010</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">2.1</span>What a run reads</h4>
+              <p class="claim-text">A generation run reads the confirmed Brief and the confirmed Project Rules. It writes artifacts in phase order and never rewrites a confirmed clause. A run that meets a stale input stops before it writes.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/run/generate.ts:18</span>
+                  <span class="ev-pin mono">4a0f9c2</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">Rule</span>
+                  <span class="ev-src">Project Rules, clause 3</span>
+                  <span class="ev-pin mono">2026-02-09</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>2 of 2 sources verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-011</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">2.2</span>Recording model calls</h4>
+              <p class="claim-text">A run records every model call with the prompt hash, the model ID, and the token count. The record is written before the response is parsed, so a failed parse leaves a call that can be replayed.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/run/model-call.ts:52</span>
+                  <span class="ev-pin mono">4a0f9c2</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>1 of 1 source verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-012</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">2.3</span>Failing a run</h4>
+              <p class="claim-text">A failed run leaves the previous artifact in place and reports the phase that failed. The run state moves to <code>failed</code> and the error names the model call that produced it.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/run/run-state.ts:34</span>
+                  <span class="ev-pin mono">6d2e711</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Priya Raman, platform lead</span>
+                  <span class="ev-pin mono">2026-02-11</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>2 of 2 sources verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause clause--gap">
+            <div class="claim-id mono">C-013</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">2.4</span>Concurrent generation</h4>
+              <p class="claim-text">A project runs one generation at a time. A second request queues behind the first and reports its position in the queue.</p>
+              <div class="evidence">
+                <div class="ev-missing">No source attached. This clause is a guess until an interview, a file, or a rule is confirmed.</div>
+              </div>
+              <div class="ev-foot"><span>Clause 2.4 is the only clause with no evidence.</span><span class="state state-warn">Draft</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="sec-3">
+          <div class="doc-sec-head">
+            <div class="sec-num mono">3</div>
+            <h3 class="sec-title">Project lifecycle</h3>
+          </div>
+
+          <div class="clause clause--active">
+            <div class="claim-id mono">C-014</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">3.1</span>Archiving a project</h4>
+              <p class="claim-text">A workspace member with the <code>editor</code> role may archive a project. Archiving sets <code>status = archived</code>, keeps all artifacts readable, and writes one audit event. Archived projects do not accept new generation runs.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Priya Raman, platform lead</span>
+                  <span class="ev-pin mono">2026-02-11</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/policy/archive-project.ts:41</span>
+                  <span class="ev-pin mono">8f2c1a4</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">Rule</span>
+                  <span class="ev-src">Project Rules, clause 7</span>
+                  <span class="ev-pin mono">2026-02-09</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>3 of 3 sources verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-015</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">3.2</span>Reading an archived project</h4>
+              <p class="claim-text">An archived project stays readable to every member who could read it before archiving. A queued run is cancelled, and the cancellation writes one audit event against the project.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Marcus Oyelaran, security</span>
+                  <span class="ev-pin mono">2026-02-13</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/domain/project-state.ts:12</span>
+                  <span class="ev-pin mono">3b91d0e</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>2 of 2 sources verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-016</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">3.3</span>Deleting a project</h4>
+              <p class="claim-text">Only an <code>owner</code> may delete a project. Deletion removes the project, its artifacts, and its evidence trail, and leaves one audit event that outlives the project. The request runs 30 days after it is made.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Marcus Oyelaran, security</span>
+                  <span class="ev-pin mono">2026-02-13</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/policy/delete-project.ts:27</span>
+                  <span class="ev-pin mono">1c7be55</span>
+                  <span class="ev-state state-warn">Stale</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>1 of 2 sources verified. The pinned file changed at 1c7be55.</span><span class="state state-warn">Needs review</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-017</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">3.4</span>Retention windows</h4>
+              <p class="claim-text">Retention is set per workspace and holds one of three values: 30, 90, or 365 days. An expired artifact is removed by a daily sweep at 02:00 UTC. Export packs expire with the project they were built from.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Dana Whitfield, customer success</span>
+                  <span class="ev-pin mono">2026-02-10</span>
+                  <span class="ev-state state-warn">Unverified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>No source verified yet</span><span class="state state-warn">Draft</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="sec-4">
+          <div class="doc-sec-head">
+            <div class="sec-num mono">4</div>
+            <h3 class="sec-title">Export and handoff</h3>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-018</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">4.1</span>The handoff pack</h4>
+              <p class="claim-text">An export pack holds the confirmed specification, the schema files, and the task list with its blocking edges. The pack is one archive with a manifest that names every file and the phase that produced it.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">File</span>
+                  <span class="ev-src">src/export/pack.ts:15</span>
+                  <span class="ev-pin mono">4a0f9c2</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+                <div class="ev">
+                  <span class="ev-kind">Rule</span>
+                  <span class="ev-src">Project Rules, clause 9</span>
+                  <span class="ev-pin mono">2026-02-09</span>
+                  <span class="ev-state state-quiet">Verified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>2 of 2 sources verified</span><span class="state state-ok">Confirmed</span></div>
+            </div>
+          </div>
+
+          <div class="clause">
+            <div class="claim-id mono">C-019</div>
+            <div class="claim-main spine">
+              <h4 class="clause-head"><span class="mono clause-num">4.2</span>Claims in the pack</h4>
+              <p class="claim-text">Every clause in a pack carries its claim ID. A clause with no source is exported with the gap marked, so the coding agent sees the same absence the reviewer saw.</p>
+              <div class="evidence">
+                <div class="ev">
+                  <span class="ev-kind">Interview</span>
+                  <span class="ev-src">Dana Whitfield, customer success</span>
+                  <span class="ev-pin mono">2026-02-10</span>
+                  <span class="ev-state state-warn">Unverified</span>
+                </div>
+              </div>
+              <div class="ev-foot"><span>No source verified yet</span><span class="state state-warn">Draft</span></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="index">
+          <h3 class="index-title">Traceability index</h3>
+          <p class="index-sub">Every claim in this document, with its sources and the state it holds now.</p>
+          <table class="table">
+            <caption class="sr-only">Claims, clauses, source counts, pins, and state</caption>
+            <thead>
+              <tr>
+                <th scope="col">Claim</th>
+                <th scope="col">Clause</th>
+                <th scope="col" class="ta-right">Sources</th>
+                <th scope="col">Pinned</th>
+                <th scope="col">State</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">C-007</td><td class="mono">1.1</td><td class="mono ta-right">2</td><td class="mono">3b91d0e</td><td class="state state-ok">Confirmed</td></tr>
+              <tr><td class="mono">C-008</td><td class="mono">1.2</td><td class="mono ta-right">2</td><td class="mono">6d2e711</td><td class="state state-ok">Confirmed</td></tr>
+              <tr><td class="mono">C-009</td><td class="mono">1.3</td><td class="mono ta-right">1</td><td class="mono">2026-02-11</td><td class="state state-warn">Needs review</td></tr>
+              <tr><td class="mono">C-010</td><td class="mono">2.1</td><td class="mono ta-right">2</td><td class="mono">4a0f9c2</td><td class="state state-ok">Confirmed</td></tr>
+              <tr><td class="mono">C-011</td><td class="mono">2.2</td><td class="mono ta-right">1</td><td class="mono">4a0f9c2</td><td class="state state-ok">Confirmed</td></tr>
+              <tr><td class="mono">C-012</td><td class="mono">2.3</td><td class="mono ta-right">2</td><td class="mono">6d2e711</td><td class="state state-ok">Confirmed</td></tr>
+              <tr class="row-warn"><td class="mono">C-013</td><td class="mono">2.4</td><td class="mono ta-right">0</td><td class="mono">none</td><td class="state state-warn">Draft</td></tr>
+              <tr><td class="mono">C-014</td><td class="mono">3.1</td><td class="mono ta-right">3</td><td class="mono">8f2c1a4</td><td class="state state-ok">Confirmed</td></tr>
+              <tr><td class="mono">C-015</td><td class="mono">3.2</td><td class="mono ta-right">2</td><td class="mono">3b91d0e</td><td class="state state-ok">Confirmed</td></tr>
+              <tr><td class="mono">C-016</td><td class="mono">3.3</td><td class="mono ta-right">2</td><td class="mono">1c7be55</td><td class="state state-warn">Needs review</td></tr>
+              <tr><td class="mono">C-017</td><td class="mono">3.4</td><td class="mono ta-right">1</td><td class="mono">2026-02-10</td><td class="state state-warn">Draft</td></tr>
+              <tr><td class="mono">C-018</td><td class="mono">4.1</td><td class="mono ta-right">2</td><td class="mono">4a0f9c2</td><td class="state state-ok">Confirmed</td></tr>
+              <tr><td class="mono">C-019</td><td class="mono">4.2</td><td class="mono ta-right">1</td><td class="mono">2026-02-10</td><td class="state state-warn">Draft</td></tr>
+            </tbody>
+          </table>
+          <p class="index-foot">8 of 13 claims are confirmed. 2 need review, one of them because its pinned file changed. 3 are drafts, and clause 2.4 has no source at all.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider" role="presentation">
+  <span class="divider-mark" aria-hidden="true"></span>
+  <span>Pipeline state</span>
+</div>
+
+<!-- ============================================================== 3. pipeline -->
+
+<section id="pipeline">
+  <div class="wrap">
+
+    <header class="sec-head">
+      <div>
+        <h2 class="sec-h2">One pipeline, eight phases</h2>
+        <p class="sec-lede">Each phase reads only the phases confirmed before it. Stop anywhere and export what is confirmed, with every gap marked.</p>
+      </div>
+      <p class="sec-lede">58 sources are traced across the eight phases of this project. 8 of 13 claims in the PRD are confirmed.</p>
+    </header>
+
+    <div class="progress">
+      <span class="progress-label">2 of 8 phases confirmed</span>
+      <div class="progress-track" role="img" aria-label="2 of 8 phases confirmed">
+        <div class="progress-fill"></div>
+      </div>
+      <span class="progress-label">Project Rules, Brief</span>
+    </div>
+
+    <div class="pipeline">
+
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-name">Requirements</span>
+          <span class="stage-meta">3 phases</span>
+        </div>
+        <ol class="phase-list">
+          <li class="phase">
+            <span class="mono phase-num">01</span>
+            <span class="phase-name">Project Rules</span>
+            <span class="state state-ok">Confirmed</span>
+          </li>
+          <li class="phase">
+            <span class="mono phase-num">02</span>
+            <span class="phase-name">Brief</span>
+            <span class="state state-ok">Confirmed</span>
+          </li>
+          <li class="phase is-current" aria-current="step">
+            <span class="mono phase-num">03</span>
+            <span class="phase-name">PRD</span>
+            <span class="state state-warn">Needs review</span>
+          </li>
+        </ol>
+      </div>
+
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-name">Design</span>
+          <span class="stage-meta">3 phases</span>
+        </div>
+        <ol class="phase-list">
+          <li class="phase is-future">
+            <span class="mono phase-num">04</span>
+            <span class="phase-name">Domain Model</span>
+            <span class="state state-quiet">Draft</span>
+          </li>
+          <li class="phase is-future">
+            <span class="mono phase-num">05</span>
+            <span class="phase-name">Architecture</span>
+            <span class="state state-quiet">Draft</span>
+          </li>
+          <li class="phase is-future">
+            <span class="mono phase-num">06</span>
+            <span class="phase-name">Schemas</span>
+            <span class="state state-quiet">Draft</span>
+          </li>
+        </ol>
+      </div>
+
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-name">Tasks</span>
+          <span class="stage-meta">2 phases</span>
+        </div>
+        <ol class="phase-list">
+          <li class="phase is-future">
+            <span class="mono phase-num">07</span>
+            <span class="phase-name">Tasks</span>
+            <span class="state state-quiet">Draft</span>
+          </li>
+          <li class="phase is-future">
+            <span class="mono phase-num">08</span>
+            <span class="phase-name">Export</span>
+            <span class="state state-quiet">Draft</span>
+          </li>
+        </ol>
+      </div>
+
+    </div>
+
+    <div class="pipeline-foot">
+
+      <div class="panel">
+        <h3 class="panel-title">Tracer bullets</h3>
+        <p class="panel-sub">Vertical slices from the Tasks phase. A spine marks a blocking edge between two tracers.</p>
+
+        <div class="tracer">
+          <div class="tracer-id mono">T-1</div>
+          <div class="tracer-body spine">
+            <span class="tracer-name">Archive a project from the editor menu to the audit log</span>
+            <span class="mono tracer-ref">blocks T-2</span>
+            <span class="state state-quiet">Draft</span>
+          </div>
+        </div>
+
+        <div class="tracer">
+          <div class="tracer-id mono">T-2</div>
+          <div class="tracer-body spine">
+            <span class="tracer-name">Restore an archived project into an editable state</span>
+            <span class="mono tracer-ref">blocked by T-1</span>
+            <span class="state state-quiet">Draft</span>
+          </div>
+        </div>
+
+        <div class="tracer">
+          <div class="tracer-id mono">T-3</div>
+          <div class="tracer-body">
+            <span class="tracer-name">Read the audit log for one project</span>
+            <span class="mono tracer-ref">covers C-014</span>
+            <span class="state state-quiet">Draft</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="next">
+        <div>
+          <div class="next-label">Next action</div>
+          <h3 class="next-title">Resolve 2 untraced claims in the PRD</h3>
+          <p class="next-desc">Clause 2.4 has no source attached, and clause 3.3 pins a file that changed after it was pinned. Confirm or replace both sources, then the PRD moves to Design.</p>
+        </div>
+        <a class="btn-primary" href="#review">Open the PRD review</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var group = document.querySelector('[data-density]');
+    if (!group) return;
+    group.addEventListener('click', function (event) {
+      var button = event.target.closest('button[data-value]');
+      if (!button) return;
+      var value = button.getAttribute('data-value');
+      document.documentElement.setAttribute('data-density', value);
+      var buttons = group.querySelectorAll('button[data-value]');
+      for (var i = 0; i < buttons.length; i += 1) {
+        buttons[i].setAttribute('aria-pressed', String(buttons[i].getAttribute('data-value') === value));
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

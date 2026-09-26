@@ -96,14 +96,14 @@ export function ModelSelector({
           <span className="truncate">
             {selectedModel ? selectedModel.displayName : placeholder}
           </span>
-          <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
+          <ChevronDown className="size-4 ml-2 opacity-50" />
         </Button>
       </DialogTrigger>
       
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5" />
+            <Sparkles className="size-5" />
             Select AI Model
           </DialogTitle>
         </DialogHeader>
@@ -111,7 +111,7 @@ export function ModelSelector({
         <div className="flex flex-col gap-4 flex-1 overflow-hidden">
           {/* Provider Filter - Scrollable */}
           <div className="flex flex-col gap-2">
-            <div className="text-sm text-muted-foreground">Filter by Provider</div>
+            <div className="text-ui text-muted-foreground">Filter by Provider</div>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
               <Button
                 variant={selectedProvider === null ? 'default' : 'outline'}
@@ -137,7 +137,7 @@ export function ModelSelector({
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               placeholder="Search models..."
               value={searchQuery}
@@ -150,7 +150,7 @@ export function ModelSelector({
           <div className="flex-1 overflow-y-auto space-y-2 pr-2">
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
               </div>
             ) : displayModels.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
@@ -162,10 +162,10 @@ export function ModelSelector({
                   key={`${model.provider}/${model.id}`}
                   onClick={() => handleSelect(model)}
                   className={cn(
-                    'w-full text-left p-4 rounded-lg border transition-all hover:border-accent',
+                    'w-full text-left p-4 rounded-lg border transition-colors hover:border-accent',
                     value === model.id 
                       ? 'border-accent bg-accent/5' 
-                      : 'border-border bg-card'
+                      : 'border-line bg-surface'
                   )}
                 >
                   <div className="flex items-start justify-between">
@@ -173,45 +173,45 @@ export function ModelSelector({
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{model.displayName}</span>
                         {value === model.id && (
-                          <Badge variant="default" className="text-xs">
-                            <Check className="w-3 h-3 mr-1" />
+                          <Badge variant="default" className="text-caption">
+                            <Check className="size-3 mr-1" />
                             Selected
                           </Badge>
                         )}
                         {model.capabilities.reasoning && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-caption">
                             Reasoning
                           </Badge>
                         )}
                       </div>
                       
-                      <div className="text-sm text-muted-foreground mt-1">
+                      <div className="text-ui text-muted-foreground mt-1">
                         {model.id}
                       </div>
 
                       <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge variant="secondary" className="text-xs">
-                          <Cpu className="w-3 h-3 mr-1 inline" />
+                        <Badge variant="secondary" className="text-caption">
+                          <Cpu className="size-3 mr-1 inline" />
                           {model.formattedLimits.context} context
                         </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          <MessageSquare className="w-3 h-3 mr-1 inline" />
+                        <Badge variant="secondary" className="text-caption">
+                          <MessageSquare className="size-3 mr-1 inline" />
                           {model.formattedLimits.output} output
                         </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          <DollarSign className="w-3 h-3 mr-1 inline" />
+                        <Badge variant="secondary" className="text-caption">
+                          <DollarSign className="size-3 mr-1 inline" />
                           {model.formattedCost.input} → {model.formattedCost.output}
                         </Badge>
                       </div>
 
                       {model.capabilities.toolCall && (
                         <div className="flex flex-wrap gap-1 mt-2">
-                          <Badge variant="outline" className="text-xs">Tool Calling</Badge>
+                          <Badge variant="outline" className="text-caption">Tool Calling</Badge>
                           {model.capabilities.structuredOutput && (
-                            <Badge variant="outline" className="text-xs">Structured Output</Badge>
+                            <Badge variant="outline" className="text-caption">Structured Output</Badge>
                           )}
                           {model.capabilities.attachments && (
-                            <Badge variant="outline" className="text-xs">Attachments</Badge>
+                            <Badge variant="outline" className="text-caption">Attachments</Badge>
                           )}
                         </div>
                       )}
@@ -249,8 +249,8 @@ export function CompactModelSelector({ value, onChange, className }: CompactMode
         }
       }}
       className={cn(
-        'w-full px-3 py-2 bg-background border border-border rounded-lg text-sm',
-        'focus:outline-none focus:ring-2 focus:ring-accent',
+        'w-full px-3 py-2 bg-void border border-line rounded-lg text-ui',
+        'focus:outline-none',
         className
       )}
     >

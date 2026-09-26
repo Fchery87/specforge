@@ -73,10 +73,9 @@ export default function QuickSpecPage() {
   }
 
   return (
-    <main className="relative min-h-[calc(100vh-5rem)]">
-      <div className="absolute inset-0 bg-grid-fade opacity-10" />
+    <main className="min-h-[calc(100vh-var(--header-height))]">
 
-      <div className="page-container py-6 relative z-10">
+      <div className="page-container py-6">
         <Breadcrumbs
           items={[
             { label: "Dashboard", href: "/dashboard" },
@@ -85,29 +84,29 @@ export default function QuickSpecPage() {
         />
       </div>
 
-      <section className="page-container pb-8 relative z-10">
+      <section className="page-container pb-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary flex items-center justify-center">
-            <Zap className="w-5 h-5 text-black" />
+          <div className="size-10 bg-primary flex items-center justify-center">
+            <Zap className="size-5 text-primary-foreground" />
           </div>
-          <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          <span className="text-ui font-bold text-muted-foreground">
             Quick Spec
           </span>
         </div>
-        <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
+        <h1 className="text-heading font-bold leading-none mb-4">
           Generate a Quick Spec
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl">
+        <p className="text-title text-muted-foreground max-w-2xl">
           Describe a feature, task, or refactor to generate a fast one-page specification with architectural decisions, sequence diagrams, and direct project saving.
         </p>
       </section>
 
-      <section className="page-container page-section border-t-2 border-border relative z-10">
+      <section className="page-container page-section border-t border-line">
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Input Form */}
           <div className="space-y-4">
             <div>
-              <label htmlFor="quick-spec-title" className="text-sm font-semibold uppercase tracking-widest text-muted-foreground block mb-2">
+              <label htmlFor="quick-spec-title" className="text-ui font-semibold text-muted-foreground block mb-2">
                 Task Title
               </label>
               <input
@@ -116,11 +115,11 @@ export default function QuickSpecPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Add OAuth2 authentication with Google and GitHub"
-                className="w-full bg-secondary/30 border border-border px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                className="w-full bg-raised/30 border border-line px-4 py-3 text-ink placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               />
             </div>
             <div>
-              <label htmlFor="quick-spec-description" className="text-sm font-semibold uppercase tracking-widest text-muted-foreground block mb-2">
+              <label htmlFor="quick-spec-description" className="text-ui font-semibold text-muted-foreground block mb-2">
                 Description
               </label>
               <textarea
@@ -129,7 +128,7 @@ export default function QuickSpecPage() {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Specify the desired behavior, affected components, state changes, error handling, and test criteria..."
                 rows={6}
-                className="w-full bg-secondary/30 border border-border px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
+                className="w-full bg-raised/30 border border-line px-4 py-3 text-ink placeholder:text-muted-foreground focus:outline-none focus:border-primary resize-none"
               />
             </div>
             <Button
@@ -138,13 +137,13 @@ export default function QuickSpecPage() {
               className="w-full gap-2"
             >
               {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Zap className="w-4 h-4" />
+                <Zap className="size-4" />
               )}
               {isGenerating ? "Forging Spec…" : "Generate Spec"}
             </Button>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && <p className="text-ui text-destructive">{error}</p>}
           </div>
 
           {/* Result */}
@@ -152,7 +151,7 @@ export default function QuickSpecPage() {
             {result ? (
               <Card variant="static" className="border">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base normal-case tracking-normal font-semibold">
+                  <CardTitle className="text-body font-semibold">
                     {title}
                   </CardTitle>
                   <CardDescription>Architectural Blueprint & Diagram</CardDescription>
@@ -186,11 +185,11 @@ export default function QuickSpecPage() {
                     </Button>
                   </div>
                   {savedArtifactId && (
-                    <p className="mb-3 text-sm text-muted-foreground">
+                    <p className="mb-3 text-ui text-muted-foreground">
                       Saved. <Link className="underline" href={`/project/${projectId}/quick` as Route}>Open project history</Link>
                     </p>
                   )}
-                  <div className="bg-secondary/30 border-t border-border p-4 max-h-[600px] overflow-y-auto">
+                  <div className="bg-raised/30 border-t border-line p-4 max-h-[600px] overflow-y-auto">
                     <MermaidAwareContent markdown={result} />
                   </div>
                 </CardContent>
@@ -201,8 +200,8 @@ export default function QuickSpecPage() {
                 className="border h-full flex items-center justify-center min-h-[300px]"
               >
                 <CardContent className="text-center text-muted-foreground">
-                  <Zap className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Your generated specification and architecture diagram will render here. You can then save it directly to project history.</p>
+                  <Zap className="size-8 mx-auto mb-3 opacity-30" />
+                  <p className="text-ui">Your generated specification and architecture diagram will render here. You can then save it directly to project history.</p>
                 </CardContent>
               </Card>
             )}

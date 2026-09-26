@@ -72,7 +72,7 @@ export default function DashboardPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -95,7 +95,7 @@ export default function DashboardPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -137,7 +137,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="relative">
+    <main>
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         open={deleteDialogState.open}
@@ -150,49 +150,37 @@ export default function DashboardPage() {
         isLoading={isDeleting}
       />
 
-      {/* Hero Header with Grid Background */}
-      <section className="page-header relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-fade opacity-20" />
-        <div className="page-container relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <SpecForgeLogo size="sm" showWordmark={false} />
-              <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                Command Center
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <NotificationBell />
-            </div>
+      {/* Hero header */}
+      <section className="page-header">
+        <div className="page-container">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <span className="text-label text-dim">Command Center</span>
+            <NotificationBell />
           </div>
-          <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4 mt-4">
-            Your <span className="text-primary">Projects</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            Manage specification pipelines, review evidence changes, and export agent-native handoffs.
-          </p>
+          <h1 className="mt-2 text-heading font-medium text-ink">Your Projects</h1>
+          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Manage specification pipelines, review evidence changes, and export agent-native handoffs.</p>
         </div>
       </section>
 
       {/* Personal Analytics Widget */}
-      <section className="page-section page-container">
+      <section className="page-section page-container border-t border-line">
         <PersonalAnalytics />
       </section>
 
       {/* Pinned Projects */}
-      <section className="page-section page-container border-t-2 border-border pt-8">
+      <section className="page-section page-container border-t border-line">
         <PinnedProjects />
       </section>
 
       {/* Quick Actions */}
-      <section className="page-section page-container border-t-2 border-border pt-8">
+      <section className="page-section page-container border-t border-line">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {/* New Project Card - Primary CTA */}
           <Link href="/dashboard/new" className="md:col-span-2 lg:col-span-1 block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-primary bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:border-primary transition-colors">
-                  <Plus className="w-7 h-7 text-primary transition-colors" />
+                <div className="size-14 border border-primary bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:border-primary transition-colors">
+                  <Plus className="size-7 text-primary transition-colors" />
                 </div>
                 <CardTitle>New Project</CardTitle>
                 <CardDescription>
@@ -200,8 +188,8 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-primary font-bold uppercase tracking-tight transition-all group-hover:translate-x-0.5">
-                  Create Project <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center text-primary font-bold transition-colors">
+                  Create Project <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
             </Card>
@@ -210,8 +198,8 @@ export default function DashboardPage() {
           {/* Recent Activity Card */}
           <Card variant="default">
             <CardHeader>
-              <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4">
-                <Clock className="w-7 h-7 text-muted-foreground" />
+              <div className="size-14 border border-line bg-raised/30 flex items-center justify-center mb-4">
+                <Clock className="size-7 text-muted-foreground" />
               </div>
               <CardTitle>Recent Activity</CardTitle>
               <CardDescription>
@@ -222,21 +210,21 @@ export default function DashboardPage() {
               {recentProjects && recentProjects.length > 0 ? (
                 <ul className="space-y-2">
                   {recentProjects.map((project) => (
-                    <li key={project._id} className="flex items-center justify-between text-sm">
+                    <li key={project._id} className="flex items-center justify-between text-ui">
                       <Link
                         href={`/project/${project._id}`}
-                        className="text-foreground hover:text-primary transition-colors truncate max-w-[180px]"
+                        className="text-ink hover:text-primary transition-colors truncate max-w-[180px]"
                       >
                         {project.title}
                       </Link>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-muted-foreground text-caption">
                         {getRelativeTime(project.updatedAt)}
                       </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground text-sm">No recent activity</p>
+                <p className="text-muted-foreground text-ui">No recent activity</p>
               )}
             </CardContent>
           </Card>
@@ -245,8 +233,8 @@ export default function DashboardPage() {
           <Link href={"/dashboard/quick" as Route} className="block">
             <Card variant="interactive" className="h-full group">
               <CardHeader>
-                <div className="w-14 h-14 border-2 border-border bg-secondary/30 flex items-center justify-center mb-4 group-hover:border-primary group-hover:bg-primary/10 transition-colors">
-                  <Zap className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+                <div className="size-14 border border-line bg-raised/30 flex items-center justify-center mb-4 group-hover:border-primary group-hover:bg-primary/10 transition-colors">
+                  <Zap className="size-7 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
                 <CardTitle>Quick Spec</CardTitle>
                 <CardDescription>
@@ -254,8 +242,8 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-primary font-bold uppercase tracking-tight text-sm transition-all group-hover:translate-x-0.5">
-                  Open Quick Spec <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center text-primary font-bold text-ui transition-colors">
+                  Open Quick Spec <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
             </Card>
@@ -264,15 +252,15 @@ export default function DashboardPage() {
       </section>
 
       {/* Projects List Section with Search */}
-      <section className="page-section page-container border-t-2 border-border pt-8">
+      <section className="page-section page-container border-t border-line">
         <div className="mb-8 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+            <h2 className="text-title font-bold">
               All Projects
             </h2>
             <Button variant="outline" size="sm" asChild>
               <Link href="/dashboard/new">
-                <Plus className="w-4 h-4 mr-2" /> New
+                <Plus className="size-4 mr-2" /> New
               </Link>
             </Button>
           </div>
@@ -280,13 +268,13 @@ export default function DashboardPage() {
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <input
                 type="search"
                 placeholder="Search projects by title or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-9 pr-4 bg-muted/30 border border-border/50 focus:bg-background transition-colors text-sm"
+                className="w-full h-10 pl-9 pr-4 bg-raised/30 border border-line/50 focus:bg-void transition-colors text-ui"
               />
             </div>
 
@@ -302,10 +290,10 @@ export default function DashboardPage() {
                     );
                   }}
                   className={cn(
-                    "px-3 py-1.5 text-xs font-medium capitalize transition-colors border",
+                    "px-3 py-1.5 text-caption font-medium capitalize transition-colors border",
                     statusFilter.includes(status)
                       ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-border hover:border-muted-foreground"
+                      : "bg-void text-muted-foreground border-line hover:border-muted-foreground"
                   )}
                 >
                   {status}
@@ -318,7 +306,7 @@ export default function DashboardPage() {
                     setSearchQuery("");
                     setStatusFilter([]);
                   }}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
+                  className="text-caption text-muted-foreground hover:text-ink transition-colors ml-1"
                 >
                   Clear filters
                 </button>
@@ -326,7 +314,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             {sortedProjects.length} {sortedProjects.length === 1 ? 'project' : 'projects'} found
           </p>
         </div>
@@ -355,7 +343,7 @@ export default function DashboardPage() {
             ) : (
               <Link href="/dashboard/new">
                 <Button className="mt-4">
-                  <Plus className="w-4 h-4 mr-2" /> Create First Project
+                  <Plus className="size-4 mr-2" /> Create First Project
                 </Button>
               </Link>
             )}
@@ -382,41 +370,41 @@ export default function DashboardPage() {
       </section>
 
       {/* Activity Feed Section */}
-      <section className="page-section page-container border-t-2 border-border pt-8">
+      <section className="page-section page-container border-t border-line">
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
+            <h2 className="text-title font-bold mb-6">
               Activity Feed
             </h2>
             <ActivityFeed />
           </div>
           <div>
-            <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
+            <h2 className="text-title font-bold mb-6">
               Quick Stats
             </h2>
             <div className="space-y-4">
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-4xl font-black text-primary">
+                  <div className="text-heading font-semibold text-primary">
                     {projects?.length || 0}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Total Projects</p>
+                  <p className="text-ui text-muted-foreground mt-1">Total Projects</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-4xl font-black">
+                  <div className="text-heading font-semibold">
                     {projects?.filter((p) => p.status === "active").length || 0}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Active Projects</p>
+                  <p className="text-ui text-muted-foreground mt-1">Active Projects</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-4xl font-black text-emerald-500">
+                  <div className="text-heading font-semibold text-sage">
                     {projects?.filter((p) => p.status === "complete").length || 0}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Completed</p>
+                  <p className="text-ui text-muted-foreground mt-1">Completed</p>
                 </CardContent>
               </Card>
             </div>
@@ -424,10 +412,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
-        FORGE
-      </div>
     </main>
   );
 }

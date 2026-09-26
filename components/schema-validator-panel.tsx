@@ -175,29 +175,29 @@ export function SchemaValidatorPanel({
   return (
     <div className="flex flex-col lg:flex-row gap-4 h-[62vh] overflow-hidden">
       {/* Left Column: Monaco-Style Schema Editor */}
-      <div className="flex-1 flex flex-col border border-border rounded-lg bg-card overflow-hidden">
+      <div className="flex-1 flex flex-col border border-line rounded-lg bg-surface overflow-hidden">
         {/* Editor Controls Toolbar */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/40 gap-2 flex-wrap">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-line bg-raised/40 gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* Target Mode Toggle */}
-            <div className="flex items-center bg-secondary/60 rounded-md p-0.5 border border-border">
+            <div className="flex items-center bg-raised/60 rounded-sm p-0.5 border border-line">
               <Button
                 variant={targetMode === "phase-export" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-6 px-2 text-xs"
+                className="h-6 px-2 text-caption"
                 onClick={() => setTargetMode("phase-export")}
               >
-                <FileJson className="w-3.5 h-3.5 mr-1" />
+                <FileJson className="size-3.5 mr-1" />
                 Phase Export
               </Button>
               <Button
                 variant={targetMode === "code-block" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-6 px-2 text-xs"
+                className="h-6 px-2 text-caption"
                 onClick={() => setTargetMode("code-block")}
                 disabled={codeBlocks.length === 0}
               >
-                <Code2 className="w-3.5 h-3.5 mr-1" />
+                <Code2 className="size-3.5 mr-1" />
                 Code Blocks ({codeBlocks.length})
               </Button>
             </div>
@@ -208,7 +208,7 @@ export function SchemaValidatorPanel({
                 aria-label="Select Code Block"
                 value={selectedBlockId}
                 onChange={(e) => setSelectedBlockId(e.target.value)}
-                className="h-6 px-2 text-xs bg-background border border-border rounded-md text-foreground focus:outline-none"
+                className="h-6 px-2 text-caption bg-void border border-line rounded-sm text-ink focus:outline-none"
               >
                 {codeBlocks.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -220,15 +220,15 @@ export function SchemaValidatorPanel({
 
             {/* Format toggle (JSON vs YAML) */}
             {targetMode === "phase-export" && (
-              <div className="flex items-center bg-secondary/60 rounded-md p-0.5 border border-border ml-1">
+              <div className="flex items-center bg-raised/60 rounded-sm p-0.5 border border-line ml-1">
                 <button
                   type="button"
                   onClick={() => setFormatMode("json")}
                   className={cn(
-                    "px-2 py-0.5 text-[11px] rounded font-mono font-medium transition-colors",
+                    "px-2 py-0.5 text-caption rounded-sm font-mono font-medium transition-colors",
                     formatMode === "json"
                       ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-ink"
                   )}
                 >
                   JSON
@@ -237,10 +237,10 @@ export function SchemaValidatorPanel({
                   type="button"
                   onClick={() => setFormatMode("yaml")}
                   className={cn(
-                    "px-2 py-0.5 text-[11px] rounded font-mono font-medium transition-colors",
+                    "px-2 py-0.5 text-caption rounded-sm font-mono font-medium transition-colors",
                     formatMode === "yaml"
                       ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground hover:text-ink"
                   )}
                 >
                   YAML
@@ -255,7 +255,7 @@ export function SchemaValidatorPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-2 text-xs"
+                className="h-6 px-2 text-caption"
                 title="Format JSON with 2-space indentation"
                 onClick={handleFormat}
               >
@@ -266,18 +266,18 @@ export function SchemaValidatorPanel({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs"
+              className="h-6 px-2 text-caption"
               title="Copy schema to clipboard"
               onClick={handleCopy}
             >
               {copied ? (
                 <>
-                  <Check className="w-3.5 h-3.5 mr-1 text-emerald-500" />
+                  <Check className="size-3.5 mr-1 text-sage" />
                   Copied
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 mr-1" />
+                  <Copy className="size-3.5 mr-1" />
                   Copy
                 </>
               )}
@@ -287,21 +287,21 @@ export function SchemaValidatorPanel({
               <Button
                 variant="default"
                 size="sm"
-                className="h-6 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="h-6 px-2.5 text-caption bg-primary hover:bg-primary/90 text-primary-foreground"
                 title="Apply schema changes back to the markdown specification"
                 onClick={handleApplyToMarkdown}
               >
                 Sync to Markdown
-                <ArrowRight className="w-3 h-3 ml-1" />
+                <ArrowRight className="size-3 ml-1" />
               </Button>
             )}
           </div>
         </div>
 
         {/* Code Canvas Area with Line Numbers */}
-        <div className="flex-1 flex overflow-hidden bg-background">
+        <div className="flex-1 flex overflow-hidden bg-void">
           {/* Line Numbers Gutter */}
-          <div className="w-10 flex-shrink-0 select-none border-r border-border/60 bg-muted/20 py-3 text-right pr-2 font-mono text-[11px] text-muted-foreground/60 overflow-hidden leading-relaxed">
+          <div className="w-10 flex-shrink-0 select-none border-r border-line/60 bg-raised/20 py-3 text-right pr-2 font-mono text-caption text-muted-foreground/60 overflow-hidden leading-relaxed">
             {Array.from({ length: Math.max(lineCount, 1) }).map((_, i) => (
               <div key={i}>{i + 1}</div>
             ))}
@@ -314,54 +314,54 @@ export function SchemaValidatorPanel({
             onChange={(e) => setSchemaText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Schema definitions will render here..."
-            className="flex-1 w-full p-3 font-mono text-xs sm:text-sm resize-none border-0 focus-visible:ring-0 rounded-none bg-transparent leading-relaxed overflow-y-auto whitespace-pre font-normal"
+            className="flex-1 w-full p-3 font-mono text-caption sm:text-ui resize-none border-0 rounded-none bg-transparent leading-relaxed overflow-y-auto whitespace-pre font-normal"
             spellCheck={false}
           />
         </div>
 
         {/* Syntax Diagnostic Status Footer */}
-        <div className="px-3 py-1.5 border-t border-border bg-muted/30 flex items-center justify-between text-xs">
+        <div className="px-3 py-1.5 border-t border-line bg-raised/30 flex items-center justify-between text-caption">
           <div className="flex items-center gap-2">
             {validation.isValid ? (
-              <Badge variant="outline" className="text-[11px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
+              <Badge variant="outline" className="text-caption border-sage/30 text-sage dark:text-sage bg-sage/10">
+                <CheckCircle2 className="size-3 mr-1" />
                 Syntax Valid
               </Badge>
             ) : (
-              <Badge variant="outline" className="text-[11px] border-destructive/40 text-destructive bg-destructive/10">
-                <XCircle className="w-3 h-3 mr-1" />
+              <Badge variant="outline" className="text-caption border-destructive/40 text-destructive bg-destructive/10">
+                <XCircle className="size-3 mr-1" />
                 Syntax Error
               </Badge>
             )}
 
             {validation.syntaxError && (
-              <span className="text-destructive text-[11px] font-mono truncate max-w-sm">
+              <span className="text-destructive text-caption font-mono truncate max-w-sm">
                 Line {validation.syntaxError.line || 1}: {validation.syntaxError.message}
               </span>
             )}
           </div>
 
-          <div className="text-muted-foreground text-[11px]">
+          <div className="text-muted-foreground text-caption">
             {lineCount} lines • {schemaText.length} characters
           </div>
         </div>
       </div>
 
       {/* Right Column: Schema Conformance & Quick-Fixes Sidebar */}
-      <div className="w-full lg:w-80 flex flex-col border border-border rounded-lg bg-card overflow-hidden flex-shrink-0">
-        <div className="px-3 py-2 border-b border-border bg-muted/40 flex items-center justify-between">
+      <div className="w-full lg:w-80 flex flex-col border border-line rounded-lg bg-surface overflow-hidden flex-shrink-0">
+        <div className="px-3 py-2 border-b border-line bg-raised/40 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span className="text-xs font-semibold">Conformance Score</span>
+            <ShieldCheck className="size-4 text-primary" />
+            <span className="text-caption font-semibold">Conformance Score</span>
           </div>
           <Badge
             variant="outline"
             className={cn(
-              "text-xs font-mono font-bold",
+              "text-caption font-mono font-bold",
               validation.conformanceScore >= 80
-                ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                ? "border-sage/30 text-sage dark:text-sage bg-sage/10"
                 : validation.conformanceScore >= 50
-                ? "border-amber-500/30 text-amber-500 bg-amber-500/10"
+                ? "border-amber/30 text-amber bg-amber/10"
                 : "border-destructive/40 text-destructive bg-destructive/10"
             )}
           >
@@ -373,31 +373,31 @@ export function SchemaValidatorPanel({
           <div className="space-y-4">
             {/* Conformance Check Items */}
             <div className="space-y-2">
-              <h4 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <h4 className="text-caption font-medium text-muted-foreground">
                 Automated Checks
               </h4>
               <div className="space-y-1.5">
                 {validation.conformanceChecks.map((check) => (
                   <div
                     key={check.id}
-                    className="p-2 rounded-md border border-border bg-secondary/20 flex flex-col gap-1"
+                    className="p-2 rounded-sm border border-line bg-raised/20 flex flex-col gap-1"
                   >
-                    <div className="flex items-center justify-between text-xs font-medium">
+                    <div className="flex items-center justify-between text-caption font-medium">
                       <span className="flex items-center gap-1.5 truncate">
                         {check.passed ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                          <CheckCircle2 className="size-3.5 text-sage flex-shrink-0" />
                         ) : (
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                          <AlertTriangle className="size-3.5 text-amber flex-shrink-0" />
                         )}
                         <span className="truncate">{check.name}</span>
                       </span>
-                      <span className="text-[11px] font-mono text-muted-foreground">
+                      <span className="text-caption font-mono text-muted-foreground">
                         {check.score}%
                       </span>
                     </div>
 
                     {check.issues.length > 0 && (
-                      <ul className="text-[11px] text-muted-foreground list-disc pl-4 space-y-0.5 mt-1">
+                      <ul className="text-caption text-muted-foreground list-disc pl-4 space-y-0.5 mt-1">
                         {check.issues.slice(0, 3).map((issue, idx) => (
                           <li key={idx} className="leading-snug">
                             {issue}
@@ -409,7 +409,7 @@ export function SchemaValidatorPanel({
                 ))}
 
                 {validation.conformanceChecks.length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">
+                  <p className="text-caption text-muted-foreground italic">
                     No active conformance rules configured for phase "{phaseId}".
                   </p>
                 )}
@@ -417,46 +417,46 @@ export function SchemaValidatorPanel({
             </div>
 
             {/* Quick-Fix Injections */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <h4 className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Wand2 className="w-3 h-3 text-primary" />
+            <div className="space-y-2 pt-2 border-t border-line">
+              <h4 className="text-caption font-medium text-muted-foreground flex items-center gap-1">
+                <Wand2 className="size-3 text-primary" />
                 Specification Quick-Fixes
               </h4>
               <div className="flex flex-col gap-1.5">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs justify-start"
+                  className="h-7 text-caption justify-start"
                   onClick={() => handleInsertQuickFix("test-seam")}
                 >
-                  <Sparkles className="w-3 h-3 mr-1.5 text-primary" />
+                  <Sparkles className="size-3 mr-1.5 text-primary" />
                   Add Explicit Test Seams
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs justify-start"
+                  className="h-7 text-caption justify-start"
                   onClick={() => handleInsertQuickFix("error-envelope")}
                 >
-                  <Layers className="w-3 h-3 mr-1.5 text-primary" />
+                  <Layers className="size-3 mr-1.5 text-primary" />
                   Add RFC 7807 Error Envelope
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs justify-start"
+                  className="h-7 text-caption justify-start"
                   onClick={() => handleInsertQuickFix("glossary")}
                 >
-                  <Code2 className="w-3 h-3 mr-1.5 text-primary" />
+                  <Code2 className="size-3 mr-1.5 text-primary" />
                   Add Domain Glossary
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs justify-start"
+                  className="h-7 text-caption justify-start"
                   onClick={() => handleInsertQuickFix("tracer-bullet")}
                 >
-                  <ArrowRight className="w-3 h-3 mr-1.5 text-primary" />
+                  <ArrowRight className="size-3 mr-1.5 text-primary" />
                   Add Tracer Bullet Story
                 </Button>
               </div>

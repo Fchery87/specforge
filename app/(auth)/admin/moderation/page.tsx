@@ -16,7 +16,9 @@ import {
   ArrowLeft,
   FileText,
   Search,
+  Check,
   CheckCircle,
+  X,
   XCircle,
   AlertTriangle,
   Eye,
@@ -57,7 +59,7 @@ export default function ModerationPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -79,7 +81,7 @@ export default function ModerationPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Loading content...</span>
         </div>
       </main>
@@ -87,83 +89,71 @@ export default function ModerationPage() {
   }
 
   return (
-    <main className="relative">
+    <main>
       {/* Hero Header */}
-      <section className="page-header relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-fade opacity-20" />
-        <div className="page-container relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <Flag className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Admin Console
-            </span>
-          </div>
-          <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-            Content <span className="text-primary">Moderation</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            Review and moderate user-generated content, artifacts, and templates.
-          </p>
+      <section className="page-header">
+        <div className="page-container">
+          <span className="text-label text-dim">Admin Console</span>
+          <h1 className="mt-2 text-heading font-medium text-ink">Content Moderation</h1>
+          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Review and moderate user-generated content, artifacts, and templates.</p>
         </div>
       </section>
 
       {/* Stats Overview */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <div className="grid gap-4 md:grid-cols-4">
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Total Artifacts
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">0</p>
-              <p className="text-xs text-muted-foreground mt-2">Generated documents</p>
+              <p className="text-heading font-bold">0</p>
+              <p className="text-caption text-muted-foreground mt-2">Generated documents</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Flagged Content
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-yellow-500">0</p>
-              <p className="text-xs text-muted-foreground mt-2">Requires review</p>
+              <p className="text-heading font-bold text-amber">0</p>
+              <p className="text-caption text-muted-foreground mt-2">Requires review</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Templates
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">0</p>
-              <p className="text-xs text-muted-foreground mt-2">Constitution templates</p>
+              <p className="text-heading font-bold">0</p>
+              <p className="text-caption text-muted-foreground mt-2">Constitution templates</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Banned Items
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-red-500">0</p>
-              <p className="text-xs text-muted-foreground mt-2">Removed content</p>
+              <p className="text-heading font-bold text-brick">0</p>
+              <p className="text-caption text-muted-foreground mt-2">Removed content</p>
             </CardContent>
           </Card>
         </div>
       </section>
 
       {/* Tabs */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <Tabs defaultValue="artifacts" className="space-y-8">
           <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="artifacts">Artifacts</TabsTrigger>
@@ -175,7 +165,7 @@ export default function ModerationPage() {
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+                  <h2 className="text-title font-bold">
                     Generated Artifacts
                   </h2>
                   <p className="text-muted-foreground mt-2">
@@ -183,15 +173,15 @@ export default function ModerationPage() {
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw className="size-4 mr-2" />
                   Refresh
                 </Button>
               </div>
             </div>
 
             <Card variant="default" className="p-12 text-center">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <h3 className="text-lg font-medium mb-2">Artifact Moderation</h3>
+              <FileText className="size-12 mx-auto mb-4 opacity-30" />
+              <h3 className="text-title font-medium mb-2">Artifact Moderation</h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-4">
                 This feature is coming soon. You'll be able to review all generated artifacts, 
                 flag inappropriate content, and moderate user-generated specifications.
@@ -202,7 +192,7 @@ export default function ModerationPage() {
 
           <TabsContent value="templates">
             <div className="mb-8">
-              <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+              <h2 className="text-title font-bold">
                 Constitution Templates
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -211,8 +201,8 @@ export default function ModerationPage() {
             </div>
 
             <Card variant="default" className="p-12 text-center">
-              <Shield className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <h3 className="text-lg font-medium mb-2">Template Moderation</h3>
+              <Shield className="size-12 mx-auto mb-4 opacity-30" />
+              <h3 className="text-title font-medium mb-2">Template Moderation</h3>
               <p className="text-muted-foreground max-w-md mx-auto mb-4">
                 This feature is coming soon. You'll be able to review user-created constitution 
                 templates, approve public templates, and remove inappropriate content.
@@ -223,7 +213,7 @@ export default function ModerationPage() {
 
           <TabsContent value="filters">
             <div className="mb-8">
-              <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+              <h2 className="text-title font-bold">
                 Content Filters
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -235,7 +225,7 @@ export default function ModerationPage() {
               <Card variant="default">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <Ban className="w-5 h-5 text-red-500" />
+                    <Ban className="size-5 text-brick" />
                     <CardTitle>Banned Words</CardTitle>
                   </div>
                   <CardDescription>
@@ -243,7 +233,7 @@ export default function ModerationPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="p-8 bg-muted/50 rounded-lg text-center">
+                  <div className="p-8 bg-raised/50 rounded-lg text-center">
                     <p className="text-muted-foreground">
                       Content filtering configuration coming soon
                     </p>
@@ -254,7 +244,7 @@ export default function ModerationPage() {
               <Card variant="default">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <Gavel className="w-5 h-5 text-yellow-500" />
+                    <Gavel className="size-5 text-amber" />
                     <CardTitle>Moderation Rules</CardTitle>
                   </div>
                   <CardDescription>
@@ -262,16 +252,16 @@ export default function ModerationPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
-                    <span className="text-sm">Auto-flag profanity</span>
+                  <div className="flex items-center justify-between p-3 bg-raised/30 rounded-lg">
+                    <span className="text-ui">Auto-flag profanity</span>
                     <Badge>Enabled</Badge>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
-                    <span className="text-sm">Auto-flag spam patterns</span>
+                  <div className="flex items-center justify-between p-3 bg-raised/30 rounded-lg">
+                    <span className="text-ui">Auto-flag spam patterns</span>
                     <Badge>Enabled</Badge>
                   </div>
-                  <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
-                    <span className="text-sm">Manual review required</span>
+                  <div className="flex items-center justify-between p-3 bg-raised/30 rounded-lg">
+                    <span className="text-ui">Manual review required</span>
                     <Badge variant="outline">Disabled</Badge>
                   </div>
                 </CardContent>
@@ -282,9 +272,9 @@ export default function ModerationPage() {
       </section>
 
       {/* Guidelines Section */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+          <h2 className="text-title font-bold">
             Moderation Guidelines
           </h2>
         </div>
@@ -293,28 +283,28 @@ export default function ModerationPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+                <div className="size-10 rounded-lg bg-sage/10 flex items-center justify-center">
+                  <CheckCircle className="size-5 text-sage" />
                 </div>
                 <CardTitle>Allowed Content</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
                   Software specifications
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
                   Technical documentation
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
                   Code and architecture plans
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-500">✓</span>
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
                   Project requirements
                 </li>
               </ul>
@@ -324,28 +314,28 @@ export default function ModerationPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                  <XCircle className="w-5 h-5 text-red-500" />
+                <div className="size-10 rounded-lg bg-brick/10 flex items-center justify-center">
+                  <XCircle className="size-5 text-brick" />
                 </div>
                 <CardTitle>Prohibited Content</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500">✗</span>
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
                   Hate speech or harassment
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500">✗</span>
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
                   Spam or advertising
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500">✗</span>
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
                   Malicious code or exploits
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-500">✗</span>
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
                   Inappropriate or offensive material
                 </li>
               </ul>
@@ -355,28 +345,28 @@ export default function ModerationPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-blue-500" />
+                <div className="size-10 rounded-lg bg-slate/10 flex items-center justify-center">
+                  <AlertTriangle className="size-5 text-slate" />
                 </div>
                 <CardTitle>Report Process</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500">1.</span>
+                  <span className="text-slate">1.</span>
                   Content is flagged or reported
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500">2.</span>
+                  <span className="text-slate">2.</span>
                   Admin reviews within 24 hours
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500">3.</span>
+                  <span className="text-slate">3.</span>
                   Decision: Approve, Edit, or Remove
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500">4.</span>
+                  <span className="text-slate">4.</span>
                   Appeal process available
                 </li>
               </ul>
@@ -385,10 +375,6 @@ export default function ModerationPage() {
         </div>
       </section>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
-        MODERATION
-      </div>
     </main>
   );
 }

@@ -49,7 +49,7 @@ export function ConfirmDialog({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
-            "fixed inset-0 z-50 bg-black/80 backdrop-blur-sm",
+            "fixed inset-0 z-50 bg-scrim",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
           )}
@@ -57,7 +57,7 @@ export function ConfirmDialog({
         <DialogPrimitive.Content
           className={cn(
             "fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%]",
-            "border-2 border-border bg-background p-8 shadow-2xl",
+            "rounded-lg border border-line bg-panel p-6 shadow-lg",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -69,25 +69,25 @@ export function ConfirmDialog({
           <div className="flex items-start gap-4">
             <div
               className={cn(
-                "flex-shrink-0 w-12 h-12 flex items-center justify-center border-2",
+                "flex size-10 shrink-0 items-center justify-center rounded-sm border",
                 variant === "destructive"
                   ? "border-destructive bg-destructive/10"
-                  : "border-warning bg-warning/10"
+                  : "border-amber bg-amber/10"
               )}
             >
               <IconComponent
                 className={cn(
-                  "w-6 h-6",
-                  variant === "destructive" ? "text-destructive" : "text-warning"
+                  "size-5",
+                  variant === "destructive" ? "text-destructive" : "text-amber"
                 )}
               />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogPrimitive.Title className="text-xl font-bold uppercase tracking-tighter">
+              <DialogPrimitive.Title className="text-title font-semibold text-ink">
                 {title}
               </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="mt-2 text-muted-foreground">
+                <DialogPrimitive.Description className="mt-2 text-ui text-muted-foreground">
                   {description}
                 </DialogPrimitive.Description>
               )}
@@ -95,7 +95,7 @@ export function ConfirmDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 mt-8">
+          <div className="flex justify-end gap-3 mt-6">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -108,7 +108,7 @@ export function ConfirmDialog({
               onClick={handleConfirm}
               disabled={loading}
             >
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {loading && <Loader2 className="size-4 animate-spin" />}
               {confirmLabel}
             </Button>
           </div>
@@ -116,13 +116,12 @@ export function ConfirmDialog({
           {/* Close button */}
           <DialogPrimitive.Close
             className={cn(
-              "absolute right-4 top-4 p-2 opacity-70 transition-opacity",
-              "hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              "disabled:pointer-events-none"
+              "absolute right-4 top-4 rounded-sm p-1 opacity-70 transition-opacity",
+              "hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
             )}
             disabled={loading}
           >
-            <X className="h-5 w-5" />
+            <X className="size-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         </DialogPrimitive.Content>

@@ -99,7 +99,7 @@ function buildMarkdownContent(
 
   // Locked Constraints (from constitution)
   if (constitution?.lockedConstraints) {
-    sections.push('## 🔒 Locked Constraints (Zero-Drift Rules)');
+    sections.push('## Locked Constraints (Zero-Drift Rules)');
     sections.push(
       '**CRITICAL: You must NEVER violate these rules under any circumstance.**',
     );

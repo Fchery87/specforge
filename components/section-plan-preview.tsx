@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Play, Sparkles, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
+import { Play, Sparkles, AlertCircle, FileText, CheckCircle2, Wrench, Cog, ClipboardList, PenLine } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,14 +117,14 @@ export function SectionPlanPreview({
   const getSectionTypeIcon = (type: SectionPlanConfig["sectionType"]) => {
     switch (type) {
       case "technical":
-        return "🔧";
+        return <Wrench className="size-4 text-dim" />;
       case "implementation":
-        return "⚙️";
+        return <Cog className="size-4 text-dim" />;
       case "planning":
-        return "📋";
+        return <ClipboardList className="size-4 text-dim" />;
       case "documentation":
       default:
-        return "📝";
+        return <PenLine className="size-4 text-dim" />;
     }
   };
 
@@ -133,8 +133,8 @@ export function SectionPlanPreview({
       <div className="space-y-6">
         <Card>
           <CardContent className="p-8 flex flex-col items-center justify-center gap-4" role="status">
-            <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" aria-hidden="true" />
-            <p aria-live="polite" className="text-sm text-muted-foreground">Generating section plan...</p>
+            <div className="size-8 border border-primary/30 border-t-primary rounded-full animate-spin" aria-hidden="true" />
+            <p aria-live="polite" className="text-ui text-muted-foreground">Generating section plan...</p>
           </CardContent>
         </Card>
       </div>
@@ -147,7 +147,7 @@ export function SectionPlanPreview({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-primary" />
+            <Sparkles className="size-6 text-primary" />
             <div>
               <CardTitle>Review Generation Plan</CardTitle>
               <CardDescription>
@@ -158,13 +158,13 @@ export function SectionPlanPreview({
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Token Estimate */}
-          <div className="bg-muted rounded-lg p-4 space-y-3">
+          <div className="bg-raised rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Estimated Tokens</span>
+              <span className="text-ui text-muted-foreground">Estimated Tokens</span>
               <span className="font-medium">{formatTokenCount(totalTokens)}</span>
             </div>
             <Progress value={(enabledSections.length / sectionPlans.length) * 100} />
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-ui">
               <span className="text-muted-foreground">
                 {enabledSections.length} of {sectionPlans.length} sections enabled
               </span>
@@ -173,9 +173,9 @@ export function SectionPlanPreview({
 
           {/* Warning if required sections disabled */}
           {hasDisabledRequired && (
-            <div className="flex items-start gap-2 text-amber-600 bg-amber-50 p-3 rounded-lg">
-              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
+            <div className="flex items-start gap-2 text-amber bg-amber p-3 rounded-lg">
+              <AlertCircle className="size-5 mt-0.5 flex-shrink-0" />
+              <div className="text-ui">
                 <strong>Required sections disabled</strong>
                 <p className="mt-1">
                   Some required sections are disabled. The generation may be incomplete.
@@ -197,7 +197,7 @@ export function SectionPlanPreview({
             return (
               <Card
                 key={plan.id}
-                className={`transition-all ${
+                className={`transition-colors ${
                   isEnabled ? "border-primary/20" : "opacity-60"
                 }`}
               >
@@ -207,31 +207,31 @@ export function SectionPlanPreview({
                     <button
                       onClick={() => toggleSection(plan.id)}
                       disabled={plan.required || isGenerating}
-                      className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      className={`mt-1 size-5 rounded-sm border flex items-center justify-center transition-colors ${
                         isEnabled
                           ? "bg-primary border-primary text-primary-foreground"
                           : "border-muted-foreground/30 hover:border-muted-foreground"
                       } ${plan.required ? "cursor-not-allowed" : "cursor-pointer"}`}
                     >
-                      {isEnabled && <CheckCircle2 className="w-3.5 h-3.5" />}
+                      {isEnabled && <CheckCircle2 className="size-3.5" />}
                     </button>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">{getSectionTypeIcon(plan.sectionType)}</span>
+                        <span>{getSectionTypeIcon(plan.sectionType)}</span>
                         <h3 className="font-medium">{plan.title}</h3>
                         {plan.required && (
-                          <Badge variant="secondary" className="text-xs">Required</Badge>
+                          <Badge variant="secondary" className="text-caption">Required</Badge>
                         )}
                         {!isEnabled && (
-                          <Badge variant="outline" className="text-xs">Skipped</Badge>
+                          <Badge variant="outline" className="text-caption">Skipped</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-ui text-muted-foreground mb-2">
                         {plan.description}
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-caption text-muted-foreground">
                         <span>{formatTokenCount(plan.estimatedTokens)} tokens</span>
                         <button
                           onClick={() => toggleExpanded(plan.id)}
@@ -249,7 +249,7 @@ export function SectionPlanPreview({
                             value={pref?.customInstructions || ""}
                             onChange={(e) => updateInstructions(plan.id, e.target.value)}
                             disabled={!isEnabled || isGenerating}
-                            className="text-sm min-h-[80px]"
+                            className="text-ui min-h-[80px]"
                           />
                         </div>
                       )}
@@ -266,17 +266,17 @@ export function SectionPlanPreview({
       <Button
         onClick={handleGenerate}
         disabled={isGenerating || enabledSections.length === 0}
-        className="w-full h-14 text-lg"
+        className="w-full h-14 text-title"
         size="lg"
       >
         {isGenerating ? (
           <>
-            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+            <div className="size-5 border border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
             Generating...
           </>
         ) : (
           <>
-            <Play className="w-5 h-5 mr-2" />
+            <Play className="size-5 mr-2" />
             Generate {enabledSections.length} Section
             {enabledSections.length !== 1 ? "s" : ""} ({formatTokenCount(totalTokens)} tokens)
           </>
@@ -294,11 +294,11 @@ export function SectionPlanPreviewSkeleton() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="h-6 bg-muted rounded w-1/3"></div>
-          <div className="h-4 bg-muted rounded w-2/3 mt-2"></div>
+          <div className="h-6 bg-raised rounded-sm w-1/3"></div>
+          <div className="h-4 bg-raised rounded-sm w-2/3 mt-2"></div>
         </CardHeader>
         <CardContent>
-          <div className="h-20 bg-muted rounded"></div>
+          <div className="h-20 bg-raised rounded-sm"></div>
         </CardContent>
       </Card>
 
@@ -307,11 +307,11 @@ export function SectionPlanPreviewSkeleton() {
           <Card key={i}>
             <CardContent className="p-4">
               <div className="flex gap-4">
-                <div className="w-5 h-5 bg-muted rounded mt-1"></div>
+                <div className="size-5 bg-raised rounded-sm mt-1"></div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-5 bg-muted rounded w-1/3"></div>
-                  <div className="h-4 bg-muted rounded w-full"></div>
-                  <div className="h-3 bg-muted rounded w-1/4"></div>
+                  <div className="h-5 bg-raised rounded-sm w-1/3"></div>
+                  <div className="h-4 bg-raised rounded-sm w-full"></div>
+                  <div className="h-3 bg-raised rounded-sm w-1/4"></div>
                 </div>
               </div>
             </CardContent>

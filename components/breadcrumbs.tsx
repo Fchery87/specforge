@@ -15,21 +15,21 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   return (
-    <nav aria-label="Breadcrumb" className={cn("flex items-center gap-1.5 text-sm", className)}>
+    <nav aria-label="Breadcrumb" className={cn("flex items-center gap-1.5 text-ui", className)}>
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
         return (
           <span key={index} className="flex items-center gap-1.5">
-            {index > 0 && <ChevronRight className="w-3 h-3 text-muted-foreground" aria-hidden />}
+            {index > 0 && <ChevronRight className="size-3 text-muted-foreground" aria-hidden />}
             {item.href && !isLast ? (
               <Link
                 href={item.href as Route}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-ink transition-colors"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className={cn(isLast ? "text-foreground font-medium" : "text-muted-foreground")}>
+              <span className={cn(isLast ? "text-ink font-medium" : "text-muted-foreground")}>
                 {item.label}
               </span>
             )}

@@ -89,29 +89,29 @@ export function ProjectRulesCard({
       <CardHeader className="p-6 pb-4">
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-primary" />
-            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <Shield className="size-4 text-primary" />
+            <span className="text-caption font-bold text-muted-foreground">
               Rules
             </span>
           </div>
           {reviewText && (
-            <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/30 rounded-full">
+            <span className="inline-flex items-center px-2.5 py-0.5 text-caption font-semibold bg-amber/10 text-amber border border-amber/30 rounded-full">
               {reviewText}
             </span>
           )}
         </div>
-        <CardTitle className="text-xl font-bold uppercase tracking-tight">
+        <CardTitle className="text-title font-bold">
           Project Rules
         </CardTitle>
-        <CardDescription className="text-sm text-muted-foreground mt-1">
+        <CardDescription className="text-ui text-muted-foreground mt-1">
           Invariants, tech stack decisions, and architectural constraints.
         </CardDescription>
       </CardHeader>
-      <CardFooter className="p-6 pt-0 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 mt-4">
+      <CardFooter className="p-6 pt-0 flex flex-wrap items-center justify-between gap-3 border-t border-line/40 mt-4">
         <Button asChild variant="outline">
           <Link href={`/project/${projectId}/phase/constitution` as Route}>
             View Project Rules
-            <ArrowRight className="w-4 h-4 ml-2" />
+            <ArrowRight className="size-4 ml-2" />
           </Link>
         </Button>
         {canDraftRules && (
@@ -122,7 +122,7 @@ export function ProjectRulesCard({
           >
             {isDrafting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
                 Drafting rules...
               </>
             ) : (

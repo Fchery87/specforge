@@ -8,8 +8,8 @@ SpecForge is a high-performance scaffold designed for building repo-native, spec
 - **Runtime**. Node.js 20.9+ (Node 22 recommended via `.nvmrc`), npm only
 - **Database & Backend**. [Convex](https://www.convex.dev/)
 - **Authentication**. [Clerk](https://clerk.com/)
-- **Styling**. [Tailwind CSS](https://tailwindcss.com/) (Brutalist + Dark Mode)
-- **Components**. [Radix UI](https://www.radix-ui.com/) + [Framer Motion](https://www.framer.com/motion/)
+- **Styling**. [Tailwind CSS](https://tailwindcss.com/) with the Ember design system, light and dark. See [docs/design.md](docs/design.md)
+- **Components**. [Radix UI](https://www.radix-ui.com/) + [shadcn/ui](https://ui.shadcn.com/) + [Framer Motion](https://www.framer.com/motion/)
 - **Testing**. [Vitest](https://vitest.dev/) (unit and integration) + [Playwright](https://playwright.dev/) (end-to-end with `@clerk/testing`)
 - **Utilities**. [Lucide React](https://lucide.dev/), [JSZip](https://stuk.github.io/jszip/)
 
@@ -136,7 +136,7 @@ specforge/
 │   │   └── phase/[phaseId]/     # Stage workspace with Stepper, Tabs, and Next Action
 │   └── layout.tsx               # Root layout with providers
 ├── components/                  # React components
-│   ├── ui/                     # Radix UI primitives and Brutalist controls
+│   ├── ui/                     # shadcn primitives themed with Ember tokens
 │   ├── admin/                  # Super-admin navigation and panels
 │   ├── dashboard/              # Dashboard project cards and metrics
 │   ├── stage-stepper.tsx       # Three-stage progress indicator

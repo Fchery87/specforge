@@ -153,64 +153,64 @@ export function ArtifactEditorModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] flex flex-col p-6 overflow-hidden">
-        <DialogHeader className="flex-shrink-0 pb-3 border-b border-border">
+        <DialogHeader className="flex-shrink-0 pb-3 border-b border-line">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-primary flex-shrink-0" />
-                <DialogTitle className="text-lg font-semibold truncate">
+                <Edit3 className="size-5 text-primary flex-shrink-0" />
+                <DialogTitle className="text-title font-semibold truncate">
                   Edit {artifact.title}
                 </DialogTitle>
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-caption">
                   {artifact.type}
                 </Badge>
                 {hasChanges && (
-                  <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                  <Badge variant="secondary" className="text-caption bg-amber/10 text-amber border border-amber/20">
                     Unsaved Changes
                   </Badge>
                 )}
               </div>
-              <DialogDescription className="text-xs text-muted-foreground mt-1">
+              <DialogDescription className="text-caption text-muted-foreground mt-1">
                 Direct in-browser specification editing with real-time preview and diagram rendering.
               </DialogDescription>
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-secondary/50 rounded-lg p-1 border border-border">
+            <div className="flex items-center bg-raised/50 rounded-lg p-1 border border-line">
               <Button
                 variant={viewMode === "edit" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-7 px-2.5 text-xs"
+                className="h-7 px-2.5 text-caption"
                 onClick={() => setViewMode("edit")}
               >
-                <Edit3 className="w-3.5 h-3.5 mr-1" />
+                <Edit3 className="size-3.5 mr-1" />
                 Edit
               </Button>
               <Button
                 variant={viewMode === "split" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-7 px-2.5 text-xs hidden md:flex"
+                className="h-7 px-2.5 text-caption hidden md:flex"
                 onClick={() => setViewMode("split")}
               >
-                <Columns className="w-3.5 h-3.5 mr-1" />
+                <Columns className="size-3.5 mr-1" />
                 Split
               </Button>
               <Button
                 variant={viewMode === "preview" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-7 px-2.5 text-xs"
+                className="h-7 px-2.5 text-caption"
                 onClick={() => setViewMode("preview")}
               >
-                <Eye className="w-3.5 h-3.5 mr-1" />
+                <Eye className="size-3.5 mr-1" />
                 Preview
               </Button>
               <Button
                 variant={viewMode === "schema" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-7 px-2.5 text-xs"
+                className="h-7 px-2.5 text-caption"
                 onClick={() => setViewMode("schema")}
               >
-                <Code2 className="w-3.5 h-3.5 mr-1" />
+                <Code2 className="size-3.5 mr-1" />
                 Schema
               </Button>
             </div>
@@ -222,7 +222,7 @@ export function ArtifactEditorModal({
           {viewMode === "split" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[60vh]">
               {/* Left Column: Editor */}
-              <div className="flex flex-col border border-border rounded-lg bg-card overflow-hidden">
+              <div className="flex flex-col border border-line rounded-lg bg-surface overflow-hidden">
                 <EditorToolbar onInsert={insertFormatting} onReset={() => setContent(artifact.content)} hasChanges={hasChanges} />
                 <Textarea
                   ref={textareaRef}
@@ -230,27 +230,27 @@ export function ArtifactEditorModal({
                   onChange={(e) => setContent(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Write your markdown specification here..."
-                  className="flex-1 w-full p-4 font-mono text-xs sm:text-sm resize-none border-0 focus-visible:ring-0 rounded-none bg-background leading-relaxed overflow-y-auto"
+                  className="flex-1 w-full p-4 font-mono text-caption sm:text-ui resize-none border-0 rounded-none bg-void leading-relaxed overflow-y-auto"
                 />
               </div>
 
               {/* Right Column: Preview */}
-              <div className="flex flex-col border border-border rounded-lg bg-card overflow-hidden">
-                <div className="px-3 py-2 border-b border-border bg-muted/40 text-xs font-semibold text-muted-foreground flex items-center justify-between">
+              <div className="flex flex-col border border-line rounded-lg bg-surface overflow-hidden">
+                <div className="px-3 py-2 border-b border-line bg-raised/40 text-caption font-semibold text-muted-foreground flex items-center justify-between">
                   <span>Live Specification Preview</span>
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-caption">
                     Mermaid Supported
                   </Badge>
                 </div>
-                <ScrollArea className="flex-1 p-4 bg-secondary/10">
-                  <MermaidAwareContent markdown={content} className="max-w-none text-sm" />
+                <ScrollArea className="flex-1 p-4 bg-raised/10">
+                  <MermaidAwareContent markdown={content} className="max-w-none text-ui" />
                 </ScrollArea>
               </div>
             </div>
           )}
 
           {viewMode === "edit" && (
-            <div className="flex flex-col h-[60vh] border border-border rounded-lg bg-card overflow-hidden">
+            <div className="flex flex-col h-[60vh] border border-line rounded-lg bg-surface overflow-hidden">
               <EditorToolbar onInsert={insertFormatting} onReset={() => setContent(artifact.content)} hasChanges={hasChanges} />
               <Textarea
                 ref={textareaRef}
@@ -258,21 +258,21 @@ export function ArtifactEditorModal({
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Write your markdown specification here..."
-                className="flex-1 w-full p-4 font-mono text-xs sm:text-sm resize-none border-0 focus-visible:ring-0 rounded-none bg-background leading-relaxed overflow-y-auto"
+                className="flex-1 w-full p-4 font-mono text-caption sm:text-ui resize-none border-0 rounded-none bg-void leading-relaxed overflow-y-auto"
               />
             </div>
           )}
 
           {viewMode === "preview" && (
-            <div className="flex flex-col h-[60vh] border border-border rounded-lg bg-card overflow-hidden">
-              <div className="px-3 py-2 border-b border-border bg-muted/40 text-xs font-semibold text-muted-foreground flex items-center justify-between">
+            <div className="flex flex-col h-[60vh] border border-line rounded-lg bg-surface overflow-hidden">
+              <div className="px-3 py-2 border-b border-line bg-raised/40 text-caption font-semibold text-muted-foreground flex items-center justify-between">
                 <span>Full Specification Preview</span>
-                <Badge variant="outline" className="text-[10px]">
+                <Badge variant="outline" className="text-caption">
                   Mermaid & Markdown
                 </Badge>
               </div>
-              <ScrollArea className="flex-1 p-6 bg-secondary/10">
-                <MermaidAwareContent markdown={content} className="max-w-none text-sm" />
+              <ScrollArea className="flex-1 p-6 bg-raised/10">
+                <MermaidAwareContent markdown={content} className="max-w-none text-ui" />
               </ScrollArea>
             </div>
           )}
@@ -292,8 +292,8 @@ export function ArtifactEditorModal({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="flex-shrink-0 pt-3 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <DialogFooter className="flex-shrink-0 pt-3 border-t border-line flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-caption text-muted-foreground">
             <span>{lineCount.toLocaleString()} lines</span>
             <span>•</span>
             <span>{wordCount.toLocaleString()} words</span>
@@ -317,12 +317,12 @@ export function ArtifactEditorModal({
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="size-4 mr-2 animate-spin" />
                   Saving...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className="size-4 mr-2" />
                   Save Changes
                 </>
               )}
@@ -344,7 +344,7 @@ function EditorToolbar({
   hasChanges: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/40 overflow-x-auto gap-1">
+    <div className="flex items-center justify-between px-3 py-1.5 border-b border-line bg-raised/40 overflow-x-auto gap-1">
       <div className="flex items-center gap-1 flex-wrap">
         <Button
           type="button"
@@ -354,7 +354,7 @@ function EditorToolbar({
           title="Heading 1"
           onClick={() => onInsert("# ", "", "Heading 1")}
         >
-          <Heading1 className="w-3.5 h-3.5" />
+          <Heading1 className="size-3.5" />
         </Button>
         <Button
           type="button"
@@ -364,7 +364,7 @@ function EditorToolbar({
           title="Heading 2"
           onClick={() => onInsert("## ", "", "Heading 2")}
         >
-          <Heading2 className="w-3.5 h-3.5" />
+          <Heading2 className="size-3.5" />
         </Button>
         <Button
           type="button"
@@ -374,10 +374,10 @@ function EditorToolbar({
           title="Heading 3"
           onClick={() => onInsert("### ", "", "Heading 3")}
         >
-          <Heading3 className="w-3.5 h-3.5" />
+          <Heading3 className="size-3.5" />
         </Button>
 
-        <span className="w-[1px] h-4 bg-border mx-1" />
+        <span className="w-[1px] h-4 bg-line mx-1" />
 
         <Button
           type="button"
@@ -387,7 +387,7 @@ function EditorToolbar({
           title="Bold"
           onClick={() => onInsert("**", "**", "bold text")}
         >
-          <Bold className="w-3.5 h-3.5" />
+          <Bold className="size-3.5" />
         </Button>
         <Button
           type="button"
@@ -397,7 +397,7 @@ function EditorToolbar({
           title="Italic"
           onClick={() => onInsert("*", "*", "italic text")}
         >
-          <Italic className="w-3.5 h-3.5" />
+          <Italic className="size-3.5" />
         </Button>
         <Button
           type="button"
@@ -407,16 +407,16 @@ function EditorToolbar({
           title="Inline Code"
           onClick={() => onInsert("`", "`", "code")}
         >
-          <Code className="w-3.5 h-3.5" />
+          <Code className="size-3.5" />
         </Button>
 
-        <span className="w-[1px] h-4 bg-border mx-1" />
+        <span className="w-[1px] h-4 bg-line mx-1" />
 
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-caption"
           title="Code Block"
           onClick={() => onInsert("```ts\n", "\n```", "// Code block")}
         >
@@ -426,7 +426,7 @@ function EditorToolbar({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-caption"
           title="Insert Mermaid Diagram"
           onClick={() =>
             onInsert(
@@ -436,14 +436,14 @@ function EditorToolbar({
             )
           }
         >
-          <Sparkles className="w-3 h-3 mr-1 text-primary" />
+          <Sparkles className="size-3 mr-1 text-primary" />
           Mermaid
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-caption"
           title="Insert Table"
           onClick={() =>
             onInsert(
@@ -453,18 +453,18 @@ function EditorToolbar({
             )
           }
         >
-          <TableIcon className="w-3.5 h-3.5 mr-1" />
+          <TableIcon className="size-3.5 mr-1" />
           Table
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs"
+          className="h-7 px-2 text-caption"
           title="Insert Checklist"
           onClick={() => onInsert("- [ ] Task item\n", "", "")}
         >
-          <CheckSquare className="w-3.5 h-3.5 mr-1" />
+          <CheckSquare className="size-3.5 mr-1" />
           Checklist
         </Button>
       </div>
@@ -474,11 +474,11 @@ function EditorToolbar({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          className="h-7 px-2 text-caption text-muted-foreground hover:text-ink"
           title="Reset to original content"
           onClick={onReset}
         >
-          <RotateCcw className="w-3 h-3 mr-1" />
+          <RotateCcw className="size-3 mr-1" />
           Reset
         </Button>
       )}

@@ -163,7 +163,7 @@ export function ExportOptionsPanel({
     <Card className="mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Download className="w-5 h-5" />
+          <Download className="size-5" />
           Export Options
         </CardTitle>
         <CardDescription>
@@ -172,7 +172,7 @@ export function ExportOptionsPanel({
       </CardHeader>
       <CardContent className="space-y-3">
         {!artifacts.handoff && (
-          <div className="p-3 bg-muted/40 border border-border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+          <div className="p-3 bg-raised/40 border border-line rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-ui">
             <span className="text-muted-foreground">
               Handoff notes have not been generated yet.
             </span>
@@ -200,26 +200,26 @@ export function ExportOptionsPanel({
               <div className="flex items-start gap-4 w-full">
                 <div className="mt-1">
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="size-5 animate-spin" />
                   ) : (
-                    <Icon className="w-5 h-5" />
+                    <Icon className="size-5" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium flex items-center gap-2">
                     {option.label}
                     {!option.available && (
-                      <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                      <span className="text-caption bg-raised px-2 py-0.5 rounded-sm">
                         Soon
                       </span>
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground mt-0.5">
+                  <div className="text-ui text-muted-foreground mt-0.5">
                     {option.description}
                   </div>
                 </div>
                 {option.available && !isLoading && (
-                  <Check className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                  <Check className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
                 )}
               </div>
             </Button>

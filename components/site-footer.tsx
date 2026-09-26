@@ -1,56 +1,77 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useUser } from "@clerk/nextjs";
 import { SpecForgeLogo } from "@/components/ui/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+const linkClass =
+  "text-label text-dim transition-colors duration-(--duration-quick) ease-(--ease-quiet-out) hover:text-ink";
+
+function FooterGroup({
+  title,
+  links,
+}: {
+  title: string;
+  links: { href: Route; label: string }[];
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-caption text-dim">{title}</p>
+      <nav className="flex flex-col gap-2">
+        {links.map((link) => (
+          <Link key={link.href} href={link.href} className={linkClass}>
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+    </div>
+  );
+}
 
 export function SiteFooter() {
   const { isSignedIn, user } = useUser();
   const isAdmin = user?.publicMetadata?.role === "admin";
 
+  const productLinks: { href: Route; label: string }[] = [
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/dashboard/quick", label: "Quick spec" },
+    { href: "/settings", label: "Settings" },
+    ...(isSignedIn && isAdmin
+      ? [{ href: "/admin/dashboard" as Route, label: "Admin" }]
+      : []),
+  ];
+
+  const legalLinks: { href: Route; label: string }[] = [
+    { href: "/terms", label: "Terms" },
+    { href: "/privacy", label: "Privacy" },
+  ];
+
   return (
-    <footer className="border-t-2 border-border bg-background py-12 mt-auto">
-      <div className="page-container flex flex-col md:flex-row justify-between items-start gap-12">
-        <div className="flex flex-col gap-4 max-w-sm">
-          <Link href="/" className="flex items-center">
+    <footer className="mt-auto border-t border-line bg-void">
+      <div className="page-container flex flex-col gap-10 py-12 md:flex-row md:justify-between md:gap-16">
+        <div className="flex max-w-sm flex-col gap-4">
+          <Link href="/" className="flex w-fit items-center rounded-sm" aria-label="SpecForge home">
             <SpecForgeLogo size="md" />
           </Link>
-          <p className="text-sm text-muted-foreground uppercase tracking-tight leading-relaxed">
-            Idea → Specs → Handoff. 
-            Specification engineering for modern engineering teams and autonomous AI agents.
+          <p className="text-label leading-relaxed text-dim">
+            Turn a product brief into evidence-backed specifications your coding agents can follow.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-16">
-          <div className="flex flex-col gap-4">
-            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Platform</h4>
-            <nav className="flex flex-col gap-2">
-              <Link href="/dashboard" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Dashboard</Link>
-              <Link href="/dashboard/quick" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Quick Spec</Link>
-              <Link href="/settings" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Settings</Link>
-              {isAdmin && (
-                <Link href="/admin/dashboard" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Admin</Link>
-              )}
-            </nav>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">Legal</h4>
-            <nav className="flex flex-col gap-2">
-              <Link href="/terms" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Terms of Service</Link>
-              <Link href="/privacy" className="text-sm font-bold uppercase tracking-tight hover:text-primary transition-colors">Privacy Policy</Link>
-            </nav>
-          </div>
+        <div className="grid grid-cols-2 gap-12 sm:gap-20">
+          <FooterGroup title="Product" links={productLinks} />
+          <FooterGroup title="Legal" links={legalLinks} />
         </div>
       </div>
 
-      <div className="page-container mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          © 2026 SpecForge. All rights reserved.
-        </p>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30">
-          Built for the future of engineering.
-        </p>
+      <div className="page-container flex flex-col gap-3 border-t border-line py-6 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-caption text-dim">© 2026 SpecForge</p>
+        <div className="flex items-center gap-5">
+          <p className="text-caption text-dim">Specification engineering for coding agents</p>
+          <ThemeToggle />
+        </div>
       </div>
     </footer>
   );

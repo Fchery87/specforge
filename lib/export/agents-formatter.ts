@@ -108,7 +108,7 @@ export function generateAgentsMd(input: AgentsMdInput): string {
   }
 
   if (constitution?.lockedConstraints) {
-    sections.push('## 🔒 Locked Constraints (Zero-Drift Rules)');
+    sections.push('## Locked Constraints (Zero-Drift Rules)');
     sections.push(
       '**CRITICAL: You must NEVER violate these rules under any circumstance.**',
     );

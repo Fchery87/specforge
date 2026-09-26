@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex flex-col">
+    <div className="min-h-[calc(100vh-var(--header-height))] flex flex-col">
       <AdminNav />
       <div className="flex-1">
         {children}

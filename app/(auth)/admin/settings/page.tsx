@@ -95,7 +95,7 @@ export default function SettingsPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -117,7 +117,7 @@ export default function SettingsPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Loading settings...</span>
         </div>
       </main>
@@ -185,30 +185,18 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="relative">
+    <main>
       {/* Hero Header */}
-      <section className="page-header relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-fade opacity-20" />
-        <div className="page-container relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <Settings className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Admin Console
-            </span>
-          </div>
-          <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-            Global <span className="text-primary">Settings</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            Configure feature flags, rate limits, and system-wide settings.
-          </p>
+      <section className="page-header">
+        <div className="page-container">
+          <span className="text-label text-dim">Admin Console</span>
+          <h1 className="mt-2 text-heading font-medium text-ink">Global Settings</h1>
+          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Configure feature flags, rate limits, and system-wide settings.</p>
         </div>
       </section>
 
       {/* Settings Tabs */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <Tabs defaultValue="features" className="space-y-8">
           <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="features">Feature Flags</TabsTrigger>
@@ -219,7 +207,7 @@ export default function SettingsPage() {
           {/* Feature Flags Tab */}
           <TabsContent value="features">
             <div className="mb-8">
-              <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+              <h2 className="text-title font-bold">
                 Feature Flags
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -233,26 +221,26 @@ export default function SettingsPage() {
                   key={flag.key} 
                   variant="default"
                   className={cn(
-                    "transition-all",
-                    flag.enabled && flag.key === 'maintenance_mode' && "border-red-500/50 bg-red-500/5"
+                    "transition-colors",
+                    flag.enabled && flag.key === 'maintenance_mode' && "border-brick/50 bg-brick/5"
                   )}
                 >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-start gap-4">
                         <div className={cn(
-                          "w-12 h-12 rounded-lg flex items-center justify-center",
+                          "size-12 rounded-lg flex items-center justify-center",
                           flag.enabled 
                             ? "bg-primary/10" 
-                            : "bg-muted",
-                          flag.key === 'maintenance_mode' && flag.enabled && "bg-red-500/20"
+                            : "bg-raised",
+                          flag.key === 'maintenance_mode' && flag.enabled && "bg-brick/20"
                         )}>
                           <ToggleLeft className={cn(
-                            "w-6 h-6",
+                            "size-6",
                             flag.enabled 
                               ? "text-primary" 
                               : "text-muted-foreground",
-                            flag.key === 'maintenance_mode' && flag.enabled && "text-red-500"
+                            flag.key === 'maintenance_mode' && flag.enabled && "text-brick"
                           )} />
                         </div>
                         <div>
@@ -262,10 +250,10 @@ export default function SettingsPage() {
                               <Badge variant="destructive">Active</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <p className="text-ui text-muted-foreground mt-1">
                             {flag.description}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1 font-mono">
+                          <p className="text-caption text-muted-foreground mt-1 font-mono">
                             Key: {flag.key}
                           </p>
                         </div>
@@ -286,7 +274,7 @@ export default function SettingsPage() {
           {/* System Config Tab */}
           <TabsContent value="config">
             <div className="mb-8">
-              <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+              <h2 className="text-title font-bold">
                 System Configuration
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -298,8 +286,8 @@ export default function SettingsPage() {
               {/* Rate Limits */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <Gauge className="w-5 h-5 text-primary" />
-                  <h3 className="font-bold uppercase tracking-wider">Rate Limits</h3>
+                  <Gauge className="size-5 text-primary" />
+                  <h3 className="font-bold">Rate Limits</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -309,7 +297,7 @@ export default function SettingsPage() {
                         <div className="space-y-3">
                           <div>
                             <Label className="font-medium">{config.name}</Label>
-                            <p className="text-xs text-muted-foreground">{config.description}</p>
+                            <p className="text-caption text-muted-foreground">{config.description}</p>
                           </div>
                           <Input
                             type="number"
@@ -327,8 +315,8 @@ export default function SettingsPage() {
               {/* Security */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <Lock className="w-5 h-5 text-primary" />
-                  <h3 className="font-bold uppercase tracking-wider">Security</h3>
+                  <Lock className="size-5 text-primary" />
+                  <h3 className="font-bold">Security</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -338,7 +326,7 @@ export default function SettingsPage() {
                         <div className="space-y-3">
                           <div>
                             <Label className="font-medium">{config.name}</Label>
-                            <p className="text-xs text-muted-foreground">{config.description}</p>
+                            <p className="text-caption text-muted-foreground">{config.description}</p>
                           </div>
                           <Input
                             type="number"
@@ -356,8 +344,8 @@ export default function SettingsPage() {
               {/* Generation */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <Zap className="w-5 h-5 text-primary" />
-                  <h3 className="font-bold uppercase tracking-wider">Generation</h3>
+                  <Zap className="size-5 text-primary" />
+                  <h3 className="font-bold">Generation</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -367,7 +355,7 @@ export default function SettingsPage() {
                         <div className="space-y-3">
                           <div>
                             <Label className="font-medium">{config.name}</Label>
-                            <p className="text-xs text-muted-foreground">{config.description}</p>
+                            <p className="text-caption text-muted-foreground">{config.description}</p>
                           </div>
                           <Input
                             type="number"
@@ -387,7 +375,7 @@ export default function SettingsPage() {
           {/* Advanced Tab */}
           <TabsContent value="advanced">
             <div className="mb-8">
-              <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+              <h2 className="text-title font-bold">
                 Advanced Settings
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -399,7 +387,7 @@ export default function SettingsPage() {
               <Card variant="default">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <RefreshCw className="w-5 h-5 text-primary" />
+                    <RefreshCw className="size-5 text-primary" />
                     <CardTitle>Cache Management</CardTitle>
                   </div>
                   <CardDescription>
@@ -417,7 +405,7 @@ export default function SettingsPage() {
               <Card variant="default">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-primary" />
+                    <Mail className="size-5 text-primary" />
                     <CardTitle>Email Settings</CardTitle>
                   </div>
                   <CardDescription>
@@ -425,17 +413,17 @@ export default function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-ui text-muted-foreground">
                     Email configuration is managed through environment variables. 
                     Contact your system administrator to modify SMTP settings.
                   </p>
                 </CardContent>
               </Card>
 
-              <Card variant="default" className="border-yellow-500/50">
+              <Card variant="default" className="border-amber/50">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-500" />
+                    <AlertCircle className="size-5 text-amber" />
                     <CardTitle>Danger Zone</CardTitle>
                   </div>
                   <CardDescription>
@@ -446,7 +434,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between p-4 bg-destructive/5 rounded-lg border border-destructive/20">
                     <div>
                       <p className="font-medium text-destructive">Reset All Settings</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-ui text-muted-foreground">
                         Reset all feature flags and configuration to defaults
                       </p>
                     </div>
@@ -464,7 +452,7 @@ export default function SettingsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-yellow-500" />
+              <AlertCircle className="size-5 text-amber" />
               Enable Maintenance Mode
             </DialogTitle>
             <DialogDescription>
@@ -483,7 +471,7 @@ export default function SettingsPage() {
               disabled={saving.has('maintenance_mode')}
             >
               {saving.has('maintenance_mode') && (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="size-4 mr-2 animate-spin" />
               )}
               Enable Maintenance Mode
             </Button>
@@ -491,10 +479,6 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
-        SETTINGS
-      </div>
     </main>
   );
 }

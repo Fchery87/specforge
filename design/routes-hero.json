@@ -1,0 +1,5 @@
+[
+  { "path": "direction-1-field-manual.html", "viewports": ["desktop"], "fullPage": false },
+  { "path": "direction-2-instrument-panel.html", "viewports": ["desktop"], "fullPage": false },
+  { "path": "direction-3-proof-sheet.html", "viewports": ["desktop"], "fullPage": false }
+]

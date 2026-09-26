@@ -46,38 +46,26 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center py-16 px-8",
+        "flex flex-col items-center justify-center rounded-lg border border-line bg-surface px-8 py-16 text-center",
         className
       )}
     >
-      {/* Icon with decorative border */}
-      <div className="relative mb-6">
-        <div className="w-20 h-20 border-2 border-border flex items-center justify-center bg-secondary/30">
-          <IconComponent className="w-10 h-10 text-muted-foreground" />
-        </div>
-        {/* Decorative corner accents */}
-        <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-primary" />
-        <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-primary" />
-        <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-primary" />
-        <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-primary" />
+      <div className="mb-6 flex size-12 items-center justify-center rounded-sm border border-line bg-raised">
+        <IconComponent className="size-6 text-dim" />
       </div>
 
-      {/* Title */}
-      <h3 className="text-2xl font-bold uppercase tracking-tighter mb-2">
+      <h3 className="text-title font-semibold text-ink mb-2">
         {title}
       </h3>
 
-      {/* Description */}
       {description && (
-        <p className="text-muted-foreground max-w-md mb-6">
+        <p className="text-ui text-muted-foreground max-w-md mb-6">
           {description}
         </p>
       )}
 
-      {/* Custom content */}
       {children}
 
-      {/* Actions */}
       {(action || secondaryAction) && (
         <div className="flex flex-col sm:flex-row gap-3 mt-4">
           {action && (

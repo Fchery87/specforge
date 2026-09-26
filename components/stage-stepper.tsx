@@ -106,11 +106,11 @@ export function StageStepper({
             href={`/project/${projectId}/phase/${targetPhase}`}
             aria-current={isHighlighted ? "step" : undefined}
             className={cn(
-              "flex items-center justify-between gap-3 px-4 py-3 border-2 transition-all duration-200",
-              "focus-ring min-w-0 rounded-none",
+              "flex items-center justify-between gap-3 px-4 py-3 border transition-colors duration-(--duration-standard)",
+              "focus-ring min-w-0 rounded-sm",
               isHighlighted
-                ? "border-primary bg-primary/10 shadow-sm"
-                : "border-border bg-card hover:border-primary/50 hover:bg-secondary/30",
+                ? "border-primary bg-primary/10"
+                : "border-line bg-surface hover:border-primary/50 hover:bg-raised/30",
               status === "ready" && !isHighlighted && "border-success/40",
               status === "error" && !isHighlighted && "border-destructive/40"
             )}
@@ -118,37 +118,37 @@ export function StageStepper({
             <div className="flex items-center gap-2.5 min-w-0">
               <div
                 className={cn(
-                  "w-6 h-6 shrink-0 flex items-center justify-center border transition-colors",
-                  status === "ready" && "bg-success border-success text-success-foreground",
-                  status === "generating" && "border-warning bg-warning/20 text-warning",
+                  "size-6 shrink-0 flex items-center justify-center border transition-colors",
+                  status === "ready" && "bg-success border-success text-void",
+                  status === "generating" && "border-warning bg-warning/20 text-amber",
                   status === "error" && "border-destructive bg-destructive/20 text-destructive",
                   status === "in-progress" && "border-primary bg-primary/20 text-primary",
-                  status === "not-started" && "border-border bg-secondary/30 text-muted-foreground"
+                  status === "not-started" && "border-line bg-raised/30 text-muted-foreground"
                 )}
                 aria-hidden
               >
                 {status === "ready" ? (
-                  <Check className="w-3.5 h-3.5" />
+                  <Check className="size-3.5" />
                 ) : status === "generating" ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="size-3.5 animate-spin" />
                 ) : status === "error" ? (
-                  <AlertCircle className="w-3.5 h-3.5" />
+                  <AlertCircle className="size-3.5" />
                 ) : status === "in-progress" ? (
-                  <Circle className="w-2.5 h-2.5 fill-current" />
+                  <Circle className="size-2.5 fill-current" />
                 ) : (
-                  <span className="text-xs font-semibold">{idx + 1}</span>
+                  <span className="text-caption font-semibold">{idx + 1}</span>
                 )}
               </div>
               <div className="flex flex-col min-w-0">
                 <span
                   className={cn(
-                    "text-sm font-semibold truncate",
-                    isHighlighted ? "text-foreground font-bold" : "text-foreground/90"
+                    "text-ui font-semibold truncate",
+                    isHighlighted ? "text-ink font-bold" : "text-ink/90"
                   )}
                 >
                   {stage.label}
                 </span>
-                <span className="text-[11px] text-muted-foreground truncate">
+                <span className="text-caption text-muted-foreground truncate">
                   {STAGE_STATUS_LABELS[status]}
                 </span>
               </div>

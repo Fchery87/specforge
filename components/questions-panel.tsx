@@ -367,20 +367,20 @@ export function QuestionsPanel({
     <Card variant="static">
       <CardHeader className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex-1">
-          <CardTitle className="text-xl normal-case tracking-normal font-semibold">
+          <CardTitle className="text-title font-semibold">
             Questions & Clarifications
           </CardTitle>
           <CardDescription className="mt-1">
             Answer these questions to help generate better artifacts.
             {unansweredRequired > 0 && (
-              <span className="text-warning ml-2 font-medium">
+              <span className="text-amber ml-2 font-medium">
                 {unansweredRequired} required question{unansweredRequired !== 1 ? "s" : ""} unanswered
               </span>
             )}
           </CardDescription>
           {errorMessage && (
-            <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-sm text-destructive">{errorMessage}</p>
+            <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded-sm">
+              <p className="text-ui text-destructive">{errorMessage}</p>
             </div>
           )}
         </div>
@@ -389,12 +389,12 @@ export function QuestionsPanel({
             variant="outline"
             size="sm"
             onClick={() => setIsStressTestOpen(true)}
-            className="border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+            className="border-amber/30 text-amber dark:text-amber hover:bg-amber/10"
           >
-            <ShieldAlert className="w-4 h-4 mr-1.5 text-amber-500" />
+            <ShieldAlert className="size-4 mr-1.5 text-amber" />
             Stress-Test Plan
             {grillSession?.totalQuestionsAsked ? (
-              <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+              <Badge variant="secondary" className="ml-1.5 text-caption px-1.5 py-0">
                 {Math.min(grillSession.totalQuestionsAsked, 10)}/10
               </Badge>
             ) : null}
@@ -405,7 +405,7 @@ export function QuestionsPanel({
             onClick={handleBatchAiGenerate}
             disabled={isBatchGenerating || (questions?.length ?? 0) === 0}
           >
-            <Sparkles className="w-4 h-4 mr-2" />
+            <Sparkles className="size-4 mr-2" />
             Let AI answer all
           </Button>
           <Button
@@ -415,9 +415,9 @@ export function QuestionsPanel({
             disabled={isRegenerating}
           >
             {isRegenerating ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="size-4 mr-2 animate-spin" />
             ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="size-4 mr-2" />
             )}
             Regenerate
           </Button>

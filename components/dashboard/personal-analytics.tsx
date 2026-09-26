@@ -4,6 +4,7 @@ import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { 
   FileText, 
   TrendingUp, 
@@ -44,53 +45,47 @@ function StatCard({
   trend?: 'up' | 'down' | null;
 }) {
   return (
-    <Card 
-      className={`
-        relative overflow-hidden transition-all duration-300
-        hover:shadow-lg hover:-translate-y-0.5
-        ${accent ? 'border-primary/50 bg-primary/5' : 'border-border/50'}
-      `}
+    <Card
+      className={cn(
+        "relative overflow-hidden",
+        accent ? "border-ember/50 bg-ember/5" : "border-line/50"
+      )}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-primary/5 opacity-0 hover:opacity-100 transition-opacity" />
-      
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          {title}
-        </span>
-        <div className={`
-          w-8 h-8 rounded-none flex items-center justify-center
-          ${accent ? 'bg-primary text-black' : 'bg-secondary/50 text-muted-foreground'}
-          transition-transform group-hover:scale-110
-        `}>
-          <Icon className="w-4 h-4" />
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <span className="text-caption text-dim">{title}</span>
+        <div
+          className={cn(
+            "flex size-8 items-center justify-center rounded-sm",
+            accent ? "bg-ember text-primary-foreground" : "bg-raised/50 text-dim"
+          )}
+        >
+          <Icon className="size-4" />
         </div>
       </CardHeader>
-      
-      <CardContent className="relative z-10">
-        <div className={`text-3xl font-black tracking-tight ${accent ? 'text-primary' : ''}`}>
+
+      <CardContent>
+        <div className={cn("text-heading font-semibold text-ink", accent && "text-ember")}>
           {value}
         </div>
-        
-        <div className="flex items-center justify-between mt-2">
-          {subtitle && (
-            <span className="text-[11px] text-muted-foreground tracking-wide">
-              {subtitle}
-            </span>
-          )}
-          
+
+        <div className="mt-2 flex items-center justify-between">
+          {subtitle && <span className="text-caption text-muted-foreground">{subtitle}</span>}
+
           {trend && (
-            <span className={`
-              text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5
-              ${trend === 'up' ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}
-            `}>
-              {trend === 'up' ? '↑' : '↓'} trending
+            <span
+              className={cn(
+                "text-caption",
+                trend === "up" ? "text-sage" : "text-brick"
+              )}
+            >
+              {trend === "up" ? "Trending up" : "Trending down"}
             </span>
           )}
         </div>
       </CardContent>
-      
+
       {accent && (
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary/20" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-ember/30" />
       )}
     </Card>
   );
@@ -98,13 +93,13 @@ function StatCard({
 
 function StatCardSkeleton() {
   return (
-    <Card className="border-border/50">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="border-line/50">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <Skeleton className="h-3 w-20" />
-        <Skeleton className="w-8 h-8" />
+        <Skeleton className="size-8" />
       </CardHeader>
       <CardContent>
-        <Skeleton className="h-8 w-24 mb-2" />
+        <Skeleton className="mb-2 h-8 w-24" />
         <Skeleton className="h-3 w-16" />
       </CardContent>
     </Card>
@@ -131,18 +126,14 @@ export function PersonalAnalytics() {
   const successTrend = stats.successRate >= 90 ? 'up' : stats.successRate >= 70 ? null : 'down';
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <div className="relative">
-          <Activity className="w-5 h-5 text-primary" />
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
+          <Activity className="size-5 text-ember" />
+          <div className="absolute -top-1 -right-1 size-2 animate-pulse rounded-full bg-ember" />
         </div>
-        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-          Your Stats
-        </h2>
-        <span className="text-[10px] px-2 py-0.5 bg-secondary/50 text-muted-foreground">
-          30 days
-        </span>
+        <h2 className="text-ui font-medium text-ink">Your stats</h2>
+        <span className="bg-raised/50 px-2 py-0.5 text-caption text-dim">30 days</span>
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -177,17 +168,17 @@ export function PersonalAnalytics() {
         />
       </div>
       
-      <div className="flex items-center gap-6 pt-2 text-[11px] text-muted-foreground">
+      <div className="flex items-center gap-6 pt-2 text-caption text-muted-foreground">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3 h-3" />
+          <Sparkles className="size-3" />
           <span>{stats.phasesCompleted} phases completed</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+          <div className="size-2 rounded-full bg-sage" />
           <span>{stats.activeProjects} active projects</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-primary" />
+          <div className="size-2 rounded-full bg-ember" />
           <span>{stats.completedProjects} completed</span>
         </div>
       </div>

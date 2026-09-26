@@ -9,7 +9,7 @@ import {
 } from "../ui/card";
 
 describe("Card component", () => {
-  it("renders default variant with border hover class", () => {
+  it("renders default variant with a hairline border and no lift", () => {
     const { container } = render(
       <Card>
         <CardContent>Default content</CardContent>
@@ -17,11 +17,15 @@ describe("Card component", () => {
     );
 
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("hover:border-primary/50");
+    expect(card).toHaveClass("rounded-lg");
+    expect(card).toHaveClass("border-line");
+    expect(card).toHaveClass("hover:border-line-strong");
     expect(card).not.toHaveClass("hover:bg-primary");
+    expect(card).not.toHaveClass("hover:shadow-lg");
+    expect(card).not.toHaveClass("hover:-translate-y-1");
   });
 
-  it("renders interactive variant with primary border, lift, and shadow classes", () => {
+  it("renders interactive variant with a border and background shift on hover", () => {
     const { container } = render(
       <Card variant="interactive">
         <CardHeader>
@@ -33,15 +37,17 @@ describe("Card component", () => {
     );
 
     const card = container.firstChild as HTMLElement;
-    expect(card).toHaveClass("hover:border-primary");
-    expect(card).toHaveClass("hover:shadow-lg");
-    expect(card).toHaveClass("hover:-translate-y-1");
-    expect(card).not.toHaveClass("hover:bg-primary");
+    expect(card).toHaveClass("border-line");
+    expect(card).toHaveClass("hover:border-line-strong");
+    expect(card).toHaveClass("hover:bg-raised");
+    expect(card).not.toHaveClass("hover:shadow-lg");
+    expect(card).not.toHaveClass("hover:-translate-y-1");
 
     const title = screen.getByText("Interactive Title");
+    expect(title).toHaveClass("text-body");
     expect(title).toHaveClass("group-hover:text-primary");
 
     const description = screen.getByText("Interactive Description");
-    expect(description).toHaveClass("group-hover:text-foreground/90");
+    expect(description).toHaveClass("group-hover:text-ink");
   });
 });

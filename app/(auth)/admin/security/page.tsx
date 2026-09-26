@@ -34,20 +34,20 @@ import {
 } from "@/components/ui/select";
 
 const ACTION_COLORS: Record<string, string> = {
-  'user_suspended': 'bg-red-500/10 text-red-500 border-red-500',
-  'project_deleted': 'bg-orange-500/10 text-orange-500 border-orange-500',
-  'projects_bulk_deleted': 'bg-orange-500/10 text-orange-500 border-orange-500',
-  'credential_updated': 'bg-blue-500/10 text-blue-500 border-blue-500',
-  'feature_flag_updated': 'bg-purple-500/10 text-purple-500 border-purple-500',
-  'system_config_updated': 'bg-green-500/10 text-green-500 border-green-500',
+  'user_suspended': 'bg-brick/10 text-brick border-brick',
+  'project_deleted': 'bg-amber/10 text-amber border-amber',
+  'projects_bulk_deleted': 'bg-amber/10 text-amber border-amber',
+  'credential_updated': 'bg-slate/10 text-slate border-slate',
+  'feature_flag_updated': 'bg-slate/10 text-slate border-slate',
+  'system_config_updated': 'bg-sage/10 text-sage border-sage',
 };
 
 const TARGET_ICONS: Record<string, React.ReactNode> = {
-  'user': <User className="w-4 h-4" />,
-  'project': <FolderOpen className="w-4 h-4" />,
-  'credential': <Key className="w-4 h-4" />,
-  'system': <Settings className="w-4 h-4" />,
-  'model': <FileText className="w-4 h-4" />,
+  'user': <User className="size-4" />,
+  'project': <FolderOpen className="size-4" />,
+  'credential': <Key className="size-4" />,
+  'system': <Settings className="size-4" />,
+  'model': <FileText className="size-4" />,
 };
 
 export default function SecurityPage() {
@@ -72,7 +72,7 @@ export default function SecurityPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -94,7 +94,7 @@ export default function SecurityPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Loading security data...</span>
         </div>
       </main>
@@ -116,93 +116,81 @@ export default function SecurityPage() {
   const uniqueActions = [...new Set(auditLogs.map((log) => log.action))];
 
   return (
-    <main className="relative">
+    <main>
       {/* Hero Header */}
-      <section className="page-header relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-fade opacity-20" />
-        <div className="page-container relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <Lock className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Admin Console
-            </span>
-          </div>
-          <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-            Security <span className="text-primary">& Audit Logs</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            Monitor security events, audit trails, and administrative actions.
-          </p>
+      <section className="page-header">
+        <div className="page-container">
+          <span className="text-label text-dim">Admin Console</span>
+          <h1 className="mt-2 text-heading font-medium text-ink">Security & Audit Logs</h1>
+          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Monitor security events, audit trails, and administrative actions.</p>
         </div>
       </section>
 
       {/* Security Overview */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <div className="grid gap-4 md:grid-cols-4">
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Total Events
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{auditLogs.length}</p>
-              <p className="text-xs text-muted-foreground mt-2">Logged actions</p>
+              <p className="text-heading font-bold">{auditLogs.length}</p>
+              <p className="text-caption text-muted-foreground mt-2">Logged actions</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 User Actions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
+              <p className="text-heading font-bold">
                 {auditLogs.filter((l) => l.targetType === 'user').length}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">User-related events</p>
+              <p className="text-caption text-muted-foreground mt-2">User-related events</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Project Actions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
+              <p className="text-heading font-bold">
                 {auditLogs.filter((l) => l.targetType === 'project').length}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">Project-related events</p>
+              <p className="text-caption text-muted-foreground mt-2">Project-related events</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 System Actions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">
+              <p className="text-heading font-bold">
                 {auditLogs.filter((l) => l.targetType === 'system').length}
               </p>
-              <p className="text-xs text-muted-foreground mt-2">Configuration changes</p>
+              <p className="text-caption text-muted-foreground mt-2">Configuration changes</p>
             </CardContent>
           </Card>
         </div>
       </section>
 
       {/* Filters */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Filters:</span>
+            <Filter className="size-4 text-muted-foreground" />
+            <span className="text-ui font-medium">Filters:</span>
           </div>
           
           <Select value={actionFilter || 'all'} onValueChange={(v) => setActionFilter(v === 'all' ? null : v)}>
@@ -252,7 +240,7 @@ export default function SecurityPage() {
             className="ml-auto"
             onClick={() => window.location.reload()}
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="size-4 mr-2" />
             Refresh
           </Button>
         </div>
@@ -262,9 +250,9 @@ export default function SecurityPage() {
       <section className="page-section page-container">
         <Card variant="default">
           <CardContent className="p-0">
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-line">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-4 p-4 bg-secondary/30 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              <div className="grid grid-cols-12 gap-4 p-4 bg-raised/30 text-ui font-medium text-muted-foreground">
                 <div className="col-span-2">Time</div>
                 <div className="col-span-2">Actor</div>
                 <div className="col-span-2">Action</div>
@@ -277,19 +265,19 @@ export default function SecurityPage() {
                 auditLogs.map((log) => (
                   <div 
                     key={log.id}
-                    className="grid grid-cols-12 gap-4 p-4 items-start hover:bg-secondary/20 transition-colors"
+                    className="grid grid-cols-12 gap-4 p-4 items-start hover:bg-raised/20 transition-colors"
                   >
                     <div className="col-span-2">
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{formatTime(log.createdAt)}</span>
+                        <Clock className="size-4 text-muted-foreground" />
+                        <span className="text-ui">{formatTime(log.createdAt)}</span>
                       </div>
                     </div>
 
                     <div className="col-span-2">
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-mono text-sm truncate" title={log.actorId}>
+                        <User className="size-4 text-muted-foreground" />
+                        <span className="font-mono text-ui truncate" title={log.actorId}>
                           {log.actorId.slice(0, 12)}...
                         </span>
                       </div>
@@ -299,8 +287,8 @@ export default function SecurityPage() {
                       <Badge 
                         variant="outline" 
                         className={cn(
-                          "capitalize text-xs",
-                          ACTION_COLORS[log.action] || 'bg-muted text-muted-foreground'
+                          "capitalize text-caption",
+                          ACTION_COLORS[log.action] || 'bg-raised text-muted-foreground'
                         )}
                       >
                         {log.action.replace(/_/g, ' ')}
@@ -309,15 +297,15 @@ export default function SecurityPage() {
 
                     <div className="col-span-2">
                       <div className="flex items-center gap-2">
-                        {TARGET_ICONS[log.targetType] || <FileText className="w-4 h-4" />}
-                        <Badge variant="secondary" className="capitalize text-xs">
+                        {TARGET_ICONS[log.targetType] || <FileText className="size-4" />}
+                        <Badge variant="secondary" className="capitalize text-caption">
                           {log.targetType}
                         </Badge>
                       </div>
                     </div>
 
                     <div className="col-span-4">
-                      <p className="text-sm text-muted-foreground break-all">
+                      <p className="text-ui text-muted-foreground break-all">
                         {log.targetId ? (
                           <span className="font-mono">{log.targetId.slice(0, 20)}...</span>
                         ) : (
@@ -325,7 +313,7 @@ export default function SecurityPage() {
                         )}
                       </p>
                       {log.details && (
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-caption text-muted-foreground mt-1">
                           {log.details.length > 100 ? log.details.slice(0, 100) + '...' : log.details}
                         </p>
                       )}
@@ -334,8 +322,8 @@ export default function SecurityPage() {
                 ))
               ) : (
                 <div className="p-12 text-center">
-                  <Shield className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <h3 className="text-lg font-medium mb-2">No Audit Logs</h3>
+                  <Shield className="size-12 mx-auto mb-4 opacity-30" />
+                  <h3 className="text-title font-medium mb-2">No Audit Logs</h3>
                   <p className="text-muted-foreground max-w-md mx-auto">
                     {actionFilter || targetFilter
                       ? "No logs match your current filters. Try adjusting your search criteria."
@@ -350,9 +338,9 @@ export default function SecurityPage() {
       </section>
 
       {/* Security Tips */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+          <h2 className="text-title font-bold">
             Security Guidelines
           </h2>
         </div>
@@ -361,14 +349,14 @@ export default function SecurityPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+                <div className="size-10 rounded-lg bg-sage/10 flex items-center justify-center">
+                  <CheckCircle className="size-5 text-sage" />
                 </div>
                 <CardTitle>Best Practices</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
                   Review audit logs regularly
@@ -388,24 +376,24 @@ export default function SecurityPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5 text-yellow-500" />
+                <div className="size-10 rounded-lg bg-amber/10 flex items-center justify-center">
+                  <AlertCircle className="size-5 text-amber" />
                 </div>
                 <CardTitle>Warning Signs</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-yellow-500">•</span>
+                  <span className="text-amber">•</span>
                   Multiple failed auth attempts
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-yellow-500">•</span>
+                  <span className="text-amber">•</span>
                   Unusual API usage patterns
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-yellow-500">•</span>
+                  <span className="text-amber">•</span>
                   Bulk deletions or modifications
                 </li>
               </ul>
@@ -415,24 +403,24 @@ export default function SecurityPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <Key className="w-5 h-5 text-blue-500" />
+                <div className="size-10 rounded-lg bg-slate/10 flex items-center justify-center">
+                  <Key className="size-5 text-slate" />
                 </div>
                 <CardTitle>Compliance</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500">•</span>
+                  <span className="text-slate">•</span>
                   All actions are logged and immutable
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500">•</span>
+                  <span className="text-slate">•</span>
                   Export logs for compliance audits
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-500">•</span>
+                  <span className="text-slate">•</span>
                   GDPR data export available
                 </li>
               </ul>
@@ -441,10 +429,6 @@ export default function SecurityPage() {
         </div>
       </section>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
-        SECURITY
-      </div>
     </main>
   );
 }

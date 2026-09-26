@@ -249,25 +249,25 @@ export function StressTestModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl w-[95vw] max-h-[88vh] h-[88vh] flex flex-col p-6 overflow-hidden">
-        <DialogHeader className="shrink-0 space-y-2 pb-3 border-b border-border">
+        <DialogHeader className="shrink-0 space-y-2 pb-3 border-b border-line">
           <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="flex items-center gap-2 text-xl font-semibold">
-              <ShieldAlert className="w-5 h-5 text-amber-500" />
+            <DialogTitle className="flex items-center gap-2 text-title font-semibold">
+              <ShieldAlert className="size-5 text-amber" />
               Stress-Test Plan
             </DialogTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-caption">
                 Round {currentRound}
               </Badge>
               <Badge
                 variant={totalAsked >= 10 ? "destructive" : "secondary"}
-                className="text-xs"
+                className="text-caption"
               >
                 {Math.min(totalAsked, 10)} / 10 Max Questions
               </Badge>
             </div>
           </div>
-          <DialogDescription className="text-sm">
+          <DialogDescription className="text-ui">
             Principal architect grilling interview. Pressure-tests edge cases, failure
             modes, and data invariants in short rounds. Each question includes an
             opinionated 2026 standard recommendation.
@@ -275,7 +275,7 @@ export function StressTestModal({
         </DialogHeader>
 
         {errorMessage && (
-          <div className="shrink-0 p-3 rounded-md bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+          <div className="shrink-0 p-3 rounded-sm bg-destructive/10 border border-destructive/20 text-ui text-destructive">
             {errorMessage}
           </div>
         )}
@@ -283,17 +283,17 @@ export function StressTestModal({
         <div className="flex-1 min-h-0 overflow-y-auto pr-3 py-2 space-y-6">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm">Generating frontier stress-test questions...</p>
+              <Loader2 className="size-8 animate-spin text-primary" />
+              <p className="text-ui">Generating frontier stress-test questions...</p>
             </div>
           ) : isCapped && currentQuestions.length === 0 ? (
             <div className="py-8 space-y-4">
-              <div className="p-4 rounded-lg bg-muted/60 border border-border text-center space-y-2">
-                <Sparkles className="w-6 h-6 text-amber-500 mx-auto" />
-                <h4 className="font-medium text-base">
+              <div className="p-4 rounded-lg bg-raised/60 border border-line text-center space-y-2">
+                <Sparkles className="size-6 text-amber mx-auto" />
+                <h4 className="font-medium text-body">
                   Stress-Test Limit Reached (10 / 10)
                 </h4>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                <p className="text-ui text-muted-foreground max-w-md mx-auto">
                   You completed all 10 stress-test questions for this phase. All
                   clarifications have been merged into the phase context.
                 </p>
@@ -301,7 +301,7 @@ export function StressTestModal({
 
               {grillSession?.rounds && grillSession.rounds.length > 0 && (
                 <div className="space-y-3 mt-4">
-                  <h5 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <h5 className="text-caption font-semibold text-muted-foreground">
                     Confirmed Architectural Decisions
                   </h5>
                   {grillSession.rounds
@@ -309,12 +309,12 @@ export function StressTestModal({
                     .map((item, idx) => (
                       <div
                         key={item.id || idx}
-                        className="p-3 rounded-md border border-border bg-card/50 text-sm space-y-1"
+                        className="p-3 rounded-sm border border-line bg-surface/50 text-ui space-y-1"
                       >
-                        <p className="font-medium text-foreground">
+                        <p className="font-medium text-ink">
                           {idx + 1}. {item.text}
                         </p>
-                        <p className="text-muted-foreground text-xs">
+                        <p className="text-muted-foreground text-caption">
                           {item.userAnswer || item.recommendedAnswer}
                         </p>
                       </div>
@@ -327,12 +327,12 @@ export function StressTestModal({
               {currentQuestions.map((q, idx) => (
                 <div
                   key={q.id}
-                  className="p-4 rounded-lg border border-border bg-card space-y-3 shadow-xs"
+                  className="p-4 rounded-lg border border-line bg-surface space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <p
                       data-testid="grill-question-text"
-                      className="font-medium text-sm leading-snug"
+                      className="font-medium text-ui leading-snug"
                     >
                       <span className="text-muted-foreground mr-1">
                         {idx + 1}.
@@ -344,21 +344,21 @@ export function StressTestModal({
                   {q.recommendedAnswer && (
                     <div
                       className={cn(
-                        "p-3.5 rounded-md border space-y-2 transition-colors cursor-pointer",
+                        "p-3.5 rounded-sm border space-y-2 transition-colors cursor-pointer",
                         q.answer.trim() === q.recommendedAnswer.trim()
-                          ? "bg-amber-500/15 border-amber-500/40 ring-1 ring-amber-500/30"
-                          : "bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/15",
+                          ? "bg-amber/15 border-amber/40 ring-amber/30"
+                          : "bg-amber/10 border-amber/20 hover:bg-amber/15",
                       )}
                       onClick={() => handleAcceptRecommendation(q.id)}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span className="text-caption font-semibold text-amber dark:text-amber flex items-center gap-1.5">
+                          <Sparkles className="size-3.5 shrink-0" />
                           Recommended 2026 Standard
                           {q.answer.trim() === q.recommendedAnswer.trim() && (
                             <Badge
                               variant="outline"
-                              className="text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40 ml-1 py-0 px-1.5"
+                              className="text-caption bg-amber/20 text-amber dark:text-amber border-amber/40 ml-1 py-0 px-1.5"
                             >
                               Selected
                             </Badge>
@@ -372,17 +372,17 @@ export function StressTestModal({
                               : "outline"
                           }
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-7 text-caption"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAcceptRecommendation(q.id);
                           }}
                         >
-                          <Check className="w-3.5 h-3.5 mr-1" />
+                          <Check className="size-3.5 mr-1" />
                           Accept
                         </Button>
                       </div>
-                      <p className="text-xs text-foreground/90 leading-relaxed">
+                      <p className="text-caption text-ink/90 leading-relaxed">
                         {q.recommendedAnswer}
                       </p>
                     </div>
@@ -390,7 +390,7 @@ export function StressTestModal({
 
                   {q.suggestions && q.suggestions.length > 0 && (
                     <div className="space-y-1.5">
-                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      <span className="text-caption text-muted-foreground font-medium">
                         Select an Option:
                       </span>
                       <div className="flex flex-wrap gap-2">
@@ -402,17 +402,17 @@ export function StressTestModal({
                               type="button"
                               aria-pressed={isSelected}
                               className={cn(
-                                "inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border transition-colors cursor-pointer text-left",
+                                "inline-flex items-center gap-1.5 text-caption px-2.5 py-1 rounded-sm border transition-colors cursor-pointer text-left",
                                 isSelected
-                                  ? "border-primary bg-primary/10 text-primary font-medium shadow-xs"
-                                  : "border-border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+                                  ? "border-primary bg-primary/10 text-primary font-medium"
+                                  : "border-line bg-raised/40 text-muted-foreground hover:bg-raised hover:text-ink",
                               )}
                               onClick={() => handleUpdateAnswer(q.id, suggestion)}
                             >
                               {isSelected ? (
-                                <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <Check className="size-3.5 text-primary shrink-0" />
                               ) : (
-                                <Sparkles className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+                                <Sparkles className="size-3.5 text-muted-foreground/60 shrink-0" />
                               )}
                               <span>{suggestion}</span>
                             </button>
@@ -423,14 +423,14 @@ export function StressTestModal({
                   )}
 
                   <div className="space-y-1">
-                    <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                    <label className="text-caption font-medium text-muted-foreground">
                       Decision / Custom Refinements
                     </label>
                     <Textarea
                       value={q.answer}
                       onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
                       placeholder="Write your decision or edit the recommendation..."
-                      className="min-h-[70px] text-xs resize-y"
+                      className="min-h-[70px] text-caption resize-y"
                     />
                   </div>
                 </div>
@@ -439,21 +439,21 @@ export function StressTestModal({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
+        <DialogFooter className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-line">
           <div>
             {totalAsked > 0 && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-xs text-muted-foreground hover:text-destructive"
+                className="text-caption text-muted-foreground hover:text-destructive"
                 onClick={handleResetSession}
                 disabled={isResetting || isLoading}
               >
                 {isResetting ? (
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  <Loader2 className="size-3.5 mr-1.5 animate-spin" />
                 ) : (
-                  <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                  <RotateCcw className="size-3.5 mr-1.5" />
                 )}
                 Reset Stress Test
               </Button>
@@ -481,9 +481,9 @@ export function StressTestModal({
                   disabled={isSaving || isLoading}
                 >
                   {isSaving ? (
-                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    <Loader2 className="size-3.5 mr-1.5 animate-spin" />
                   ) : (
-                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                    <Check className="size-3.5 mr-1.5" />
                   )}
                   Save Answers
                 </Button>
@@ -496,9 +496,9 @@ export function StressTestModal({
                     disabled={isSaving || isLoading}
                   >
                     {isSaving ? (
-                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                      <Loader2 className="size-3.5 mr-1.5 animate-spin" />
                     ) : (
-                      <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
+                      <ArrowRight className="size-3.5 mr-1.5" />
                     )}
                     Save & Next Round
                   </Button>

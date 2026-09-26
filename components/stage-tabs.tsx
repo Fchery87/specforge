@@ -89,10 +89,10 @@ export function StageTabs({
               href={`/project/${projectId}/phase/${phaseId}`}
               aria-current={isCurrent ? "page" : undefined}
               className={cn(
-                "px-3.5 py-1.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap",
+                "px-3.5 py-1.5 text-ui font-medium transition-colors border-b whitespace-nowrap",
                 isCurrent
-                  ? "border-primary text-foreground font-semibold"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  ? "border-primary text-ink font-semibold"
+                  : "border-transparent text-muted-foreground hover:text-ink hover:border-line"
               )}
             >
               {label}
@@ -107,12 +107,12 @@ export function StageTabs({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 h-8 text-xs font-medium shrink-0"
+              className="gap-1.5 h-8 text-caption font-medium shrink-0"
               aria-label="Add a section"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="size-3.5" />
               <span>Add a section</span>
-              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+              <ChevronDown className="size-3 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -122,7 +122,7 @@ export function StageTabs({
                 onClick={() => onToggleSkip?.(phaseId)}
                 className="cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                <Plus className="size-3.5 mr-2 text-muted-foreground" />
                 {PHASE_TAB_LABELS[phaseId] ?? phaseId}
               </DropdownMenuItem>
             ))}

@@ -1,0 +1,9 @@
+[
+  { "path": "/", "viewports": ["desktop", "mobile"], "fullPage": true },
+  { "path": "/design", "viewports": ["desktop", "mobile"], "fullPage": true },
+  { "path": "/sign-in", "viewports": ["desktop", "mobile"], "fullPage": false },
+  { "path": "/sign-up", "viewports": ["desktop"], "fullPage": false },
+  { "path": "/privacy", "viewports": ["desktop"], "fullPage": true },
+  { "path": "/terms", "viewports": ["desktop"], "fullPage": true },
+  { "path": "/this-route-does-not-exist", "viewports": ["desktop"], "fullPage": false }
+]

@@ -85,7 +85,10 @@ import { X, Plus, ChevronDown } from "lucide-react";
 
 - **Button variants**: `components/ui/button.tsx` (CVA pattern reference)
 - **Dialogs**: `components/ui/dialog.tsx`, `components/ui/confirm-dialog.tsx`
+- **The reading surface**: `components/artifact-document.tsx` renders an artifact as a document; `components/spec-document.tsx` holds the notation
+- **Artifact view**: `components/artifact-preview.tsx` (header with identity and actions, body is the document)
 - **Artifact Editor**: `components/artifact-editor-modal.tsx` (Split, Edit, Preview, and Schema modes)
+- **Workflow**: `components/stage-stepper.tsx` (the map), `components/next-action-button.tsx` (the instruction), `components/add-section-menu.tsx` (re-enable a skipped phase)
 - **Evidence Review**: `components/evidence-review-panel.tsx` (requirement status and source review)
 - **Verification**: `components/verification-panel.tsx` (diff findings with requirement references)
 - **Schema Validator**: `components/schema-validator-panel.tsx` (Monaco-style JSON/YAML validator)
@@ -119,10 +122,25 @@ rg -n "'use client'" components/
 - **'use client'**: Any component using hooks, event handlers, or browser APIs must have this directive at the top
 - **Radix imports**: Must import from `@radix-ui/react-*` packages (already installed)
 - **Motion**: Wrap with `AnimatePresence` for exit animations
-- **Tailwind**: Use `rounded-none` (design system uses sharp corners)
+- **Tailwind**: Radius has three values only: `rounded-sm` (6px controls), `rounded-lg` (12px containers), `rounded-full` (pills)
+- **Colour**: Use a token utility. Never a raw hex, an `rgba()`, or a `bg-zinc-*`. See [docs/design.md](../docs/design.md)
+- **Type**: Three roles. `font-sans` for chrome, `font-serif` for specification prose, `font-mono` for IDs and code. Headings are sentence case, never uppercase
+- **Focus**: The global `:focus-visible` outline is the only focus treatment. Do not add `ring-*` focus styles
+- **The document language**: A specification renders through `components/spec-document.tsx` and `components/artifact-document.tsx`, not as cards
+- **One description per page**: The workflow is described once. `StageStepper` maps it, `NextActionButton` states the next step, `AddSectionMenu` re-enables a skipped phase. `StageCard` and `StageTabs` are retained but no page renders them; do not add a fourth description of the same eight phases
+- **Mermaid**: A document rendered in pieces must advance the heading cursor with `countSpecHeadings`, or its anchors drift from `parseSpecOutline`
 
 ## Pre-PR Checks
 
 ```bash
 npm run lint -- components/ --max-warnings=0
+node design/lint-tokens.mjs $(find components -name '*.tsx')
 ```
+
+CI lints the whole tree, so a new component is covered as soon as it lands.
+
+## Design system reference
+
+[docs/design.md](../docs/design.md) holds the palette, the type scale, the motion and focus rules,
+the document language, and the audit commands. [ADR 0001](../docs/adr/0001-ember-design-system.md)
+records why the previous brutalist system was replaced.

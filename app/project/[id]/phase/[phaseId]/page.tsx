@@ -19,11 +19,10 @@ import { SectionPlanPreview, SectionPlanPreviewSkeleton } from "@/components/sec
 import { getSectionPlansForPhase } from "@/lib/llm/section-plans";
 import type { SectionPlanConfig, UserSectionPreference } from "@/lib/llm/types";
 import type { GeneratedSectionPlan } from "@/lib/section-plan-parser";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
-import { Loader2, Download, Archive, Sparkles, FileText, Layers, Code, Package, BookOpen, Target, ClipboardList } from "lucide-react";
+import { Sparkles, FileText, Layers, Code, Package, BookOpen, Target, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -33,8 +32,8 @@ import { VerificationPanel } from "@/components/verification-panel";
 import { EvidenceReviewPanel } from "@/components/evidence-review-panel";
 import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { StageStepper } from "@/components/stage-stepper";
-import { StageTabs } from "@/components/stage-tabs";
 import { NextActionButton } from "@/components/next-action-button";
+import { AddSectionMenu } from "@/components/add-section-menu";
 import { nextAction, MODE_POLICIES, type PhaseId, type ProjectMode } from "@/lib/workflow";
 
 
@@ -129,7 +128,6 @@ export default function PhasePage() {
     isStreamingActive || isStreamingCancelled;
 
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
-  const PhaseIcon = phaseConfig.icon;
   const isSkipped = project?.skippedPhases?.includes(phaseId) ?? false;
   const currentMode = (project?.mode ?? "full") as ProjectMode;
   const nextActionItem = project
@@ -326,18 +324,17 @@ export default function PhasePage() {
   // Loading state
   if (!phase || !project) {
     return (
-      <main className="relative min-h-[calc(100vh-5rem)]">
-        <div className="absolute inset-0 bg-grid-fade opacity-10" />
+      <main className="min-h-[calc(100vh-var(--header-height))]">
         <div className="page-container py-6">
-          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-5 w-40" />
         </div>
         <div className="page-container">
-          <div className="mb-12">
+          <div className="mb-10">
             <Skeleton className="h-8 w-32 mb-4" />
             <Skeleton className="h-16 w-2/3 mb-4" />
             <Skeleton className="h-6 w-1/2" />
           </div>
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <CardSkeleton />
             <CardSkeleton />
           </div>
@@ -347,12 +344,9 @@ export default function PhasePage() {
   }
 
   return (
-    <main className="relative min-h-[calc(100vh-5rem)]">
-      {/* Grid Background */}
-      <div className="absolute inset-0 bg-grid-fade opacity-10" />
-
+    <main className="min-h-[calc(100vh-var(--header-height))]">
       {/* Back Navigation */}
-      <div className="page-container py-6 relative z-10">
+      <div className="page-container py-6">
         <Breadcrumbs
           items={[
             { label: "Dashboard", href: "/dashboard" },
@@ -363,7 +357,7 @@ export default function PhasePage() {
       </div>
 
       {/* Stage Stepper (above the title/phase header) */}
-      <section className="page-container pb-6 relative z-10">
+      <section className="page-container pb-6">
         <StageStepper
           projectId={projectId}
           currentPhase={phaseId}
@@ -373,74 +367,68 @@ export default function PhasePage() {
       </section>
 
       {/* Phase Header */}
-      <section className="page-container pb-8 relative z-10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary flex items-center justify-center">
-            <PhaseIcon className="w-5 h-5 text-black" />
-          </div>
-          <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-            {phaseId === "constitution" ? project.title : phaseConfig.label}
-          </span>
-        </div>
-        <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
+      <section className="page-container pb-8">
+        <p className="text-label text-dim">
+          {phaseId === "constitution" ? project.title : phaseConfig.label}
+        </p>
+        <h1 className="mt-2 text-heading font-medium text-ink">
           {phaseId === "constitution" ? "Project Rules" : project.title}
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl">
+        <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">
           {phaseConfig.description}
         </p>
       </section>
 
-      {/* Stage Tabs & Next Action (under phase header) */}
-      <section className="page-container pb-8 relative z-10">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
-          <StageTabs
-            projectId={projectId}
-            currentPhase={phaseId}
-            phases={phases ?? []}
-            skippedPhases={project?.skippedPhases ?? []}
-            onToggleSkip={async (phaseToToggle) => {
-              try {
-                await toggleSkip({ projectId, phaseId: phaseToToggle, skip: false });
-                toast.success(`Enabled ${PHASE_CONFIG[phaseToToggle]?.label ?? phaseToToggle}`);
-              } catch {
-                toast.error(`Failed to enable section`);
-              }
-            }}
-          />
-          {nextActionItem && (
-            <div className="shrink-0 ml-auto">
-              <NextActionButton
-                projectId={projectId}
-                action={nextActionItem}
-                skippedPhases={project?.skippedPhases ?? []}
-              />
-            </div>
-          )}
-        </div>
-      </section>
+      {/* One next action, under the stepper */}
+      {nextActionItem || (project.skippedPhases ?? []).length > 0 ? (
+        <section className="page-container pb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
+            <AddSectionMenu
+              skippedPhases={project.skippedPhases ?? []}
+              onEnable={async (phaseToEnable) => {
+                try {
+                  await toggleSkip({ projectId, phaseId: phaseToEnable, skip: false });
+                  toast.success(`Enabled ${PHASE_CONFIG[phaseToEnable]?.label ?? phaseToEnable}`);
+                } catch {
+                  toast.error("Failed to enable section");
+                }
+              }}
+            />
+            {nextActionItem && (
+              <div className="ml-auto shrink-0">
+                <NextActionButton
+                  projectId={projectId}
+                  action={nextActionItem}
+                  skippedPhases={project?.skippedPhases ?? []}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       {/* Generation Readiness Banner */}
-      <section className={readiness?.ready === false ? "page-container pb-6 relative z-10" : undefined}>
+      <section className={readiness?.ready === false ? "page-container pb-6" : undefined}>
         <GenerationReadinessBanner ready={readiness?.ready ?? true} />
       </section>
 
       {/* Skipped Phase Banner */}
       {isSkipped && (
-        <section className="page-container pb-6 relative z-10">
+        <section className="page-container pb-6">
 
-          <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
+          <div className="flex flex-col justify-between gap-4 rounded-lg border border-amber/40 bg-amber/10 p-4 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                  Skipped Phase
+                <span className="text-label text-amber">
+                  Skipped phase
                 </span>
                 {project?.mode && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-caption text-dim">
                     ({MODE_POLICIES[project.mode as ProjectMode]?.label ?? 'Custom Workflow'})
                   </span>
                 )}
               </div>
-              <p className="text-sm text-foreground/80">
+              <p className="text-ui text-muted-foreground">
                 This phase is skipped in your current project workflow. You can enable it anytime to answer questions and generate its artifact.
               </p>
             </div>
@@ -455,24 +443,24 @@ export default function PhasePage() {
                   toast.error(`Failed to enable ${phaseConfig.label}`);
                 }
               }}
-              className="border-amber-500/40 hover:bg-amber-500/20 shrink-0 self-start sm:self-auto"
+              className="shrink-0 self-start border-amber/40 hover:bg-amber/20 sm:self-auto"
             >
-              Enable This Phase
+              Enable this phase
             </Button>
           </div>
         </section>
       )}
 
       {/* Main Content Grid */}
-      <section className="page-container page-section border-t-2 border-border relative z-10">
-        <div className="grid gap-8 lg:grid-cols-2">
+      <section className="page-container page-section border-t border-line">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-12">
           {/* Left Column: Questions */}
-          <div>
-            <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
+          <div className="min-w-0">
+            <h2 className="mb-6 text-title font-medium text-ink">
               Clarifications
             </h2>
             {showSectionPlan ? (
-              <div className="space-y-4">
+              <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-2">
                   <Button
                     variant="ghost"
@@ -480,7 +468,7 @@ export default function PhasePage() {
                     onClick={() => setShowSectionPlan(false)}
                     disabled={isGenerating}
                   >
-                    ← Back to questions
+                    Back to questions
                   </Button>
                   {!aiSectionPlans && !isLoadingAiPlan && (
                     <Button
@@ -489,8 +477,8 @@ export default function PhasePage() {
                       onClick={handleGenerateAiPlan}
                       disabled={isGenerating || isLoadingAiPlan}
                     >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate Plan with AI
+                      <Sparkles aria-hidden className="size-3.5" />
+                      Generate plan with AI
                     </Button>
                   )}
                 </div>
@@ -519,8 +507,8 @@ export default function PhasePage() {
             )}
           </div>
 
-          {/* Right Column: Artifacts */}
-          <div>
+          {/* Right Column: the reading surface */}
+          <div className="min-w-0">
             <ArtifactsHeader
               streamStatus={streamingArtifact?.streamStatus}
               hasArtifacts={!!phase.artifacts && phase.artifacts.length > 0}
@@ -529,7 +517,7 @@ export default function PhasePage() {
             />
 
             {isGenerating && (
-              <div className="mb-4">
+              <div className="mb-6">
                 <GenerationActivityStream
                   activities={generationTask?.activityLog ?? []}
                   isActive={isGenerating}
@@ -537,42 +525,34 @@ export default function PhasePage() {
               </div>
             )}
 
-            <Card variant="static">
-              <CardContent className="p-6">
-                {showStreamingPreview ? (
-                  <StreamingArtifactPreview
-                    title={streamingArtifact?.title ?? "Generating…"}
-                    previewHtml={streamingArtifact?.previewHtml ?? ""}
-                    streamStatus={streamingArtifact?.streamStatus ?? (isGenerating ? "streaming" : undefined)}
-                    currentSection={streamingArtifact?.currentSection}
-                    sectionsCompleted={streamingArtifact?.sectionsCompleted}
-                    sectionsTotal={streamingArtifact?.sectionsTotal}
-                    onCancel={handleCancelGeneration}
-                    isCancelling={isCancelling}
-                  />
-                ) : (phase.artifacts ?? []).length > 0 ? (
-                  <div className="space-y-4">
-                    {phase.artifacts.map((a) => (
-                      <div key={a._id}>
-                        <ArtifactPreview
-                          artifact={a}
-                          projectId={projectId}
-                          onDelete={() => {}}
-                        />
-                        <EvidenceReviewPanel projectId={projectId} artifactId={a._id} />
-                      </div>
-                    ))}
+            {showStreamingPreview ? (
+              <StreamingArtifactPreview
+                title={streamingArtifact?.title ?? "Generating…"}
+                previewHtml={streamingArtifact?.previewHtml ?? ""}
+                streamStatus={streamingArtifact?.streamStatus ?? (isGenerating ? "streaming" : undefined)}
+                currentSection={streamingArtifact?.currentSection}
+                sectionsCompleted={streamingArtifact?.sectionsCompleted}
+                sectionsTotal={streamingArtifact?.sectionsTotal}
+                onCancel={handleCancelGeneration}
+                isCancelling={isCancelling}
+              />
+            ) : (phase.artifacts ?? []).length > 0 ? (
+              <div className="flex flex-col gap-14">
+                {phase.artifacts.map((a) => (
+                  <div key={a._id} className="flex flex-col gap-8">
+                    <ArtifactPreview artifact={a} projectId={projectId} />
+                    <EvidenceReviewPanel projectId={projectId} artifactId={a._id} />
                   </div>
-                ) : (
-                  <EmptyState
-                    variant="inbox"
-                    title="No Artifacts Yet"
-                    description="Answer the interview questions or complete stress-test grilling to generate verified artifacts."
-                    className="py-12"
-                  />
-                )}
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                variant="inbox"
+                title="No artifacts yet"
+                description="Answer the interview questions or complete stress-test grilling to generate verified artifacts."
+                className="py-12"
+              />
+            )}
 
             {/* Export options for handoff phase */}
             {phaseId === "handoff" && project && (
@@ -602,9 +582,9 @@ export default function PhasePage() {
 
       {/* Ticket Board for stories phase */}
       {phaseId === 'stories' && (
-        <section className="page-container page-section border-t-2 border-border relative z-10">
-          <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
-            Ticket Board & Tracer Bullets
+        <section className="page-container page-section border-t border-line">
+          <h2 className="mb-6 text-title font-medium text-ink">
+            Ticket board and tracer bullets
           </h2>
           <TicketBoard
             projectId={projectId}
@@ -616,9 +596,9 @@ export default function PhasePage() {
 
       {/* Verification Panel for specs and stories phases */}
       {(phaseId === 'specs' || phaseId === 'stories') && (
-        <section className="page-container page-section border-t-2 border-border relative z-10">
-          <h2 className="text-v-h3 font-bold uppercase tracking-tighter mb-6">
-            Implementation Verification
+        <section className="page-container page-section border-t border-line">
+          <h2 className="mb-6 text-title font-medium text-ink">
+            Implementation verification
           </h2>
           <div className="max-w-2xl">
             <VerificationPanel
@@ -628,11 +608,6 @@ export default function PhasePage() {
           </div>
         </section>
       )}
-
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
-        {phaseConfig.label.split(' ')[0]?.toUpperCase()}
-      </div>
     </main>
   );
 }

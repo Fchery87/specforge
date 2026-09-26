@@ -88,7 +88,7 @@ export default function CombinedQuestionsPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -98,7 +98,7 @@ export default function CombinedQuestionsPage() {
     return (
       <main className="page-container py-20">
         <div className="text-center">
-          <h1 className="text-xl font-bold">Project not found</h1>
+          <h1 className="text-title font-bold">Project not found</h1>
         </div>
       </main>
     );
@@ -109,11 +109,10 @@ export default function CombinedQuestionsPage() {
   const modeLabel = MODE_POLICIES[modeKey]?.label ?? "Lite";
 
   return (
-    <main className="relative min-h-[calc(100vh-5rem)]">
-      <div className="absolute inset-0 bg-grid-fade opacity-10 pointer-events-none" />
+    <main className="min-h-[calc(100vh-var(--header-height))]">
 
       {/* Back Navigation */}
-      <div className="page-container py-6 relative z-10">
+      <div className="page-container py-6">
         <Breadcrumbs
           items={[
             { label: "Dashboard", href: "/dashboard" },
@@ -124,25 +123,25 @@ export default function CombinedQuestionsPage() {
       </div>
 
       {/* Header */}
-      <section className="page-container pb-8 relative z-10">
+      <section className="page-container pb-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-black" />
+          <div className="size-10 bg-primary flex items-center justify-center">
+            <Sparkles className="size-5 text-primary-foreground" />
           </div>
-          <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          <span className="text-ui font-bold text-muted-foreground">
             {modeLabel} Setup Round
           </span>
         </div>
-        <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
+        <h1 className="text-heading font-bold leading-none mb-4">
           Project Questions
         </h1>
-        <p className="text-lg text-muted-foreground max-w-3xl">
+        <p className="text-title text-muted-foreground max-w-3xl">
           Review and answer the core questions across all stages. AI suggestions are pre-filled below. When you are ready, click Generate everything to build your full specification bundle.
         </p>
       </section>
 
       {/* Combined Questions Form */}
-      <section className="page-container pb-20 relative z-10">
+      <section className="page-container pb-20">
         <CombinedQuestions
           projectId={projectId}
           phases={phases}

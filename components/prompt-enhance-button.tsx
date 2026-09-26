@@ -216,7 +216,7 @@ export function PromptEnhanceButton({
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="flex items-center gap-2"
               >
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="size-4 animate-spin" />
                 <span>Enhancing...</span>
               </motion.div>
             ) : (
@@ -227,7 +227,7 @@ export function PromptEnhanceButton({
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="flex items-center gap-2"
               >
-                <Wand2 className="w-4 h-4" />
+                <Wand2 className="size-4" />
                 <span>Enhance</span>
               </motion.div>
             )}
@@ -247,11 +247,11 @@ export function PromptEnhanceButton({
                 variant="ghost"
                 size="sm"
                 onClick={handleRevert}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-ink"
                 aria-label="Revert to original prompt"
                 title="Revert changes"
               >
-                <RotateCcw className="w-4 h-4 mr-1" />
+                <RotateCcw className="size-4 mr-1" />
                 <span className="sr-only sm:not-sr-only sm:ml-1">Undo</span>
               </Button>
             </motion.div>
@@ -264,10 +264,10 @@ export function PromptEnhanceButton({
         <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] h-[85vh] flex flex-col p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary shrink-0" />
-              <span className="text-lg">Review Enhanced Description</span>
+              <Sparkles className="size-5 text-primary shrink-0" />
+              <span className="text-title">Review Enhanced Description</span>
             </DialogTitle>
-            <DialogDescription className="text-sm">
+            <DialogDescription className="text-ui">
               AI has expanded your description with more detail and structure.
               {enhancementResult?.latencyMs && (
                 <span className="ml-2 text-muted-foreground">
@@ -280,12 +280,12 @@ export function PromptEnhanceButton({
           <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4 px-6 py-4 overflow-hidden">
             {/* Original Prompt */}
             <div className="flex flex-col min-h-0">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-2 shrink-0">
+              <h4 className="text-ui font-semibold text-muted-foreground mb-2 shrink-0">
                 Original
               </h4>
-              <ScrollArea className="flex-1 border rounded-lg bg-muted/50">
+              <ScrollArea className="flex-1 border rounded-lg bg-raised/50">
                 <div className="p-4">
-                  <p className="text-sm whitespace-pre-wrap">
+                  <p className="text-ui whitespace-pre-wrap">
                     {enhancementResult?.original}
                   </p>
                 </div>
@@ -294,13 +294,13 @@ export function PromptEnhanceButton({
 
             {/* Enhanced Prompt */}
             <div className="flex flex-col min-h-0">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-primary mb-2 flex items-center gap-2 shrink-0">
-                <Check className="w-4 h-4 shrink-0" />
+              <h4 className="text-ui font-semibold text-primary mb-2 flex items-center gap-2 shrink-0">
+                <Check className="size-4 shrink-0" />
                 Enhanced
               </h4>
-              <ScrollArea className="flex-1 border-2 border-primary/30 rounded-lg bg-primary/5">
+              <ScrollArea className="flex-1 border border-primary/30 rounded-lg bg-primary/5">
                 <div className="p-4">
-                  <p className="text-sm whitespace-pre-wrap">
+                  <p className="text-ui whitespace-pre-wrap">
                     {enhancementResult?.enhanced}
                   </p>
                 </div>
@@ -308,8 +308,8 @@ export function PromptEnhanceButton({
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-4 border-t shrink-0 flex-col sm:flex-row gap-3 sm:gap-4 bg-background">
-            <div className="text-sm text-muted-foreground order-2 sm:order-1">
+          <DialogFooter className="px-6 py-4 border-t shrink-0 flex-col sm:flex-row gap-3 sm:gap-4 bg-void">
+            <div className="text-ui text-muted-foreground order-2 sm:order-1">
               {enhancementResult && (
                 <>
                   Added{" "}
@@ -334,7 +334,7 @@ export function PromptEnhanceButton({
                 onClick={handleApply}
                 className="flex-1 sm:flex-none min-w-[160px]"
               >
-                <Check className="w-4 h-4 mr-2 shrink-0" />
+                <Check className="size-4 mr-2 shrink-0" />
                 Apply Enhancement
               </Button>
             </div>

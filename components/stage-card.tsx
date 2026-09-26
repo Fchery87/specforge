@@ -105,8 +105,8 @@ export function StageCard({
   return (
     <Card
       className={cn(
-        "flex flex-col justify-between border-2 transition-all duration-200",
-        status === "ready" && "border-emerald-500/30",
+        "flex flex-col justify-between border transition-colors duration-(--duration-standard)",
+        status === "ready" && "border-sage/30",
         status === "in-progress" && "border-primary/40",
         status === "error" && "border-destructive/40",
         className
@@ -114,26 +114,26 @@ export function StageCard({
     >
       <CardHeader className="p-6 pb-4">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          <span className="text-caption font-bold text-muted-foreground">
             Stage
           </span>
           <span
             className={cn(
-              "inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider rounded-full border",
-              status === "ready" && "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
+              "inline-flex items-center px-2.5 py-0.5 text-caption font-semibold rounded-full border",
+              status === "ready" && "bg-sage/10 text-sage border-sage/30",
               status === "in-progress" && "bg-primary/10 text-primary border-primary/30",
-              status === "generating" && "bg-amber-500/10 text-amber-500 border-amber-500/30",
+              status === "generating" && "bg-amber/10 text-amber border-amber/30",
               status === "error" && "bg-destructive/10 text-destructive border-destructive/30",
-              status === "not-started" && "bg-secondary text-muted-foreground border-border"
+              status === "not-started" && "bg-raised text-muted-foreground border-line"
             )}
           >
             {STAGE_STATUS_LABELS[status]}
           </span>
         </div>
-        <CardTitle className="text-xl font-bold uppercase tracking-tight">
+        <CardTitle className="text-title font-bold">
           {stage.label}
         </CardTitle>
-        <CardDescription className="text-sm text-muted-foreground mt-1">
+        <CardDescription className="text-ui text-muted-foreground mt-1">
           {stage.summary}
         </CardDescription>
 
@@ -142,7 +142,7 @@ export function StageCard({
             {enabledPhaseIds.map((phaseId) => (
               <span
                 key={phaseId}
-                className="inline-flex items-center px-2 py-0.5 text-xs bg-muted/60 text-muted-foreground rounded"
+                className="inline-flex items-center px-2 py-0.5 text-caption bg-raised/60 text-muted-foreground rounded-sm"
               >
                 {PHASE_TAB_LABELS[phaseId] ?? phaseId}
               </span>
@@ -151,7 +151,7 @@ export function StageCard({
         )}
       </CardHeader>
 
-      <CardFooter className="p-6 pt-0 flex flex-wrap items-center justify-between gap-3 border-t border-border/40 mt-4">
+      <CardFooter className="p-6 pt-0 flex flex-wrap items-center justify-between gap-3 border-t border-line/40 mt-4">
         <NextActionButton
           projectId={projectId}
           action={resolvedAction}
@@ -164,12 +164,12 @@ export function StageCard({
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1 text-xs text-muted-foreground hover:text-foreground h-8"
+                className="gap-1 text-caption text-muted-foreground hover:text-ink h-8"
                 aria-label="Add a section"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="size-3.5" />
                 <span>Add a section</span>
-                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                <ChevronDown className="size-3 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -179,7 +179,7 @@ export function StageCard({
                   onClick={() => onToggleSkip(phaseId, false)}
                   className="cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                  <Plus className="size-3.5 mr-2 text-muted-foreground" />
                   {PHASE_TAB_LABELS[phaseId] ?? phaseId}
                 </DropdownMenuItem>
               ))}
