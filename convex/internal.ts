@@ -6,6 +6,7 @@ import { renderPreviewHtml } from '../lib/markdown-render';
 import { getAffectedPhases } from '../lib/specification/dependency-graph';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource, markEvidenceImpact, reconcileArtifactClaims } from './lib/evidence';
+import { artifactSectionValidator } from './schema';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },
@@ -34,9 +35,7 @@ export const createArtifact = internalMutation({
     title: v.string(),
     content: v.string(),
     previewHtml: v.string(),
-    sections: v.array(
-      v.object({ name: v.string(), tokens: v.number(), model: v.string() }),
-    ),
+    sections: v.array(artifactSectionValidator),
     isHidden: v.optional(v.boolean()),
     provenance: v.optional(
       v.object({

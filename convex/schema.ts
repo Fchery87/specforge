@@ -1,6 +1,48 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+/**
+ * One artifact section, as stored.
+ *
+ * Defined once and reused by every validator that carries a section, because three hand-copied
+ * versions is how this drifted: `appendSectionMetadataToArtifactInternal` accepted a `critique` field
+ * and patched it into the stored document, while the stored shape here had no such field. Adding a
+ * field means adding it in one place now.
+ *
+ * `critique` is optional because it is only present when the critic ran, which is the four phases
+ * `shouldCritiquePhase` covers. It is what the artifact view's section disclosure reads.
+ */
+export const artifactSectionValidator = v.object({
+  name: v.string(),
+  tokens: v.number(),
+  model: v.string(),
+  critique: v.optional(
+    v.object({
+      passes: v.boolean(),
+      score: v.number(),
+      violations: v.array(
+        v.object({
+          category: v.union(
+            v.literal('accessibility'),
+            v.literal('performance'),
+            v.literal('security'),
+            v.literal('architecture'),
+            v.literal('completeness'),
+          ),
+          severity: v.union(
+            v.literal('critical'),
+            v.literal('warning'),
+            v.literal('info'),
+          ),
+          criterion: v.optional(v.string()),
+          issue: v.string(),
+          suggestion: v.string(),
+        }),
+      ),
+    }),
+  ),
+});
+
 export default defineSchema({
   projects: defineTable({
     userId: v.string(),
@@ -120,9 +162,7 @@ export default defineSchema({
     content: v.string(),
     previewHtml: v.string(),
     previewHtmlUpdatedAt: v.optional(v.number()),
-    sections: v.array(
-      v.object({ name: v.string(), tokens: v.number(), model: v.string() }),
-    ),
+    sections: v.array(artifactSectionValidator),
     // v2 streaming fields (optional for backward compatibility)
     streamStatus: v.optional(
       v.union(
