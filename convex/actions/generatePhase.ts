@@ -50,6 +50,7 @@ import {
   type CritiqueConfig,
   DEFAULT_CRITIQUE_CONFIG,
 } from '../../lib/llm/prompts/critic';
+import { stagePromptFor } from '../../lib/llm/prompts/stages';
 import {
   serializeQAPairs,
   formatQAForPrompt,
@@ -597,6 +598,23 @@ export async function generateSectionContent(params: {
   }
 }
 
+/**
+ * Mechanical rules of the worker contract.
+ *
+ * These guard the output format rather than the document's quality, so they stay in the prompt even
+ * where a stage prompt now states the quality bar better. The generic quality instructions that used
+ * to sit here ("be thorough and detailed", "include specific, actionable content", "reference the
+ * project context throughout") were removed because the stage prompt states each of them as a
+ * failure mode instead of an adjective.
+ */
+const OUTPUT_RULES = `Output rules:
+- Use markdown formatting
+- Output ONLY document content — no reasoning, analysis, or meta-commentary
+- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
+- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
+- Do NOT include internal checklists, confidence scores, or analysis headers
+- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
+
 export function buildSectionPrompts(params: {
   projectContext: ProjectGenerationContext;
   sectionName: string;
@@ -607,25 +625,25 @@ export function buildSectionPrompts(params: {
   constitution?: string | null;
   upstreamContext?: string | null;
 }): { systemPrompt: string; userPrompt: string } {
-  let systemPrompt = `You are an expert technical writer creating project documentation.
-Generate the "${params.sectionName}" section for a ${params.phaseId} document.
+  // The order is the contract: what the stage requires, then what this section covers, then the
+  // project's own facts, then the questions the user answered. The stage prompt is the constant and
+  // the section instructions are the variable.
+  const systemParts = [
+    stagePromptFor(params.phaseId),
+    `You are an expert technical writer creating project documentation.
+Generate the "${params.sectionName}" section for a ${params.phaseId} document.`,
+    params.sectionInstructions ? `Section Guidelines:\n${params.sectionInstructions}` : null,
+    `Project: ${params.projectContext.title}
+Description: ${params.projectContext.description}`,
+    params.projectContext.questions
+      ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}`
+      : null,
+    OUTPUT_RULES,
+  ];
 
-Project: ${params.projectContext.title}
-Description: ${params.projectContext.description}
-
-${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
-${params.sectionInstructions ? `Section Guidelines:\n${params.sectionInstructions}\n` : ''}
-
-Requirements:
-- Use markdown formatting
-- Be thorough and detailed
-- Include specific, actionable content
-- Reference the project context throughout
-- Output ONLY document content — no reasoning, analysis, or meta-commentary
-- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
-- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
-- Do NOT include internal checklists, confidence scores, or analysis headers
-- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
+  let systemPrompt = systemParts
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join('\n\n');
 
   // Inject constitution context if available and phase requires it
   if (params.constitution && shouldInjectConstitution(params.phaseId)) {

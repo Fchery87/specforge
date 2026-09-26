@@ -12,7 +12,7 @@ so no project needs a data migration.
 
 | # | Task | State | SHA | Verified by |
 | --- | --- | --- | --- | --- |
-| 1 | Add `lib/llm/prompts/stages.ts` exporting `REQUIREMENTS_PROMPT`, `DESIGN_PROMPT`, `TASKS_PROMPT` and `stagePromptFor(phaseId)` built on `WORKFLOW_STAGES`. Compose it into `buildSectionPrompts` in `convex/actions/generatePhase.ts`, in the order stage prompt, section instructions, project context, questions. | Not started | — | `npx vitest --run lib/llm/prompts/__tests__/stages.test.ts` asserts each prompt states the property its documents depend on, and that a phase with a dedicated prompt module keeps it inside the stage prompt |
+| 1 | Add `lib/llm/prompts/stages.ts` exporting `REQUIREMENTS_PROMPT`, `DESIGN_PROMPT`, `TASKS_PROMPT` and `stagePromptFor(phaseId)` built on `WORKFLOW_STAGES`. Compose it into `buildSectionPrompts` in `convex/actions/generatePhase.ts`, in the order stage prompt, section instructions, project context, questions. | Not started | — | `npx vitest --run lib/llm/prompts/__tests__/stages.test.ts` asserts each prompt states the property its documents depend on, and the composition tests in `convex/actions/__tests__/generatePhase.test.ts` assert the stage reaches all three call sites, that a phase outside a stage gets none, and the part order |
 | 2 | Add `lib/validation/acceptance-criteria.ts` with `classifyCriterion(criterion)` returning `observable`, `unobservable` or `vague`. No model call. | Not started | — | `npx vitest --run lib/validation/__tests__/acceptance-criteria.test.ts` over a fixed corpus whose expected classes are written out, so the classifier cannot drift silently |
 | 3 | Carry the class onto tickets. Add `acceptanceCriteriaQuality` as a parallel array in `convex/schema.ts`, populate it from `lib/ticket-parser.ts`, and read a criterion with no class as `unclassified` rather than labelling it retroactively. | Not started | — | `npx vitest --run lib/__tests__/ticket-parser.test.ts convex/__tests__/tickets-schema.test.ts` asserts a classed criterion, an `unclassified` legacy row, and that `acceptanceCriteria` keeps its shape for existing readers |
 | 4 | Add `lib/quality/budgets.ts`: words per token ratio, a budget per section from `estimatedTokens`, a budget per stage, and the derivation written down. | Not started | — | `npx vitest --run lib/quality/__tests__/budgets.test.ts` asserts the ratio, a single-section budget, and a stage budget as the sum of its sections |
@@ -21,6 +21,7 @@ so no project needs a data migration.
 | 7 | Add `components/stage-report.tsx` in the document language, render it in `components/artifact-preview.tsx` above the table of contents, mark an over-budget section where the section is, and mark a stage with an untraced requirement or an untestable criterion in `components/stage-stepper.tsx` as a word in the status text rather than a colour alone. | Not started | — | `npx vitest --run components/__tests__/stage-report.test.tsx`, then `node design/lint-tokens.mjs $(find app components -name '*.tsx')` at zero errors and a screenshot of an artifact with a report in both themes |
 | 8 | Carry the report into the pack. `lib/export/agents-formatter.ts` writes the report and lists untestable criteria under their own heading; `skill-formatter.ts` follows. | Not started | — | `npx vitest --run lib/export/__tests__/agents-formatter.test.ts components/__tests__/export-options.test.tsx` asserts the report and the untestable criteria reach `AGENTS.md` |
 | 9 | Gates. Full run at one revision. | Not started | — | `npm run typecheck`, `npm run lint`, `npm run test -- --run --reporter=dot --testTimeout=20000`, `npm run build`, `npm run test:e2e`, `node design/audit-contrast.mjs`, `node design/audit-token-sync.mjs`, the whole-tree palette lint and `node .keel/validate-docs-lifecycle.mjs` all exit zero |
+| 10 | Reconcile `lib/llm/prompts/domain-model.ts`. It is imported by nothing, and it ends `Return ONLY a valid JSON object`, which contradicts the markdown-section contract every live phase uses. Either adapt its content into the domainModel section instructions or delete the module. | Not started | — | Whichever way it goes: `grep -rn "DOMAIN_MODEL_PROMPT" convex lib` returns only the module that defines it or nothing at all, and the domainModel phase still generates markdown sections in `convex/actions/__tests__/generatePhase.test.ts` |
 
 States: `Not started`, `In progress`, `Done, unverified`, `Done`.
 
@@ -54,3 +55,15 @@ deployment plus GitHub OAuth credentials. It is not a task here and does not blo
 per-section instruction duplication. The instruction copy is in `getSectionInstructions` in
 `convex/actions/generatePhase.ts`, overlapping the `description` on each `SectionPlanConfig`. The
 spec's deletion inventory now names both.
+
+**Found while implementing task 1.** `lib/llm/prompts/domain-model.ts` is imported by nothing, and its
+output contract contradicts the pipeline: it ends `Return ONLY a valid JSON object`, while every live
+phase flows through `buildSectionPrompts` and produces markdown sections that are merged. So it is not
+the "phase-specific layer under the stage prompt" the spec assumed it was; it is a second dead module,
+the same class as `lib/phase-config.ts` before the cleanup. Task 10 reconciles it. Composing it as it
+stands would break the domainModel phase, which is why task 1 does not.
+
+That finding also corrected task 1's own verification. It claimed the tests would prove "a phase with
+a dedicated prompt module keeps it inside the stage prompt". The only in-stage phase with a dedicated
+module is the dead one, so that claim could not be tested and was replaced with what the tests
+actually assert.

@@ -8,6 +8,11 @@ import {
   buildSectionPrompts,
   getSectionInstructions,
 } from '../generatePhase';
+import {
+  DESIGN_PROMPT,
+  REQUIREMENTS_PROMPT,
+  TASKS_PROMPT,
+} from '../../../lib/llm/prompts/stages';
 
 describe('generatePhase helpers', () => {
   it('matches architecture-overview questions', () => {
@@ -268,5 +273,87 @@ describe('buildSectionPrompts and technical contracts', () => {
     expect(cumulativeAfterStep2).toContain('## Architecture');
     expect(cumulativeAfterStep2).toContain('Modular monolith.');
     expect(cumulativeAfterStep2).not.toContain('Thinking about architecture');
+  });
+});
+
+describe('buildSectionPrompts stage composition', () => {
+  const promptFor = (phaseId: string, sectionInstructions?: string) =>
+    buildSectionPrompts({
+      projectContext: { title: 'SpecForge', description: 'Spec generator', questions: '' },
+      sectionName: 'a-section',
+      sectionInstructions,
+      sectionQuestions: [],
+      previousSections: [],
+      phaseId,
+    }).systemPrompt;
+
+  it('carries the Requirements stage prompt into the brief and the PRD', () => {
+    for (const phaseId of ['brief', 'prd']) {
+      const systemPrompt = promptFor(phaseId);
+      expect(systemPrompt).toContain(REQUIREMENTS_PROMPT);
+      expect(systemPrompt).not.toContain(DESIGN_PROMPT);
+      expect(systemPrompt).not.toContain(TASKS_PROMPT);
+    }
+  });
+
+  it('carries the Design stage prompt into every phase the stage groups', () => {
+    for (const phaseId of ['domainModel', 'specs', 'artifacts']) {
+      expect(promptFor(phaseId)).toContain(DESIGN_PROMPT);
+    }
+  });
+
+  it('carries the Tasks stage prompt into stories', () => {
+    expect(promptFor('stories')).toContain(TASKS_PROMPT);
+  });
+
+  it('adds no stage prompt to a phase that is not inside a stage', () => {
+    for (const phaseId of ['constitution', 'handoff']) {
+      const systemPrompt = promptFor(phaseId);
+      expect(systemPrompt).not.toContain(REQUIREMENTS_PROMPT);
+      expect(systemPrompt).not.toContain(DESIGN_PROMPT);
+      expect(systemPrompt).not.toContain(TASKS_PROMPT);
+    }
+  });
+
+  it('orders the stage prompt before the section instructions, the project, and the questions', () => {
+    const systemPrompt = buildSectionPrompts({
+      projectContext: {
+        title: 'SpecForge',
+        description: 'Spec generator',
+        questions: JSON.stringify([{ question: 'Who archives?', answer: 'An editor' }]),
+      },
+      sectionName: 'a-section',
+      sectionInstructions: 'A distinctive section guideline.',
+      sectionQuestions: [],
+      previousSections: [],
+      phaseId: 'prd',
+    }).systemPrompt;
+
+    const order = [
+      systemPrompt.indexOf('One obligation per statement'),
+      systemPrompt.indexOf('A distinctive section guideline.'),
+      systemPrompt.indexOf('Project: SpecForge'),
+      systemPrompt.indexOf('User Requirements & Clarifications:'),
+    ];
+
+    for (const index of order) expect(index).toBeGreaterThan(-1);
+    expect(order).toEqual([...order].sort((first, second) => first - second));
+  });
+
+  it('keeps the worker output rules and drops the generic quality adjectives', () => {
+    const systemPrompt = promptFor('prd');
+
+    expect(systemPrompt).toContain('Output rules:');
+    expect(systemPrompt).toContain('Do NOT include <thinking>');
+    expect(systemPrompt).not.toContain('Be thorough and detailed');
+    expect(systemPrompt).not.toContain('Include specific, actionable content');
+    expect(systemPrompt).not.toContain('Reference the project context throughout');
+  });
+
+  it('leaves no blank line where an absent part was, and no double spacing', () => {
+    const systemPrompt = promptFor('prd');
+
+    expect(systemPrompt).not.toMatch(/\n{3,}/);
+    expect(systemPrompt).not.toContain('Section Guidelines:');
   });
 });
