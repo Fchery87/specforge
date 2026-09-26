@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PHASE_TAB_LABELS } from "@/components/stage-tabs";
+import { phaseLabel } from "@/lib/workflow";
 import { cn } from "@/lib/utils";
 
 export interface AddSectionMenuProps {
@@ -44,7 +44,7 @@ export function AddSectionMenu({ skippedPhases, onEnable, className }: AddSectio
             className="cursor-pointer"
           >
             <Plus aria-hidden className="size-3.5 text-dim" />
-            {PHASE_TAB_LABELS[phaseId] ?? phaseId}
+            {phaseLabel(phaseId)}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

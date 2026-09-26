@@ -3,8 +3,10 @@ import {
   EXPORT_PHASE,
   MODE_POLICIES,
   nextAction,
+  PHASE_LABELS,
   PHASE_ORDER,
   PhaseStatusMap,
+  phaseLabel,
   ProjectMode,
   RULES_PHASE,
   stageStatus,
@@ -49,6 +51,24 @@ describe('workflow stages and phases', () => {
     expect(RULES_PHASE).toBe('constitution');
     expect(EXPORT_PHASE).toBe('handoff');
     expect(PHASE_ORDER).toHaveLength(8);
+  });
+});
+
+describe('phase labels', () => {
+  it('names every phase exactly once', () => {
+    expect(Object.keys(PHASE_LABELS).sort()).toEqual([...PHASE_ORDER].sort());
+  });
+
+  it('uses the user-facing name from the guided workflow spec', () => {
+    expect(PHASE_LABELS.specs).toBe('Architecture');
+    expect(PHASE_LABELS.artifacts).toBe('Schemas');
+    expect(PHASE_LABELS.stories).toBe('Tasks');
+    expect(PHASE_LABELS.constitution).toBe('Project Rules');
+    expect(PHASE_LABELS.handoff).toBe('Export');
+  });
+
+  it('falls back to the id for a phase it does not know', () => {
+    expect(phaseLabel('somethingNew')).toBe('somethingNew');
   });
 });
 

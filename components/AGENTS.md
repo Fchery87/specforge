@@ -48,10 +48,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 
 **3. Framer Motion animations:**
 ```tsx
-// ✅ DO: Use motion.tsx utilities
-import { motion } from "motion/react";
-// See: components/ui/motion.tsx
+// ✅ DO: Import motion directly, and only where a transition earns its place
+import { motion, AnimatePresence } from "motion/react";
+// See: components/prompt-enhance-button.tsx
 ```
+Animations are rare by design. Reduced motion collapses every duration to zero at the token level,
+so a component inherits the decision rather than re-implementing it.
 
 **4. Client components with state:**
 ```tsx
@@ -89,13 +91,13 @@ import { X, Plus, ChevronDown } from "lucide-react";
 - **Artifact view**: `components/artifact-preview.tsx` (header with identity and actions, body is the document)
 - **Artifact Editor**: `components/artifact-editor-modal.tsx` (Split, Edit, Preview, and Schema modes)
 - **Workflow**: `components/stage-stepper.tsx` (the map), `components/next-action-button.tsx` (the instruction), `components/add-section-menu.tsx` (re-enable a skipped phase)
+- **Workflow data**: `lib/workflow.ts` owns the phases, stages, mode policies, labels and `nextAction`
 - **Evidence Review**: `components/evidence-review-panel.tsx` (requirement status and source review)
 - **Verification**: `components/verification-panel.tsx` (diff findings with requirement references)
 - **Schema Validator**: `components/schema-validator-panel.tsx` (Monaco-style JSON/YAML validator)
 - **Stress-Test Interview**: `components/stress-test-modal.tsx` (Interactive grilling modal)
 - **Ticket Board**: `components/ticket-board.tsx`, `components/ticket-card.tsx` (Tracer bullets & blocking edges)
 - **Admin Navigation**: `components/admin/admin-nav.tsx`
-- **Animation**: `components/ui/motion.tsx`
 - **Notifications**: `lib/notifications.ts`
 - **Class utility**: `lib/utils.ts` (cn function)
 - **Main layout**: `app/layout.tsx`
@@ -127,7 +129,7 @@ rg -n "'use client'" components/
 - **Type**: Three roles. `font-sans` for chrome, `font-serif` for specification prose, `font-mono` for IDs and code. Headings are sentence case, never uppercase
 - **Focus**: The global `:focus-visible` outline is the only focus treatment. Do not add `ring-*` focus styles
 - **The document language**: A specification renders through `components/spec-document.tsx` and `components/artifact-document.tsx`, not as cards
-- **One description per page**: The workflow is described once. `StageStepper` maps it, `NextActionButton` states the next step, `AddSectionMenu` re-enables a skipped phase. `StageCard` and `StageTabs` are retained but no page renders them; do not add a fourth description of the same eight phases
+- **One description per page**: The workflow is described once. `StageStepper` maps it, `NextActionButton` states the next step, `AddSectionMenu` re-enables a skipped phase. The earlier `StageCard` and `StageTabs` were deleted with the collapse; do not add a fourth description of the same eight phases
 - **Mermaid**: A document rendered in pieces must advance the heading cursor with `countSpecHeadings`, or its anchors drift from `parseSpecOutline`
 
 ## Pre-PR Checks

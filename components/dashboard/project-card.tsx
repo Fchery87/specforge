@@ -38,18 +38,9 @@ import {
   type PhaseId,
   type PhaseStatusMap,
   type ProjectMode,
+  PHASE_ORDER,
+  phaseLabel,
 } from '@/lib/workflow';
-
-const PHASE_ORDER = ['brief', 'constitution', 'prd', 'domainModel', 'spec', 'userStories', 'handoff'];
-const PHASE_LABELS: Record<string, string> = {
-  brief: 'Brief',
-  constitution: 'Constitution',
-  prd: 'PRD',
-  domainModel: 'Domain',
-  spec: 'Spec',
-  userStories: 'Stories',
-  handoff: 'Handoff',
-};
 
 export function getDashboardCardAction(
   action: NextAction,
@@ -407,7 +398,7 @@ export function ProjectCard({
                         isCurrent && !isCompleted && 'bg-primary animate-pulse',
                         !isCompleted && !isCurrent && 'bg-raised/40 hover:bg-raised/70'
                       )}
-                      title={`Phase ${idx + 1}: ${PHASE_LABELS[phaseId]} ${
+                      title={`Phase ${idx + 1}: ${phaseLabel(phaseId)} ${
                         isCompleted
                           ? '(Completed)'
                           : isCurrent

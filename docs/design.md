@@ -127,8 +127,9 @@ all render through one of the two, so the reader meets one notation everywhere.
 
 The workflow is described once per page. `components/stage-stepper.tsx` is the map,
 `components/next-action-button.tsx` is the instruction, and `components/add-section-menu.tsx` is the
-one control that brings a skipped phase back. `StageCard` and `StageTabs` are retained but no longer
-rendered by a page. Do not add a fourth description of the same eight phases.
+one control that brings a skipped phase back. **`lib/workflow.ts` owns the phase labels**, so a
+renamed phase is renamed once. The earlier `StageCard` and `StageTabs` were deleted with the
+collapse. Do not add a fourth description of the same eight phases.
 
 ## Components
 

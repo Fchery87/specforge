@@ -21,6 +21,7 @@ SpecForge is a high-performance scaffold designed for building repo-native, spec
 - **Universal Multi-Agent Export**. Header export modal accessible from every stage. Generates a canonical `AGENTS.md` grouped by decision status (Rules, Observed, Proposed, Open questions), a minimal `@AGENTS.md` import line in `CLAUDE.md`, and direct compatibility with Cursor and GitHub Copilot without file drift.
 - **Credential Readiness Detection**. Upfront validation of LLM credentials before intake to prevent aborted generation attempts.
 - **Combined Questions Interface**. Streamlined single-page clarification round for Lite projects with pre-filled AI suggestions.
+- **The Reading Surface**. A generated specification renders as a document: numbered sections with stable anchors, a table of contents that doubles as a gap map, claim IDs and evidence state in the margin, and diagrams kept as diagrams. The list of unsettled clauses is visible before you read a word.
 - **In-Browser Markdown Editor**. Interactive artifact modal with Split, Edit, and Preview modes, character and word counters, token estimates, and reading time.
 - **Monaco-Style Schema Validator**. Integrated JSON and YAML validator with line numbering gutter, real-time syntax error diagnostics, formatting, sync to markdown, and automated quick-fix injection for test seams and error envelopes.
 - **Vertical Tracer Bullets & Blocking Edges**. Story ticket decomposition with explicit dependency edges, tracer bullet tags, and interactive Kanban boards.
@@ -130,19 +131,20 @@ specforge/
 │   │   └── {sign-in,sign-up}/
 │   ├── api/                     # API endpoints (health check, GitHub OAuth)
 │   ├── project/[id]/            # Project overview and workspace pages
-│   │   ├── page.tsx             # Three-stage project overview and Project Rules panel
+│   │   ├── page.tsx             # Project overview: one stepper, one next action
 │   │   ├── questions/           # Combined questions page for Lite projects
 │   │   ├── quick/               # Saved quick specs history
-│   │   └── phase/[phaseId]/     # Stage workspace with Stepper, Tabs, and Next Action
+│   │   └── phase/[phaseId]/     # Stage workspace: the reading surface and one next action
 │   └── layout.tsx               # Root layout with providers
 ├── components/                  # React components
 │   ├── ui/                     # shadcn primitives themed with Ember tokens
 │   ├── admin/                  # Super-admin navigation and panels
 │   ├── dashboard/              # Dashboard project cards and metrics
-│   ├── stage-stepper.tsx       # Three-stage progress indicator
-│   ├── stage-tabs.tsx          # Sub-phase navigation tabs with section toggles
-│   ├── next-action-button.tsx  # Dynamic next-action button
-│   ├── stage-card.tsx          # Project overview stage cards
+│   ├── artifact-document.tsx   # The reading surface: rendered specification as a document
+│   ├── spec-document.tsx       # The document notation: clause spine, margin, evidence
+│   ├── stage-stepper.tsx       # Three-stage progress indicator (the map)
+│   ├── next-action-button.tsx  # One instruction per page
+│   ├── add-section-menu.tsx    # Re-enable a skipped phase
 │   ├── project-rules-card.tsx  # Persistent project rules card with decision badge
 │   ├── generation-readiness-banner.tsx # Missing credentials warning banner
 │   ├── combined-questions.tsx  # Unified clarification question answering
@@ -157,7 +159,7 @@ specforge/
 │   ├── schema.ts               # Database schema
 │   └── *.ts                    # Queries, mutations, and internal workers
 ├── lib/                        # Shared utilities and core engines
-│   ├── workflow.ts             # Central workflow engine, stages, and nextAction
+│   ├── workflow.ts             # Workflow engine: phases, stages, mode policies, labels, nextAction
 │   ├── export/                 # AGENTS.md rules formatting and export logic
 │   ├── llm/                    # LLM providers, model registry, prompt templates, chunking
 │   ├── schema/                 # Schema extraction, validation engine, and YAML conversion
