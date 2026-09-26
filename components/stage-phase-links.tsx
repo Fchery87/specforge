@@ -21,10 +21,10 @@ export interface StagePhaseLinksProps {
  * or `/phase/artifacts`. A generated document nobody can open is the one thing a specification reader
  * must not do.
  *
- * This is deliberately not a second description of the workflow. It lists only the phases of the
- * stage the reader is already in, which is at most three links, and it shows a phase's state as a
- * word rather than restating the stage status. Skipped phases are absent here and are re-enabled from
- * `AddSectionMenu`, so there is still one control for that.
+ * This is deliberately not another description of the workflow. It lists only the phases of the stage
+ * the reader is already in, which is at most three links, and it carries no status: the stepper shows
+ * the stage's state and each phase page shows its own. Skipped phases are absent here and are
+ * re-enabled from `AddSectionMenu`, so there is still one control for that.
  */
 export function StagePhaseLinks({
   projectId,
