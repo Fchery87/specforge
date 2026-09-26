@@ -50,6 +50,7 @@ import {
   type CritiqueConfig,
   DEFAULT_CRITIQUE_CONFIG,
 } from '../../lib/llm/prompts/critic';
+import { stagePromptFor } from '../../lib/llm/prompts/stages';
 import {
   serializeQAPairs,
   formatQAForPrompt,
@@ -597,6 +598,38 @@ export async function generateSectionContent(params: {
   }
 }
 
+/**
+ * The quality bar every document meets, whatever stage it belongs to.
+ *
+ * Concrete rather than adjectival, so it does not reintroduce the vagueness it replaces: each line
+ * names something the writer can act on.
+ *
+ * Universal on purpose. Two phases sit outside every stage — `constitution` and `handoff` — and
+ * `stagePromptFor` returns nothing for them, so a stage prompt alone would leave both with format
+ * rules and a one-line section instruction. The first version of this change deleted the three
+ * generic lines from the old template on the claim that the stage prompt stated each of them; that
+ * claim was false for those two phases, and false everywhere for the project-context line, which no
+ * stage prompt restates.
+ */
+const QUALITY_RULES = `Document quality:
+- Cover the section completely rather than sketching it.
+- Prefer concrete, actionable statements over general description.
+- Ground every statement in the project context above; do not invent facts it does not state.`;
+
+/**
+ * Mechanical rules of the worker contract.
+ *
+ * These guard the output format rather than the document's quality, so they sit beside the quality
+ * rules and the stage prompt rather than being replaced by them.
+ */
+const OUTPUT_RULES = `Output rules:
+- Use markdown formatting
+- Output ONLY document content — no reasoning, analysis, or meta-commentary
+- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
+- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
+- Do NOT include internal checklists, confidence scores, or analysis headers
+- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
+
 export function buildSectionPrompts(params: {
   projectContext: ProjectGenerationContext;
   sectionName: string;
@@ -607,25 +640,27 @@ export function buildSectionPrompts(params: {
   constitution?: string | null;
   upstreamContext?: string | null;
 }): { systemPrompt: string; userPrompt: string } {
-  let systemPrompt = `You are an expert technical writer creating project documentation.
-Generate the "${params.sectionName}" section for a ${params.phaseId} document.
+  // The order is the contract: what the stage requires, then what this section covers, then the
+  // project's own facts, then the questions the user answered, then the bar every document meets.
+  // The stage prompt is the constant per stage and the section instructions are the variable; the
+  // quality rules are constant for every phase, which is what covers the two phases outside a stage.
+  const systemParts = [
+    stagePromptFor(params.phaseId),
+    `You are an expert technical writer creating project documentation.
+Generate the "${params.sectionName}" section for a ${params.phaseId} document.`,
+    params.sectionInstructions ? `Section Guidelines:\n${params.sectionInstructions}` : null,
+    `Project: ${params.projectContext.title}
+Description: ${params.projectContext.description}`,
+    params.projectContext.questions
+      ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}`
+      : null,
+    QUALITY_RULES,
+    OUTPUT_RULES,
+  ];
 
-Project: ${params.projectContext.title}
-Description: ${params.projectContext.description}
-
-${params.projectContext.questions ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}\n` : ''}
-${params.sectionInstructions ? `Section Guidelines:\n${params.sectionInstructions}\n` : ''}
-
-Requirements:
-- Use markdown formatting
-- Be thorough and detailed
-- Include specific, actionable content
-- Reference the project context throughout
-- Output ONLY document content — no reasoning, analysis, or meta-commentary
-- Do NOT include <thinking>, <think>, <reasoning>, or any XML reasoning tags
-- Do NOT prefix with numbered reasoning steps (e.g. "Step 1: Analyze...")
-- Do NOT include internal checklists, confidence scores, or analysis headers
-- Do NOT narrate what you are doing (e.g. "I'll structure this as...", "Let me think...")`;
+  let systemPrompt = systemParts
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join('\n\n');
 
   // Inject constitution context if available and phase requires it
   if (params.constitution && shouldInjectConstitution(params.phaseId)) {

@@ -245,13 +245,23 @@ Kept and extended, not deleted:
 
 - `lib/llm/prompts/critic.ts` and `DEFAULT_CRITIQUE_CONFIG`. The critic measures something different
   and keeps doing it.
-- `lib/llm/prompts/constitution.ts` and `domain-model.ts`. They become the phase-specific layer under
-  the stage prompt.
+- `lib/llm/prompts/constitution.ts`. It is the one dedicated prompt module a live path uses, through
+  `generatePhase.ts` and `internalActions.ts`, and it becomes the phase-specific layer under the
+  stage prompt. The constitution is not inside a stage, so it takes no stage prompt.
 - `estimatedTokens` on `SectionPlanConfig`. It keeps sizing the request and becomes the length budget
   input.
 - `acceptanceCriteria` on tickets. The new `acceptanceCriteriaQuality` array is parallel, so existing
   readers and stored rows are unaffected.
 - The phase-keyed data. Nothing is renamed or merged.
+
+Reconciled, because this change found it was not what it appeared to be:
+
+- `lib/llm/prompts/domain-model.ts`. Nothing imports it — not statically and not dynamically — and it
+  ends `Return ONLY a valid JSON object`, which contradicts the markdown-section contract every live
+  phase uses through `buildSectionPrompts`. It is therefore not the phase-specific layer this spec
+  first assumed it was, and composing it as it stands would break the domainModel phase. Its content
+  is either adapted into the domainModel section instructions or the module is deleted, as task 10 of
+  the plan decides. Either way the domainModel phase keeps generating markdown sections.
 
 ## Verification
 
