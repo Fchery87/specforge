@@ -10,15 +10,22 @@ import { useEffect, useState } from "react";
  * leaves and the next enters. Ids that are not in the DOM are ignored, and every observer is
  * disconnected on unmount and whenever the id set changes.
  *
+ * `revision` is for a caller that re-renders its body into the same ids. The reading surface writes
+ * the document with `dangerouslySetInnerHTML`, so a content change replaces the heading elements
+ * even when the heading set is identical; the observer would otherwise keep watching nodes that are
+ * no longer in the document and the highlight would freeze. Pass anything that changes with the
+ * content, such as the rendered html.
+ *
  * This hook never scrolls. Reduced motion is the caller's decision; `scrollIntoView` is not called
  * here, the hook only reports what is active.
  */
 export function useActiveHeading(
   ids: string[],
-  options?: { rootMargin?: string }
+  options?: { rootMargin?: string; revision?: string | number }
 ): string | null {
   const [activeId, setActiveId] = useState<string | null>(null);
   const rootMargin = options?.rootMargin;
+  const revision = options?.revision ?? "";
   // Join keeps the effect stable when the caller passes a fresh array of the same ids.
   const idsKey = ids.join("\u0000");
 
@@ -70,7 +77,7 @@ export function useActiveHeading(
     return () => {
       observer.disconnect();
     };
-  }, [idsKey, rootMargin]);
+  }, [idsKey, rootMargin, revision]);
 
   return activeId;
 }

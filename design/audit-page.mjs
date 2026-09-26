@@ -146,11 +146,13 @@ for (const url of urls) {
           }
         }
 
-        // Widest prose block, by rendered text area.
+        // Widest prose block, by rendered text area. The widest is the one that can breach the
+        // measure ceiling, so it is the one to report: retaining the narrowest hid an over-wide block
+        // behind a compliant-looking number.
         const rect = element.getBoundingClientRect();
         if (size >= 15 && element.textContent.trim().length > 180) {
           const charsPerLine = rect.width / (size * 0.5);
-          if (!proseBlock || charsPerLine < proseBlock.charsPerLine) {
+          if (!proseBlock || charsPerLine > proseBlock.charsPerLine) {
             proseBlock = {
               charsPerLine: Math.round(charsPerLine),
               size,

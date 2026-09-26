@@ -5,6 +5,7 @@ import {
   summarizeClaims,
   type ParsedClaim,
 } from "../claims";
+import { formatClaimManifest } from "../evidence";
 
 const manifest = [
   "## Requirement Traceability",
@@ -79,6 +80,52 @@ describe("claimState", () => {
 
   it("reads anything without evidence as untraced", () => {
     expect(claimState(parseClaimManifest(manifest)[2])).toBe("untraced");
+  });
+});
+
+/**
+ * The vocabulary the product actually writes.
+ *
+ * `convex/schema.ts` allows `current` and `needs_review`, and `convex/evidence.ts` writes
+ * `needs_review` for a claim whose evidence changed. The first version of `claimState` tested for
+ * `"pending"`, which the app never writes, so the check was always true and a claim explicitly
+ * flagged for review read as settled. Every fixture above used the markdown vocabulary
+ * (`reviewed` / `pending`), which is why the tests passed while the logic was wrong against real
+ * data. These cases come from the app's side so that cannot happen again.
+ */
+describe("claimState against the review status the app writes", () => {
+  // One line, because that is what `formatClaimManifest` writes: the parser reads per line and a
+  // continuation line is not part of the bullet.
+  const withReview = (reviewStatus: string) =>
+    parseClaimManifest(
+      `- **C-014** [confirmed; ${reviewStatus}]: A claim. — Evidence: lib/authz.ts (4f2a91c, supports)`
+    )[0];
+
+  it("reports a claim flagged needs_review as proposed, not settled", () => {
+    expect(claimState(withReview("needs_review"))).toBe("proposed");
+  });
+
+  it("reports a claim whose review is current as confirmed", () => {
+    expect(claimState(withReview("current"))).toBe("confirmed");
+  });
+
+  it("round-trips the manifest the exporter writes", () => {
+    const exported = formatClaimManifest([
+      {
+        claimId: "C-014",
+        decisionStatus: "confirmed",
+        reviewStatus: "needs_review",
+        text: "Flagged for review.",
+        links: [
+          {
+            source: { locator: "lib/authz.ts", revisionLabel: "4f2a91c" },
+            supportStatus: "supports",
+          },
+        ],
+      },
+    ]);
+
+    expect(claimState(parseClaimManifest(exported)[0])).toBe("proposed");
   });
 });
 

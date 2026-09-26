@@ -102,12 +102,29 @@ export function parseClaimManifest(markdown: string): ParsedClaim[] {
 
 const SETTLED_DECISIONS = new Set(["confirmed", "accepted", "agreed", "decided"]);
 
-/** A claim with no evidence is untraced. Evidence plus an unsettled decision is proposed. */
+/**
+ * Review statuses that mean the claim is not settled.
+ *
+ * `convex/schema.ts` allows `current` and `needs_review`, and the app writes `needs_review` for a
+ * claim whose evidence changed or whose link is only a suggestion. The first draft tested for
+ * `"pending"`, which the app never writes, so `reviewStatus !== "pending"` was always true and a
+ * claim explicitly flagged `needs_review` read as `confirmed`. A stale claim presented as settled is
+ * the exact failure the evidence system exists to prevent. `pending` and `reviewed` stay in the set
+ * because the markdown vocabulary and the tests use them.
+ */
+const UNSETTLED_REVIEWS = new Set([
+  "needs_review",
+  "pending",
+  "unreviewed",
+  "proposed",
+  "suggested",
+]);
+
+/** A claim with no evidence is untraced. Evidence plus an unsettled review or decision is proposed. */
 export function claimState(claim: ParsedClaim): ClaimState {
   if (!claim.hasEvidence) return "untraced";
-  if (SETTLED_DECISIONS.has(claim.decisionStatus) && claim.reviewStatus !== "pending") {
-    return "confirmed";
-  }
+  if (UNSETTLED_REVIEWS.has(claim.reviewStatus)) return "proposed";
+  if (SETTLED_DECISIONS.has(claim.decisionStatus)) return "confirmed";
   return "proposed";
 }
 

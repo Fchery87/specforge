@@ -50,6 +50,14 @@ type Artifact = {
 interface ArtifactPreviewProps {
   artifact: Artifact;
   projectId?: string;
+  /**
+   * Called after the delete mutation succeeds, for a caller that has to clear its own selection.
+   *
+   * Deliberately optional and no longer a render gate. It used to control whether the delete button
+   * appeared, which made a post-delete callback the switch for a capability: when the phase page
+   * stopped passing its no-op callback, artifact deletion silently became unreachable from the UI.
+   * Deletion is the component's own concern, so the control is always rendered.
+   */
   onDelete?: () => void;
   onEdit?: () => void;
   defaultExpanded?: boolean;
@@ -157,22 +165,20 @@ export function ArtifactPreview({
               <Download aria-hidden className="size-3.5" />
               ZIP
             </Button>
-            {onDelete ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Delete ${artifact.title}`}
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDeleting}
-                className="text-brick hover:bg-brick/10"
-              >
-                {isDeleting ? (
-                  <Loader2 aria-hidden className="size-4 animate-spin" />
-                ) : (
-                  <Trash2 aria-hidden className="size-4" />
-                )}
-              </Button>
-            ) : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Delete ${artifact.title}`}
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isDeleting}
+              className="text-brick hover:bg-brick/10"
+            >
+              {isDeleting ? (
+                <Loader2 aria-hidden className="size-4 animate-spin" />
+              ) : (
+                <Trash2 aria-hidden className="size-4" />
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

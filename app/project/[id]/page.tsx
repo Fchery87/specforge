@@ -36,6 +36,7 @@ import {
   PHASE_ORDER,
   MODE_POLICIES,
   nextAction,
+  phaseLabel,
   type PhaseId,
   type ProjectMode,
 } from "@/lib/workflow";
@@ -151,7 +152,7 @@ export default function ProjectPage() {
         phaseId,
         skip: false,
       });
-      toast.success(`Enabled ${phaseId}`);
+      toast.success(`Enabled ${phaseLabel(phaseId)}`);
     } catch {
       toast.error(`Failed to enable ${phaseId}`);
     }

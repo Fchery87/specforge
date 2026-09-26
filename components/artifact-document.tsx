@@ -9,7 +9,7 @@ import {
   type ClaimState,
   type ParsedClaim,
 } from "@/lib/claims";
-import { countSpecHeadings, renderSpecHtml } from "@/lib/markdown-render";
+import { renderSpecHtml } from "@/lib/markdown-render";
 import { splitContentByMermaid } from "@/lib/mermaid-splitter";
 import { MermaidDiagram } from "@/components/ui/mermaid-diagram";
 import { useActiveHeading } from "@/hooks/use-active-heading";
@@ -51,17 +51,16 @@ type DocumentBlock =
   | { kind: "mermaid"; key: string; chart: string };
 
 /**
- * Render the body in document order, splitting at mermaid fences so a diagram stays a diagram. The
- * heading cursor advances by whatever the previous piece consumed, so anchors stay aligned with the
- * outline the table of contents is built from.
+ * Render the body in document order, splitting at mermaid fences so a diagram stays a diagram. Each
+ * piece renders independently: `renderSpecHtml` derives a heading's id from its own text, so a piece
+ * does not need to know where it sits in the document. The earlier cursor-based version did, and it
+ * drifted whenever the outline and the renderer disagreed about what counted as a heading.
  */
 function renderBlocks(
   markdown: string,
   headingIds: readonly string[],
   claimStates: Readonly<Record<string, ClaimState>>
 ): DocumentBlock[] {
-  let cursor = 0;
-
   return splitContentByMermaid(markdown).map((segment, index) => {
     const key = `${segment.type}-${index}`;
 
@@ -69,10 +68,7 @@ function renderBlocks(
       return { kind: "mermaid", key, chart: segment.content };
     }
 
-    const html = renderSpecHtml(segment.content, headingIds, claimStates, cursor);
-    cursor += countSpecHeadings(html);
-
-    return { kind: "html", key, html };
+    return { kind: "html", key, html: renderSpecHtml(segment.content, headingIds, claimStates) };
   });
 }
 
@@ -102,7 +98,7 @@ export function ArtifactDocument({
     [markdown, ids, claimStates]
   );
 
-  const activeId = useActiveHeading(ids);
+  const activeId = useActiveHeading(ids, { revision: markdown });
   const hasOutline = outline.sections.length > 0;
 
   return (
