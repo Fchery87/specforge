@@ -315,6 +315,23 @@ describe('buildSectionPrompts stage composition', () => {
     }
   });
 
+  it('still carries the universal quality rules into a phase outside a stage', () => {
+    // The regression: the first version removed the old template's three quality lines on the claim
+    // that the stage prompt stated each of them. `constitution` and `handoff` are outside every
+    // stage, so no stage prompt exists for them and they were left with format rules alone.
+    for (const phaseId of ['constitution', 'handoff']) {
+      const systemPrompt = promptFor(phaseId);
+      expect(systemPrompt).toContain('Document quality:');
+      expect(systemPrompt).toContain('Ground every statement in the project context');
+    }
+  });
+
+  it('carries the universal quality rules into every phase, including those in a stage', () => {
+    for (const phaseId of ['brief', 'prd', 'domainModel', 'specs', 'stories', 'artifacts']) {
+      expect(promptFor(phaseId)).toContain('Document quality:');
+    }
+  });
+
   it('orders the stage prompt before the section instructions, the project, and the questions', () => {
     const systemPrompt = buildSectionPrompts({
       projectContext: {

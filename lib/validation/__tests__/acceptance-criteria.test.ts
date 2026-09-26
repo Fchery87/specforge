@@ -120,6 +120,68 @@ describe('classifyCriterion determinism', () => {
   });
 });
 
+/**
+ * Cases a review found by attacking this module with adversarial input. Each one was reproduced
+ * against the shipped version before it was fixed, so these are the regression lock for the classes
+ * of mistake the original corpus missed. Most were false `observable`, the direction that lets a
+ * criterion pass with nothing to check.
+ */
+describe('classifyCriterion regressions found in review', () => {
+  it('does not read a possibility modal as a permission', () => {
+    // `may` and `can` express possibility as well as permission, and the first version excluded only
+    // the copula `be`, so any other linking verb let a bare quality claim through.
+    expect(classifyCriterion('The system may feel unresponsive.')).toBe('unobservable');
+    expect(classifyCriterion('The button can feel sluggish.')).toBe('unobservable');
+    expect(classifyCriterion('The report can look confusing.')).toBe('unobservable');
+    expect(classifyCriterion('The cache can stay warm.')).toBe('unobservable');
+  });
+
+  it('does not treat a noun that is spelled like a verb as an effect', () => {
+    // The largest source of false observables: report, record, log, display and set are all in the
+    // result-verb list, so any criterion mentioning the noun read as observable.
+    expect(classifyCriterion('The report should be clear.')).toBe('unobservable');
+    expect(classifyCriterion('The user record must be accurate.')).toBe('unobservable');
+    expect(classifyCriterion('The display should be readable.')).toBe('unobservable');
+    expect(classifyCriterion('The log should be useful.')).toBe('unobservable');
+    expect(classifyCriterion('The set of fields is complete.')).toBe('unobservable');
+  });
+
+  it('still reads the same words as verbs in verb positions', () => {
+    expect(classifyCriterion('The report returns 200.')).toBe('observable');
+    expect(classifyCriterion('A report is written for each run.')).toBe('observable');
+    expect(classifyCriterion('The service records one event per archive.')).toBe('observable');
+    expect(classifyCriterion('Report the total.')).toBe('observable');
+  });
+
+  it('gives an inflected generic verb the same class as its base form', () => {
+    // The same criterion used to change class by adding a tense.
+    for (const base of ['Handle edge cases.', 'Support the feature.', 'Improve things.', 'Add validation.']) {
+      expect(classifyCriterion(base)).toBe('vague');
+    }
+    expect(classifyCriterion('Handling edge cases.')).toBe('vague');
+    expect(classifyCriterion('Supporting the feature.')).toBe('vague');
+    expect(classifyCriterion('Improving things.')).toBe('vague');
+    expect(classifyCriterion('Improved things.')).toBe('vague');
+    expect(classifyCriterion('Adding validation.')).toBe('vague');
+  });
+
+  it('does not stem a plural noun onto a quality adjective', () => {
+    // `goods` stripped to `good`, which demoted a real effect and lost its result verb.
+    expect(classifyCriterion('The warehouse stores goods.')).toBe('observable');
+  });
+
+  it('does not stem a degree adverb onto a quality adjective', () => {
+    // `greatly` stems to `great`, which suppressed a genuine result verb.
+    expect(classifyCriterion('greatly returns.')).toBe('observable');
+  });
+
+  it('keeps the quality-word rule ahead of the effect rule for unlisted adjectives', () => {
+    expect(classifyCriterion('The system renders a pleasant experience.')).toBe('unobservable');
+    expect(classifyCriterion('The app returns a professional look.')).toBe('unobservable');
+    expect(classifyCriterion('The UI renders an attractive layout.')).toBe('unobservable');
+  });
+});
+
 describe('classifyCriteria', () => {
   it('classifies a list in order, so an index lines up with the input', () => {
     const criteria = [

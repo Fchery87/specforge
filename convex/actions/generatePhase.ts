@@ -599,13 +599,28 @@ export async function generateSectionContent(params: {
 }
 
 /**
+ * The quality bar every document meets, whatever stage it belongs to.
+ *
+ * Concrete rather than adjectival, so it does not reintroduce the vagueness it replaces: each line
+ * names something the writer can act on.
+ *
+ * Universal on purpose. Two phases sit outside every stage — `constitution` and `handoff` — and
+ * `stagePromptFor` returns nothing for them, so a stage prompt alone would leave both with format
+ * rules and a one-line section instruction. The first version of this change deleted the three
+ * generic lines from the old template on the claim that the stage prompt stated each of them; that
+ * claim was false for those two phases, and false everywhere for the project-context line, which no
+ * stage prompt restates.
+ */
+const QUALITY_RULES = `Document quality:
+- Cover the section completely rather than sketching it.
+- Prefer concrete, actionable statements over general description.
+- Ground every statement in the project context above; do not invent facts it does not state.`;
+
+/**
  * Mechanical rules of the worker contract.
  *
- * These guard the output format rather than the document's quality, so they stay in the prompt even
- * where a stage prompt now states the quality bar better. The generic quality instructions that used
- * to sit here ("be thorough and detailed", "include specific, actionable content", "reference the
- * project context throughout") were removed because the stage prompt states each of them as a
- * failure mode instead of an adjective.
+ * These guard the output format rather than the document's quality, so they sit beside the quality
+ * rules and the stage prompt rather than being replaced by them.
  */
 const OUTPUT_RULES = `Output rules:
 - Use markdown formatting
@@ -626,8 +641,9 @@ export function buildSectionPrompts(params: {
   upstreamContext?: string | null;
 }): { systemPrompt: string; userPrompt: string } {
   // The order is the contract: what the stage requires, then what this section covers, then the
-  // project's own facts, then the questions the user answered. The stage prompt is the constant and
-  // the section instructions are the variable.
+  // project's own facts, then the questions the user answered, then the bar every document meets.
+  // The stage prompt is the constant per stage and the section instructions are the variable; the
+  // quality rules are constant for every phase, which is what covers the two phases outside a stage.
   const systemParts = [
     stagePromptFor(params.phaseId),
     `You are an expert technical writer creating project documentation.
@@ -638,6 +654,7 @@ Description: ${params.projectContext.description}`,
     params.projectContext.questions
       ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}`
       : null,
+    QUALITY_RULES,
     OUTPUT_RULES,
   ];
 
