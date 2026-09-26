@@ -4,6 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { renderPreviewHtml } from "../lib/markdown-render";
 import { createEvidenceDigest } from "../lib/evidence";
+import { artifactSectionValidator } from "./schema";
 import { reconcileArtifactClaims } from './lib/evidence';
 
 export async function cancelArtifactStreamingHandler(
@@ -60,7 +61,7 @@ export const upsertArtifact = mutation({
     title: v.string(),
     content: v.string(),
     previewHtml: v.string(),
-    sections: v.array(v.object({ name: v.string(), tokens: v.number(), model: v.string() })),
+    sections: v.array(artifactSectionValidator),
   },
   handler: async (ctx: MutationCtx, args) => {
     const project = await ctx.db.get(args.projectId);

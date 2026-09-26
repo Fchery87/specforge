@@ -24,10 +24,18 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 import { ArtifactDocument } from "@/components/artifact-document";
 import { ArtifactEditorModal } from "@/components/artifact-editor-modal";
 
+/**
+ * The critique the pipeline actually stores.
+ *
+ * This used to require a `summary` string that nothing writes:
+ * `appendSectionMetadataToArtifactInternal` takes `passes`, `score` and `violations` and nothing else,
+ * so `summary` was always absent and the type asserted a shape the data could not have. `critic.ts`
+ * carries a `summary` on its own result, but the section store drops it. The declared type matches the
+ * stored one now, so the section disclosure reflects real data instead of a promise nothing keeps.
+ */
 type CritiqueResult = {
   passes: boolean;
   score: number;
-  summary: string;
   violations: Array<{
     category: string;
     severity: string;
