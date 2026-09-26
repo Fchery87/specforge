@@ -3,133 +3,110 @@ import type { UserButton } from "@clerk/nextjs";
 
 type Appearance = NonNullable<ComponentProps<typeof UserButton>["appearance"]>;
 
-// Brand palette — single source of truth for all Clerk appearance objects
-// Tailwind JIT can't resolve runtime template literals, so elements class
-// strings use inlined hex values. The variables objects reference the const.
-const COLORS = {
-  primary: "#DFE104",
-  background: "#18181B",
-  foreground: "#FAFAFA",
-  mutedForeground: "#A1A1AA",
-  inputBackground: "#27272A",
-  inputForeground: "#FAFAFA",
-  danger: "#EF4444",
+/**
+ * Clerk appearance for the Ember theme.
+ *
+ * Everything here reads from the token layer in app/globals.css, so both themes follow without a
+ * second set of values. Clerk's own CSS and any inline style it writes both resolve var() at
+ * runtime. The class strings stay on semantic token utilities rather than raw values.
+ */
+
+const variables = {
+  colorBackground: "var(--panel)",
+  colorForeground: "var(--ink)",
+  colorPrimary: "var(--ember)",
+  colorMutedForeground: "var(--ink-muted)",
+  colorInput: "var(--surface)",
+  colorInputForeground: "var(--ink)",
+  colorDanger: "var(--brick)",
+  colorSuccess: "var(--sage)",
+  colorWarning: "var(--amber)",
+  borderRadius: "6px",
+  fontFamily: "var(--font-sans)",
 } as const;
 
+const controlBase =
+  "rounded-sm border border-field bg-surface text-ink transition-colors duration-(--duration-quick) ease-(--ease-quiet-out)";
+
+const overlayCard = "bg-panel border border-line rounded-lg shadow-lg";
+
+const menuItem =
+  "rounded-sm text-ink transition-colors duration-(--duration-quick) ease-(--ease-quiet-out)";
+
 export const clerkBaseAppearance: Appearance = {
-  theme: 'clerk',
-  variables: {
-    colorBackground: COLORS.background,
-    colorForeground: COLORS.foreground,
-    colorPrimary: COLORS.primary,
-    colorMutedForeground: COLORS.mutedForeground,
-    colorInput: COLORS.inputBackground,
-    colorInputForeground: COLORS.inputForeground,
-    colorDanger: COLORS.danger,
-    borderRadius: "0px",
-    fontFamily: "'Space Grotesk', sans-serif",
-  },
+  variables,
   elements: {
-    userButtonPopoverCard:
-      "bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.3)] font-grotesk",
-    userButtonPopoverMain: "bg-zinc-900",
-    userButtonPopoverActions: "bg-zinc-900",
-    userButtonPopoverActionButton:
-      "hover:bg-zinc-800 rounded-none transition-colors",
-    userButtonPopoverActionButton__manageAccount: "hover:bg-zinc-800",
-    userButtonPopoverActionButton__signOut: "hover:bg-zinc-800",
-    userButtonPopoverActionButtonText:
-      "text-zinc-100 font-bold uppercase tracking-wide text-sm",
-    userButtonPopoverActionButtonIcon: "text-[#DFE104] w-5 h-5",
+    rootBox: "font-sans",
+    card: overlayCard,
+    userButtonPopoverCard: overlayCard,
+    userButtonPopoverMain: "bg-panel",
+    userButtonPopoverActions: "bg-panel",
+    userButtonPopoverActionButton: menuItem,
+    userButtonPopoverActionButton__manageAccount: "hover:bg-raised",
+    userButtonPopoverActionButton__signOut: "hover:bg-raised",
+    userButtonPopoverActionButtonText: "text-ui text-ink",
+    userButtonPopoverActionButtonIcon: "size-4 text-dim",
     userButtonPopoverFooter: "hidden",
-    userPreview: "bg-zinc-900",
-    userPreviewMainIdentifier:
-      "text-zinc-100 font-bold uppercase tracking-tight",
-    userPreviewSecondaryIdentifier:
-      "text-zinc-400 text-xs uppercase tracking-wide",
-    userPreviewAvatarBox: "rounded-none border-2 border-[#DFE104]",
-    avatarBox: "rounded-none border-2 border-[#DFE104]",
-    card: "bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_40px_-8px_rgba(223,225,4,0.3)]",
-    formFieldLabel:
-      "text-zinc-300 font-bold uppercase tracking-wide text-xs",
-    formFieldInput:
-      "border-2 border-zinc-700 rounded-none focus:border-[#DFE104] bg-zinc-800 text-zinc-100",
-    formButtonPrimary:
-      "bg-[#DFE104] text-black font-bold uppercase tracking-wide rounded-none hover:bg-[#DFE104]/90",
-    footerActionText: "text-zinc-400",
-    footerActionLink:
-      "text-[#DFE104] font-bold uppercase hover:text-[#DFE104]/90",
+    userPreview: "bg-panel",
+    userPreviewMainIdentifier: "text-ui font-medium text-ink",
+    userPreviewSecondaryIdentifier: "text-label text-dim",
+    userPreviewAvatarBox: "rounded-full",
+    avatarBox: "size-7 rounded-full",
+    formFieldLabel: "text-label text-dim",
+    formFieldInput: controlBase,
+    formButtonPrimary: "bg-ember text-void rounded-sm hover:opacity-90",
+    footerActionText: "text-label text-dim",
+    footerActionLink: "text-label text-ember hover:underline",
   },
 };
 
 export const clerkUserButtonAppearance: Appearance = {
-  variables: {
-    colorBackground: COLORS.background,
-    colorForeground: COLORS.foreground,
-    colorPrimary: COLORS.primary,
-    colorMutedForeground: COLORS.mutedForeground,
-    borderRadius: "0px",
-    fontFamily: "'Space Grotesk', sans-serif",
-  },
+  variables,
   elements: {
-    avatarBox: "w-10 h-10 rounded-none border-2 border-[#DFE104]",
-    userButtonAvatarBox: "rounded-none border-2 border-[#DFE104]",
-    userButtonPopoverCard:
-      "!bg-zinc-900 border-2 border-[#DFE104]/40 rounded-none shadow-[0_0_30px_-8px_rgba(223,225,4,0.3)]",
-    userButtonPopoverMain: "!bg-zinc-900",
-    userButtonPopoverActions: "!bg-zinc-900 py-2",
-    userPreview: "!bg-zinc-900 p-4 border-b border-zinc-800",
-    userPreviewMainIdentifier:
-      "!text-zinc-100 font-bold uppercase tracking-tight text-base",
-    userPreviewSecondaryIdentifier:
-      "!text-zinc-400 text-xs uppercase tracking-wide",
-    userPreviewAvatarBox: "rounded-none border-2 border-[#DFE104]",
-    userButtonPopoverActionButton:
-      "!bg-zinc-900 hover:!bg-zinc-800 rounded-none transition-colors px-4 py-3",
-    userButtonPopoverActionButton__manageAccount: "hover:!bg-zinc-800",
-    userButtonPopoverActionButton__signOut: "hover:!bg-zinc-800",
-    userButtonPopoverActionButtonText:
-      "!text-zinc-100 font-bold uppercase tracking-wide text-sm",
-    userButtonPopoverActionButtonIcon: "!text-[#DFE104] w-5 h-5",
+    rootBox: "font-sans",
+    avatarBox: "size-7 rounded-full",
+    userButtonAvatarBox: "rounded-full",
+    userButtonPopoverCard: overlayCard,
+    userButtonPopoverMain: "bg-panel",
+    userButtonPopoverActions: "bg-panel py-1",
+    userPreview: "bg-panel border-b border-line p-3",
+    userPreviewMainIdentifier: "text-ui font-medium text-ink",
+    userPreviewSecondaryIdentifier: "text-label text-dim",
+    userPreviewAvatarBox: "rounded-full",
+    userButtonPopoverActionButton: `${menuItem} px-3 py-2`,
+    userButtonPopoverActionButton__manageAccount: "hover:bg-raised",
+    userButtonPopoverActionButton__signOut: "hover:bg-raised",
+    userButtonPopoverActionButtonText: "text-ui text-ink",
+    userButtonPopoverActionButtonIcon: "size-4 text-dim",
     userButtonPopoverFooter: "hidden",
   },
 };
 
 export const clerkAuthAppearance: Appearance = {
-  variables: {
-    colorPrimary: COLORS.primary,
-    colorBackground: COLORS.background,
-    colorForeground: COLORS.foreground,
-    colorMutedForeground: COLORS.mutedForeground,
-    colorInput: COLORS.inputBackground,
-    colorInputForeground: COLORS.inputForeground,
-    colorDanger: COLORS.danger,
-    borderRadius: "0px",
-  },
+  variables,
   elements: {
-    card: "border-2 border-primary/40 shadow-[0_0_40px_-8px_rgba(223,225,4,0.3)] bg-zinc-900/95 backdrop-blur-sm",
-    headerTitle:
-      "font-bold uppercase tracking-tighter text-2xl text-foreground",
-    headerSubtitle: "text-zinc-400 font-medium",
-    socialButtonsBlockButton:
-      "border-2 border-zinc-700 hover:border-primary/60 hover:bg-zinc-800 rounded-none text-zinc-200 font-bold uppercase tracking-wide transition-all focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-zinc-900",
-    dividerLine: "bg-zinc-700",
-    dividerText: "text-zinc-500 font-bold uppercase",
-    formFieldLabel: "text-zinc-300 font-bold uppercase tracking-wide text-xs",
-    formFieldInput:
-      "border-2 border-zinc-700 rounded-none focus:border-primary focus:ring-0 bg-zinc-800 text-foreground placeholder:text-zinc-500",
-    formButtonPrimary:
-      "bg-primary text-black hover:bg-primary/90 rounded-none font-bold uppercase tracking-wide border-2 border-primary transition-all active:translate-y-0.5 shadow-[0_0_20px_-4px_rgba(223,225,4,0.4)]",
-    footerActionText: "text-zinc-400",
-    footerActionLink:
-      "text-primary hover:text-primary/90 font-bold uppercase no-underline hover:underline",
-    identityPreviewText: "text-zinc-200 font-bold",
-    identityPreviewEditButton:
-      "text-primary hover:text-primary/90 font-bold uppercase",
-    formFieldWarningText: "text-amber-400",
-    formFieldErrorText: "text-red-400 font-bold",
-    alertText: "text-red-400 font-bold",
-    formFieldInputShowPasswordButton: "text-zinc-400 hover:text-primary",
+    rootBox: "font-sans",
+    card: "bg-surface border border-line rounded-lg shadow-none p-0",
+    headerTitle: "text-title font-medium text-ink",
+    headerSubtitle: "text-ui text-dim",
+    socialButtonsBlockButton: `${controlBase} hover:bg-raised justify-center`,
+    socialButtonsBlockButtonText: "text-ui text-ink",
+    dividerLine: "bg-line",
+    dividerText: "text-label text-dim",
+    formFieldLabel: "text-label text-dim",
+    formFieldInput: controlBase,
+    formButtonPrimary: "bg-ember text-void rounded-sm hover:opacity-90",
+    footerActionText: "text-label text-dim",
+    footerActionLink: "text-label text-ember hover:underline",
+    identityPreviewText: "text-ui text-ink",
+    identityPreviewEditButton: "text-label text-ember hover:underline",
+    formFieldWarningText: "text-label text-amber",
+    formFieldErrorText: "text-label text-brick",
+    alertText: "text-label text-brick",
+    formFieldInputShowPasswordButton: "text-dim hover:text-ink",
+    otpCodeFieldInput: controlBase,
+    formResendCodeLink: "text-label text-ember hover:underline",
+    navbarButton: menuItem,
   },
   options: {
     socialButtonsPlacement: "bottom",

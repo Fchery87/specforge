@@ -43,7 +43,7 @@ export function BatchAiModal({
       <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5" />
+            <Sparkles className="size-5" />
             AI-Generated Answers
           </DialogTitle>
           <DialogDescription>
@@ -65,20 +65,20 @@ export function BatchAiModal({
               return (
                 <div key={question.id} className="space-y-2">
                   <div className="flex items-start gap-2">
-                    <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 border border-border bg-secondary/30 text-xs font-bold">
+                    <span className="flex-shrink-0 flex items-center justify-center size-6 border border-line bg-raised/30 text-caption font-bold">
                       {idx + 1}
                     </span>
-                    <p className="text-sm font-medium flex-1">{question.text}</p>
+                    <p className="text-ui font-medium flex-1">{question.text}</p>
                     {isProcessing && (
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
                     )}
                     {isProcessed && !isProcessing && (
-                      <Check className="w-4 h-4 text-success" />
+                      <Check className="size-4 text-sage" />
                     )}
                   </div>
                   {batchAnswer && (
-                    <div className="ml-8 p-3 bg-secondary/50 rounded-md">
-                      <p className="text-sm">{batchAnswer.answer}</p>
+                    <div className="ml-8 p-3 bg-raised/50 rounded-sm">
+                      <p className="text-ui">{batchAnswer.answer}</p>
                     </div>
                   )}
                 </div>
@@ -88,7 +88,7 @@ export function BatchAiModal({
         </ScrollArea>
 
         <DialogFooter className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             Answers are saved automatically.
           </p>
           <Button variant="outline" onClick={onCancel}>

@@ -55,10 +55,10 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
     return (
       <div
         role="alert"
-        className={cn("p-3 border border-destructive/30 bg-destructive/10 text-sm text-destructive font-mono", className)}
+        className={cn("p-3 border border-destructive/30 bg-destructive/10 text-ui text-destructive font-mono", className)}
       >
         <p className="font-semibold mb-1">Diagram error</p>
-        <p className="text-xs opacity-80">{error}</p>
+        <p className="text-caption opacity-80">{error}</p>
       </div>
     );
   }
@@ -67,7 +67,7 @@ export function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
     return (
       <div
         aria-live="polite"
-        className={cn("flex items-center justify-center h-24 text-sm text-muted-foreground border border-border/50 bg-secondary/20", className)}
+        className={cn("flex items-center justify-center h-24 text-ui text-muted-foreground border border-border/50 bg-secondary/20", className)}
       >
         Rendering diagram…
       </div>

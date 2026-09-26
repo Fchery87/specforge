@@ -38,18 +38,9 @@ import {
   type PhaseId,
   type PhaseStatusMap,
   type ProjectMode,
+  PHASE_ORDER,
+  phaseLabel,
 } from '@/lib/workflow';
-
-const PHASE_ORDER = ['brief', 'constitution', 'prd', 'domainModel', 'spec', 'userStories', 'handoff'];
-const PHASE_LABELS: Record<string, string> = {
-  brief: 'Brief',
-  constitution: 'Constitution',
-  prd: 'PRD',
-  domainModel: 'Domain',
-  spec: 'Spec',
-  userStories: 'Stories',
-  handoff: 'Handoff',
-};
 
 export function getDashboardCardAction(
   action: NextAction,
@@ -118,7 +109,7 @@ function HealthBadge({ status }: { status: string }) {
     passed: {
       label: 'Verified',
       icon: CheckCircle2,
-      className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
+      className: 'bg-sage/10 text-sage border-sage/30',
     },
     failed: {
       label: 'Issues',
@@ -128,7 +119,7 @@ function HealthBadge({ status }: { status: string }) {
     warning: {
       label: 'Warning',
       icon: AlertTriangle,
-      className: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
+      className: 'bg-amber/10 text-amber border-amber/30',
     },
     not_checked: null,
   };
@@ -141,11 +132,11 @@ function HealthBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border',
+        'inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold rounded-sm border',
         badge.className
       )}
     >
-      <Icon className="w-3 h-3" />
+      <Icon className="size-3" />
       {badge.label}
     </span>
   );
@@ -240,17 +231,17 @@ export function ProjectCard({
           variant="interactive"
           className={cn(
             'h-full relative overflow-hidden flex flex-col justify-between',
-            'transition-all duration-200 border-2',
-            project.status === 'complete' && 'border-t-emerald-500/80',
+            'transition-colors duration-(--duration-standard) border',
+            project.status === 'complete' && 'border-t-sage/80',
             project.status === 'active' && 'border-t-primary/80',
-            project.status === 'draft' && 'border-t-muted'
+            project.status === 'draft' && 'border-t-line-strong'
           )}
         >
           {/* Top Status Accent Bar */}
           <div
             className={cn(
               'absolute top-0 left-0 right-0 h-1',
-              project.status === 'complete' && 'bg-emerald-500',
+              project.status === 'complete' && 'bg-sage',
               project.status === 'active' && 'bg-primary',
               project.status === 'draft' && 'bg-muted-foreground/30'
             )}
@@ -262,37 +253,37 @@ export function ProjectCard({
               <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                 {/* Status Badge */}
                 {project.status === 'complete' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 rounded">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-sage/10 text-sage border border-sage/30 rounded-sm">
+                    <span className="size-1.5 rounded-full bg-sage animate-pulse" />
                     Complete
                   </span>
                 )}
                 {project.status === 'active' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/30 rounded">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-primary/10 text-primary border border-primary/30 rounded-sm">
+                    <span className="size-1.5 rounded-full bg-primary" />
                     Active
                   </span>
                 )}
                 {project.status === 'draft' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-secondary/60 text-muted-foreground border border-border/60 rounded">
-                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-raised/60 text-muted-foreground border border-line/60 rounded-sm">
+                    <span className="size-1.5 rounded-full bg-muted-foreground/60" />
                     Draft
                   </span>
                 )}
 
                 {/* Mode Badge */}
                 {project.mode === 'quick' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-sky-500/10 text-sky-500 border border-sky-500/30 rounded">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-slate/10 text-slate border border-slate/30 rounded-sm">
                     Quick Spec
                   </span>
                 )}
                 {project.mode === 'backend' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-500 border border-purple-500/30 rounded">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-slate/10 text-slate border border-slate/30 rounded-sm">
                     API & Backend
                   </span>
                 )}
                 {project.mode === 'full' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-secondary/80 text-foreground border border-border rounded">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-raised/80 text-ink border border-line rounded-sm">
                     Full Blueprint
                   </span>
                 )}
@@ -300,8 +291,8 @@ export function ProjectCard({
                 {/* Health & Staleness Badges */}
                 <HealthBadge status={effectiveMetrics?.verificationStatus ?? 'not_checked'} />
                 {hasStale && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/30 rounded">
-                    <RefreshCw className="w-2.5 h-2.5" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-amber/10 text-amber border border-amber/30 rounded-sm">
+                    <RefreshCw className="size-2.5" />
                     Stale
                   </span>
                 )}
@@ -317,20 +308,20 @@ export function ProjectCard({
               >
                 {isPinned && (
                   <div
-                    className="w-7 h-7 flex items-center justify-center bg-primary/10 border border-primary/30 text-primary"
+                    className="size-7 flex items-center justify-center bg-primary/10 border border-primary/30 text-primary"
                     title="Pinned project"
                   >
-                    <Pin className="w-3.5 h-3.5 fill-primary" />
+                    <Pin className="size-3.5 fill-primary" />
                   </div>
                 )}
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
-                      className="w-7 h-7 rounded border border-border/60 bg-secondary/40 hover:bg-secondary hover:border-primary/50 text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+                      className="size-7 rounded-sm border border-line/60 bg-raised/40 hover:bg-raised hover:border-primary/50 text-muted-foreground hover:text-ink flex items-center justify-center transition-colors"
                       aria-label="Project options"
                     >
-                      <MoreHorizontal className="w-3.5 h-3.5" />
+                      <MoreHorizontal className="size-3.5" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
@@ -371,10 +362,10 @@ export function ProjectCard({
 
             {/* Title & Description */}
             <div className="space-y-1">
-              <CardTitle className="text-base sm:text-lg font-bold tracking-tight truncate group-hover:text-primary transition-colors">
+              <CardTitle className="text-body sm:text-title font-bold truncate group-hover:text-primary transition-colors">
                 {project.title}
               </CardTitle>
-              <CardDescription className="line-clamp-2 text-xs sm:text-sm text-muted-foreground leading-relaxed min-h-[2.5rem]">
+              <CardDescription className="line-clamp-2 text-caption sm:text-ui text-muted-foreground leading-relaxed min-h-[2.5rem]">
                 {project.description || 'No description provided.'}
               </CardDescription>
             </div>
@@ -383,11 +374,11 @@ export function ProjectCard({
           <CardContent className="p-5 sm:p-6 pt-0 space-y-4">
             {/* Segmented Phase Pipeline */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <div className="flex items-center justify-between text-caption">
+                <span className="text-caption font-bold text-muted-foreground">
                   Pipeline Progress
                 </span>
-                <span className="font-mono font-bold text-foreground tabular-nums text-xs">
+                <span className="font-mono font-bold text-ink tabular-nums text-caption">
                   {completedPhases}/{totalPhases} ({progress}%)
                 </span>
               </div>
@@ -402,12 +393,12 @@ export function ProjectCard({
                     <div
                       key={phaseId}
                       className={cn(
-                        'h-full flex-1 rounded-sm transition-all duration-300',
-                        isCompleted && 'bg-emerald-500',
+                        'h-full flex-1 rounded-sm transition-colors duration-(--duration-standard)',
+                        isCompleted && 'bg-sage',
                         isCurrent && !isCompleted && 'bg-primary animate-pulse',
-                        !isCompleted && !isCurrent && 'bg-muted/40 hover:bg-muted/70'
+                        !isCompleted && !isCurrent && 'bg-raised/40 hover:bg-raised/70'
                       )}
-                      title={`Phase ${idx + 1}: ${PHASE_LABELS[phaseId]} ${
+                      title={`Phase ${idx + 1}: ${phaseLabel(phaseId)} ${
                         isCompleted
                           ? '(Completed)'
                           : isCurrent
@@ -421,13 +412,13 @@ export function ProjectCard({
             </div>
 
             {/* Footer Metadata & CTA */}
-            <div className="flex items-center justify-between pt-3 border-t border-border/50 text-xs">
-              <span className="flex items-center text-muted-foreground text-[11px] sm:text-xs">
-                <Clock className="w-3.5 h-3.5 mr-1.5 text-muted-foreground/70" />
+            <div className="flex items-center justify-between pt-3 border-t border-line/50 text-caption">
+              <span className="flex items-center text-muted-foreground text-caption sm:text-caption">
+                <Clock className="size-3.5 mr-1.5 text-muted-foreground/70" />
                 Updated {formatRelativeTime(project.updatedAt)}
               </span>
-              <span className="flex items-center font-bold uppercase tracking-wider text-[11px] sm:text-xs text-primary group-hover:text-primary transition-colors">
-                {ctaLabel} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+              <span className="flex items-center font-bold text-caption sm:text-caption text-primary group-hover:text-primary transition-colors">
+                {ctaLabel} <ArrowRight className="size-3.5 ml-1" />
               </span>
             </div>
           </CardContent>

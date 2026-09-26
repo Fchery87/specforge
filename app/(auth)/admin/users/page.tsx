@@ -70,7 +70,7 @@ export default function UserManagementPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -92,7 +92,7 @@ export default function UserManagementPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Loading user data...</span>
         </div>
       </main>
@@ -110,25 +110,13 @@ export default function UserManagementPage() {
   };
 
   return (
-    <main className="relative">
+    <main>
       {/* Hero Header */}
-      <section className="page-header relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-fade opacity-20" />
-        <div className="page-container relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <Users className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Admin Console
-            </span>
-          </div>
-          <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-            User <span className="text-primary">Directory</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            Manage user accounts, view activity, and monitor platform usage.
-          </p>
+      <section className="page-header">
+        <div className="page-container">
+          <span className="text-label text-dim">Admin Console</span>
+          <h1 className="mt-2 text-heading font-medium text-ink">User Directory</h1>
+          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Manage user accounts, view activity, and monitor platform usage.</p>
         </div>
       </section>
 
@@ -137,59 +125,59 @@ export default function UserManagementPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Total Users
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{users.length}</p>
-              <p className="text-xs text-muted-foreground mt-1">Registered accounts</p>
+              <p className="text-heading font-bold">{users.length}</p>
+              <p className="text-caption text-muted-foreground mt-1">Registered accounts</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 With LLM Config
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{stats.totalUsersWithConfig}</p>
-              <p className="text-xs text-muted-foreground mt-1">Active configurations</p>
+              <p className="text-heading font-bold">{stats.totalUsersWithConfig}</p>
+              <p className="text-caption text-muted-foreground mt-1">Active configurations</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Total Projects
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{stats.totalProjects}</p>
-              <p className="text-xs text-muted-foreground mt-1">Across all users</p>
+              <p className="text-heading font-bold">{stats.totalProjects}</p>
+              <p className="text-caption text-muted-foreground mt-1">Across all users</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Total Artifacts
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{stats.totalArtifacts}</p>
-              <p className="text-xs text-muted-foreground mt-1">Generated documents</p>
+              <p className="text-heading font-bold">{stats.totalArtifacts}</p>
+              <p className="text-caption text-muted-foreground mt-1">Generated documents</p>
             </CardContent>
           </Card>
         </div>
       </section>
 
       {/* Search Bar */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               placeholder="Search users by ID or provider..."
               value={searchQuery}
@@ -197,7 +185,7 @@ export default function UserManagementPage() {
               className="pl-10"
             />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-ui text-muted-foreground">
             Showing {users.length} users
           </p>
         </div>
@@ -207,9 +195,9 @@ export default function UserManagementPage() {
       <section className="page-section page-container">
         <Card variant="default">
           <CardContent className="p-0">
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-line">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-4 p-4 bg-secondary/30 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              <div className="grid grid-cols-12 gap-4 p-4 bg-raised/30 text-ui font-medium text-muted-foreground">
                 <div className="col-span-4">User</div>
                 <div className="col-span-2">Projects</div>
                 <div className="col-span-2">Artifacts</div>
@@ -223,39 +211,39 @@ export default function UserManagementPage() {
                   <div key={user.userId}>
                     <div 
                       className={cn(
-                        "grid grid-cols-12 gap-4 p-4 items-center transition-colors hover:bg-secondary/20 cursor-pointer",
-                        expandedUser === user.userId && "bg-secondary/20"
+                        "grid grid-cols-12 gap-4 p-4 items-center transition-colors hover:bg-raised/20 cursor-pointer",
+                        expandedUser === user.userId && "bg-raised/20"
                       )}
                       onClick={() => setExpandedUser(expandedUser === user.userId ? null : user.userId)}
                     >
                       <div className="col-span-4 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="w-5 h-5 text-primary" />
+                        <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="size-5 text-primary" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium truncate font-mono text-sm">
+                          <p className="font-medium truncate font-mono text-ui">
                             {user.userId.slice(0, 16)}...
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-caption text-muted-foreground">
                             {user.configs.length} LLM config{user.configs.length !== 1 ? 's' : ''}
                           </p>
                         </div>
                       </div>
 
                       <div className="col-span-2 flex items-center gap-2">
-                        <FolderOpen className="w-4 h-4 text-muted-foreground" />
+                        <FolderOpen className="size-4 text-muted-foreground" />
                         <span className="font-medium">{user.projectCount}</span>
                       </div>
 
                       <div className="col-span-2 flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
+                        <FileText className="size-4 text-muted-foreground" />
                         <span className="font-medium">{user.artifactCount}</span>
                       </div>
 
                       <div className="col-span-2 flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <Clock className="size-4 text-muted-foreground" />
                         <span className={cn(
-                          "text-sm",
+                          "text-ui",
                           !user.lastActive && "text-muted-foreground"
                         )}>
                           {formatRelativeTime(user.lastActive)}
@@ -266,7 +254,7 @@ export default function UserManagementPage() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="w-4 h-4" />
+                              <MoreHorizontal className="size-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -274,14 +262,14 @@ export default function UserManagementPage() {
                               e.stopPropagation();
                               setExpandedUser(user.userId);
                             }}>
-                              <Eye className="w-4 h-4 mr-2" />
+                              <Eye className="size-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-destructive"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <Ban className="w-4 h-4 mr-2" />
+                              <Ban className="size-4 mr-2" />
                               Suspend User
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -295,9 +283,9 @@ export default function UserManagementPage() {
                           }}
                         >
                           {expandedUser === user.userId ? (
-                            <ChevronUp className="w-4 h-4" />
+                            <ChevronUp className="size-4" />
                           ) : (
-                            <ChevronDown className="w-4 h-4" />
+                            <ChevronDown className="size-4" />
                           )}
                         </Button>
                       </div>
@@ -305,31 +293,31 @@ export default function UserManagementPage() {
 
                     {/* Expanded Details */}
                     {expandedUser === user.userId && (
-                      <div className="px-4 pb-4 bg-secondary/10">
+                      <div className="px-4 pb-4 bg-raised/10">
                         <div className="pt-4 pl-14 grid gap-6 md:grid-cols-2">
                           {/* LLM Configurations */}
                           <div>
-                            <h4 className="text-sm font-medium uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                              <Key className="w-4 h-4" />
+                            <h4 className="text-ui font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                              <Key className="size-4" />
                               LLM Configurations
                             </h4>
                             <div className="space-y-2">
                               {user.configs.map((config, idx) => (
                                 <div 
                                   key={idx}
-                                  className="p-3 bg-background border border-border rounded-lg"
+                                  className="p-3 bg-void border border-line rounded-lg"
                                 >
                                   <div className="flex items-center justify-between mb-1">
                                     <Badge variant="outline" className="capitalize">
                                       {config.provider}
                                     </Badge>
                                     {config.useSystem && (
-                                      <Badge variant="secondary" className="text-xs">
+                                      <Badge variant="secondary" className="text-caption">
                                         System
                                       </Badge>
                                     )}
                                   </div>
-                                  <p className="text-sm text-muted-foreground">
+                                  <p className="text-ui text-muted-foreground">
                                     Model: {config.defaultModel}
                                   </p>
                                 </div>
@@ -339,22 +327,22 @@ export default function UserManagementPage() {
 
                           {/* Activity Summary */}
                           <div>
-                            <h4 className="text-sm font-medium uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                              <Activity className="w-4 h-4" />
+                            <h4 className="text-ui font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                              <Activity className="size-4" />
                               Activity Summary
                             </h4>
                             <div className="space-y-3">
-                              <div className="flex justify-between items-center p-3 bg-background border border-border rounded-lg">
-                                <span className="text-sm">Projects Created</span>
+                              <div className="flex justify-between items-center p-3 bg-void border border-line rounded-lg">
+                                <span className="text-ui">Projects Created</span>
                                 <span className="font-bold">{user.projectCount}</span>
                               </div>
-                              <div className="flex justify-between items-center p-3 bg-background border border-border rounded-lg">
-                                <span className="text-sm">Artifacts Generated</span>
+                              <div className="flex justify-between items-center p-3 bg-void border border-line rounded-lg">
+                                <span className="text-ui">Artifacts Generated</span>
                                 <span className="font-bold">{user.artifactCount}</span>
                               </div>
-                              <div className="flex justify-between items-center p-3 bg-background border border-border rounded-lg">
-                                <span className="text-sm">Last Active</span>
-                                <span className="font-medium text-sm">
+                              <div className="flex justify-between items-center p-3 bg-void border border-line rounded-lg">
+                                <span className="text-ui">Last Active</span>
+                                <span className="font-medium text-ui">
                                   {formatDate(user.lastActive)}
                                 </span>
                               </div>
@@ -367,8 +355,8 @@ export default function UserManagementPage() {
                 ))
               ) : (
                 <div className="p-12 text-center">
-                  <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                  <h3 className="text-lg font-medium mb-2">No Users Found</h3>
+                  <Users className="size-12 mx-auto mb-4 opacity-30" />
+                  <h3 className="text-title font-medium mb-2">No Users Found</h3>
                   <p className="text-muted-foreground max-w-md mx-auto">
                     {searchQuery 
                       ? "No users match your search criteria. Try a different query."
@@ -382,10 +370,6 @@ export default function UserManagementPage() {
         </Card>
       </section>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
-        USERS
-      </div>
     </main>
   );
 }

@@ -28,7 +28,7 @@ export function MermaidAwareContent({ markdown, className }: MermaidAwareContent
         return (
           <div
             key={idx}
-            className="prose prose-invert max-w-none text-sm"
+            className="document-prose text-ink"
             dangerouslySetInnerHTML={{ __html: renderMarkdownSafe(segment.content) }}
           />
         );

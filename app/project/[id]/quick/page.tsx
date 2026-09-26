@@ -29,7 +29,7 @@ export default function ProjectQuickSpecPage() {
       <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: project.title, href: `/project/${projectId}` }, { label: 'Quick Spec history' }]} />
       <div className="my-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-v-h2 font-bold uppercase tracking-tighter">Quick Spec History</h1>
+          <h1 className="text-heading font-bold">Quick Spec History</h1>
           <p className="mt-2 text-muted-foreground">Saved architectural blueprints and diagrams for {project.title}. Inspect versioned claims and review attached evidence.</p>
         </div>
         <Button asChild variant="outline"><Link href="/dashboard/quick">Generate Quick Spec</Link></Button>
@@ -39,7 +39,7 @@ export default function ProjectQuickSpecPage() {
           <ArtifactPreview artifact={artifact} projectId={String(projectId)} />
           <EvidenceReviewPanel projectId={projectId} artifactId={artifact._id} />
         </>
-      ) : <p className="border border-dashed border-border p-8 text-muted-foreground">No Quick Spec has been saved to this project yet. Generate a one-page specification from the dashboard and save it here.</p>}
+      ) : <p className="border border-dashed border-line p-8 text-muted-foreground">No Quick Spec has been saved to this project yet. Generate a one-page specification from the dashboard and save it here.</p>}
     </main>
   );
 }

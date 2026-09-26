@@ -20,31 +20,31 @@ function PinnedProjectCard({ project, index }: { project: PinnedProject; index: 
     <Link href={`/project/${project._id}`} className="block group">
       <Card
         className={cn(
-          'h-full transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-primary/50',
-          'border-l-4',
-          project.status === 'complete' && 'border-l-emerald-500',
+          'h-full transition-colors duration-(--duration-standard) hover:border-primary/50',
+          'border-l',
+          project.status === 'complete' && 'border-l-sage',
           project.status === 'active' && 'border-l-primary',
-          project.status === 'draft' && 'border-l-muted'
+          project.status === 'draft' && 'border-l-line-strong'
         )}
       >
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-black text-muted/20">
+              <span className="text-title font-semibold text-muted/20">
                 {String(index + 1).padStart(2, '0')}
               </span>
-              <Pin className="w-4 h-4 text-primary fill-primary" />
+              <Pin className="size-4 text-primary fill-primary" />
             </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            <ArrowRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </div>
         </CardHeader>
         <CardContent>
-          <h3 className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+          <h3 className="font-bold text-ui truncate group-hover:text-primary transition-colors">
             {project.title}
           </h3>
           <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-muted-foreground capitalize">{project.status}</span>
-            <span className="text-xs text-muted-foreground">{formatRelativeTime(project.updatedAt)}</span>
+            <span className="text-caption text-muted-foreground capitalize">{project.status}</span>
+            <span className="text-caption text-muted-foreground">{formatRelativeTime(project.updatedAt)}</span>
           </div>
         </CardContent>
       </Card>
@@ -77,8 +77,8 @@ export function PinnedProjects() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Pin className="w-5 h-5 text-primary" />
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          <Pin className="size-5 text-primary" />
+          <h2 className="text-ui font-bold text-muted-foreground">
             Pinned Projects
           </h2>
         </div>
@@ -91,18 +91,18 @@ export function PinnedProjects() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Pin className="w-5 h-5 text-primary" />
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+          <Pin className="size-5 text-primary" />
+          <h2 className="text-ui font-bold text-muted-foreground">
             Pinned Projects
           </h2>
         </div>
         <Card className="border-dashed">
           <CardContent className="py-8 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-none bg-muted/50 flex items-center justify-center">
-              <Pin className="w-6 h-6 text-muted-foreground" />
+            <div className="size-12 mx-auto mb-3 rounded-sm bg-raised/50 flex items-center justify-center">
+              <Pin className="size-6 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">No pinned projects</p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-ui text-muted-foreground">No pinned projects</p>
+            <p className="text-caption text-muted-foreground mt-1">
               Pin your most important projects for quick access
             </p>
           </CardContent>
@@ -115,13 +115,13 @@ export function PinnedProjects() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="relative">
-          <Pin className="w-5 h-5 text-primary" />
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+          <Pin className="size-5 text-primary" />
+          <div className="absolute -top-1 -right-1 size-2 bg-primary rounded-full" />
         </div>
-        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+        <h2 className="text-ui font-bold text-muted-foreground">
           Pinned Projects
         </h2>
-        <span className="text-[10px] px-2 py-0.5 bg-secondary/50 text-muted-foreground">
+        <span className="text-caption px-2 py-0.5 bg-raised/50 text-muted-foreground">
           {pinnedProjects.length}/5
         </span>
       </div>

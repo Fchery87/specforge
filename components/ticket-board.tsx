@@ -52,7 +52,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
   }
 
   if (tickets === undefined) {
-    return <div className="text-muted-foreground text-sm">Loading tickets…</div>;
+    return <div className="text-muted-foreground text-ui">Loading tickets…</div>;
   }
 
   type BoardTicket = (typeof tickets)[number] & {
@@ -65,7 +65,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
 
   if (ticketList.length === 0 && !artifactId) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-ui text-muted-foreground">
         Generate the User Stories artifact first to extract tickets.
       </p>
     );
@@ -74,7 +74,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
   if (ticketList.length === 0 && artifactId) {
     return (
       <div className="flex flex-col items-center gap-4 py-8 text-center">
-        <p className="text-muted-foreground text-sm">No tickets yet. Parse from the User Stories artifact.</p>
+        <p className="text-muted-foreground text-ui">No tickets yet. Parse from the User Stories artifact.</p>
         <Button onClick={handleParse} disabled={isParsing}>
           {isParsing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Parse Tickets
@@ -100,13 +100,13 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
   return (
     <div className="space-y-4">
       {ticketList.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 border border-border/60 bg-secondary/10 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 border border-line/60 bg-raised/10 text-caption">
           <div className="flex items-center gap-4">
             <div>
               <span className="font-bold text-primary">{frontierCount}</span> Ready on Frontier
             </div>
             <div className="text-muted-foreground">
-              <span className="font-bold text-foreground">{tracerCount}</span> Tracer Bullets
+              <span className="font-bold text-ink">{tracerCount}</span> Tracer Bullets
             </div>
           </div>
           <div className="text-muted-foreground">
@@ -120,8 +120,8 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
           const col = ticketList.filter((t) => t.status === status);
           return (
             <div key={status}>
-              <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-3">
-                {label} <span className="text-xs font-normal">({col.length})</span>
+              <h3 className="text-ui font-bold text-muted-foreground mb-3">
+                {label} <span className="text-caption font-normal">({col.length})</span>
               </h3>
               <div>
                 {col.map((ticket) => (
@@ -133,7 +133,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
                   />
                 ))}
                 {col.length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">No tickets</p>
+                  <p className="text-caption text-muted-foreground italic">No tickets</p>
                 )}
               </div>
             </div>

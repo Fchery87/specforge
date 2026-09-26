@@ -1,0 +1,4 @@
+[
+  { "path": "/", "viewports": ["desktop"], "fullPage": false },
+  { "path": "/design", "viewports": ["desktop"], "fullPage": false }
+]

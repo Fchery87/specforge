@@ -45,15 +45,15 @@ export function StreamingArtifactPreview(props: {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-base normal-case tracking-normal font-semibold truncate">
+            <CardTitle className="text-body font-semibold truncate">
               {title}
             </CardTitle>
             {typeof sectionsCompleted === "number" &&
               typeof sectionsTotal === "number" &&
               currentSection && (
-                <div className="mt-1 text-xs text-muted-foreground">
+                <div className="mt-1 text-caption text-muted-foreground">
                   Section {sectionsCompleted + 1} of {sectionsTotal}:{" "}
-                  <span className="text-white/80">{currentSection}</span>
+                  <span className="text-ink/80">{currentSection}</span>
                 </div>
               )}
           </div>
@@ -64,12 +64,12 @@ export function StreamingArtifactPreview(props: {
                 size="sm"
                 onClick={onCancel}
                 disabled={isCancelling}
-                className="h-7 gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-7 gap-1.5 text-caption border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 {isCancelling ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="size-3 animate-spin" />
                 ) : (
-                  <Square className="w-3 h-3" />
+                  <Square className="size-3" />
                 )}
                 {isCancelling ? "Stopping…" : "Stop"}
               </Button>
@@ -78,9 +78,9 @@ export function StreamingArtifactPreview(props: {
               <Badge
                 variant="outline"
                 className={cn(
-                  statusLabel === "Live" && "border-border text-white/90",
-                  statusLabel === "Paused" && "border-border text-white/90",
-                  statusLabel === "Cancelled" && "border-border text-white/80"
+                  statusLabel === "Live" && "border-line text-ink/90",
+                  statusLabel === "Paused" && "border-line text-ink/90",
+                  statusLabel === "Cancelled" && "border-line text-ink/80"
                 )}
               >
                 {statusLabel}
@@ -92,12 +92,12 @@ export function StreamingArtifactPreview(props: {
       <CardContent className="pt-0">
         {previewHtml && previewHtml.trim().length > 0 ? (
           <div
-            className="prose prose-invert max-w-none text-sm p-4 bg-secondary/30 border-t border-border max-h-96 overflow-y-auto"
+            className="document-prose document-prose max-w-none text-ui p-4 bg-raised/30 border-t border-line max-h-96 overflow-y-auto"
             dangerouslySetInnerHTML={{ __html: previewHtml }}
           />
         ) : (
-          <div className="flex items-center justify-center p-8 bg-secondary/30 border-t border-border text-sm text-muted-foreground gap-2">
-            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <div className="flex items-center justify-center p-8 bg-raised/30 border-t border-line text-ui text-muted-foreground gap-2">
+            <Loader2 className="size-4 animate-spin text-primary" />
             <span>Generating content preview…</span>
           </div>
         )}

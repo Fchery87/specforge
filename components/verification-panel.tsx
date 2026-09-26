@@ -19,23 +19,23 @@ interface VerificationPanelProps {
 }
 
 const categoryColors: Record<FindingCategory, string> = {
-  bug: "bg-red-500/20 text-red-400 border-red-500/50",
-  performance: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
-  security: "bg-orange-500/20 text-orange-400 border-orange-500/50",
-  clarity: "bg-blue-500/20 text-blue-400 border-blue-500/50",
-  missing: "bg-purple-500/20 text-purple-400 border-purple-500/50",
+  bug: "bg-brick/20 text-brick border-brick/50",
+  performance: "bg-amber/20 text-amber border-amber/50",
+  security: "bg-amber/20 text-amber border-amber/50",
+  clarity: "bg-slate/20 text-slate border-slate/50",
+  missing: "bg-slate/20 text-slate border-slate/50",
 };
 
 const severityColors: Record<FindingSeverity, string> = {
-  critical: "bg-red-500 text-white",
-  major: "bg-orange-500 text-white",
-  minor: "bg-yellow-500 text-black",
+  critical: "bg-brick/15 text-brick border-brick/40",
+  major: "bg-amber/15 text-amber border-amber/40",
+  minor: "bg-slate/15 text-slate border-slate/40",
 };
 
 const statusConfig: Record<VerificationStatus, { icon: typeof CheckCircle; label: string; color: string }> = {
-  pass: { icon: CheckCircle, label: "Pass", color: "text-green-400" },
-  fail: { icon: XCircle, label: "Fail", color: "text-red-400" },
-  warning: { icon: AlertTriangle, label: "Warning", color: "text-yellow-400" },
+  pass: { icon: CheckCircle, label: "Pass", color: "text-sage" },
+  fail: { icon: XCircle, label: "Fail", color: "text-brick" },
+  warning: { icon: AlertTriangle, label: "Warning", color: "text-amber" },
 };
 
 export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps) {
@@ -105,17 +105,17 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <FileSearch className="w-5 h-5 text-muted-foreground" />
-            <CardTitle className="text-lg normal-case tracking-normal">
+            <FileSearch className="size-5 text-muted-foreground" />
+            <CardTitle className="text-title">
               Implementation Verification
             </CardTitle>
           </div>
           {result && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-2xl font-bold tabular-nums">
+                <div className="text-title font-bold tabular-nums">
                   {result.overallScore}
-                  <span className="text-base font-normal text-muted-foreground">/100</span>
+                  <span className="text-body font-normal text-muted-foreground">/100</span>
                 </div>
               </div>
               <StatusBadge status={result.status} />
@@ -127,19 +127,19 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
         {!result ? (
           <>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-ui text-muted-foreground">
                 Paste your git diff to verify implementation against requirements.
               </p>
               <button
                 type="button"
                 onClick={handleCopyCommand}
-                className="inline-flex items-center gap-1.5 font-mono text-xs bg-muted/60 hover:bg-muted text-foreground border border-border rounded px-2.5 py-1 transition-colors self-start sm:self-auto shrink-0"
+                className="inline-flex items-center gap-1.5 font-mono text-caption bg-raised/60 hover:bg-raised text-ink border border-line rounded-sm px-2.5 py-1 transition-colors self-start sm:self-auto shrink-0"
                 title="Copy git diff command: git diff origin/main...HEAD"
               >
                 {copiedCommand ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <Check className="size-3.5 text-sage" />
                 ) : (
-                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                  <Copy className="size-3.5 text-muted-foreground" />
                 )}
                 <span>{copiedCommand ? "Copied command" : "Copy diff command"}</span>
               </button>
@@ -156,7 +156,7 @@ index 0000000..1234567
 +import express from 'express';`}
               value={gitDiff}
               onChange={(e) => setGitDiff(e.target.value)}
-              className="min-h-[200px] font-mono text-sm resize-y"
+              className="min-h-[200px] font-mono text-ui resize-y"
             />
             <Button
               onClick={handleVerify}
@@ -165,7 +165,7 @@ index 0000000..1234567
             >
               {isVerifying ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="size-4 mr-2 animate-spin" />
                   Verifying...
                 </>
               ) : (
@@ -177,17 +177,17 @@ index 0000000..1234567
           <div className="space-y-4">
             {result.findings.length === 0 ? (
               <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-400" />
+                <div className="inline-flex items-center justify-center size-16 rounded-full bg-sage/20 mb-4">
+                  <CheckCircle className="size-8 text-sage" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">All Clear!</h3>
+                <h3 className="text-title font-semibold mb-2">All Clear!</h3>
                 <p className="text-muted-foreground">
                   No issues found. Your implementation matches the specification.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="text-sm font-medium">
+                <div className="text-ui font-medium">
                   Found {result.findings.length} issue{result.findings.length !== 1 ? "s" : ""}
                 </div>
                 {result.findings.map((finding, index) => (
@@ -208,11 +208,11 @@ index 0000000..1234567
           </div>
         )}
         {verificationHistory && verificationHistory.length > 0 && (
-          <div className="border-t border-border pt-4">
-            <h3 className="mb-2 text-sm font-semibold">Previous checks</h3>
+          <div className="border-t border-line pt-4">
+            <h3 className="mb-2 text-ui font-semibold">Previous checks</h3>
             <ul className="space-y-2">
               {verificationHistory.map((item) => (
-                <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 text-caption">
                   <span>{new Date(item.checkedAt).toLocaleString()} · {item.overallScore}/100 · {item.artifactVersionSet?.length ? `${item.artifactVersionSet.length} artifact revision${item.artifactVersionSet.length === 1 ? '' : 's'}` : `artifact v${item.artifactVersion ?? "?"}`}</span>
                   {item.outdatedAt ? <Badge variant="outline">Outdated</Badge> : <StatusBadge status={item.status} />}
                 </li>
@@ -234,13 +234,13 @@ function StatusBadge({ status }: { status: VerificationStatus }) {
       variant="outline" 
       className={`${
         status === "pass" 
-          ? "bg-green-500/20 text-green-400 border-green-500/50" 
+          ? "bg-sage/20 text-sage border-sage/50" 
           : status === "warning"
-          ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
-          : "bg-red-500/20 text-red-400 border-red-500/50"
+          ? "bg-amber/20 text-amber border-amber/50"
+          : "bg-brick/20 text-brick border-brick/50"
       } px-3 py-1`}
     >
-      <Icon className="w-3.5 h-3.5 mr-1.5" />
+      <Icon className="size-3.5 mr-1.5" />
       {config.label}
     </Badge>
   );
@@ -248,45 +248,45 @@ function StatusBadge({ status }: { status: VerificationStatus }) {
 
 function FindingCard({ finding, index }: { finding: Finding; index: number }) {
   return (
-    <div className="border border-border/50 rounded-lg p-4 space-y-3 bg-black/20">
+    <div className="border border-line/50 rounded-lg p-4 space-y-3 bg-raised">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-muted-foreground font-mono">
+          <span className="text-caption text-muted-foreground font-mono">
             #{index + 1}
           </span>
-          <Badge variant="outline" className={`${categoryColors[finding.category]} text-xs`}>
+          <Badge variant="outline" className={`${categoryColors[finding.category]} text-caption`}>
             {finding.category.charAt(0).toUpperCase() + finding.category.slice(1)}
           </Badge>
-          <Badge className={`${severityColors[finding.severity]} text-xs`}>
-            {finding.severity.toUpperCase()}
+          <Badge className={`${severityColors[finding.severity]} text-caption`}>
+            {finding.severity.charAt(0).toUpperCase() + finding.severity.slice(1)}
           </Badge>
         </div>
       </div>
       
       <div>
-        <h4 className="font-semibold text-sm mb-1">{finding.title}</h4>
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <h4 className="font-semibold text-ui mb-1">{finding.title}</h4>
+        <p className="text-ui text-muted-foreground leading-relaxed">
           {finding.description}
         </p>
       </div>
       
       {finding.suggestion && (
-        <div className="bg-white/5 rounded p-3 text-sm">
-          <div className="font-medium text-xs text-muted-foreground mb-1">Suggestion</div>
-          <div className="text-sm">{finding.suggestion}</div>
+        <div className="bg-ink/5 rounded-sm p-3 text-ui">
+          <div className="font-medium text-caption text-muted-foreground mb-1">Suggestion</div>
+          <div className="text-ui">{finding.suggestion}</div>
         </div>
       )}
       
       {finding.specReference && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-caption text-muted-foreground">
           Reference <span className="font-mono">{finding.specReference}</span>
         </div>
       )}
       {finding.requirementId && (
-        <div className="text-xs text-muted-foreground">Requirement <span className="font-mono">{finding.requirementId}</span></div>
+        <div className="text-caption text-muted-foreground">Requirement <span className="font-mono">{finding.requirementId}</span></div>
       )}
       {finding.changedFilePath && (
-        <div className="text-xs text-muted-foreground">Changed file <span className="font-mono">{finding.changedFilePath}</span></div>
+        <div className="text-caption text-muted-foreground">Changed file <span className="font-mono">{finding.changedFilePath}</span></div>
       )}
     </div>
   );

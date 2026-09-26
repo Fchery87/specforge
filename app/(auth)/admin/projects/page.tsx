@@ -87,7 +87,7 @@ export default function ProjectManagementPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -109,7 +109,7 @@ export default function ProjectManagementPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Loading project data...</span>
         </div>
       </main>
@@ -181,45 +181,33 @@ export default function ProjectManagementPage() {
   const getStatusColor = (status: ProjectStatus) => {
     switch (status) {
       case 'draft':
-        return 'bg-muted text-muted-foreground';
+        return 'bg-raised text-muted-foreground';
       case 'active':
         return 'bg-primary/20 text-primary border-primary';
       case 'complete':
-        return 'bg-green-500/20 text-green-500 border-green-500';
+        return 'bg-sage/20 text-sage border-sage';
       default:
-        return 'bg-muted text-muted-foreground';
+        return 'bg-raised text-muted-foreground';
     }
   };
 
   return (
-    <main className="relative">
+    <main>
       {/* Hero Header */}
-      <section className="page-header relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-fade opacity-20" />
-        <div className="page-container relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <FolderOpen className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Admin Console
-            </span>
-          </div>
-          <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-            Project <span className="text-primary">Control Center</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            View, manage, and moderate all projects across the platform.
-          </p>
+      <section className="page-header">
+        <div className="page-container">
+          <span className="text-label text-dim">Admin Console</span>
+          <h1 className="mt-2 text-heading font-medium text-ink">Project Control Center</h1>
+          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">View, manage, and moderate all projects across the platform.</p>
         </div>
       </section>
 
       {/* Bulk Actions Bar */}
       {selectedProjects.size > 0 && (
         <section className="page-section page-container">
-          <div className="flex items-center justify-between p-4 bg-primary/10 border-2 border-primary rounded-lg">
+          <div className="flex items-center justify-between p-4 bg-primary/10 border border-primary rounded-lg">
             <div className="flex items-center gap-3">
-              <CheckSquare className="w-5 h-5 text-primary" />
+              <CheckSquare className="size-5 text-primary" />
               <span className="font-medium">
                 {selectedProjects.size} project{selectedProjects.size !== 1 ? 's' : ''} selected
               </span>
@@ -237,7 +225,7 @@ export default function ProjectManagementPage() {
                 size="sm"
                 onClick={handleBulkDelete}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="size-4 mr-2" />
                 Delete Selected
               </Button>
             </div>
@@ -248,12 +236,12 @@ export default function ProjectManagementPage() {
       {/* Filters & Search */}
       <section className={cn(
         "page-section page-container",
-        selectedProjects.size === 0 && "border-t-2 border-border"
+        selectedProjects.size === 0 && "border-t border-line"
       )}>
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 placeholder="Search projects..."
                 value={searchQuery}
@@ -263,7 +251,7 @@ export default function ProjectManagementPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Filter className="size-4 text-muted-foreground" />
               <div className="flex gap-1">
                 {(['draft', 'active', 'complete'] as ProjectStatus[]).map((status) => (
                   <Button
@@ -289,7 +277,7 @@ export default function ProjectManagementPage() {
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-ui text-muted-foreground">
             Showing {projects.length} projects
           </p>
         </div>
@@ -300,7 +288,7 @@ export default function ProjectManagementPage() {
         {projects.length > 0 ? (
           <div className="space-y-4">
             {/* Header Row */}
-            <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-ui font-medium text-muted-foreground">
               <div className="col-span-1">
                 <Button
                   variant="ghost"
@@ -309,9 +297,9 @@ export default function ProjectManagementPage() {
                   onClick={toggleAll}
                 >
                   {selectedProjects.size === projects.length ? (
-                    <CheckSquare className="w-4 h-4" />
+                    <CheckSquare className="size-4" />
                   ) : (
-                    <Square className="w-4 h-4" />
+                    <Square className="size-4" />
                   )}
                 </Button>
               </div>
@@ -328,7 +316,7 @@ export default function ProjectManagementPage() {
                 key={project.id}
                 variant="default"
                 className={cn(
-                  "transition-all",
+                  "transition-colors",
                   selectedProjects.has(project.id) && "border-primary bg-primary/5"
                 )}
               >
@@ -348,18 +336,18 @@ export default function ProjectManagementPage() {
                       >
                         <p className="font-medium truncate">{project.title}</p>
                       </Link>
-                      <p className="text-sm text-muted-foreground truncate mt-1">
+                      <p className="text-ui text-muted-foreground truncate mt-1">
                         {project.description}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-caption text-muted-foreground mt-1">
                         Created {formatDate(project.createdAt)}
                       </p>
                     </div>
 
                     <div className="col-span-2">
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-mono text-sm truncate">
+                        <User className="size-4 text-muted-foreground" />
+                        <span className="font-mono text-ui truncate">
                           {project.userId.slice(0, 8)}...
                         </span>
                       </div>
@@ -376,22 +364,22 @@ export default function ProjectManagementPage() {
 
                     <div className="col-span-2">
                       <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">{formatRelativeTime(project.updatedAt)}</span>
+                        <Clock className="size-4 text-muted-foreground" />
+                        <span className="text-ui">{formatRelativeTime(project.updatedAt)}</span>
                       </div>
                     </div>
 
                     <div className="col-span-2 flex items-center justify-end gap-2">
                       <Link href={`/project/${project.id}`}>
                         <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
+                          <Eye className="size-4" />
                         </Button>
                       </Link>
                       
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
+                            <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -399,7 +387,7 @@ export default function ProjectManagementPage() {
                             setProjectToDelete(project);
                             setDeleteDialogOpen(true);
                           }}>
-                            <Trash2 className="w-4 h-4 mr-2 text-destructive" />
+                            <Trash2 className="size-4 mr-2 text-destructive" />
                             <span className="text-destructive">Delete Project</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -412,8 +400,8 @@ export default function ProjectManagementPage() {
           </div>
         ) : (
           <Card variant="default" className="p-12 text-center">
-            <FolderOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <h3 className="text-lg font-medium mb-2">No Projects Found</h3>
+            <FolderOpen className="size-12 mx-auto mb-4 opacity-30" />
+            <h3 className="text-title font-medium mb-2">No Projects Found</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               {searchQuery || statusFilter
                 ? "No projects match your current filters. Try adjusting your search criteria."
@@ -429,7 +417,7 @@ export default function ProjectManagementPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-destructive" />
+              <AlertCircle className="size-5 text-destructive" />
               Delete Project
             </DialogTitle>
             <DialogDescription>
@@ -441,7 +429,7 @@ export default function ProjectManagementPage() {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Reason for deletion (optional)</label>
+              <label className="text-ui font-medium">Reason for deletion (optional)</label>
               <Input
                 placeholder="e.g., Violates terms of service, spam, etc."
                 value={deleteReason}
@@ -455,17 +443,13 @@ export default function ProjectManagementPage() {
               Cancel
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="size-4 mr-2" />
               Delete Permanently
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
-        PROJECTS
-      </div>
     </main>
   );
 }

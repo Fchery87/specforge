@@ -1,0 +1,2273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>SpecForge: direction-1-field-manual</title>
+
+<!--
+  direction-1-field-manual / SpecForge
+  Structural bet: an engineering document press. Serif prose, hairline rules, marginalia for claim
+  IDs and evidence, near-zero chrome. Typography carries the work; state is carried by status marks.
+
+  ================================================================================================
+  TYPE PLAN, written before any CSS
+  ================================================================================================
+  Roles, three total.
+    1. UI chrome .............. Inter 400 / 500 / 600
+                                nav, buttons, tabs, tables, status words, counts
+    2. Document prose ......... Source Serif 4 400 / 500 / 600 (optical size 8..60)
+                                spec body, clause titles, section headings, hero display
+    3. Identifiers and code ... JetBrains Mono 400 / 500
+                                claim IDs, requirement IDs, commit hashes, file paths, code
+  Rationale. One serif carries both display and prose at two optical sizes. A second display serif
+  would (a) make the page read as a book and (b) break the three-role ceiling. Source Serif 4 was
+  chosen over Newsreader and Literata because its smaller optical sizes stay crisp at 17px, which
+  is where a reviewer spends an hour.
+
+  Modular scale, ratio 1.25 anchored at 16px, plus two interpolation steps for prose.
+    12  13  14  16  17  20  25  32  40  56   (px)
+     12  mono margin marks, captions, chips, table cells
+     13  chrome small, buttons, table cells
+     14  chrome base, code
+     16  UI base, compact density document text
+     17  serif spec prose          (interpolation step)
+     20  clause titles, rail headings
+     25  document title, stat figures
+     32  section display
+     40  mid display, reserved
+     56  hero display              (ceiling is 64)
+  Tracking. Display sizes go negative, never positive:
+     56px -0.022em | 40px -0.018em | 32px -0.016em | 25px -0.012em | 20px -0.008em.
+  Weights. 400 for prose, 500 for display, 600 for small display and primary labels. Never above 600.
+
+  Line heights, all landed on multiples of the 4px unit.
+     hero 60 | section display 40 | document title 32 | clause title 28 | serif prose 28 |
+     rail 20 | chrome 20 | small 16 | mono margin 16.
+  Serif prose gets more line height than sans: 28px over 17px is 1.647, against 20px over 14px for
+  chrome, which is 1.429.
+
+  Vertical rhythm unit: 4px. The document column additionally locks to a 28px baseline, so every
+  prose block, rule, table row, and code line lands on the same grid. All spacing tokens are
+  multiples of 4.
+
+  Measure. Spec prose is 17px/28px Source Serif 4 in a 542px column. Measured in the browser, that
+  column is 60.2ch wide (the "0" is 9.00px at 17px) and carries about 59 characters of real prose
+  per line, verified against a 237-character clause that sets in 4 lines. The `66ch` cap is declared
+  on the prose block and only binds if the column widens. The hero preview runs the same 17px serif
+  in a narrower column. Both sit well under the 80-character ceiling.
+
+  Tabular numerals. Monospace (JetBrains Mono) carries every number that aligns in a column: the
+  phase ledger, the requirement table, the clause index, counts, dates, blocking-edge totals.
+  Source Serif 4 display figures get `font-variant-numeric: tabular-nums` so the three stat figures
+  sit on one width.
+
+  Radius, three values only: 6px controls, 12px containers, 999px pills.
+  Motion, five durations only: 0, 100, 200, 400, 600ms. Entrances ease-out, exits ease-in at half.
+
+  ================================================================================================
+  COLOR ROLES, brief hexes only
+  ================================================================================================
+  void      #09090a  page ground
+  surface   #111113  the document page
+  panel     #17171a  wells inside the page, rail cards, code blocks
+  sel       #202024  current row, hover fill
+  line      #26262b  structural hairlines: section rules, clause rules, card edges, table rules
+  dim       #5f5f68  control boundaries, decoration. Never text. See contrast note below.
+  muted     #8e8e97  every quiet label and secondary line
+  text      #e9e9ec  body and primary text
+  ember     #c87a46  accent, active state, focus ring, claim markers, meter fill, generating
+  emberSoft #e0a479  display headings, inline code, syntax type names
+  emberDeep #7d4726  progress track fill only
+  sage      #7fa37a  confirmed, passing checks, additions
+  brick     #c97070  failed checks, stale artifacts, conflicting sources
+  amber     #c6a052  needs review, warnings, open questions
+  slate     #6f92a6  links to sources and related artifacts
+
+  ================================================================================================
+  CONTRAST, computed from sRGB relative luminance per WCAG 2.1. Every pair this file renders.
+  ================================================================================================
+  Body text and secondary text, floor 4.5:1
+    text     #e9e9ec on void      #09090a ....... 16.43:1
+    text     #e9e9ec on surface   #111113 ....... 15.57:1
+    text     #e9e9ec on panel     #17171a ....... 14.76:1
+    text     #e9e9ec on sel       #202024 ....... 13.40:1
+    muted    #8e8e97 on void      #09090a ........ 6.13:1
+    muted    #8e8e97 on surface   #111113 ........ 5.81:1
+    muted    #8e8e97 on panel     #17171a ........ 5.51:1
+    muted    #8e8e97 on sel       #202024 ........ 5.00:1
+    emberSoft #e0a479 on void     #09090a ........ 9.25:1
+    emberSoft #e0a479 on surface  #111113 ........ 8.76:1
+    emberSoft #e0a479 on panel    #17171a ........ 8.31:1
+    ember    #c87a46 on void      #09090a ........ 6.00:1
+    ember    #c87a46 on surface   #111113 ........ 5.68:1
+    ember    #c87a46 on panel     #17171a ........ 5.39:1
+    ember    #c87a46 on sel       #202024 ........ 4.89:1
+    sage     #7fa37a on void      #09090a ........ 7.03:1
+    sage     #7fa37a on surface   #111113 ........ 6.67:1
+    sage     #7fa37a on panel     #17171a ........ 6.32:1
+    brick    #c97070 on void      #09090a ........ 5.72:1
+    brick    #c97070 on surface   #111113 ........ 5.42:1
+    brick    #c97070 on panel     #17171a ........ 5.14:1
+    amber    #c6a052 on void      #09090a ........ 8.10:1
+    amber    #c6a052 on surface   #111113 ........ 7.68:1
+    amber    #c6a052 on panel     #17171a ........ 7.28:1
+    slate    #6f92a6 on void      #09090a ........ 6.01:1
+    slate    #6f92a6 on surface   #111113 ........ 5.69:1
+    slate    #6f92a6 on panel     #17171a ........ 5.40:1
+    void     #09090a on ember     #c87a46 ........ 6.00:1   primary button label
+
+  Accent as a focus ring, floor 3:1
+    ember on void 6.00:1 | ember on surface 5.68:1 | ember on panel 5.39:1 | ember on sel 4.89:1.
+    The ring clears 3:1 on every surface in the file, so it is never suppressed or recolored.
+
+  Pairs the open clause adds, because its band is filled with sel
+    emberSoft #e0a479 on sel #202024 ... 7.54:1   evidence markers
+    amber    #c6a052 on sel .......... 6.61:1   status word in the current row
+    muted    #8e8e97 on sel .......... 5.00:1   marginal labels
+    ember    #c87a46 on sel .......... 4.89:1   claim IDs and the clause number
+    A browser sweep of every rendered text node (327 nodes, 21 distinct foreground/background
+    pairs, effective background resolved by walking ancestors) reports zero pairs below threshold.
+    The lowest pair in the whole document is ember on sel at 4.89:1.
+
+  The dim problem, resolved rather than hidden.
+    dim #5f5f68 measures 3.15:1 on void, 2.98:1 on surface, 2.83:1 on panel, 2.57:1 on sel. It fails
+    the 4.5:1 body rule on every surface, so this direction never sets text in dim. Quiet labels use
+    muted instead. dim is redeployed as a non-text token where 3:1 is the correct floor:
+      - control boundaries, which sit on the ground by construction, so 3.15:1
+      - prose link underlines, which are decoration over text that already clears 4.5:1
+    emberDeep is used only as the meter track behind an ember fill and is never text.
+
+  Two-tone focus. The ring is 2px ember at a 2px offset, with a 5px ground-colored band behind it,
+  so the ring reads against both the control and the surface it sits on. Inside the document page
+  the outer band switches to surface.
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+/* ==================================================================================
+   1. Tokens
+   ================================================================================== */
+:root{
+  color-scheme: dark;
+
+  --void:#09090a;
+  --surface:#111113;
+  --panel:#17171a;
+  --sel:#202024;
+  --line:#26262b;
+  --dim:#5f5f68;
+  --muted:#8e8e97;
+  --text:#e9e9ec;
+  --ember:#c87a46;
+  --ember-soft:#e0a479;
+  --ember-deep:#7d4726;
+  --sage:#7fa37a;
+  --brick:#c97070;
+  --amber:#c6a052;
+  --slate:#6f92a6;
+
+  --font-chrome:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-prose:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  /* type scale */
+  --t-1:12px; --t-2:13px; --t-3:14px; --t-4:16px; --t-prose:17px;
+  --t-5:20px; --t-6:25px; --t-7:32px; --t-8:40px; --t-9:56px;
+
+  /* line heights */
+  --lh-1:16px; --lh-2:20px; --lh-prose:28px; --lh-5:28px;
+  --lh-6:32px; --lh-7:40px; --lh-8:48px; --lh-9:60px;
+
+  /* spacing, 4px scale */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px;
+  --s8:32px; --s10:40px; --s12:48px; --s16:64px; --s20:80px;
+
+  /* radius, three values */
+  --r-ctl:6px; --r-box:12px; --r-full:999px;
+
+  /* motion, five durations */
+  --d0:0ms; --d1:100ms; --d2:200ms; --d4:400ms; --d6:600ms;
+  --ease-out:cubic-bezier(0,0,.2,1);
+  --ease-in:cubic-bezier(.4,0,1,1);
+
+  --measure:66ch;
+}
+
+/* ==================================================================================
+   2. Base
+   ================================================================================== */
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+html{-webkit-text-size-adjust:100%}
+
+body{
+  margin:0;
+  background:var(--void);
+  color:var(--text);
+  font-family:var(--font-chrome);
+  font-size:var(--t-4);
+  line-height:var(--lh-2);
+  font-variant-numeric:tabular-nums;
+  font-synthesis-weight:none;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+h1,h2,h3,h4,h5,p,ol,ul,dl,dt,dd,pre,figure,table{margin:0}
+ol,ul{padding:0;list-style:none}
+table{border-collapse:collapse;border-spacing:0}
+strong{font-weight:600}
+svg,.mark{width:14px;height:14px;flex:none;display:block}
+.m-12{width:12px;height:12px}
+.m-16{width:16px;height:16px}
+
+/* Links: quiet until they carry a source reference, then underlined in dim. */
+a{color:var(--slate);text-decoration:none}
+a.u{text-decoration:underline;text-decoration-color:var(--dim);text-underline-offset:4px;text-decoration-thickness:1px}
+a:hover{text-decoration:underline;text-decoration-color:currentColor;text-underline-offset:4px}
+
+/* Focus: 2px ember at 2px offset, over a ground band so it reads on any surface. */
+:focus-visible{outline:2px solid var(--ember);outline-offset:2px;box-shadow:0 0 0 5px var(--void)}
+.page :focus-visible{box-shadow:0 0 0 5px var(--surface)}
+:focus:not(:focus-visible){outline:none}
+
+::selection{background:var(--ember-deep);color:var(--text)}
+
+/* ==================================================================================
+   3. Layout bands and section framing
+   ================================================================================== */
+.band{padding:var(--s20) 0}
+.band--hero{padding-top:var(--s6)}
+.wrap{max-width:1440px;margin:0 auto;padding:0 var(--s10)}
+.split{height:1px;background:var(--line);border:0}
+
+.bandnote{
+  font-size:var(--t-1);
+  line-height:var(--lh-2);
+  color:var(--muted);
+  margin-bottom:var(--s8);
+}
+.bandhead{max-width:var(--measure);margin-bottom:var(--s8)}
+.bandhead h2{
+  font-family:var(--font-prose);
+  font-size:var(--t-7);
+  line-height:var(--lh-7);
+  font-weight:500;
+  letter-spacing:-0.016em;
+  color:var(--text);
+}
+.bandhead p{
+  font-family:var(--font-prose);
+  font-size:var(--t-prose);
+  line-height:var(--lh-prose);
+  color:var(--muted);
+  margin-top:var(--s3);
+  max-width:var(--measure);
+}
+
+/* ==================================================================================
+   4. Chrome: masthead, buttons, status, marks
+   ================================================================================== */
+.masthead{border-bottom:1px solid var(--line)}
+.masthead__inner{display:flex;align-items:center;gap:var(--s8);padding-top:var(--s5);padding-bottom:var(--s5)}
+.wordmark{
+  font-family:var(--font-prose);
+  font-size:var(--t-5);
+  line-height:var(--lh-5);
+  font-weight:600;
+  letter-spacing:-0.008em;
+  color:var(--text);
+}
+.wordmark:hover{text-decoration:none}
+.masthead__nav{display:flex;gap:var(--s6);margin-left:auto}
+.masthead__nav a{font-size:var(--t-2);line-height:var(--lh-2);color:var(--muted)}
+.masthead__nav a:hover{color:var(--text);text-decoration:none}
+.masthead__nav a[aria-current="page"]{color:var(--text)}
+.masthead__actions{display:flex;align-items:center;gap:var(--s3);margin-left:var(--s10)}
+
+.btn{
+  display:inline-flex;align-items:center;gap:var(--s2);
+  font-family:var(--font-chrome);
+  font-size:var(--t-2);
+  line-height:var(--lh-2);
+  font-weight:500;
+  letter-spacing:0.005em;
+  padding:var(--s2) var(--s4);
+  border:1px solid var(--dim);
+  border-radius:var(--r-ctl);
+  background:var(--void);
+  color:var(--text);
+  cursor:pointer;
+  transition:background-color var(--d1) var(--ease-in),border-color var(--d1) var(--ease-in),color var(--d1) var(--ease-in);
+}
+.btn:hover{background:var(--sel);border-color:var(--muted);transition-duration:var(--d2);transition-timing-function:var(--ease-out)}
+.btn--primary{background:var(--ember);border-color:var(--ember);color:var(--void);font-weight:600}
+.btn--primary:hover{background:var(--ember-soft);border-color:var(--ember-soft);color:var(--void)}
+.btn--sm{padding:var(--s1) var(--s3);font-size:var(--t-1);line-height:var(--lh-1);gap:var(--s2)}
+.btn--wide{width:100%;justify-content:center}
+
+/* Text-only actions: no boundary, so no border-contrast obligation. */
+.act{
+  display:inline-flex;align-items:center;gap:var(--s1);
+  font-family:var(--font-chrome);font-size:var(--t-2);line-height:var(--lh-2);
+  color:var(--slate);background:none;border:0;padding:0;cursor:pointer;
+  transition:color var(--d1) var(--ease-in);
+}
+.act:hover{color:var(--text);transition-duration:var(--d2);transition-timing-function:var(--ease-out)}
+
+.status{
+  display:inline-flex;align-items:center;gap:var(--s2);
+  font-family:var(--font-chrome);font-size:var(--t-1);line-height:var(--lh-1);font-weight:500;
+  border:1px solid var(--line);border-radius:var(--r-full);
+  padding:var(--s1) var(--s3) var(--s1) var(--s2);
+  white-space:nowrap;
+}
+.status--confirmed{color:var(--sage)}
+.status--review{color:var(--amber)}
+.status--generating{color:var(--ember)}
+.status--draft{color:var(--muted)}
+.status--skipped{color:var(--muted)}
+.status--stale{color:var(--brick)}
+
+/* Inline status in dense rows: mark plus word, never color alone. */
+.st{display:inline-flex;align-items:center;gap:var(--s2);font-size:var(--t-1);line-height:var(--lh-1);font-weight:500}
+.st--confirmed{color:var(--sage)}
+.st--review{color:var(--amber)}
+.st--generating{color:var(--ember)}
+.st--draft{color:var(--muted)}
+.st--skipped{color:var(--muted)}
+.st--stale{color:var(--brick)}
+
+/* ==================================================================================
+   5. Hero
+   ================================================================================== */
+.hero{padding-top:var(--s20)}
+.hero__grid{display:grid;grid-template-columns:500px minmax(0,1fr);gap:var(--s12);align-items:start}
+.hero__claim{
+  font-family:var(--font-prose);
+  font-size:var(--t-9);
+  line-height:var(--lh-9);
+  font-weight:500;
+  letter-spacing:-0.022em;
+  color:var(--text);
+  max-width:22ch;
+}
+.hero__sub{
+  font-family:var(--font-prose);
+  font-size:var(--t-prose);
+  line-height:var(--lh-prose);
+  color:var(--muted);
+  margin-top:var(--s5);
+  max-width:52ch;
+}
+.hero__actions{display:flex;align-items:center;gap:var(--s6);margin-top:var(--s8)}
+.hero__facts{display:flex;flex-direction:column;gap:var(--s4);margin-top:var(--s10);padding-top:var(--s5);border-top:1px solid var(--line)}
+.hero__fact{display:grid;grid-template-columns:96px minmax(0,1fr);gap:var(--s4)}
+.hero__fact dt{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted)}
+.hero__fact dd{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--text);margin:0}
+
+/* Hero preview: the document page, plus marginalia outside the page edge. */
+.hero__preview{display:grid;grid-template-columns:minmax(0,1fr) 168px;gap:var(--s6)}
+
+/* ==================================================================================
+   6. The document surface
+   ================================================================================== */
+.page{
+  --gut-num:40px;
+  --gut-margin:120px;
+  --gut-gap:16px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-box);
+  padding:var(--s8);
+}
+.page--compact{--gut-num:32px;--gut-margin:96px;--gut-gap:12px;padding:var(--s6)}
+
+.page__runhead{display:flex;align-items:center;gap:var(--s4);justify-content:space-between;padding-bottom:var(--s3);border-bottom:1px solid var(--line)}
+.page__runhead span:first-child{font-size:var(--t-1);line-height:var(--lh-1);color:var(--muted);letter-spacing:0.01em}
+.page__title{
+  font-family:var(--font-prose);
+  font-size:var(--t-6);
+  line-height:var(--lh-6);
+  font-weight:600;
+  letter-spacing:-0.012em;
+  color:var(--text);
+  margin-top:var(--s5);
+}
+.page--compact .page__title{font-size:var(--t-5);line-height:var(--lh-5);letter-spacing:-0.008em;margin-top:var(--s4)}
+
+.page__meta{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s8);margin-top:var(--s4)}
+.page__meta div{display:flex;gap:var(--s2)}
+.page__meta dt{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted)}
+.page__meta dd{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--text);margin:0}
+
+.page__counts{display:flex;gap:var(--s10);margin-top:var(--s5);padding:var(--s4) 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.page__count{display:flex;flex-direction:column;gap:var(--s1)}
+.page__count b{
+  font-family:var(--font-prose);
+  font-size:var(--t-6);
+  line-height:var(--lh-6);
+  font-weight:500;
+  letter-spacing:-0.012em;
+  color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+.page__count span{font-size:var(--t-1);line-height:var(--lh-1);color:var(--muted)}
+
+.doc{padding-top:var(--s6)}
+
+/* Section heading and clause share one grid so numbers, prose, and marginalia line up. */
+.sechead,.clause{
+  display:grid;
+  grid-template-columns:var(--gut-num) minmax(0,1fr) var(--gut-margin);
+  column-gap:var(--gut-gap);
+}
+.sechead{padding-bottom:var(--s4);border-bottom:1px solid var(--line)}
+.sechead__num{
+  font-family:var(--font-mono);
+  font-size:var(--t-6);
+  line-height:var(--lh-6);
+  color:var(--ember);
+  padding-top:0;
+}
+.sechead__title{
+  font-family:var(--font-prose);
+  font-size:var(--t-6);
+  line-height:var(--lh-6);
+  font-weight:600;
+  letter-spacing:-0.012em;
+  color:var(--text);
+}
+
+.clause{padding:var(--s6) 0;border-bottom:1px solid var(--line);position:relative}
+.clause--open{background:var(--sel);border-radius:var(--r-ctl)}
+.clause--open::before{content:"";position:absolute;top:0;bottom:0;left:calc(-1 * var(--s4));width:2px;background:var(--ember);border-radius:var(--r-full)}
+.clause__num{
+  font-family:var(--font-mono);
+  font-size:var(--t-2);
+  line-height:var(--lh-2);
+  color:var(--muted);
+  padding-top:var(--s1);
+}
+.clause--open .clause__num{color:var(--ember)}
+.clause__body{max-width:var(--measure)}
+.clause__title{
+  font-family:var(--font-prose);
+  font-size:var(--t-5);
+  line-height:var(--lh-5);
+  font-weight:600;
+  letter-spacing:-0.008em;
+  color:var(--text);
+  display:flex;
+  align-items:baseline;
+  gap:var(--s3);
+  flex-wrap:wrap;
+}
+.req{
+  font-family:var(--font-mono);
+  font-size:var(--t-1);
+  line-height:var(--lh-1);
+  font-weight:400;
+  letter-spacing:0;
+  color:var(--muted);
+  border:1px solid var(--line);
+  border-radius:var(--r-ctl);
+  padding:0 var(--s2);
+  white-space:nowrap;
+}
+.clause__text{
+  font-family:var(--font-prose);
+  font-size:var(--t-prose);
+  line-height:var(--lh-prose);
+  color:var(--text);
+  margin-top:var(--s3);
+}
+.clause__text + .clause__text{margin-top:var(--s3)}
+.clause__text--sub{color:var(--muted)}
+
+/* Marginalia: claim IDs sit in the outer margin, aligned to the clause's first baseline. */
+.clause__margin{padding-top:var(--s1)}
+.margin__label{
+  display:block;
+  font-size:var(--t-1);
+  line-height:var(--lh-1);
+  color:var(--muted);
+  margin-bottom:var(--s2);
+}
+.claim{
+  display:block;
+  font-family:var(--font-mono);
+  font-size:var(--t-1);
+  line-height:var(--lh-2);
+  color:var(--ember);
+}
+.claim:hover{color:var(--ember-soft);text-decoration:none}
+.claim + .claim{margin-top:var(--s1)}
+
+code.inl{
+  font-family:var(--font-mono);
+  font-size:var(--t-3);
+  color:var(--ember-soft);
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--r-ctl);
+  padding:0 var(--s1);
+}
+
+/* Evidence markers */
+.evref{
+  font-family:var(--font-mono);
+  font-size:var(--t-1);
+  line-height:1;
+  color:var(--ember-soft);
+  vertical-align:0.28em;
+  margin-left:var(--s1);
+}
+.evref:hover{color:var(--text);text-decoration:none}
+
+.codeblock{
+  font-family:var(--font-mono);
+  font-size:var(--t-3);
+  line-height:var(--lh-2);
+  background:var(--void);
+  border:1px solid var(--line);
+  border-radius:var(--r-box);
+  padding:var(--s4);
+  margin-top:var(--s5);
+  overflow-x:auto;
+  color:var(--text);
+}
+.tk-key{color:var(--ember)}
+.tk-type{color:var(--ember-soft)}
+.tk-str{color:var(--sage)}
+.tk-prop{color:var(--text)}
+.tk-punc{color:var(--muted)}
+
+/* Full-width blocks inside the document, aligned to the prose column. */
+.doc__wide{padding-left:calc(var(--gut-num) + var(--gut-gap));margin-top:var(--s5)}
+
+.datatable{width:100%;font-size:var(--t-1);line-height:var(--lh-2)}
+.datatable caption{
+  text-align:left;
+  font-size:var(--t-1);
+  line-height:var(--lh-2);
+  color:var(--muted);
+  padding-bottom:var(--s2);
+}
+.datatable th{
+  text-align:left;
+  font-weight:500;
+  color:var(--muted);
+  padding:var(--s2) var(--s4) var(--s2) 0;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+.datatable td{
+  padding:var(--s3) var(--s4) var(--s3) 0;
+  border-bottom:1px solid var(--line);
+  color:var(--text);
+  vertical-align:top;
+}
+.datatable tr:last-child td{border-bottom:0}
+.datatable .cell-id{font-family:var(--font-mono);color:var(--muted);white-space:nowrap}
+.datatable .cell-name{font-family:var(--font-prose);font-size:var(--t-3);line-height:var(--lh-2)}
+.datatable .cell-owner{color:var(--muted)}
+.datatable.is-compact th{padding-top:var(--s1);padding-bottom:var(--s1)}
+.datatable.is-compact td{padding-top:var(--s1);padding-bottom:var(--s1);font-size:var(--t-1)}
+.datatable.is-compact .cell-name{font-family:var(--font-chrome);font-size:var(--t-1)}
+
+/* Conflict and decision blocks. The left rule carries the severity. */
+.note{
+  display:grid;
+  grid-template-columns:var(--gut-num) minmax(0,1fr) var(--gut-margin);
+  column-gap:var(--gut-gap);
+  margin-top:var(--s6);
+}
+.note__num{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);padding-top:var(--s1)}
+.note__inner{border-left:2px solid var(--line);padding-left:var(--s4);max-width:var(--measure)}
+.note--conflict .note__inner{border-left-color:var(--brick)}
+.note--decision .note__inner{border-left-color:var(--ember-deep)}
+.note__kind{
+  display:block;
+  font-size:var(--t-1);
+  line-height:var(--lh-1);
+  color:var(--muted);
+  margin-bottom:var(--s2);
+}
+.note--conflict .note__kind{color:var(--brick)}
+.note__title{font-family:var(--font-prose);font-size:var(--t-3);line-height:var(--lh-2);font-weight:600;color:var(--text)}
+.note__body{font-family:var(--font-prose);font-size:var(--t-3);line-height:var(--lh-2);color:var(--muted);margin-top:var(--s2)}
+
+/* Task rows. Indentation is the blocking edge. */
+.tasks{display:flex;flex-direction:column}
+.task{
+  display:grid;
+  grid-template-columns:var(--gut-num) minmax(0,1fr) auto;
+  column-gap:var(--gut-gap);
+  padding:var(--s3) 0;
+  border-bottom:1px solid var(--line);
+}
+.task:last-child{border-bottom:0}
+.task__id{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted)}
+.task__name{font-family:var(--font-prose);font-size:var(--t-prose);line-height:var(--lh-prose);color:var(--text)}
+.task__edge{
+  display:flex;align-items:center;gap:var(--s2);
+  font-size:var(--t-1);line-height:var(--lh-1);color:var(--muted);margin-top:var(--s2);
+}
+.task__edge .mark{color:var(--ember)}
+.task--blocked .task__body{border-left:1px solid var(--line);padding-left:var(--s4);margin-left:var(--s2)}
+.task--skipped .task__name{color:var(--muted)}
+.task__state{font-size:var(--t-1);line-height:var(--lh-2);white-space:nowrap}
+
+.page__foot{
+  display:flex;align-items:center;gap:var(--s3);
+  margin-top:var(--s6);padding-top:var(--s5);border-top:1px solid var(--line);
+}
+.page__foot p{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);margin-right:auto}
+/* Controls inside the page sit in a void well, so their dim boundary keeps 3.15:1. */
+.page__foot .btn{background:var(--void)}
+.page__foot .btn--primary{background:var(--ember)}
+
+/* ==================================================================================
+   7. Review surface
+   ================================================================================== */
+.tabbar{display:flex;align-items:flex-end;gap:var(--s8);border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:var(--s6)}
+.tab{
+  font-family:var(--font-chrome);
+  font-size:var(--t-3);
+  line-height:var(--lh-2);
+  font-weight:500;
+  color:var(--muted);
+  background:none;
+  border:0;
+  border-bottom:2px solid transparent;
+  padding:var(--s3) 0;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:baseline;
+  gap:var(--s2);
+  transition:color var(--d1) var(--ease-in),border-color var(--d1) var(--ease-in);
+}
+.tab:hover{color:var(--text);transition-duration:var(--d2);transition-timing-function:var(--ease-out)}
+.tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--ember)}
+.tab b{font-family:var(--font-mono);font-size:var(--t-1);font-weight:400;color:var(--muted)}
+.tab[aria-selected="true"] b{color:var(--ember)}
+.tabbar__meta{margin-left:auto;font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);padding-bottom:var(--s3)}
+
+.panel{padding-top:var(--s8);transition:opacity var(--d1) var(--ease-in),transform var(--d1) var(--ease-in)}
+.panel.leave{opacity:0;transform:translateY(-2px)}
+.panel.enter{animation:rise var(--d2) var(--ease-out) both}
+
+.panel__grid{display:grid;grid-template-columns:224px minmax(0,1fr) 288px;gap:var(--s6);align-items:start}
+
+/* Column 1: phase ledger and clause index */
+.navcol{display:flex;flex-direction:column;gap:var(--s6)}
+.navcol__label{
+  font-size:var(--t-1);
+  line-height:var(--lh-1);
+  font-weight:500;
+  color:var(--muted);
+  padding-bottom:var(--s2);
+  border-bottom:1px solid var(--line);
+  margin-bottom:var(--s3);
+}
+.phaselist{display:flex;flex-direction:column}
+.phase{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:var(--s2);align-items:center;padding:var(--s2);border-radius:var(--r-ctl)}
+.phase__mark{color:var(--muted)}
+.phase__mark--confirmed{color:var(--sage)}
+.phase__mark--review{color:var(--amber)}
+.phase__mark--generating{color:var(--ember)}
+.phase__mark--stale{color:var(--brick)}
+.phase__name{font-size:var(--t-2);line-height:var(--lh-2);color:var(--muted)}
+.phase__state{font-size:var(--t-1);line-height:var(--lh-1);color:var(--muted);white-space:nowrap}
+.phase[aria-current="true"]{background:var(--sel)}
+.phase[aria-current="true"] .phase__name{color:var(--text);font-weight:500}
+.phase[aria-current="true"] .phase__mark{color:var(--ember)}
+.phase[aria-current="true"] .phase__state{color:var(--ember)}
+
+.idx{display:flex;flex-direction:column;gap:var(--s1)}
+.idx__sec{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);margin-top:var(--s2)}
+.idx__sec:first-child{margin-top:0}
+.idx__link{
+  display:grid;grid-template-columns:36px minmax(0,1fr);gap:var(--s2);
+  font-size:var(--t-2);line-height:var(--lh-2);color:var(--muted);
+  padding:var(--s1) var(--s2);border-radius:var(--r-ctl);
+  transition:background-color var(--d1) var(--ease-in),color var(--d1) var(--ease-in);
+}
+.idx__link:hover{background:var(--sel);color:var(--text);text-decoration:none;transition-duration:var(--d2);transition-timing-function:var(--ease-out)}
+.idx__num{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted)}
+.idx__link[aria-current="true"]{background:var(--sel)}
+.idx__link[aria-current="true"] .idx__num{color:var(--ember)}
+.idx__link[aria-current="true"] .idx__name{color:var(--text)}
+.idx__out{display:grid;grid-template-columns:36px minmax(0,1fr);gap:var(--s2);font-size:var(--t-2);line-height:var(--lh-2);color:var(--muted);padding:var(--s1) var(--s2)}
+.navcol__note{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);padding-top:var(--s3);border-top:1px solid var(--line)}
+
+/* Column 3: the annotation rail */
+.rail{display:flex;flex-direction:column;gap:var(--s4)}
+.railcard{background:var(--void);border:1px solid var(--line);border-radius:var(--r-box);padding:var(--s4)}
+.railcard__label{
+  font-size:var(--t-1);
+  line-height:var(--lh-1);
+  font-weight:500;
+  color:var(--muted);
+  padding-bottom:var(--s2);
+  border-bottom:1px solid var(--line);
+  margin-bottom:var(--s3);
+}
+.railcard__head{display:flex;align-items:baseline;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s2)}
+.railcard__head h3{font-family:var(--font-prose);font-size:var(--t-5);line-height:var(--lh-5);font-weight:600;letter-spacing:-0.008em;color:var(--text)}
+.railcard__quote{font-family:var(--font-prose);font-size:var(--t-2);line-height:var(--lh-2);color:var(--muted);margin-top:var(--s3)}
+.railcard__note{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);margin-top:var(--s3)}
+
+.ev{display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) 0;border-bottom:1px solid var(--line)}
+.ev:last-child{border-bottom:0;padding-bottom:0}
+.ev__top{display:flex;align-items:center;gap:var(--s2)}
+.ev__src{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--slate);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev__state{margin-left:auto;font-size:var(--t-1);line-height:var(--lh-1);display:inline-flex;align-items:center;gap:var(--s1);white-space:nowrap}
+.ev__state--loaded{color:var(--sage)}
+.ev__state--stale{color:var(--brick)}
+.ev__state--conflict{color:var(--brick)}
+.ev__state--loading{color:var(--muted)}
+.ev__pin{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-1);color:var(--muted)}
+.ev__quote{font-family:var(--font-prose);font-size:var(--t-2);line-height:var(--lh-2);color:var(--text)}
+.ev__icon{color:var(--muted)}
+
+/* Loading state: skeleton is for data, so it appears only on an evidence row. */
+.skel{display:flex;flex-direction:column;gap:var(--s2);padding:var(--s1) 0}
+.skel span{display:block;height:8px;border-radius:var(--r-ctl);background:var(--dim)}
+.skel span:first-child{width:62%}
+.skel span:last-child{width:88%}
+
+/* Empty state: a designed surface, not an afterthought. */
+.empty{padding:var(--s4) 0;text-align:left}
+.empty__title{font-family:var(--font-prose);font-size:var(--t-3);line-height:var(--lh-2);font-weight:600;color:var(--text)}
+.empty__body{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);margin-top:var(--s2)}
+.empty .btn{margin-top:var(--s3)}
+
+/* Meter: emberDeep track, ember fill. Never the only cue for a value. */
+.meter{display:flex;flex-direction:column;gap:var(--s2)}
+.meter__row{display:flex;align-items:baseline;gap:var(--s3)}
+.meter__value{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--text)}
+.meter__track{height:4px;border-radius:var(--r-full);background:var(--ember-deep);overflow:hidden}
+.meter__fill{display:block;height:100%;border-radius:var(--r-full);background:var(--ember)}
+
+.check{display:grid;grid-template-columns:16px minmax(0,1fr);gap:var(--s2);padding:var(--s1) 0;font-size:var(--t-1);line-height:var(--lh-2)}
+.check__mark{color:var(--sage);margin-top:var(--s1)}
+.check--fail .check__mark{color:var(--brick)}
+.check__text{color:var(--muted)}
+.check--fail .check__text{color:var(--brick)}
+
+.edge-list{display:flex;flex-direction:column;gap:var(--s3)}
+.edge{display:grid;grid-template-columns:16px minmax(0,1fr);gap:var(--s2);font-size:var(--t-1);line-height:var(--lh-2)}
+.edge__mark{color:var(--ember);margin-top:var(--s1)}
+.edge__who{color:var(--text)}
+.edge__why{color:var(--muted)}
+.edge--stale .edge__mark{color:var(--brick)}
+.edge--stale .edge__who{color:var(--brick)}
+
+.actions{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.actions .btn{flex:1 1 auto;justify-content:center}
+
+/* ==================================================================================
+   8. Pipeline
+   ================================================================================== */
+.pipeline__grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--s8);align-items:start}
+.stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s4)}
+.stagecard{border:1px solid var(--line);border-radius:var(--r-box);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3)}
+.stagecard--open{border-color:var(--ember-deep);background:var(--surface)}
+.stagecard__top{display:flex;align-items:baseline;gap:var(--s2)}
+.stagecard__name{font-family:var(--font-prose);font-size:var(--t-5);line-height:var(--lh-5);font-weight:600;letter-spacing:-0.008em;color:var(--text)}
+.stagecard__idx{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted)}
+.stagecard__count{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted)}
+.stagecard__phases{display:flex;flex-wrap:wrap;gap:var(--s2) var(--s3);margin-top:auto}
+
+.pipeline-list{display:flex;flex-direction:column;margin-top:var(--s6)}
+.plisthead{
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) 148px 168px 132px;
+  gap:var(--s5);
+  font-size:var(--t-1);
+  line-height:var(--lh-1);
+  color:var(--muted);
+  padding-bottom:var(--s2);
+  border-bottom:1px solid var(--line);
+}
+.prow{
+  display:grid;
+  grid-template-columns:36px minmax(0,1fr) 148px 168px 132px;
+  gap:var(--s5);
+  align-items:center;
+  padding:var(--s4) 0;
+  border-bottom:1px solid var(--line);
+  border-radius:var(--r-ctl);
+}
+.prow__idx{font-family:var(--font-mono);font-size:var(--t-2);line-height:var(--lh-2);color:var(--muted)}
+.prow__name{font-family:var(--font-prose);font-size:var(--t-5);line-height:var(--lh-5);font-weight:500;letter-spacing:-0.008em;color:var(--text)}
+.prow__name small{display:block;font-family:var(--font-chrome);font-size:var(--t-1);line-height:var(--lh-1);font-weight:400;letter-spacing:0;color:var(--muted);margin-top:var(--s1)}
+.prow__updated{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-1);color:var(--muted)}
+.prow__edges{font-family:var(--font-mono);font-size:var(--t-1);line-height:var(--lh-1);color:var(--muted);text-align:right}
+.prow--current{background:var(--sel);border-bottom-color:var(--sel);position:relative}
+.prow--current::before{content:"";position:absolute;top:0;bottom:0;left:calc(-1 * var(--s4));width:2px;background:var(--ember);border-radius:var(--r-full)}
+.prow--current .prow__idx{color:var(--ember)}
+.prow--current .prow__name{font-weight:600}
+.pipeline-list.is-compact .prow{padding:var(--s2) 0}
+.pipeline-list.is-compact .prow__name{font-family:var(--font-chrome);font-size:var(--t-2);line-height:var(--lh-2);font-weight:500;letter-spacing:0}
+.pipeline-list.is-compact .prow__idx{font-size:var(--t-1)}
+
+.panelhead{display:flex;align-items:baseline;gap:var(--s4);justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:var(--s2)}
+.panelhead h3{font-size:var(--t-1);line-height:var(--lh-1);font-weight:500;color:var(--muted)}
+
+.seg{display:inline-flex;border:1px solid var(--dim);border-radius:var(--r-ctl);overflow:hidden}
+.seg__btn{
+  font-family:var(--font-chrome);
+  font-size:var(--t-1);
+  line-height:var(--lh-1);
+  font-weight:500;
+  color:var(--muted);
+  background:var(--void);
+  border:0;
+  padding:var(--s1) var(--s3);
+  cursor:pointer;
+  transition:background-color var(--d1) var(--ease-in),color var(--d1) var(--ease-in);
+}
+.seg__btn + .seg__btn{border-left:1px solid var(--line)}
+.seg__btn:hover{color:var(--text);transition-duration:var(--d2);transition-timing-function:var(--ease-out)}
+.seg__btn[aria-pressed="true"]{background:var(--sel);color:var(--text)}
+
+.sideblock{background:var(--void);border:1px solid var(--line);border-radius:var(--r-box);padding:var(--s4)}
+.sideblock + .sideblock{margin-top:var(--s4)}
+.sideblock h3{font-size:var(--t-1);line-height:var(--lh-1);font-weight:500;color:var(--muted);padding-bottom:var(--s2);border-bottom:1px solid var(--line);margin-bottom:var(--s3)}
+.sideblock__big{font-family:var(--font-prose);font-size:var(--t-6);line-height:var(--lh-6);font-weight:600;letter-spacing:-0.012em;color:var(--text)}
+.sideblock__lead{font-family:var(--font-prose);font-size:var(--t-3);line-height:var(--lh-2);color:var(--text);margin-top:var(--s2)}
+.sideblock__body{font-size:var(--t-1);line-height:var(--lh-2);color:var(--muted);margin-top:var(--s2)}
+.sideblock .btn{margin-top:var(--s4)}
+.alert{
+  display:grid;grid-template-columns:16px minmax(0,1fr);gap:var(--s2);
+  font-size:var(--t-1);line-height:var(--lh-2);
+  border-left:2px solid var(--brick);padding-left:var(--s3);margin-top:var(--s3);
+}
+.alert .mark{color:var(--brick);margin-top:var(--s1)}
+.alert__title{color:var(--brick);font-weight:500}
+.alert__body{color:var(--muted)}
+.alert--amber{border-left-color:var(--amber)}
+.alert--amber .mark{color:var(--amber)}
+.alert--amber .alert__title{color:var(--amber)}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--s1) var(--s4);font-size:var(--t-1);line-height:var(--lh-2);margin-top:var(--s3)}
+.kv dt{color:var(--muted)}
+.kv dd{font-family:var(--font-mono);color:var(--text);margin:0;text-align:right}
+
+/* ==================================================================================
+   9. Motion
+   ================================================================================== */
+@keyframes rise{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:none}
+}
+.hero__lede > *{animation:rise var(--d4) var(--ease-out) both}
+.hero__preview{animation:rise var(--d4) var(--ease-out) both}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:0s !important;
+    animation-delay:0s !important;
+    transition-duration:0s !important;
+    scroll-behavior:auto !important;
+  }
+}
+
+/* ==================================================================================
+   10. Narrow fallback. The design width is 1440px; below this the press folds.
+   ================================================================================== */
+@media (max-width:1180px){
+  .wrap{padding:0 var(--s6)}
+  .hero__grid{grid-template-columns:minmax(0,1fr)}
+  .hero__claim{max-width:28ch}
+  .panel__grid{grid-template-columns:minmax(0,1fr)}
+  .navcol{flex-direction:row;gap:var(--s8)}
+  .navcol > div{flex:1}
+  .pipeline__grid{grid-template-columns:minmax(0,1fr)}
+  .plisthead,.prow{grid-template-columns:32px minmax(0,1fr) 132px}
+  .plisthead span:nth-child(4),.plisthead span:nth-child(5),
+  .prow__updated,.prow__edges{display:none}
+}
+@media (max-width:760px){
+  .hero__preview{grid-template-columns:minmax(0,1fr)}
+  .stages{grid-template-columns:minmax(0,1fr)}
+  .page,.page--compact{--gut-num:0px;--gut-margin:0px}
+  .clause__num,.sechead__num,.note__num,.task__id{display:none}
+  .doc__wide{padding-left:0}
+  .masthead__nav{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ==================================================================================
+     Icon sprite. 14x14, 1.5px stroke, currentColor. Symbols carry no stroke of their own.
+     ================================================================================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-check" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.25"/><path d="M4.4 7.1l1.9 1.9 3.5-4"/></symbol>
+    <symbol id="i-review" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.25"/><path d="M7 4.3v3.4"/><path d="M7 9.8h.01"/></symbol>
+    <symbol id="i-draft" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.25" stroke-dasharray="2.4 2.4"/></symbol>
+    <symbol id="i-generating" viewBox="0 0 14 14"><path d="M2.1 7a4.9 4.9 0 1 1 1.6 3.6"/><path d="M2.1 11.6V7.9h3.7"/></symbol>
+    <symbol id="i-stale" viewBox="0 0 14 14"><path d="M2.4 5.1h8.2"/><path d="M8.3 2.8l2.3 2.3-2.3 2.3"/><path d="M11.6 8.9H3.4"/><path d="M5.7 6.6L3.4 8.9l2.3 2.3"/></symbol>
+    <symbol id="i-skip" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.25"/><path d="M3.4 3.4l7.2 7.2"/></symbol>
+    <symbol id="i-edge" viewBox="0 0 14 14"><path d="M1.9 7h6.2"/><path d="M6 4.6L8.4 7 6 9.4"/><path d="M11.6 2.4v9.2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 14 14"><path d="M7 2.6v8.8"/><path d="M2.6 7h8.8"/></symbol>
+    <symbol id="i-file" viewBox="0 0 14 14"><path d="M3.6 1.9h4.3L11 5v7.1H3.6z"/><path d="M7.9 1.9V5H11"/></symbol>
+    <symbol id="i-commit" viewBox="0 0 14 14"><path d="M7 1.5v3.2"/><path d="M7 9.3v3.2"/><circle cx="7" cy="7" r="1.9"/></symbol>
+    <symbol id="i-interview" viewBox="0 0 14 14"><path d="M2.3 3h9.4v6.4H6.4L3.6 11.9V9.4H2.3z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 14 14"><path d="M3.4 3.4l7.2 7.2"/><path d="M10.6 3.4L3.4 10.6"/></symbol>
+    <symbol id="i-checkplain" viewBox="0 0 14 14"><path d="M2.4 7.4l3 3 6.2-6.8"/></symbol>
+  </defs>
+</svg>
+
+<!-- ==================================================================================
+     SECTION 1: Landing hero
+     ================================================================================== -->
+<header class="masthead">
+  <div class="wrap masthead__inner">
+    <a class="wordmark" href="#top">SpecForge</a>
+    <nav class="masthead__nav" aria-label="Main">
+      <a href="#review" aria-current="page">Spec review</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#handoff">Handoff packs</a>
+      <a href="#docs">Docs</a>
+    </nav>
+    <div class="masthead__actions">
+      <a class="act" href="#signin">Sign in</a>
+      <a class="btn btn--primary" href="#start">Start a specification</a>
+    </div>
+  </div>
+</header>
+
+<section class="band band--hero" id="top">
+  <div class="wrap hero">
+    <div class="hero__grid">
+      <div class="hero__lede">
+        <h1 class="hero__claim">The spec is a document you review, not a chat you scroll.</h1>
+        <p class="hero__sub">
+          SpecForge turns a product brief into a numbered specification. Each clause carries a
+          requirement ID. Every claim links to the evidence behind it: an interview answer, a file,
+          a commit. You review the document once, then export a handoff pack for your coding agent.
+        </p>
+        <div class="hero__actions">
+          <a class="btn btn--primary" href="#start">Start a specification</a>
+          <a class="act u" href="#sample">Read a sample spec</a>
+        </div>
+        <dl class="hero__facts">
+          <div class="hero__fact">
+            <dt>Stages</dt>
+            <dd>Requirements, Design, Tasks</dd>
+          </div>
+          <div class="hero__fact">
+            <dt>Phases</dt>
+            <dd>Eight, from Project Rules to Export</dd>
+          </div>
+          <div class="hero__fact">
+            <dt>Modes</dt>
+            <dd>Lite, Full, Backend</dd>
+          </div>
+          <div class="hero__fact">
+            <dt>Exports</dt>
+            <dd>Claude Code, Cursor, Codex</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="hero__preview">
+        <div class="page page--compact">
+          <div class="page__runhead">
+            <span>Ledger Payments Console</span>
+            <span class="status status--review">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg>Needs review
+            </span>
+          </div>
+          <h2 class="page__title">Product Requirements</h2>
+          <dl class="page__meta">
+            <div><dt>Phase</dt><dd>PRD</dd></div>
+            <div><dt>Status</dt><dd>Needs review</dd></div>
+            <div><dt>Requirements</dt><dd>42</dd></div>
+            <div><dt>Updated</dt><dd>14 Mar 2026</dd></div>
+          </dl>
+
+          <div class="doc">
+            <div class="sechead">
+              <div class="sechead__num">3</div>
+              <h3 class="sechead__title">Roles and permissions</h3>
+              <div class="sechead__margin"></div>
+            </div>
+
+            <div class="clause">
+              <div class="clause__num">3.1</div>
+              <div class="clause__body">
+                <h4 class="clause__title">Workspace roles <span class="req">REQ-018</span></h4>
+                <p class="clause__text">
+                  An owner or editor may archive a project. Archiving sets
+                  <code class="inl">status = archived</code>, keeps every artifact readable, and writes
+                  one audit event. Archived projects reject new generation runs.<a class="evref" href="#evidence-hero">E1</a><a class="evref" href="#evidence-hero">E2</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <span class="claim">CLM-0214</span>
+                <span class="claim">CLM-0215</span>
+              </div>
+            </div>
+
+            <div class="clause">
+              <div class="clause__num">3.2</div>
+              <div class="clause__body">
+                <h4 class="clause__title">Role assignment <span class="req">REQ-019</span></h4>
+                <p class="clause__text">
+                  An owner promotes a member to editor in one step. Promotion needs no confirmation.
+                  The member keeps their review history.<a class="evref" href="#evidence-hero">E3</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <span class="claim">CLM-0218</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rail" aria-label="Marginalia">
+          <div class="railcard" id="evidence-hero">
+            <span class="railcard__label">Margin</span>
+            <span class="claim">CLM-0214</span>
+            <p class="railcard__quote">Interview 7, Priya Raman. Owner-only deletion, thirty day window.</p>
+            <p class="railcard__note">Two sources disagree on the window. The clause adopts thirty days.</p>
+            <div class="actions" style="margin-top:var(--s4)">
+              <a class="act" href="#review">Open evidence</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="split">
+
+<!-- ==================================================================================
+     SECTION 2: Spec review surface
+     ================================================================================== -->
+<section class="band" id="review">
+  <div class="wrap">
+    <p class="bandnote">Section 2. Spec review surface</p>
+    <div class="bandhead">
+      <h2>Read the specification in place</h2>
+      <p>
+        Clause numbers hold the left margin. Claim IDs hold the right margin. Evidence, validation,
+        and grilling sit in the rail beside the clause you are reading.
+      </p>
+    </div>
+
+    <div class="tabbar">
+      <div class="tabs" role="tablist" aria-label="Pipeline stage">
+        <button class="tab" id="tab-requirements" role="tab" aria-selected="true" aria-controls="panel-requirements" tabindex="0">
+          Requirements <b>3</b>
+        </button>
+        <button class="tab" id="tab-design" role="tab" aria-selected="false" aria-controls="panel-design" tabindex="-1">
+          Design <b>3</b>
+        </button>
+        <button class="tab" id="tab-tasks" role="tab" aria-selected="false" aria-controls="panel-tasks" tabindex="-1">
+          Tasks <b>2</b>
+        </button>
+      </div>
+      <p class="tabbar__meta">Generation run 41 finished six minutes ago</p>
+    </div>
+
+    <!-- ---------------------------------------------------------------- Requirements -->
+    <div class="panel" id="panel-requirements" role="tabpanel" aria-labelledby="tab-requirements" tabindex="0">
+      <div class="panel__grid">
+
+        <nav class="navcol" aria-label="Phases and clauses">
+          <div>
+            <h2 class="navcol__label">Phases</h2>
+            <ol class="phaselist">
+              <li class="phase">
+                <span class="phase__mark phase__mark--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg></span>
+                <span class="phase__name">Project Rules</span>
+                <span class="phase__state">Confirmed</span>
+              </li>
+              <li class="phase">
+                <span class="phase__mark phase__mark--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg></span>
+                <span class="phase__name">Brief</span>
+                <span class="phase__state">Confirmed</span>
+              </li>
+              <li class="phase" aria-current="true">
+                <span class="phase__mark"><svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg></span>
+                <span class="phase__name">PRD</span>
+                <span class="phase__state">Needs review</span>
+              </li>
+            </ol>
+          </div>
+          <div>
+            <h2 class="navcol__label">Clauses</h2>
+            <ol class="idx">
+              <li class="idx__sec">3 Roles and permissions</li>
+              <li><a class="idx__link" href="#c-req-31"><span class="idx__num">3.1</span><span class="idx__name">Workspace roles</span></a></li>
+              <li><a class="idx__link" href="#c-req-32"><span class="idx__num">3.2</span><span class="idx__name">Role assignment</span></a></li>
+              <li><a class="idx__link" href="#c-req-33" aria-current="true"><span class="idx__num">3.3</span><span class="idx__name">Deletion</span></a></li>
+              <li><a class="idx__link" href="#c-req-34"><span class="idx__num">3.4</span><span class="idx__name">Guest access</span></a></li>
+              <li><a class="idx__link" href="#c-req-35"><span class="idx__num">3.5</span><span class="idx__name">Requirement status</span></a></li>
+              <li class="idx__out"><span class="idx__num">4</span><span>Data export</span></li>
+              <li class="idx__out"><span class="idx__num">5</span><span>Billing roles</span></li>
+            </ol>
+            <p class="navcol__note">Showing clause 3.1 to 3.5 of 42.</p>
+          </div>
+        </nav>
+
+        <div class="page" id="evidence-req-surface">
+          <div class="page__runhead">
+            <span>Ledger Payments Console</span>
+            <span class="status status--review">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg>Needs review
+            </span>
+          </div>
+          <h3 class="page__title">Product Requirements</h3>
+          <dl class="page__meta">
+            <div><dt>Stage</dt><dd>Requirements</dd></div>
+            <div><dt>Phase</dt><dd>PRD</dd></div>
+            <div><dt>Version</dt><dd>4</dd></div>
+            <div><dt>Updated</dt><dd>14 Mar 2026</dd></div>
+            <div><dt>Owner</dt><dd>Dana Okonkwo</dd></div>
+          </dl>
+          <div class="page__counts">
+            <div class="page__count"><b>42</b><span>requirements</span></div>
+            <div class="page__count"><b>38</b><span>claims</span></div>
+            <div class="page__count"><b>4</b><span>open questions</span></div>
+          </div>
+
+          <div class="doc">
+            <div class="sechead">
+              <div class="sechead__num">3</div>
+              <h4 class="sechead__title">Roles and permissions</h4>
+              <div class="sechead__margin"></div>
+            </div>
+
+            <div class="clause" id="c-req-31">
+              <div class="clause__num">3.1</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Workspace roles <span class="req">REQ-018</span></h5>
+                <p class="clause__text">
+                  An owner or editor may archive a project. Archiving sets
+                  <code class="inl">status = archived</code>, keeps every artifact readable, and writes
+                  one audit event. Archived projects reject new generation runs. The audit event records
+                  the actor, the project, and the previous status.<a class="evref" href="#ev-req-1">E1</a><a class="evref" href="#ev-req-2">E2</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-req">CLM-0214</a>
+                <a class="claim" href="#evidence-req">CLM-0215</a>
+              </div>
+            </div>
+
+            <div class="clause" id="c-req-32">
+              <div class="clause__num">3.2</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Role assignment <span class="req">REQ-019</span></h5>
+                <p class="clause__text">
+                  An owner promotes a member to editor in one step. Promotion needs no confirmation.
+                  The member keeps their review history, and their open reviews stay assigned to them.<a class="evref" href="#ev-req-2">E3</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-req">CLM-0218</a>
+              </div>
+            </div>
+
+            <div class="clause clause--open" id="c-req-33">
+              <div class="clause__num">3.3</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Deletion <span class="req">REQ-021</span></h5>
+                <p class="clause__text">
+                  Only an owner may delete a project. Deletion is soft for 30 days. During the window
+                  the project stays readable and appears in the trash view. After 30 days the retention
+                  scheduler removes the project, its artifacts, and its audit events.<a class="evref" href="#ev-req-1">E4</a><a class="evref" href="#ev-req-4">E5</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-req">CLM-0221</a>
+              </div>
+            </div>
+
+            <div class="note note--conflict">
+              <div class="note__num">Q3</div>
+              <div class="note__inner">
+                <span class="note__kind">Open question, needs review</span>
+                <p class="note__title">Two sources disagree on the trash window.</p>
+                <p class="note__body">
+                  Interview 5 asks for 14 days. Interview 7 asks for 30 days. The clause adopts 30.
+                  Resolve before the Architecture phase locks.
+                </p>
+              </div>
+              <div class="note__margin"></div>
+            </div>
+
+            <div class="clause" id="c-req-34">
+              <div class="clause__num">3.4</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Guest access <span class="req">REQ-024</span></h5>
+                <p class="clause__text">
+                  Guests stay out of scope for version 1. The console shows no guest surfaces, and
+                  external addresses cannot be invited. The clause stays in the document so the
+                  trade-off stays visible.<a class="evref" href="#ev-req-3">E6</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-req">CLM-0224</a>
+                <span class="st st--skipped" style="margin-top:var(--s2)">
+                  <svg class="mark m-12" aria-hidden="true"><use href="#i-skip"/></svg>Skipped
+                </span>
+              </div>
+            </div>
+
+            <div class="clause" id="c-req-35">
+              <div class="clause__num">3.5</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Requirement status <span class="req">REQ-026</span></h5>
+                <p class="clause__text">
+                  Each requirement carries one status. The review surface reads that status from the
+                  phase ledger, never from a separate field.
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-req">CLM-0229</a>
+              </div>
+            </div>
+
+            <div class="doc__wide">
+              <table class="datatable">
+                <caption>Requirement status for section 3</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Clause</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Phase</th>
+                    <th scope="col">Owner</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="cell-id">REQ-018</td>
+                    <td class="cell-name">3.1 Workspace roles</td>
+                    <td><span class="st st--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed</span></td>
+                    <td class="cell-owner">PRD</td>
+                    <td class="cell-owner">Dana Okonkwo</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-id">REQ-019</td>
+                    <td class="cell-name">3.2 Role assignment</td>
+                    <td><span class="st st--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed</span></td>
+                    <td class="cell-owner">PRD</td>
+                    <td class="cell-owner">Dana Okonkwo</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-id">REQ-021</td>
+                    <td class="cell-name">3.3 Deletion</td>
+                    <td><span class="st st--review"><svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg>Needs review</span></td>
+                    <td class="cell-owner">PRD</td>
+                    <td class="cell-owner">Ivo Bergstrom</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-id">REQ-024</td>
+                    <td class="cell-name">3.4 Guest access</td>
+                    <td><span class="st st--skipped"><svg class="mark m-12" aria-hidden="true"><use href="#i-skip"/></svg>Skipped</span></td>
+                    <td class="cell-owner">PRD</td>
+                    <td class="cell-owner">Dana Okonkwo</td>
+                  </tr>
+                  <tr>
+                    <td class="cell-id">REQ-026</td>
+                    <td class="cell-name">3.5 Requirement status</td>
+                    <td><span class="st st--draft"><svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg>Draft</span></td>
+                    <td class="cell-owner">PRD</td>
+                    <td class="cell-owner">Dana Okonkwo</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="page__foot">
+            <p>Reviewing clause 3.3 of 42.</p>
+            <button class="btn btn--primary" type="button">Approve document</button>
+            <button class="btn" type="button">Request changes</button>
+          </div>
+        </div>
+
+        <aside class="rail" aria-label="Evidence and validation for clause 3.3">
+          <div class="railcard">
+            <span class="railcard__label">Focused clause</span>
+            <div class="railcard__head">
+              <h3>3.3 Deletion</h3>
+              <span class="req">REQ-021</span>
+            </div>
+            <span class="status status--review">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg>Needs review
+            </span>
+            <p class="railcard__quote">Only an owner may delete a project. Deletion is soft for 30 days.</p>
+            <dl class="kv">
+              <dt>Evidence</dt><dd>5 sources</dd>
+              <dt>Claims</dt><dd>1</dd>
+            </dl>
+          </div>
+
+          <div class="railcard" id="evidence-req">
+            <span class="railcard__label">Evidence</span>
+
+            <div class="ev" id="ev-req-1">
+              <div class="ev__top">
+                <svg class="mark m-12 ev__icon" aria-hidden="true"><use href="#i-interview"/></svg>
+                <a class="ev__src" href="#c-req-33">Interview 7</a>
+                <span class="ev__state ev__state--loaded"><svg class="mark m-12" aria-hidden="true"><use href="#i-checkplain"/></svg>Loaded</span>
+              </div>
+              <span class="ev__pin">Priya Raman, 2 Mar 2026</span>
+              <p class="ev__quote">Owner-only deletion. Thirty day window.</p>
+            </div>
+
+            <div class="ev" id="ev-req-2">
+              <div class="ev__top">
+                <svg class="mark m-12 ev__icon" aria-hidden="true"><use href="#i-commit"/></svg>
+                <a class="ev__src" href="#c-req-33">commit 8f21c04</a>
+                <span class="ev__state ev__state--loaded"><svg class="mark m-12" aria-hidden="true"><use href="#i-checkplain"/></svg>Loaded</span>
+              </div>
+              <span class="ev__pin">lib/permissions/roles.ts line 42</span>
+              <p class="ev__quote">onlyOwner(actor) gates the delete command.</p>
+            </div>
+
+            <div class="ev" id="ev-req-3">
+              <div class="ev__top">
+                <svg class="mark m-12 ev__icon" aria-hidden="true"><use href="#i-file"/></svg>
+                <a class="ev__src" href="#c-req-33">retention.md</a>
+                <span class="ev__state ev__state--stale"><svg class="mark m-12" aria-hidden="true"><use href="#i-stale"/></svg>Stale</span>
+              </div>
+              <span class="ev__pin">Version 2, 21 Feb 2026</span>
+              <p class="ev__quote">Retention table predates the trash view.</p>
+            </div>
+
+            <div class="ev" id="ev-req-4">
+              <div class="ev__top">
+                <svg class="mark m-12 ev__icon" aria-hidden="true"><use href="#i-interview"/></svg>
+                <a class="ev__src" href="#c-req-33">Interview 5</a>
+                <span class="ev__state ev__state--conflict"><svg class="mark m-12" aria-hidden="true"><use href="#i-x"/></svg>Conflicting</span>
+              </div>
+              <span class="ev__pin">Ivo Bergstrom, 27 Feb 2026</span>
+              <p class="ev__quote">Asks for a 14 day window instead of 30.</p>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Grilling</span>
+            <p class="railcard__quote">Round 2, three questions still open.</p>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-review"/></svg>
+              <span class="check__text">Does the window start at archive or at delete?</span>
+            </div>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-review"/></svg>
+              <span class="check__text">Who reads the audit log after permanent deletion?</span>
+            </div>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">Does deletion stop running generation runs?</span>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Validation</span>
+            <div class="meter">
+              <div class="meter__row">
+                <span class="meter__value">36 of 38 claims carry evidence</span>
+              </div>
+              <div class="meter__track"><span class="meter__fill" style="width:95%"></span></div>
+            </div>
+            <div class="check" style="margin-top:var(--s3)">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">Every clause carries a requirement ID</span>
+            </div>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">Every claim links to a source</span>
+            </div>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">No claim cites a missing source</span>
+            </div>
+            <div class="check check--fail">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-x"/></svg>
+              <span class="check__text">Two sources conflict on clause 3.3</span>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Actions</span>
+            <div class="actions">
+              <button class="btn btn--primary btn--sm" type="button">Approve clause</button>
+              <button class="btn btn--sm" type="button">Request change</button>
+              <button class="btn btn--sm" type="button">Re-run grilling</button>
+              <button class="btn btn--sm" type="button">Copy claim ID</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------------------- Design -->
+    <div class="panel" id="panel-design" role="tabpanel" aria-labelledby="tab-design" tabindex="0" hidden>
+      <div class="panel__grid">
+
+        <nav class="navcol" aria-label="Phases and clauses">
+          <div>
+            <h2 class="navcol__label">Phases</h2>
+            <ol class="phaselist">
+              <li class="phase" aria-current="true">
+                <span class="phase__mark"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg></span>
+                <span class="phase__name">Domain Model</span>
+                <span class="phase__state">Confirmed</span>
+              </li>
+              <li class="phase">
+                <span class="phase__mark phase__mark--generating"><svg class="mark m-12" aria-hidden="true"><use href="#i-generating"/></svg></span>
+                <span class="phase__name">Architecture</span>
+                <span class="phase__state">Generating</span>
+              </li>
+              <li class="phase">
+                <span class="phase__mark"><svg class="mark m-12" aria-hidden="true"><use href="#i-skip"/></svg></span>
+                <span class="phase__name">Schemas</span>
+                <span class="phase__state">Skipped</span>
+              </li>
+            </ol>
+          </div>
+          <div>
+            <h2 class="navcol__label">Clauses</h2>
+            <ol class="idx">
+              <li class="idx__sec">5 Domain model</li>
+              <li><a class="idx__link" href="#c-des-51"><span class="idx__num">5.1</span><span class="idx__name">Project entity</span></a></li>
+              <li><a class="idx__link" href="#c-des-52" aria-current="true"><span class="idx__num">5.2</span><span class="idx__name">Archive invariant</span></a></li>
+              <li><a class="idx__link" href="#c-des-53"><span class="idx__num">5.3</span><span class="idx__name">AuditEvent entity</span></a></li>
+              <li class="idx__out"><span class="idx__num">6</span><span>Retention policy</span></li>
+              <li class="idx__out"><span class="idx__num">7</span><span>Access graph</span></li>
+            </ol>
+            <p class="navcol__note">Showing clause 5.1 to 5.3 of 9.</p>
+          </div>
+        </nav>
+
+        <div class="page">
+          <div class="page__runhead">
+            <span>Ledger Payments Console</span>
+            <span class="status status--confirmed">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed
+            </span>
+          </div>
+          <h3 class="page__title">Domain Model</h3>
+          <dl class="page__meta">
+            <div><dt>Stage</dt><dd>Design</dd></div>
+            <div><dt>Phase</dt><dd>Domain Model</dd></div>
+            <div><dt>Version</dt><dd>2</dd></div>
+            <div><dt>Updated</dt><dd>12 Mar 2026</dd></div>
+            <div><dt>Owner</dt><dd>Priya Raman</dd></div>
+          </dl>
+          <div class="page__counts">
+            <div class="page__count"><b>9</b><span>entities</span></div>
+            <div class="page__count"><b>24</b><span>relationships</span></div>
+            <div class="page__count"><b>3</b><span>invariants</span></div>
+          </div>
+
+          <div class="doc">
+            <div class="sechead">
+              <div class="sechead__num">5</div>
+              <h4 class="sechead__title">Domain model</h4>
+              <div class="sechead__margin"></div>
+            </div>
+
+            <div class="clause" id="c-des-51">
+              <div class="clause__num">5.1</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Project entity <span class="req">REQ-031</span></h5>
+                <p class="clause__text">
+                  The Project entity holds <code class="inl">id</code>, <code class="inl">name</code>,
+                  <code class="inl">status</code>, <code class="inl">ownerId</code>,
+                  <code class="inl">archivedAt</code>, and <code class="inl">deletedAt</code>. Status is
+                  one of active, archived, or deleted. <code class="inl">deletedAt</code> stays null
+                  until soft deletion runs. The entity never stores its artifact list.<a class="evref" href="#ev-des-2">E7</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-design">CLM-0338</a>
+              </div>
+            </div>
+
+            <div class="clause clause--open" id="c-des-52">
+              <div class="clause__num">5.2</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Archive invariant <span class="req">REQ-032</span></h5>
+                <p class="clause__text">
+                  Archiving never mutates artifacts. Artifacts are immutable once written, so archive
+                  only flips <code class="inl">Project.status</code> and stamps
+                  <code class="inl">archivedAt</code>. Every artifact read path ignores project status,
+                  so an archived project stays fully readable.<a class="evref" href="#ev-des-1">E8</a><a class="evref" href="#ev-des-3">E9</a>
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-design">CLM-0341</a>
+              </div>
+            </div>
+
+            <div class="note note--decision">
+              <div class="note__num">D6</div>
+              <div class="note__inner">
+                <span class="note__kind">Settled decision</span>
+                <p class="note__title">Status lives on the project, never on the artifact.</p>
+                <p class="note__body">
+                  Two read paths depend on it. Reopen only if artifacts gain their own lifecycle.
+                </p>
+              </div>
+              <div class="note__margin"></div>
+            </div>
+
+            <div class="clause" id="c-des-53">
+              <div class="clause__num">5.3</div>
+              <div class="clause__body">
+                <h5 class="clause__title">AuditEvent entity <span class="req">REQ-033</span></h5>
+                <p class="clause__text">
+                  AuditEvent holds <code class="inl">id</code>, <code class="inl">actorId</code>,
+                  <code class="inl">action</code>, <code class="inl">subjectType</code>,
+                  <code class="inl">subjectId</code>, and <code class="inl">createdAt</code>. The table is
+                  append-only. The repository layer exposes no update and no delete path.<a class="evref" href="#ev-des-2">E10</a>
+                </p>
+                <pre class="codeblock"><code><span class="tk-key">type</span> <span class="tk-type">ProjectStatus</span> <span class="tk-punc">=</span> <span class="tk-str">"active"</span> <span class="tk-punc">|</span> <span class="tk-str">"archived"</span> <span class="tk-punc">|</span> <span class="tk-str">"deleted"</span><span class="tk-punc">;</span>
+
+<span class="tk-key">type</span> <span class="tk-type">Project</span> <span class="tk-punc">=</span> <span class="tk-punc">{</span>
+  <span class="tk-prop">id</span><span class="tk-punc">:</span> <span class="tk-type">ProjectId</span><span class="tk-punc">;</span>
+  <span class="tk-prop">status</span><span class="tk-punc">:</span> <span class="tk-type">ProjectStatus</span><span class="tk-punc">;</span>
+  <span class="tk-prop">archivedAt</span><span class="tk-punc">:</span> <span class="tk-type">Date</span> <span class="tk-punc">|</span> <span class="tk-key">null</span><span class="tk-punc">;</span>
+  <span class="tk-prop">deletedAt</span><span class="tk-punc">:</span> <span class="tk-type">Date</span> <span class="tk-punc">|</span> <span class="tk-key">null</span><span class="tk-punc">;</span>
+<span class="tk-punc">};</span></code></pre>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-design">CLM-0346</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="page__foot">
+            <p>Reviewing clause 5.2 of 9.</p>
+            <button class="btn btn--primary" type="button">Approve document</button>
+            <button class="btn" type="button">Request changes</button>
+          </div>
+        </div>
+
+        <aside class="rail" aria-label="Evidence and validation for clause 5.2">
+          <div class="railcard">
+            <span class="railcard__label">Focused clause</span>
+            <div class="railcard__head">
+              <h3>5.2 Archive invariant</h3>
+              <span class="req">REQ-032</span>
+            </div>
+            <span class="status status--confirmed">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed
+            </span>
+            <p class="railcard__quote">Archiving never mutates artifacts.</p>
+            <dl class="kv">
+              <dt>Evidence</dt><dd>3 sources</dd>
+              <dt>Blocked tasks</dt><dd>3</dd>
+            </dl>
+          </div>
+
+          <div class="railcard" id="evidence-design">
+            <span class="railcard__label">Evidence</span>
+
+            <div class="ev" id="ev-des-1">
+              <div class="ev__top">
+                <svg class="mark m-12 ev__icon" aria-hidden="true"><use href="#i-commit"/></svg>
+                <a class="ev__src" href="#c-des-52">commit 8f21c04</a>
+                <span class="ev__state ev__state--loaded"><svg class="mark m-12" aria-hidden="true"><use href="#i-checkplain"/></svg>Loaded</span>
+              </div>
+              <span class="ev__pin">lib/artifacts/read.ts line 18</span>
+              <p class="ev__quote">Read path takes only an artifact id.</p>
+            </div>
+
+            <div class="ev" id="ev-des-2">
+              <div class="ev__top">
+                <svg class="mark m-12 ev__icon" aria-hidden="true"><use href="#i-file"/></svg>
+                <span class="ev__src">schema/project.ts</span>
+                <span class="ev__state ev__state--loading">Loading</span>
+              </div>
+              <div class="skel" aria-hidden="true">
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="ev" id="ev-des-3">
+              <div class="ev__top">
+                <svg class="mark m-12 ev__icon" aria-hidden="true"><use href="#i-interview"/></svg>
+                <a class="ev__src" href="#c-des-52">Interview 2</a>
+                <span class="ev__state ev__state--stale"><svg class="mark m-12" aria-hidden="true"><use href="#i-stale"/></svg>Stale</span>
+              </div>
+              <span class="ev__pin">Priya Raman, 26 Feb 2026</span>
+              <p class="ev__quote">Artifacts must stay readable forever.</p>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Blocking edges</span>
+            <p class="railcard__quote">Three tasks depend on this clause.</p>
+            <div class="edge-list" style="margin-top:var(--s3)">
+              <div class="edge">
+                <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+                <div>
+                  <span class="edge__who">T-01 Project archive state</span>
+                  <span class="edge__why">Waits until the clause is approved.</span>
+                </div>
+              </div>
+              <div class="edge">
+                <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+                <div>
+                  <span class="edge__who">T-04 Audit event writer</span>
+                  <span class="edge__why">Waits on the same invariant.</span>
+                </div>
+              </div>
+              <div class="edge">
+                <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+                <div>
+                  <span class="edge__who">T-03 Trash view</span>
+                  <span class="edge__why">Also waits on clause 3.3.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Validation</span>
+            <div class="meter">
+              <div class="meter__row">
+                <span class="meter__value">6 of 8 checks pass</span>
+              </div>
+              <div class="meter__track"><span class="meter__fill" style="width:75%"></span></div>
+            </div>
+            <p class="railcard__note">Live schema validation, re-run on every edit.</p>
+            <div class="check" style="margin-top:var(--s3)">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">Project status matches the enum</span>
+            </div>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">ArchivedAt agrees with status</span>
+            </div>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">Artifacts carry no status column</span>
+            </div>
+            <div class="check check--fail">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-x"/></svg>
+              <span class="check__text">Retention scheduler still reads deletedAt</span>
+            </div>
+            <div class="check check--fail">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-x"/></svg>
+              <span class="check__text">Guest role has no entity</span>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Actions</span>
+            <div class="actions">
+              <button class="btn btn--primary btn--sm" type="button">Approve clause</button>
+              <button class="btn btn--sm" type="button">Open schema</button>
+              <button class="btn btn--sm" type="button">Re-run validation</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ---------------------------------------------------------------- Tasks -->
+    <div class="panel" id="panel-tasks" role="tabpanel" aria-labelledby="tab-tasks" tabindex="0" hidden>
+      <div class="panel__grid">
+
+        <nav class="navcol" aria-label="Phases and clauses">
+          <div>
+            <h2 class="navcol__label">Phases</h2>
+            <ol class="phaselist">
+              <li class="phase" aria-current="true">
+                <span class="phase__mark phase__mark--stale"><svg class="mark m-12" aria-hidden="true"><use href="#i-stale"/></svg></span>
+                <span class="phase__name">Tasks</span>
+                <span class="phase__state">Stale</span>
+              </li>
+              <li class="phase">
+                <span class="phase__mark"><svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg></span>
+                <span class="phase__name">Export</span>
+                <span class="phase__state">Draft</span>
+              </li>
+            </ol>
+          </div>
+          <div>
+            <h2 class="navcol__label">Clauses</h2>
+            <ol class="idx">
+              <li class="idx__sec">7 Task dependencies</li>
+              <li><a class="idx__link" href="#c-task-71" aria-current="true"><span class="idx__num">7.1</span><span class="idx__name">Tracer bullets</span></a></li>
+              <li><a class="idx__link" href="#c-task-72"><span class="idx__num">7.2</span><span class="idx__name">Blocking edges</span></a></li>
+              <li><a class="idx__link" href="#c-task-73"><span class="idx__num">7.3</span><span class="idx__name">Task order</span></a></li>
+              <li class="idx__out"><span class="idx__num">8</span><span>Export manifest</span></li>
+            </ol>
+            <p class="navcol__note">Showing 6 of 18 tasks.</p>
+          </div>
+        </nav>
+
+        <div class="page">
+          <div class="page__runhead">
+            <span>Ledger Payments Console</span>
+            <span class="status status--stale">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-stale"/></svg>Stale
+            </span>
+          </div>
+          <h3 class="page__title">Task Dependencies</h3>
+          <dl class="page__meta">
+            <div><dt>Stage</dt><dd>Tasks</dd></div>
+            <div><dt>Phase</dt><dd>Tasks</dd></div>
+            <div><dt>Version</dt><dd>1</dd></div>
+            <div><dt>Updated</dt><dd>13 Mar 2026</dd></div>
+            <div><dt>Owner</dt><dd>Ivo Bergstrom</dd></div>
+          </dl>
+          <div class="page__counts">
+            <div class="page__count"><b>18</b><span>tasks</span></div>
+            <div class="page__count"><b>7</b><span>tracer bullets</span></div>
+            <div class="page__count"><b>11</b><span>blocking edges</span></div>
+          </div>
+
+          <div class="doc">
+            <div class="sechead">
+              <div class="sechead__num">7</div>
+              <h4 class="sechead__title">Task dependencies</h4>
+              <div class="sechead__margin"></div>
+            </div>
+
+            <div class="clause" id="c-task-71">
+              <div class="clause__num">7.1</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Tracer bullets <span class="req">REQ-041</span></h5>
+                <p class="clause__text">
+                  Each tracer bullet ships one vertical slice from schema to interface. A bullet is done
+                  when its tests pass in the target environment and its artifacts are readable.
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-tasks">CLM-0401</a>
+              </div>
+            </div>
+
+            <div class="clause" id="c-task-72">
+              <div class="clause__num">7.2</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Blocking edges <span class="req">REQ-042</span></h5>
+                <p class="clause__text">
+                  An edge records that one task cannot start until another finishes. Edges are explicit,
+                  never implied by list order. The scheduler reads edges only.
+                </p>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-tasks">CLM-0404</a>
+              </div>
+            </div>
+
+            <div class="clause" id="c-task-73">
+              <div class="clause__num">7.3</div>
+              <div class="clause__body">
+                <h5 class="clause__title">Task order <span class="req">REQ-043</span></h5>
+                <p class="clause__text">
+                  The first six tasks, in edge order. Indented rows wait on the row above them.
+                </p>
+                <div class="tasks" style="margin-top:var(--s4)">
+                  <div class="task">
+                    <span class="task__id">T-01</span>
+                    <div class="task__body">
+                      <span class="task__name">Project archive state</span>
+                    </div>
+                    <span class="task__state st st--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed</span>
+                  </div>
+                  <div class="task task--blocked">
+                    <span class="task__id">T-02</span>
+                    <div class="task__body">
+                      <span class="task__name">Archive command</span>
+                      <span class="task__edge"><svg class="mark m-12" aria-hidden="true"><use href="#i-edge"/></svg>Waits on T-01</span>
+                    </div>
+                    <span class="task__state st st--draft"><svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg>Draft</span>
+                  </div>
+                  <div class="task task--blocked">
+                    <span class="task__id">T-03</span>
+                    <div class="task__body">
+                      <span class="task__name">Trash view</span>
+                      <span class="task__edge"><svg class="mark m-12" aria-hidden="true"><use href="#i-edge"/></svg>Waits on T-02 and clause 3.3</span>
+                    </div>
+                    <span class="task__state st st--draft"><svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg>Draft</span>
+                  </div>
+                  <div class="task task--blocked">
+                    <span class="task__id">T-04</span>
+                    <div class="task__body">
+                      <span class="task__name">Audit event writer</span>
+                      <span class="task__edge"><svg class="mark m-12" aria-hidden="true"><use href="#i-edge"/></svg>Waits on T-01</span>
+                    </div>
+                    <span class="task__state st st--draft"><svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg>Draft</span>
+                  </div>
+                  <div class="task task--blocked">
+                    <span class="task__id">T-05</span>
+                    <div class="task__body">
+                      <span class="task__name">Retention scheduler</span>
+                      <span class="task__edge"><svg class="mark m-12" aria-hidden="true"><use href="#i-edge"/></svg>Waits on T-04</span>
+                    </div>
+                    <span class="task__state st st--stale"><svg class="mark m-12" aria-hidden="true"><use href="#i-stale"/></svg>Stale</span>
+                  </div>
+                  <div class="task task--skipped">
+                    <span class="task__id">T-06</span>
+                    <div class="task__body">
+                      <span class="task__name">Guest invite path</span>
+                    </div>
+                    <span class="task__state st st--skipped"><svg class="mark m-12" aria-hidden="true"><use href="#i-skip"/></svg>Skipped</span>
+                  </div>
+                </div>
+              </div>
+              <div class="clause__margin">
+                <span class="margin__label">Claims</span>
+                <a class="claim" href="#evidence-tasks">CLM-0407</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="page__foot">
+            <p>Showing 6 of 18 tasks.</p>
+            <button class="btn btn--primary" type="button">Run generation</button>
+            <button class="btn" type="button">Approve tasks</button>
+          </div>
+        </div>
+
+        <aside class="rail" aria-label="Evidence and blocking edges for task T-03">
+          <div class="railcard">
+            <span class="railcard__label">Focused task</span>
+            <div class="railcard__head">
+              <h3>T-03 Trash view</h3>
+              <span class="req">REQ-043</span>
+            </div>
+            <span class="status status--draft">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg>Draft
+            </span>
+            <p class="railcard__quote">Waits on T-02 and clause 3.3.</p>
+            <dl class="kv">
+              <dt>Files</dt><dd>3</dd>
+              <dt>Acceptance checks</dt><dd>2</dd>
+            </dl>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Blocked by</span>
+            <div class="edge-list">
+              <div class="edge">
+                <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+                <div>
+                  <span class="edge__who">T-02 Archive command</span>
+                  <span class="edge__why">Draft, unblocked</span>
+                </div>
+              </div>
+              <div class="edge edge--stale">
+                <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+                <div>
+                  <span class="edge__who">Clause 3.3 Deletion</span>
+                  <span class="edge__why">Needs review, two sources conflict</span>
+                </div>
+              </div>
+              <div class="edge edge--stale">
+                <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+                <div>
+                  <span class="edge__who">Architecture 5.2</span>
+                  <span class="edge__why">Generating</span>
+                </div>
+              </div>
+            </div>
+            <p class="railcard__note">The chain clears when clause 3.3 is approved.</p>
+          </div>
+
+          <div class="railcard" id="evidence-tasks">
+            <span class="railcard__label">Evidence</span>
+            <div class="empty">
+              <p class="empty__title">No evidence attached.</p>
+              <p class="empty__body">
+                Tasks inherit their claims from the PRD and the Domain Model. Attach a source only when
+                a task adds a claim of its own.
+              </p>
+              <button class="btn btn--sm" type="button">
+                <svg class="mark m-12" aria-hidden="true"><use href="#i-plus"/></svg>Attach source
+              </button>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Conformance</span>
+            <div class="meter">
+              <div class="meter__row">
+                <span class="meter__value">12 of 18 tasks resolve to a requirement</span>
+              </div>
+              <div class="meter__track"><span class="meter__fill" style="width:67%"></span></div>
+            </div>
+            <div class="check" style="margin-top:var(--s3)">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">Every task names its files</span>
+            </div>
+            <div class="check">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-checkplain"/></svg>
+              <span class="check__text">Every task has an acceptance check</span>
+            </div>
+            <div class="check check--fail">
+              <svg class="mark m-12 check__mark" aria-hidden="true"><use href="#i-x"/></svg>
+              <span class="check__text">Six tasks have no upstream claim</span>
+            </div>
+          </div>
+
+          <div class="railcard">
+            <span class="railcard__label">Actions</span>
+            <div class="actions">
+              <button class="btn btn--primary btn--sm" type="button">Approve task</button>
+              <button class="btn btn--sm" type="button">Request change</button>
+              <button class="btn btn--sm" type="button">Show all edges</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="split">
+
+<!-- ==================================================================================
+     SECTION 3: Pipeline state
+     ================================================================================== -->
+<section class="band" id="pipeline">
+  <div class="wrap">
+    <p class="bandnote">Section 3. Pipeline state</p>
+    <div class="bandhead">
+      <h2>Three stages, eight phases, one open position</h2>
+      <p>
+        The PRD changed, so Architecture is regenerating and everything downstream went stale.
+        Phases run in order. One phase holds the position at a time.
+      </p>
+    </div>
+
+    <div class="pipeline__grid">
+      <div>
+        <div class="stages">
+          <div class="stagecard stagecard--open">
+            <div class="stagecard__top">
+              <span class="stagecard__idx">1</span>
+              <h3 class="stagecard__name">Requirements</h3>
+            </div>
+            <div class="meter">
+              <div class="meter__row"><span class="meter__value">2 of 3 phases confirmed</span></div>
+              <div class="meter__track"><span class="meter__fill" style="width:67%"></span></div>
+            </div>
+            <p class="stagecard__count">PRD holds the position and needs review.</p>
+            <div class="stagecard__phases">
+              <span class="status status--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Project Rules</span>
+              <span class="status status--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Brief</span>
+              <span class="status status--review"><svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg>PRD</span>
+            </div>
+          </div>
+
+          <div class="stagecard">
+            <div class="stagecard__top">
+              <span class="stagecard__idx">2</span>
+              <h3 class="stagecard__name">Design</h3>
+            </div>
+            <div class="meter">
+              <div class="meter__row"><span class="meter__value">1 of 2 phases confirmed</span></div>
+              <div class="meter__track"><span class="meter__fill" style="width:50%"></span></div>
+            </div>
+            <p class="stagecard__count">Schemas skipped. Architecture is regenerating.</p>
+            <div class="stagecard__phases">
+              <span class="status status--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Domain Model</span>
+              <span class="status status--generating"><svg class="mark m-12" aria-hidden="true"><use href="#i-generating"/></svg>Architecture</span>
+              <span class="status status--skipped"><svg class="mark m-12" aria-hidden="true"><use href="#i-skip"/></svg>Schemas</span>
+            </div>
+          </div>
+
+          <div class="stagecard">
+            <div class="stagecard__top">
+              <span class="stagecard__idx">3</span>
+              <h3 class="stagecard__name">Tasks</h3>
+            </div>
+            <div class="meter">
+              <div class="meter__row"><span class="meter__value">0 of 2 phases confirmed</span></div>
+              <div class="meter__track"><span class="meter__fill" style="width:0%"></span></div>
+            </div>
+            <p class="stagecard__count">Eleven blocking edges wait on Design.</p>
+            <div class="stagecard__phases">
+              <span class="status status--stale"><svg class="mark m-12" aria-hidden="true"><use href="#i-stale"/></svg>Tasks</span>
+              <span class="status status--draft"><svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg>Export</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panelhead" style="margin-top:var(--s12)">
+          <h3>Phase ledger</h3>
+          <span class="seg" role="group" aria-label="Row density">
+            <button class="seg__btn" type="button" data-density="comfortable" aria-pressed="true">Comfortable</button>
+            <button class="seg__btn" type="button" data-density="compact" aria-pressed="false">Compact</button>
+          </span>
+        </div>
+
+        <div class="pipeline-list">
+          <div class="plisthead" aria-hidden="true">
+            <span>No.</span>
+            <span>Phase</span>
+            <span>Status</span>
+            <span>Updated</span>
+            <span style="text-align:right">Blocking edges</span>
+          </div>
+
+          <div class="prow">
+            <span class="prow__idx">1</span>
+            <div class="prow__name">Project Rules<small>5 artifacts, constitution schema valid</small></div>
+            <span class="st st--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed</span>
+            <span class="prow__updated">9 Mar 2026</span>
+            <span class="prow__edges">0</span>
+          </div>
+
+          <div class="prow">
+            <span class="prow__idx">2</span>
+            <div class="prow__name">Brief<small>3 artifacts, 12 interview answers</small></div>
+            <span class="st st--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed</span>
+            <span class="prow__updated">11 Mar 2026</span>
+            <span class="prow__edges">0</span>
+          </div>
+
+          <div class="prow prow--current" aria-current="step">
+            <span class="prow__idx">3</span>
+            <div class="prow__name">PRD<small>42 requirements, 38 claims, 4 open questions</small></div>
+            <span class="status status--review"><svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg>Needs review</span>
+            <span class="prow__updated">14 Mar 2026</span>
+            <span class="prow__edges">0</span>
+          </div>
+
+          <div class="prow">
+            <span class="prow__idx">4</span>
+            <div class="prow__name">Domain Model<small>9 entities, 24 relationships</small></div>
+            <span class="st st--confirmed"><svg class="mark m-12" aria-hidden="true"><use href="#i-check"/></svg>Confirmed</span>
+            <span class="prow__updated">12 Mar 2026</span>
+            <span class="prow__edges">3</span>
+          </div>
+
+          <div class="prow">
+            <span class="prow__idx">5</span>
+            <div class="prow__name">Architecture<small>4 decisions, regenerating from the new deletion clause</small></div>
+            <span class="st st--generating"><svg class="mark m-12" aria-hidden="true"><use href="#i-generating"/></svg>Generating</span>
+            <span class="skel" aria-hidden="true" style="width:96px"><span></span><span></span></span>
+            <span class="prow__edges">4</span>
+          </div>
+
+          <div class="prow">
+            <span class="prow__idx">6</span>
+            <div class="prow__name">Schemas<small>0 artifacts, deferred until Architecture settles</small></div>
+            <span class="st st--skipped"><svg class="mark m-12" aria-hidden="true"><use href="#i-skip"/></svg>Skipped</span>
+            <span class="prow__updated">10 Mar 2026</span>
+            <span class="prow__edges">0</span>
+          </div>
+
+          <div class="prow">
+            <span class="prow__idx">7</span>
+            <div class="prow__name">Tasks<small>18 tasks, 7 tracer bullets, 11 blocking edges</small></div>
+            <span class="st st--stale"><svg class="mark m-12" aria-hidden="true"><use href="#i-stale"/></svg>Stale</span>
+            <span class="prow__updated">13 Mar 2026</span>
+            <span class="prow__edges">11</span>
+          </div>
+
+          <div class="prow">
+            <span class="prow__idx">8</span>
+            <div class="prow__name">Export<small>0 artifacts, not started</small></div>
+            <span class="st st--draft"><svg class="mark m-12" aria-hidden="true"><use href="#i-draft"/></svg>Draft</span>
+            <span class="prow__updated">Not started</span>
+            <span class="prow__edges">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="sideblock">
+          <h3>Current position</h3>
+          <p class="sideblock__big">Phase 3 of 8</p>
+          <p class="sideblock__lead">PRD, needs review.</p>
+          <p class="sideblock__body">
+            Generation run 41 finished six minutes ago. It produced 42 requirements and 38 claims, and
+            it left 4 open questions.
+          </p>
+          <div class="alert alert--amber">
+            <svg class="mark m-12" aria-hidden="true"><use href="#i-review"/></svg>
+            <div>
+              <span class="alert__title">Two sources conflict</span>
+              <span class="alert__body">Clause 3.3 adopts a 30 day window. Interview 5 asks for 14.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sideblock">
+          <h3>Next action</h3>
+          <p class="sideblock__lead">Resolve the contradiction in clause 3.3.</p>
+          <p class="sideblock__body">
+            Architecture is regenerating now. Seven tasks stay blocked until it lands, so this review
+            is the shortest path forward.
+          </p>
+          <button class="btn btn--primary btn--wide" type="button">Open clause 3.3</button>
+          <button class="btn btn--wide" type="button" style="margin-top:var(--s2)">Defer this review</button>
+        </div>
+
+        <div class="sideblock">
+          <h3>Edge check</h3>
+          <p class="sideblock__body">11 blocking edges. Three touch clause 5.2.</p>
+          <div class="edge-list" style="margin-top:var(--s3)">
+            <div class="edge">
+              <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+              <div><span class="edge__who">T-03 waits on T-02</span></div>
+            </div>
+            <div class="edge">
+              <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+              <div><span class="edge__who">T-05 waits on T-04</span></div>
+            </div>
+            <div class="edge">
+              <svg class="mark m-12 edge__mark" aria-hidden="true"><use href="#i-edge"/></svg>
+              <div><span class="edge__who">Export waits on Tasks</span></div>
+            </div>
+          </div>
+          <div class="alert">
+            <svg class="mark m-12" aria-hidden="true"><use href="#i-x"/></svg>
+            <div>
+              <span class="alert__title">Edge check failed</span>
+              <span class="alert__body">Two tasks name a clause that left the PRD in version 4.</span>
+            </div>
+          </div>
+          <button class="btn btn--wide" type="button" style="margin-top:var(--s4)">Re-run edge check</button>
+        </div>
+
+        <div class="sideblock">
+          <h3>Export runs</h3>
+          <div class="empty">
+            <p class="empty__title">No Export run yet.</p>
+            <p class="empty__body">
+              Run 41 generated the PRD only. Export waits on Tasks, and Tasks waits on Design.
+            </p>
+            <button class="btn btn--sm" type="button">
+              <svg class="mark m-12" aria-hidden="true"><use href="#i-plus"/></svg>Queue an Export run
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  var reduceMotion = function () {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  };
+
+  /* ---- Stage tabs: swap the whole review surface, clause index and rail included. ---- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+  var panels = Array.prototype.slice.call(document.querySelectorAll(".panel"));
+  var swapping = false;
+
+  function selectTab(tab) {
+    tabs.forEach(function (item) {
+      var on = item === tab;
+      item.setAttribute("aria-selected", on ? "true" : "false");
+      item.tabIndex = on ? 0 : -1;
+    });
+  }
+
+  function activate(tab) {
+    var target = document.getElementById(tab.getAttribute("aria-controls"));
+    var current = panels.filter(function (p) { return !p.hidden; })[0];
+    if (!target || !current || current === target || swapping) return;
+
+    selectTab(tab);
+
+    var finish = function () {
+      swapping = false;
+      current.hidden = true;
+      target.hidden = false;
+      target.classList.remove("leave");
+      if (!reduceMotion()) {
+        target.classList.remove("enter");
+        void target.offsetWidth;
+        target.classList.add("enter");
+      }
+    };
+
+    if (reduceMotion()) {
+      finish();
+      return;
+    }
+
+    /* Exit runs at half the entrance duration, on an ease-in curve. */
+    swapping = true;
+    var settled = false;
+    var settle = function () {
+      if (settled) return;
+      settled = true;
+      finish();
+    };
+    current.classList.add("leave");
+    current.addEventListener("transitionend", settle, { once: true });
+    window.setTimeout(settle, 160);
+  }
+
+  tabs.forEach(function (tab, index) {
+    tab.addEventListener("click", function () { activate(tab); });
+    tab.addEventListener("keydown", function (event) {
+      var step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+      if (!step) return;
+      event.preventDefault();
+      var next = tabs[(index + step + tabs.length) % tabs.length];
+      next.focus();
+      activate(next);
+    });
+  });
+
+  /* ---- Density: comfortable and compact for the phase ledger and the data table. ---- */
+  var densityButtons = Array.prototype.slice.call(document.querySelectorAll(".seg__btn"));
+  densityButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      var compact = button.getAttribute("data-density") === "compact";
+      densityButtons.forEach(function (item) {
+        item.setAttribute("aria-pressed", item === button ? "true" : "false");
+      });
+      Array.prototype.slice.call(document.querySelectorAll(".pipeline-list")).forEach(function (list) {
+        list.classList.toggle("is-compact", compact);
+      });
+      Array.prototype.slice.call(document.querySelectorAll(".datatable")).forEach(function (table) {
+        table.classList.toggle("is-compact", compact);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

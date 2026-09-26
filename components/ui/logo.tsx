@@ -12,10 +12,10 @@ export interface LogoProps {
 }
 
 const SIZE_MAP = {
-  sm: { icon: 'w-6 h-6', img: 24, text: 'text-lg', badge: 'text-[9px]' },
-  md: { icon: 'w-8 h-8', img: 32, text: 'text-2xl', badge: 'text-[10px]' },
-  lg: { icon: 'w-10 h-10', img: 40, text: 'text-3xl', badge: 'text-xs' },
-  xl: { icon: 'w-14 h-14', img: 56, text: 'text-4xl', badge: 'text-xs' },
+  sm: { icon: 'size-6', img: 24, text: 'text-ui' },
+  md: { icon: 'size-8', img: 32, text: 'text-title' },
+  lg: { icon: 'size-10', img: 40, text: 'text-heading' },
+  xl: { icon: 'size-14', img: 56, text: 'text-heading' },
 };
 
 /**
@@ -31,14 +31,14 @@ export function SpecForgeLogo({
   const currentSize = SIZE_MAP[size];
 
   return (
-    <div className={cn('flex items-center gap-2.5 group select-none', className)}>
+    <div className={cn('flex items-center gap-2 group select-none', className)}>
       {/* Brand Icon Mark */}
       <div
         className={cn(
-          'relative flex items-center justify-center shrink-0 overflow-hidden',
-          'border border-primary/40 bg-black',
-          'group-hover:border-primary group-hover:shadow-[0_0_12px_rgba(223,225,4,0.35)]',
-          'transition-all duration-300',
+          'relative flex items-center justify-center shrink-0 overflow-hidden rounded-sm',
+          'border border-line bg-void',
+          'group-hover:border-primary',
+          'transition-colors duration-(--duration-standard)',
           currentSize.icon
         )}
       >
@@ -48,7 +48,7 @@ export function SpecForgeLogo({
             alt="SpecForge Mark"
             width={currentSize.img}
             height={currentSize.img}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="h-full w-full object-cover"
             priority
           />
         ) : (
@@ -56,7 +56,7 @@ export function SpecForgeLogo({
             viewBox="0 0 32 32"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-full p-1 text-primary"
+            className="h-full w-full p-1 text-primary"
             aria-hidden="true"
           >
             {/* Isometric Anvil & Digital Forge Geometry */}
@@ -87,11 +87,11 @@ export function SpecForgeLogo({
       {showWordmark && (
         <span
           className={cn(
-            'font-black uppercase tracking-tighter leading-none text-foreground transition-colors',
+            'font-semibold leading-none text-ink',
             currentSize.text
           )}
         >
-          Spec<span className="text-primary group-hover:drop-shadow-[0_0_8px_rgba(223,225,4,0.4)]">Forge</span>
+          Spec<span className="text-primary">Forge</span>
         </span>
       )}
     </div>

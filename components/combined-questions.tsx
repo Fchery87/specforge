@@ -148,14 +148,14 @@ export function CombinedQuestions({
           if (stagePhasesWithQuestions.length === 0) return null;
 
           return (
-            <Card key={stage.id} className="border-2">
-              <CardHeader className="p-6 pb-4 border-b border-border/40">
+            <Card key={stage.id} className="border">
+              <CardHeader className="p-6 pb-4 border-b border-line/40">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-xl font-bold uppercase tracking-tight">
+                    <h2 className="text-title font-bold">
                       {stage.label}
                     </h2>
-                    <CardDescription className="text-sm text-muted-foreground mt-1">
+                    <CardDescription className="text-ui text-muted-foreground mt-1">
                       {stage.summary}
                     </CardDescription>
                   </div>
@@ -165,7 +165,7 @@ export function CombinedQuestions({
                 {stagePhasesWithQuestions.map(({ phaseId, phaseLabel, questions }) => (
                   <div key={phaseId} className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                      <h3 className="text-ui font-bold text-muted-foreground">
                         {phaseLabel}
                       </h3>
                       {onRequestSuggestions && (
@@ -173,9 +173,9 @@ export function CombinedQuestions({
                           variant="ghost"
                           size="sm"
                           onClick={() => onRequestSuggestions(phaseId)}
-                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          className="h-7 text-caption text-muted-foreground hover:text-ink"
                         >
-                          <Sparkles className="w-3 h-3 mr-1 text-primary" />
+                          <Sparkles className="size-3 mr-1 text-primary" />
                           Refresh suggestions
                         </Button>
                       )}
@@ -190,7 +190,7 @@ export function CombinedQuestions({
                             <div className="flex items-start justify-between gap-3">
                               <label
                                 htmlFor={`q-${q.id}`}
-                                className="text-sm font-medium leading-relaxed"
+                                className="text-ui font-medium leading-relaxed"
                               >
                                 <span className="text-muted-foreground font-mono mr-2">
                                   {String(idx + 1).padStart(2, "0")}.
@@ -204,7 +204,7 @@ export function CombinedQuestions({
                                 <div className="flex items-center gap-2 shrink-0">
                                   <Badge
                                     variant="outline"
-                                    className="bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                    className="bg-amber/10 text-amber border-amber/30"
                                   >
                                     Suggestion
                                   </Badge>
@@ -212,9 +212,9 @@ export function CombinedQuestions({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleAcceptSuggestion(q.id)}
-                                    className="h-6 px-2 text-xs"
+                                    className="h-6 px-2 text-caption"
                                   >
-                                    <Check className="w-3 h-3 mr-1" />
+                                    <Check className="size-3 mr-1" />
                                     Accept
                                   </Button>
                                 </div>
@@ -228,7 +228,7 @@ export function CombinedQuestions({
                                 q.required ? "Required answer..." : "Optional answer..."
                               }
                               rows={3}
-                              className="w-full text-sm resize-y"
+                              className="w-full text-ui resize-y"
                             />
                           </div>
                         );
@@ -242,8 +242,8 @@ export function CombinedQuestions({
         })}
 
         {/* Generate Everything Bar */}
-        <div className="sticky bottom-6 z-20 p-4 bg-background/95 backdrop-blur border border-border shadow-lg rounded-xl flex items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
+        <div className="sticky bottom-6 z-20 p-4 bg-void/95 border border-line rounded-lg flex items-center justify-between gap-4">
+          <div className="text-ui text-muted-foreground">
             {hasEmptyRequired
               ? "Answer all required questions to generate the specification."
               : "All required questions answered. Ready to generate."}
@@ -252,11 +252,11 @@ export function CombinedQuestions({
             size="lg"
             onClick={handleSubmit}
             disabled={!canGenerate}
-            className="font-bold uppercase tracking-wider"
+            className="font-bold"
           >
             {isGenerating ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin mr-2" />
                 Generating...
               </>
             ) : (

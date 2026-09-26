@@ -32,19 +32,19 @@ const MODE_METADATA: Record<
     badge: 'Fast-Track',
     description:
       'Brisk specification for a targeted feature or bug fix. Focuses on requirements, technical architecture, and stories.',
-    icon: <Zap className="w-4 h-4 text-amber-500" />,
+    icon: <Zap className="size-4 text-amber" />,
   },
   full: {
     badge: 'Enterprise',
     description:
       'Comprehensive 8-phase architecture specification for greenfield systems and major platform initiatives.',
-    icon: <Compass className="w-4 h-4 text-primary" />,
+    icon: <Compass className="size-4 text-primary" />,
   },
   backend: {
     badge: 'Architecture',
     description:
       'Service contracts, domain models, schemas, and API specifications for microservices and backend platforms.',
-    icon: <Server className="w-4 h-4 text-blue-500" />,
+    icon: <Server className="size-4 text-slate" />,
   },
 };
 
@@ -136,17 +136,15 @@ export default function NewProjectPage() {
   const selectedTemplate = templates?.find((t) => t._id === selectedTemplateId) ?? null;
 
   return (
-    <main className="relative min-h-[calc(100vh-5rem)]">
-      {/* Grid Background */}
-      <div className="absolute inset-0 bg-grid-fade opacity-10 pointer-events-none" />
+    <main className="min-h-[calc(100vh-var(--header-height))]">
 
       {/* Back Navigation */}
-      <div className="page-container py-6 relative z-10">
+      <div className="page-container py-6">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors font-medium"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-ink transition-colors font-medium"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Back to Dashboard
         </Link>
       </div>
@@ -157,17 +155,17 @@ export default function NewProjectPage() {
           {/* Header */}
           <div className="mb-12">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-primary flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-black" />
+              <div className="size-10 bg-primary flex items-center justify-center">
+                <Sparkles className="size-5 text-primary-foreground" />
               </div>
-              <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+              <span className="text-ui font-bold text-muted-foreground">
                 New Project
               </span>
             </div>
-            <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
+            <h1 className="text-heading font-bold leading-none mb-4">
               Start <span className="text-primary">Building</span>
             </h1>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-title text-muted-foreground">
               Provide a project title and initial scope. Detailed requirements, user personas, and system boundaries yield sharper specifications.
             </p>
           </div>
@@ -176,20 +174,20 @@ export default function NewProjectPage() {
           <GenerationReadinessBanner ready={readiness?.ready ?? true} className="mb-6" />
 
           {/* Form Card */}
-          <Card variant="static" className="border-2">
+          <Card variant="static" className="border">
             {showRepoConnector && createdProjectId ? (
 
               <>
                 <CardHeader>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-primary flex items-center justify-center">
-                      <GitBranch className="w-5 h-5 text-black" />
+                    <div className="size-10 bg-primary flex items-center justify-center">
+                      <GitBranch className="size-5 text-primary-foreground" />
                     </div>
-                    <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                    <span className="text-ui font-bold text-muted-foreground">
                       Step 2 of 2
                     </span>
                   </div>
-                  <CardTitle className="text-xl normal-case tracking-normal font-semibold">
+                  <CardTitle className="text-title font-semibold">
                     Connect Your Repository (Optional)
                   </CardTitle>
                   <CardDescription>
@@ -215,7 +213,7 @@ export default function NewProjectPage() {
             ) : (
               <>
                 <CardHeader>
-                  <CardTitle className="text-xl normal-case tracking-normal font-semibold">Project Details</CardTitle>
+                  <CardTitle className="text-title font-semibold">Project Details</CardTitle>
                   <CardDescription>
                     Define your project title and core requirements. The initial brief establishes your evidence baseline.
                   </CardDescription>
@@ -223,7 +221,7 @@ export default function NewProjectPage() {
             <CardContent className="space-y-8">
               {/* Specification Mode Selector */}
               <div className="space-y-3">
-                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                <label className="text-ui font-bold text-muted-foreground">
                   Specification Mode
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -235,27 +233,27 @@ export default function NewProjectPage() {
                         type="button"
                         onClick={() => setSelectedMode(mode.id)}
                         disabled={isCreating}
-                        className={`text-left p-4 border transition-all cursor-pointer flex flex-col justify-between ${
+                        className={`text-left p-4 border transition-colors cursor-pointer flex flex-col justify-between ${
                           isSelected
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/40 shadow-sm"
-                            : "border-border hover:border-muted-foreground/50 bg-secondary/10"
+                            ? "border-primary bg-primary/5"
+                            : "border-line hover:border-muted-foreground/50 bg-raised/10"
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="font-semibold text-sm flex items-center gap-1.5">
+                            <span className="font-semibold text-ui flex items-center gap-1.5">
                               {mode.icon}
                               {mode.name}
                             </span>
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-muted text-muted-foreground">
+                            <span className="text-caption font-bold px-1.5 py-0.5 bg-raised text-muted-foreground">
                               {mode.badge}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                          <p className="text-caption text-muted-foreground mb-3 leading-relaxed">
                             {mode.description}
                           </p>
                         </div>
-                        <div className="pt-2 border-t border-border/50 text-[11px] text-muted-foreground font-mono">
+                        <div className="pt-2 border-t border-line/50 text-caption text-muted-foreground font-mono">
                           {mode.phasesSummary}
                         </div>
                       </button>
@@ -266,7 +264,7 @@ export default function NewProjectPage() {
 
               {/* Title Input - Hero Style */}
               <div className="space-y-3">
-                <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                <label className="text-ui font-bold text-muted-foreground">
                   Project Title
                 </label>
                 <Input
@@ -276,9 +274,9 @@ export default function NewProjectPage() {
                   placeholder="e.g., Real-time Collaborative Canvas"
                   disabled={isCreating}
                 />
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-ui">
                   <span className="text-muted-foreground">Use a clear, descriptive name</span>
-                  <span className={titleLeft < 20 ? "text-warning" : "text-muted-foreground"}>
+                  <span className={titleLeft < 20 ? "text-amber" : "text-muted-foreground"}>
                     {titleLeft} characters left
                   </span>
                 </div>
@@ -287,7 +285,7 @@ export default function NewProjectPage() {
               {/* Description Textarea */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                  <label className="text-ui font-bold text-muted-foreground">
                     Project Description
                   </label>
                   <PromptEnhanceButton
@@ -308,62 +306,62 @@ export default function NewProjectPage() {
                       ? "Describe the service, API endpoints, core data models, throughput requirements, and database/storage preferences..."
                       : "Describe the system in detail. Specify user personas, critical workflows, integrations, data structures, and architectural non-goals..."
                   }
-                  className="min-h-[200px] text-base"
+                  className="min-h-[200px] text-body"
                   disabled={isCreating}
                 />
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-ui">
                   <span className="text-muted-foreground">Be as detailed as possible</span>
-                  <span className={descLeft < 1000 ? "text-warning" : "text-muted-foreground"}>
+                  <span className={descLeft < 1000 ? "text-amber" : "text-muted-foreground"}>
                     {descLeft.toLocaleString()} characters left
                   </span>
                 </div>
               </div>
 
               {/* Constitution Templates */}
-              <div className="border border-border">
+              <div className="border border-line">
                 <button
                   type="button"
                   onClick={() => setTemplatesOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-raised/50 transition-colors"
                   disabled={isCreating}
                 >
                   <div className="flex items-center gap-2">
-                    <BookTemplate className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                    <BookTemplate className="size-4 text-muted-foreground" />
+                    <span className="text-ui font-bold text-muted-foreground">
                       Constitution Templates
                     </span>
                     {templates !== undefined && (
-                      <span className="text-xs font-semibold bg-muted px-2 py-0.5 text-muted-foreground">
+                      <span className="text-caption font-semibold bg-raised px-2 py-0.5 text-muted-foreground">
                         {templates.length === 0 ? "No templates" : `${templates.length} template${templates.length === 1 ? "" : "s"}`}
                       </span>
                     )}
                     {selectedTemplate && (
-                      <span className="text-xs font-semibold bg-primary text-black px-2 py-0.5">
+                      <span className="text-caption font-semibold bg-primary text-primary-foreground px-2 py-0.5">
                         {selectedTemplate.name}
                       </span>
                     )}
                   </div>
                   {templatesOpen ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                    <ChevronUp className="size-4 text-muted-foreground" />
                   ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    <ChevronDown className="size-4 text-muted-foreground" />
                   )}
                 </button>
 
                 {templatesOpen && (
-                  <div className="border-t border-border p-4">
+                  <div className="border-t border-line p-4">
                     {templates === undefined && (
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm py-4 justify-center">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                      <div className="flex items-center gap-2 text-muted-foreground text-ui py-4 justify-center">
+                        <Loader2 className="size-4 animate-spin" />
                         Loading templates…
                       </div>
                     )}
 
                     {templates !== undefined && templates.length === 0 && (
                       <div className="text-center py-6 space-y-2">
-                        <BookTemplate className="w-8 h-8 text-muted-foreground mx-auto" />
-                        <p className="text-sm text-muted-foreground">No templates saved yet.</p>
-                        <p className="text-xs text-muted-foreground">
+                        <BookTemplate className="size-8 text-muted-foreground mx-auto" />
+                        <p className="text-ui text-muted-foreground">No templates saved yet.</p>
+                        <p className="text-caption text-muted-foreground">
                           Save a project&apos;s constitution as a template to reuse it here.
                         </p>
                       </div>
@@ -371,7 +369,7 @@ export default function NewProjectPage() {
 
                     {templates !== undefined && templates.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground mb-3">
+                        <p className="text-caption text-muted-foreground mb-3">
                           Select a template to pre-apply its constitution constraints to this project.
                         </p>
                         {/* None option */}
@@ -379,7 +377,7 @@ export default function NewProjectPage() {
                           className={`flex items-start gap-3 p-3 cursor-pointer border transition-colors ${
                             selectedTemplateId === null
                               ? "border-primary bg-primary/5"
-                              : "border-border hover:border-muted-foreground"
+                              : "border-line hover:border-muted-foreground"
                           }`}
                         >
                           <input
@@ -391,8 +389,8 @@ export default function NewProjectPage() {
                             disabled={isCreating}
                           />
                           <span className="flex flex-col">
-                            <span className="text-sm font-semibold">No template</span>
-                            <span className="text-xs text-muted-foreground">Start with a blank constitution</span>
+                            <span className="text-ui font-semibold">No template</span>
+                            <span className="text-caption text-muted-foreground">Start with a blank constitution</span>
                           </span>
                         </label>
 
@@ -402,7 +400,7 @@ export default function NewProjectPage() {
                             className={`flex items-start gap-3 p-3 cursor-pointer border transition-colors ${
                               selectedTemplateId === template._id
                                 ? "border-primary bg-primary/5"
-                                : "border-border hover:border-muted-foreground"
+                                : "border-line hover:border-muted-foreground"
                             }`}
                           >
                             <input
@@ -415,16 +413,16 @@ export default function NewProjectPage() {
                             />
                             <span className="flex flex-col min-w-0 flex-1">
                               <span className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold">{template.name}</span>
+                                <span className="text-ui font-semibold">{template.name}</span>
                                 {template.usageCount > 0 && (
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-caption text-muted-foreground">
                                     Used {template.usageCount}×
                                   </span>
                                 )}
                               </span>
-                              <span className="text-xs text-muted-foreground mt-0.5">{template.description}</span>
+                              <span className="text-caption text-muted-foreground mt-0.5">{template.description}</span>
                               {template.lockedConstraints?.architecture && (
-                                <span className="text-xs text-muted-foreground mt-1">
+                                <span className="text-caption text-muted-foreground mt-1">
                                   Architecture: {template.lockedConstraints.architecture}
                                 </span>
                               )}
@@ -438,8 +436,8 @@ export default function NewProjectPage() {
               </div>
 
               {/* Submit Button */}
-              <div className="flex items-center justify-between pt-6 border-t border-border">
-                <p className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-between pt-6 border-t border-line">
+                <p className="text-ui text-muted-foreground">
                   {isValid ? "Ready to create your project" : "Fill in both fields to continue"}
                 </p>
                 <Button
@@ -449,7 +447,7 @@ export default function NewProjectPage() {
                 >
                   {isCreating ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="size-4 mr-2 animate-spin" />
                       Creating...
                     </>
                   ) : (
@@ -464,10 +462,6 @@ export default function NewProjectPage() {
         </div>
       </div>
 
-      {/* Decorative Watermark */}
-      <div className="absolute bottom-0 left-0 right-0 max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
-        CREATE
-      </div>
     </main>
   );
 }

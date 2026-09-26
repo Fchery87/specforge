@@ -23,8 +23,8 @@ export function GenerationControls(props: {
   } = props;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pt-6 border-t border-border">
-      <p className="text-sm text-muted-foreground">
+    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pt-6 border-t border-line">
+      <p className="text-ui text-muted-foreground">
         {canResume
           ? "Previous generation paused. You can resume from the last completed step."
           : canGenerate
@@ -38,20 +38,20 @@ export function GenerationControls(props: {
             onClick={onCancel}
             disabled={isCancelling}
           >
-            {isCancelling && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {isCancelling && <Loader2 className="size-4 mr-2 animate-spin" />}
             Cancel
           </Button>
         )}
         {canResume && onResume && !isGenerating && (
           <Button variant="outline" onClick={onResume}>
-            <Play className="w-4 h-4 mr-2" />
+            <Play className="size-4 mr-2" />
             Resume Generation
           </Button>
         )}
         <Button onClick={onGenerate} disabled={!canGenerate || isGenerating}>
           {isGenerating ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="size-4 mr-2 animate-spin" />
               Generating...
             </>
           ) : (

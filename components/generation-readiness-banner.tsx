@@ -19,19 +19,19 @@ export function GenerationReadinessBanner({
     <div
       role="alert"
       className={cn(
-        "p-4 border border-amber-500/30 bg-amber-500/10 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4",
+        "p-4 border border-amber/30 bg-amber/10 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4",
         className
       )}
     >
       <div className="flex items-center gap-2">
-        <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
-        <span className="text-sm font-medium text-foreground">
+        <AlertCircle className="size-5 text-amber shrink-0" />
+        <span className="text-ui font-medium text-ink">
           Connect a model to generate specs
         </span>
       </div>
       <Link
         href="/settings"
-        className="text-sm font-semibold text-primary hover:underline shrink-0"
+        className="text-ui font-semibold text-primary hover:underline shrink-0"
       >
         Settings &rarr;
       </Link>

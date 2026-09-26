@@ -110,7 +110,7 @@ export function NextActionButton({
     <Button asChild variant={variant} size={size} className={className}>
       <Link href={href as Route}>
         {label}
-        <ArrowRight className="w-4 h-4 ml-2" />
+        <ArrowRight className="size-4 ml-2" />
       </Link>
     </Button>
   );

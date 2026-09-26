@@ -15,7 +15,10 @@ import {
 } from "@/lib/convex-actions";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { StageCard } from "@/components/stage-card";
+import { Badge } from "@/components/ui/badge";
+import { StageStepper } from "@/components/stage-stepper";
+import { NextActionButton } from "@/components/next-action-button";
+import { AddSectionMenu } from "@/components/add-section-menu";
 import { ProjectRulesCard } from "@/components/project-rules-card";
 import { ExportOptionsPanel } from "@/components/export-options";
 import { Sparkles, Loader2, Download } from "lucide-react";
@@ -29,7 +32,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { WORKFLOW_STAGES, PHASE_ORDER, MODE_POLICIES, type ProjectMode } from "@/lib/workflow";
+import {
+  PHASE_ORDER,
+  MODE_POLICIES,
+  nextAction,
+  phaseLabel,
+  type PhaseId,
+  type ProjectMode,
+} from "@/lib/workflow";
 import { getToastMessage } from "@/lib/notifications";
 
 export default function ProjectPage() {
@@ -63,7 +73,7 @@ export default function ProjectPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -73,8 +83,7 @@ export default function ProjectPage() {
   // Check if project is undefined (loading) vs null (not found)
   if (project === undefined) {
     return (
-      <main className="relative min-h-[calc(100vh-5rem)]">
-        <div className="absolute inset-0 bg-grid-fade opacity-10" />
+      <main className="min-h-[calc(100vh-var(--header-height))]">
         <div className="page-container py-6">
           <Skeleton className="h-6 w-40" />
         </div>
@@ -97,18 +106,15 @@ export default function ProjectPage() {
   if (project === null) {
     // This will trigger the not-found.tsx page
     return (
-      <main className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center">
-        <div className="absolute inset-0 bg-grid-fade opacity-10" />
-        <div className="text-center">
-          <div className="text-[15vw] font-bold uppercase tracking-tighter text-muted-foreground/20 leading-none mb-4">
-            404
-          </div>
-          <h1 className="text-v-h2 mb-4">Project Not Found</h1>
-          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+      <main className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center">
+        <div className="page-container">
+          <p className="font-mono text-caption text-dim">404</p>
+          <h1 className="mt-2 text-heading font-medium text-ink">Project not found</h1>
+          <p className="mt-3 max-w-md text-body leading-relaxed text-muted-foreground">
             The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
           </p>
-          <Button asChild>
-            <Link href="/dashboard">Back to Dashboard</Link>
+          <Button asChild className="mt-8">
+            <Link href="/dashboard">Back to dashboard</Link>
           </Button>
         </div>
       </main>
@@ -132,6 +138,25 @@ export default function ProjectPage() {
     const status = phaseStatusMap.get(phaseId);
     return !status || status === "pending";
   });
+
+  const nextActionItem = nextAction(
+    phases ?? [],
+    skippedPhases as readonly PhaseId[],
+    (project.mode ?? "full") as ProjectMode
+  );
+
+  async function handleEnablePhase(phaseId: string) {
+    try {
+      await toggleSkip({
+        projectId: params.id as Id<"projects">,
+        phaseId,
+        skip: false,
+      });
+      toast.success(`Enabled ${phaseLabel(phaseId)}`);
+    } catch {
+      toast.error(`Failed to enable ${phaseId}`);
+    }
+  }
 
   async function handleGenerateAll() {
     setShowGenerateAllConfirm(false);
@@ -183,12 +208,10 @@ export default function ProjectPage() {
   }
 
   return (
-    <main className="relative min-h-[calc(100vh-5rem)]">
-      {/* Grid Background */}
-      <div className="absolute inset-0 bg-grid-fade opacity-10" />
+    <main className="min-h-[calc(100vh-var(--header-height))]">
 
       {/* Back Navigation */}
-      <div className="page-container py-6 relative z-10">
+      <div className="page-container py-6">
         <Breadcrumbs
           items={[
             { label: "Dashboard", href: "/dashboard" },
@@ -198,88 +221,78 @@ export default function ProjectPage() {
       </div>
 
       {/* Project Header */}
-      <section className="page-container pb-12 relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Project
-            </span>
-            {project.mode === 'quick' && (
-              <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-500 border border-sky-500/30 rounded-full">
-                {MODE_POLICIES.quick.label}
-              </span>
-            )}
-            {project.mode === 'backend' && (
-              <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-500 border border-purple-500/30 rounded-full">
-                {MODE_POLICIES.backend.label}
-              </span>
-            )}
-            {project.mode === 'full' && (
-              <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-secondary text-foreground border border-border rounded-full">
-                {MODE_POLICIES.full.label}
-              </span>
+      <section className="page-container pb-12">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+          <div className="min-w-0">
+            <p className="text-label text-dim">Project</p>
+            <h1 className="mt-2 flex flex-wrap items-center gap-3 text-heading font-medium text-ink">
+              {project.title}
+              {project.mode === 'quick' && (
+                <Badge variant="outline">{MODE_POLICIES.quick.label}</Badge>
+              )}
+              {project.mode === 'backend' && (
+                <Badge variant="outline">{MODE_POLICIES.backend.label}</Badge>
+              )}
+              {project.mode === 'full' && (
+                <Badge variant="outline">{MODE_POLICIES.full.label}</Badge>
+              )}
+            </h1>
+            {project.description && (
+              <p className="mt-3 line-clamp-2 max-w-3xl text-body leading-relaxed text-muted-foreground">
+                {project.description}
+              </p>
             )}
           </div>
           <Button
             variant="outline"
             onClick={() => setIsExportOpen(true)}
-            className="gap-2 shrink-0 self-start sm:self-auto"
+            className="shrink-0 self-start"
           >
-            <Download className="w-4 h-4" />
+            <Download aria-hidden className="size-4" />
             Export
           </Button>
         </div>
-        <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-          {project.title}
-        </h1>
-        {project.description && (
-          <p className="text-xl text-muted-foreground max-w-3xl line-clamp-2">
-            {project.description}
-          </p>
-        )}
       </section>
 
-      {/* Workflow Stages */}
-      <section className="page-container page-section border-t-2 border-border relative z-10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
-            Workflow Stages
-          </h2>
+      {/* Workflow: one stepper, one next action */}
+      <section className="page-container page-section border-t border-line">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <h2 className="text-title font-medium text-ink">Workflow</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <Link href={`/project/${params.id}/quick` as Route}>Saved quick specs</Link>
             </Button>
             <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowGenerateAllConfirm(true)}
               disabled={isGeneratingAll || !hasPendingPhases}
-              className="gap-2"
             >
-              {isGeneratingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              Generate All Phases
+              {isGeneratingAll ? (
+                <Loader2 aria-hidden className="size-4 animate-spin" />
+              ) : (
+                <Sparkles aria-hidden className="size-4" />
+              )}
+              Generate all phases
             </Button>
+            <AddSectionMenu skippedPhases={skippedPhases} onEnable={handleEnablePhase} />
+            <NextActionButton
+              projectId={params.id}
+              action={nextActionItem}
+              skippedPhases={skippedPhases}
+            />
           </div>
         </div>
-        <div className="grid gap-6 md:grid-cols-2">
-          {WORKFLOW_STAGES.map((stage) => (
-            <StageCard
-              key={stage.id}
-              projectId={params.id}
-              stage={stage}
-              phases={phases ?? []}
-              skippedPhases={skippedPhases}
-              mode={(project.mode ?? "full") as ProjectMode}
-              onToggleSkip={(phaseId, skip) =>
-                toggleSkip({
-                  projectId: params.id as Id<"projects">,
-                  phaseId: phaseId as string,
-                  skip,
-                })
-              }
-            />
-          ))}
+
+        <div className="mt-8">
+          <StageStepper
+            projectId={params.id}
+            phases={phases ?? []}
+            skippedPhases={skippedPhases}
+          />
+        </div>
+
+        <div className="mt-10">
           <ProjectRulesCard
             projectId={params.id}
             constitutionContent={
@@ -289,10 +302,6 @@ export default function ProjectPage() {
         </div>
       </section>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate mt-12">
-        {project.title?.split(' ')[0]?.toUpperCase() || 'PROJECT'}
-      </div>
 
       {/* Generate All Confirmation Dialog */}
       <ConfirmDialog

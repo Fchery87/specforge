@@ -28,6 +28,26 @@ jobs:
           NEXT_PUBLIC_CONVEX_URL: https://placeholder.convex.cloud
       - run: npm run test -- --run
 
+  design:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Every colour pair against its WCAG threshold
+        run: node design/audit-contrast.mjs
+      - name: The stylesheet matches the token file
+        run: node design/audit-token-sync.mjs
+      - name: Palette and pattern lint over the whole tree
+        # Every surface is migrated, so the lint runs over all of app/, components/, hooks/ and
+        # lib/ rather than a growing file list. A new file is covered the moment it lands.
+        run: |
+          mapfile -t files < <(find app components hooks lib -name '*.tsx' -o -name '*.ts')
+          node design/lint-tokens.mjs "${files[@]}"
+
   e2e:
     runs-on: ubuntu-latest
     steps:

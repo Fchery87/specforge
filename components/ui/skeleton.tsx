@@ -8,7 +8,7 @@ function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "animate-skeleton bg-muted/50",
+        "animate-skeleton rounded-sm bg-raised",
         className
       )}
     />
@@ -22,7 +22,7 @@ function TextSkeleton({ className, lines = 1 }: SkeletonProps & { lines?: number
         <Skeleton
           key={i}
           className={cn(
-            "h-4 rounded-none",
+            "h-4 rounded-sm",
             i === lines - 1 && lines > 1 ? "w-3/4" : "w-full"
           )}
         />
@@ -35,15 +35,15 @@ function CardSkeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "border-2 border-border bg-card p-8 space-y-4",
+        "rounded-lg border border-line bg-surface p-8 space-y-4",
         className
       )}
     >
-      <Skeleton className="h-8 w-1/3 rounded-none" />
+      <Skeleton className="h-5 w-1/3 rounded-sm" />
       <TextSkeleton lines={2} />
       <div className="flex gap-2 pt-4">
-        <Skeleton className="h-14 w-32 rounded-none" />
-        <Skeleton className="h-14 w-24 rounded-none" />
+        <Skeleton className="h-9 w-32 rounded-sm" />
+        <Skeleton className="h-9 w-24 rounded-sm" />
       </div>
     </div>
   );
@@ -52,19 +52,19 @@ function CardSkeleton({ className }: SkeletonProps) {
 function AvatarSkeleton({ className }: SkeletonProps) {
   return (
     <Skeleton
-      className={cn("h-10 w-10 rounded-none", className)}
+      className={cn("size-9 rounded-sm", className)}
     />
   );
 }
 
 function TableRowSkeleton({ columns = 4 }: { columns?: number }) {
   return (
-    <div className="flex items-center gap-4 py-4 border-b border-border">
+    <div className="flex items-center gap-4 py-4 border-b border-line">
       {Array.from({ length: columns }).map((_, i) => (
         <Skeleton
           key={i}
           className={cn(
-            "h-4 rounded-none",
+            "h-4 rounded-sm",
             i === 0 ? "w-1/4" : "flex-1"
           )}
         />
@@ -77,9 +77,9 @@ function PageSkeleton() {
   return (
     <div className="page-container space-y-8">
       {/* Header */}
-      <div className="page-header border-b-0">
-        <Skeleton className="h-16 w-1/2 rounded-none mb-4" />
-        <Skeleton className="h-6 w-2/3 rounded-none" />
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-1/2 rounded-sm" />
+        <Skeleton className="h-6 w-2/3 rounded-sm" />
       </div>
       {/* Content Cards */}
       <div className="grid gap-4 md:grid-cols-2">

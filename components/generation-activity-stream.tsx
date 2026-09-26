@@ -32,8 +32,8 @@ export function GenerationActivityStream({ activities, isActive }: GenerationAct
   };
 
   return (
-    <div className="space-y-2 p-4 border-2 border-border bg-secondary/10">
-      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+    <div className="space-y-2 p-4 border border-line bg-raised/10">
+      <h4 className="text-caption font-medium text-muted-foreground">
         Generation Activity
       </h4>
       <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -42,10 +42,10 @@ export function GenerationActivityStream({ activities, isActive }: GenerationAct
           const isLatest = i === activities.length - 1 && isActive;
           return (
             <div key={i} className={cn(
-              "flex items-center gap-2 text-sm",
-              isLatest ? "text-foreground" : "text-muted-foreground"
+              "flex items-center gap-2 text-ui",
+              isLatest ? "text-ink" : "text-muted-foreground"
             )}>
-              <Icon className={cn("w-3 h-3 flex-shrink-0", isLatest && activity.type === 'generating' && "animate-spin")} />
+              <Icon className={cn("size-3 flex-shrink-0", isLatest && activity.type === 'generating' && "animate-spin")} />
               <span>{activity.message}</span>
             </div>
           );

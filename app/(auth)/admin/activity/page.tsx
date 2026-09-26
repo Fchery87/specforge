@@ -38,7 +38,7 @@ export default function ActivityMonitorPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
         </div>
       </main>
     );
@@ -60,7 +60,7 @@ export default function ActivityMonitorPage() {
     return (
       <main className="page-container py-20">
         <div className="flex items-center justify-center min-h-[400px] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground">Loading activity data...</span>
         </div>
       </main>
@@ -71,13 +71,13 @@ export default function ActivityMonitorPage() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'generating':
-        return <Play className="w-5 h-5 text-primary" />;
+        return <Play className="size-5 text-primary" />;
       case 'complete':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="size-5 text-sage" />;
       case 'context':
-        return <FileCode className="w-5 h-5 text-blue-500" />;
+        return <FileCode className="size-5 text-slate" />;
       default:
-        return <Info className="w-5 h-5 text-muted-foreground" />;
+        return <Info className="size-5 text-muted-foreground" />;
     }
   };
 
@@ -87,11 +87,11 @@ export default function ActivityMonitorPage() {
       case 'generating':
         return 'border-primary/50 bg-primary/5';
       case 'complete':
-        return 'border-green-500/50 bg-green-500/5';
+        return 'border-sage/50 bg-sage/5';
       case 'context':
-        return 'border-blue-500/50 bg-blue-500/5';
+        return 'border-slate/50 bg-slate/5';
       default:
-        return 'border-border bg-background';
+        return 'border-line bg-void';
     }
   };
 
@@ -133,25 +133,13 @@ export default function ActivityMonitorPage() {
   };
 
   return (
-    <main className="relative">
+    <main>
       {/* Hero Header */}
-      <section className="page-header relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-fade opacity-20" />
-        <div className="page-container relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-primary flex items-center justify-center">
-              <Activity className="w-5 h-5 text-black" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-              Admin Console
-            </span>
-          </div>
-          <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-            Activity <span className="text-primary">Monitor</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            Real-time monitoring of generation tasks, system events, and user activity.
-          </p>
+      <section className="page-header">
+        <div className="page-container">
+          <span className="text-label text-dim">Admin Console</span>
+          <h1 className="mt-2 text-heading font-medium text-ink">Activity Monitor</h1>
+          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Real-time monitoring of generation tasks, system events, and user activity.</p>
         </div>
       </section>
 
@@ -160,54 +148,54 @@ export default function ActivityMonitorPage() {
         <div className="grid gap-4 md:grid-cols-4">
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Total Activities
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{stats.total}</p>
-              <p className="text-xs text-muted-foreground mt-1">Last 100 events</p>
+              <p className="text-heading font-bold">{stats.total}</p>
+              <p className="text-caption text-muted-foreground mt-1">Last 100 events</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 In Progress
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-yellow-500">{stats.inProgress}</p>
+              <p className="text-heading font-bold text-amber">{stats.inProgress}</p>
               <div className="flex items-center gap-2 mt-1">
-                <RefreshCw className="w-3 h-3 text-yellow-500 animate-spin" />
-                <p className="text-xs text-muted-foreground">Active tasks</p>
+                <RefreshCw className="size-3 text-amber animate-spin" />
+                <p className="text-caption text-muted-foreground">Active tasks</p>
               </div>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Completed
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-green-500">{stats.complete}</p>
-              <p className="text-xs text-muted-foreground mt-1">Successful generations</p>
+              <p className="text-heading font-bold text-sage">{stats.complete}</p>
+              <p className="text-caption text-muted-foreground mt-1">Successful generations</p>
             </CardContent>
           </Card>
 
           <Card variant="default">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-muted-foreground uppercase tracking-wider font-medium normal-case">
+              <CardTitle className="text-ui text-muted-foreground font-medium">
                 Failed
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-red-500">{stats.failed}</p>
+              <p className="text-heading font-bold text-brick">{stats.failed}</p>
               <div className="flex items-center gap-2 mt-1">
-                {stats.failed > 0 && <AlertCircle className="w-3 h-3 text-red-500" />}
-                <p className="text-xs text-muted-foreground">Require attention</p>
+                {stats.failed > 0 && <AlertCircle className="size-3 text-brick" />}
+                <p className="text-caption text-muted-foreground">Require attention</p>
               </div>
             </CardContent>
           </Card>
@@ -215,10 +203,10 @@ export default function ActivityMonitorPage() {
       </section>
 
       {/* Activity Timeline */}
-      <section className="page-section page-container border-t-2 border-border">
+      <section className="page-section page-container border-t border-line">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
+            <h2 className="text-title font-bold">
               Activity Timeline
             </h2>
             <p className="text-muted-foreground mt-2">
@@ -231,7 +219,7 @@ export default function ActivityMonitorPage() {
             onClick={() => window.location.reload()}
             className="gap-2"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="size-4" />
             Refresh
           </Button>
         </div>
@@ -240,7 +228,7 @@ export default function ActivityMonitorPage() {
           <div className="space-y-8">
             {Object.entries(groupedActivities).map(([date, dayActivities]) => (
               <div key={date}>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 sticky top-0 bg-background py-2 z-10">
+                <h3 className="text-ui font-bold text-muted-foreground mb-4 sticky top-0 bg-void py-2 z-10">
                   {date}
                 </h3>
                 <div className="space-y-3">
@@ -249,7 +237,7 @@ export default function ActivityMonitorPage() {
                       key={activity.id}
                       variant="default"
                       className={cn(
-                        "border-l-4 transition-all hover:shadow-md",
+                        "border-l transition-colors",
                         getActivityColor(activity.type)
                       )}
                     >
@@ -262,8 +250,8 @@ export default function ActivityMonitorPage() {
                             <p className="font-medium leading-tight mb-1">
                               {activity.message}
                             </p>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                              <span className="font-mono bg-secondary px-2 py-0.5 rounded">
+                            <div className="flex flex-wrap items-center gap-3 text-caption text-muted-foreground">
+                              <span className="font-mono bg-raised px-2 py-0.5 rounded-sm">
                                 {activity.projectId.slice(0, 8)}...
                               </span>
                               <span>Phase: {activity.phaseId}</span>
@@ -274,17 +262,17 @@ export default function ActivityMonitorPage() {
                           <div className="flex-shrink-0 text-right">
                             <span
                               className={cn(
-                                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
+                                "inline-flex items-center px-2.5 py-1 rounded-full text-caption font-medium",
                                 activity.taskStatus === 'completed'
-                                  ? "bg-green-500/10 text-green-500 border border-green-500/20"
+                                  ? "bg-sage/10 text-sage border border-sage/20"
                                   : activity.taskStatus === 'failed'
-                                  ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                                  : "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
+                                  ? "bg-brick/10 text-brick border border-brick/20"
+                                  : "bg-amber/10 text-amber border border-amber/20"
                               )}
                             >
                               {activity.taskStatus}
                             </span>
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-caption text-muted-foreground mt-1">
                               {formatRelativeTime(activity.timestamp)}
                             </p>
                           </div>
@@ -298,8 +286,8 @@ export default function ActivityMonitorPage() {
           </div>
         ) : (
           <Card variant="default" className="p-12 text-center">
-            <Activity className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <h3 className="text-lg font-medium mb-2">No Activity Yet</h3>
+            <Activity className="size-12 mx-auto mb-4 opacity-30" />
+            <h3 className="text-title font-medium mb-2">No Activity Yet</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               Activity logs will appear here when users start generating artifacts. 
               Check back later to monitor system usage.
@@ -308,10 +296,6 @@ export default function ActivityMonitorPage() {
         )}
       </section>
 
-      {/* Decorative Watermark */}
-      <div className="max-w-full overflow-hidden text-[clamp(2.5rem,10vw,7.5rem)] font-bold leading-none text-muted opacity-5 text-center pointer-events-none select-none truncate">
-        ACTIVITY
-      </div>
     </main>
   );
 }

@@ -52,6 +52,27 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
 export const RULES_PHASE: PhaseId = 'constitution';
 export const EXPORT_PHASE: PhaseId = 'handoff';
 
+/**
+ * The display name of each phase. One definition, because a phase renamed in one place and not
+ * another shows the user two names for the same thing. These are the names from the guided
+ * workflow spec: the phase is `specs`, the user reads "Architecture".
+ */
+export const PHASE_LABELS: Record<PhaseId, string> = {
+  constitution: 'Project Rules',
+  brief: 'Brief',
+  prd: 'PRD',
+  domainModel: 'Domain Model',
+  specs: 'Architecture',
+  stories: 'Tasks',
+  artifacts: 'Schemas',
+  handoff: 'Export',
+};
+
+/** Label lookup that tolerates a phase id the caller has not narrowed to `PhaseId`. */
+export function phaseLabel(phaseId: string): string {
+  return PHASE_LABELS[phaseId as PhaseId] ?? phaseId;
+}
+
 export type ProjectMode = 'quick' | 'full' | 'backend';
 
 export interface ModePolicy {

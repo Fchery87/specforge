@@ -39,10 +39,10 @@ describe("SiteHeader mobile menu", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByRole("link", { name: /login/i })
+      within(dialog).getByRole("link", { name: /sign in/i })
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByRole("link", { name: /get started/i })
+      within(dialog).getByRole("link", { name: /start a spec/i })
     ).toBeInTheDocument();
   });
 

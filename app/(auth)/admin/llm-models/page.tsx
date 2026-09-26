@@ -265,7 +265,7 @@ export default function LlmModelsPage() {
   if (!models || !systemCredentials) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+        <Loader2 className="size-8 animate-spin text-ink/50" />
       </div>
     );
   }
@@ -282,47 +282,47 @@ export default function LlmModelsPage() {
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">LLM Configuration</h1>
-          <p className="text-white/70 mt-2">Manage global LLM models and system credentials for shared use.</p>
+          <h1 className="text-heading font-bold">LLM Configuration</h1>
+          <p className="text-ink/70 mt-2">Manage global LLM models and system credentials for shared use.</p>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-border">
+      <div className="flex gap-2 border-b border-line">
         <button
           onClick={() => setActiveTab("models")}
           className={cn(
-            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            "px-4 py-2 text-ui font-medium border-b -mb-px transition-colors",
             activeTab === "models"
               ? "border-accent text-accent"
-              : "border-transparent text-white/60 hover:text-white"
+              : "border-transparent text-ink/60 hover:text-ink-bright"
           )}
         >
-          <Sparkles className="w-4 h-4 inline mr-2" />
+          <Sparkles className="size-4 inline mr-2" />
           Models
         </button>
         <button
           onClick={() => setActiveTab("browse")}
           className={cn(
-            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            "px-4 py-2 text-ui font-medium border-b -mb-px transition-colors",
             activeTab === "browse"
               ? "border-accent text-accent"
-              : "border-transparent text-white/60 hover:text-white"
+              : "border-transparent text-ink/60 hover:text-ink-bright"
           )}
         >
-          <Globe className="w-4 h-4 inline mr-2" />
+          <Globe className="size-4 inline mr-2" />
           Browse models.dev
         </button>
         <button
           onClick={() => setActiveTab("credentials")}
           className={cn(
-            "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+            "px-4 py-2 text-ui font-medium border-b -mb-px transition-colors",
             activeTab === "credentials"
               ? "border-accent text-accent"
-              : "border-transparent text-white/60 hover:text-white"
+              : "border-transparent text-ink/60 hover:text-ink-bright"
           )}
         >
-          <Key className="w-4 h-4 inline mr-2" />
+          <Key className="size-4 inline mr-2" />
           System Credentials
         </button>
       </div>
@@ -332,13 +332,13 @@ export default function LlmModelsPage() {
         <>
           <div className="flex justify-end">
             <Button onClick={() => setShowAddForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="size-4 mr-2" />
               Add Model
             </Button>
           </div>
 
           {showAddForm && (
-            <Card className="border border-border bg-card">
+            <Card className="border border-line bg-surface">
               <CardHeader>
                 <CardTitle>Add New Model</CardTitle>
               </CardHeader>
@@ -349,7 +349,7 @@ export default function LlmModelsPage() {
                     <select
                       value={newModel.provider}
                       onChange={(e) => setNewModel({ ...newModel, provider: e.target.value })}
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm"
+                      className="w-full px-3 py-2 bg-void border border-line rounded-lg text-ui"
                     >
                       <option value="openai">OpenAI</option>
                       <option value="openrouter">OpenRouter</option>
@@ -367,8 +367,8 @@ export default function LlmModelsPage() {
                     <Label className="flex items-center gap-2">
                       Model ID
                       {detectedModel && (
-                        <Badge variant="default" className="text-xs">
-                          <Sparkles className="w-3 h-3 mr-1" />
+                        <Badge variant="default" className="text-caption">
+                          <Sparkles className="size-3 mr-1" />
                           Auto-configured
                         </Badge>
                       )}
@@ -380,7 +380,7 @@ export default function LlmModelsPage() {
                         placeholder="e.g., gpt-4o, claude-3-5-sonnet, glm-4.7"
                       />
                       {suggestedModels.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-caption text-muted-foreground">
                           <p className="mb-1 font-medium">Suggested models for {newModel.provider}:</p>
                           <div className="flex flex-wrap gap-1">
                             {suggestedModels.map((model) => (
@@ -388,7 +388,7 @@ export default function LlmModelsPage() {
                                 key={model.id}
                                 type="button"
                                 onClick={() => setNewModel({ ...newModel, modelId: model.id })}
-                                className="px-2 py-1 text-xs bg-card border border-border rounded hover:bg-background transition"
+                                className="px-2 py-1 text-caption bg-surface border border-line rounded-sm hover:bg-void transition"
                               >
                                 {model.displayName}
                               </button>
@@ -403,8 +403,8 @@ export default function LlmModelsPage() {
                     <Label className="flex items-center gap-2">
                       Context Tokens
                       {detectedModel && (
-                        <Badge variant="outline" className="text-xs">
-                          <Check className="w-3 h-3 mr-1" />
+                        <Badge variant="outline" className="text-caption">
+                          <Check className="size-3 mr-1" />
                           Auto-filled
                         </Badge>
                       )}
@@ -423,8 +423,8 @@ export default function LlmModelsPage() {
                     <Label className="flex items-center gap-2">
                       Max Output Tokens
                       {detectedModel && (
-                        <Badge variant="outline" className="text-xs">
-                          <Check className="w-3 h-3 mr-1" />
+                        <Badge variant="outline" className="text-caption">
+                          <Check className="size-3 mr-1" />
                           Auto-filled
                         </Badge>
                       )}
@@ -443,8 +443,8 @@ export default function LlmModelsPage() {
                     <Label className="flex items-center gap-2">
                       Default Max for Generation
                       {detectedModel && (
-                        <Badge variant="outline" className="text-xs">
-                          <Check className="w-3 h-3 mr-1" />
+                        <Badge variant="outline" className="text-caption">
+                          <Check className="size-3 mr-1" />
                           Auto-filled
                         </Badge>
                       )}
@@ -458,8 +458,8 @@ export default function LlmModelsPage() {
                       className={cn(detectedModel && "border-primary/50")}
                     />
                     {detectedModel && (
-                      <p className="text-xs text-primary/80">
-                        <Sparkles className="w-3 h-3 inline mr-1" />
+                      <p className="text-caption text-primary/80">
+                        <Sparkles className="size-3 inline mr-1" />
                         Values auto-detected from model registry. You can still modify them if needed.
                       </p>
                     )}
@@ -467,14 +467,14 @@ export default function LlmModelsPage() {
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
-                    <p className="text-sm text-red-400">{error}</p>
+                  <div className="p-3 bg-brick/10 border border-brick/50 rounded-lg">
+                    <p className="text-ui text-brick">{error}</p>
                   </div>
                 )}
 
                 <div className="flex gap-3">
                   <Button onClick={handleAddModel} disabled={adding}>
-                    {adding && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {adding && <Loader2 className="size-4 mr-2 animate-spin" />}
                     Add Model
                   </Button>
                   <Button variant="outline" onClick={() => setShowAddForm(false)}>
@@ -486,7 +486,7 @@ export default function LlmModelsPage() {
           )}
 
           {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
-            <Card key={provider} className="border border-border bg-card">
+            <Card key={provider} className="border border-line bg-surface">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -504,8 +504,8 @@ export default function LlmModelsPage() {
                       className={cn(
                         "flex items-center justify-between p-4 rounded-lg border",
                         model.enabled
-                          ? "bg-background border-border"
-                          : "bg-background/50 border-border/50 opacity-60"
+                          ? "bg-void border-line"
+                          : "bg-void/50 border-line/50 opacity-60"
                       )}
                     >
                       <div className="flex-1">
@@ -515,7 +515,7 @@ export default function LlmModelsPage() {
                             <Badge variant="secondary">Disabled</Badge>
                           )}
                         </div>
-                        <div className="flex gap-4 mt-1 text-sm text-white/60">
+                        <div className="flex gap-4 mt-1 text-ui text-ink/60">
                           <span>Context: {model.contextTokens.toLocaleString()}</span>
                           <span>Max Output: {model.maxOutputTokens.toLocaleString()}</span>
                         </div>
@@ -526,21 +526,21 @@ export default function LlmModelsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleToggleEnabled(model.modelId, model.enabled)}
-                          className={cn(model.enabled ? "text-green-400" : "text-white/60")}
+                          className={cn(model.enabled ? "text-sage" : "text-ink/60")}
                         >
                           {model.enabled ? (
-                            <Check className="w-4 h-4" />
+                            <Check className="size-4" />
                           ) : (
-                            <X className="w-4 h-4" />
+                            <X className="size-4" />
                           )}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteModel(model.modelId)}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-brick hover:text-brick"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="size-4" />
                         </Button>
                       </div>
                     </div>
@@ -551,14 +551,14 @@ export default function LlmModelsPage() {
           ))}
 
           {models.length === 0 && !showAddForm && (
-            <Card className="border border-border bg-card">
+            <Card className="border border-line bg-surface">
               <CardContent className="py-12 text-center">
-                <p className="text-white/60 mb-4">No models configured yet.</p>
+                <p className="text-ink/60 mb-4">No models configured yet.</p>
                 <Button onClick={() => setShowAddForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="size-4 mr-2" />
                   Add Your First Model
                 </Button>
-                <p className="text-sm text-muted-foreground mt-4">
+                <p className="text-ui text-muted-foreground mt-4">
                   Or browse <button onClick={() => setActiveTab("browse")} className="text-accent hover:underline">models.dev</button> to add models from 75+ providers
                 </p>
               </CardContent>
@@ -570,10 +570,10 @@ export default function LlmModelsPage() {
       {/* Browse models.dev Tab */}
       {activeTab === "browse" && (
         <div className="space-y-6">
-          <Card className="border border-border bg-card">
+          <Card className="border border-line bg-surface">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-accent" />
+                <Globe className="size-5 text-accent" />
                 <CardTitle>Browse models.dev Directory</CardTitle>
               </div>
               <CardDescription>
@@ -583,19 +583,19 @@ export default function LlmModelsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
-                  <p className="text-sm text-red-400">{error}</p>
+                <div className="p-3 bg-brick/10 border border-brick/50 rounded-lg">
+                  <p className="text-ui text-brick">{error}</p>
                 </div>
               )}
 
               {/* Provider Selection */}
               <div className="space-y-3">
-                <Label className="text-base font-semibold">Select a Provider</Label>
+                <Label className="text-body font-semibold">Select a Provider</Label>
                 
                 {/* Provider Search */}
                 {!browseProvider && (
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                     <Input
                       placeholder="Search providers..."
                       value={providerSearch}
@@ -611,16 +611,16 @@ export default function LlmModelsPage() {
                           setProviderSearch("");
                           setShowAllBrowseProviders(false);
                         }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-ink"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="size-4" />
                       </button>
                     )}
                   </div>
                 )}
                 
                 {!browseProvider && !providerSearch && (
-                  <div className="text-sm text-muted-foreground mb-2">Popular providers</div>
+                  <div className="text-ui text-muted-foreground mb-2">Popular providers</div>
                 )}
 
                 {/* Popular Providers */}
@@ -637,25 +637,25 @@ export default function LlmModelsPage() {
                           setModelSearch("");
                         }}
                         className={cn(
-                          "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all",
+                          "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors",
                           isSelected
                             ? "border-accent bg-accent/10"
-                            : "border-border bg-card hover:border-accent/50 hover:bg-accent/5"
+                            : "border-line bg-surface hover:border-accent/50 hover:bg-accent/5"
                         )}
                       >
                         <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                          isSelected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
+                          "size-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                          isSelected ? "bg-accent text-accent-foreground" : "bg-raised text-muted-foreground"
                         )}>
-                          <IconComponent className="w-5 h-5" />
+                          <IconComponent className="size-5" />
                         </div>
                         
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm">{p.name}</span>
-                            <Badge variant="secondary" className="text-xs">Popular</Badge>
+                            <span className="font-semibold text-ui">{p.name}</span>
+                            <Badge variant="secondary" className="text-caption">Popular</Badge>
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
+                          <div className="text-caption text-muted-foreground truncate">
                             {getProviderDescription(p.id)}
                           </div>
                         </div>
@@ -668,16 +668,16 @@ export default function LlmModelsPage() {
                 {!providerSearch && remainingProviders.length > 0 && (
                   <button
                     onClick={() => setShowAllBrowseProviders(!showAllBrowseProviders)}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 text-ui text-muted-foreground hover:text-ink transition-colors"
                   >
                     {showAllBrowseProviders ? (
                       <>
-                        <ChevronUp className="w-4 h-4" />
+                        <ChevronUp className="size-4" />
                         Show less providers
                       </>
                     ) : (
                       <>
-                        <ChevronDown className="w-4 h-4" />
+                        <ChevronDown className="size-4" />
                         Show {remainingProviders.length} more providers
                       </>
                     )}
@@ -706,22 +706,22 @@ export default function LlmModelsPage() {
                             setModelSearch("");
                           }}
                           className={cn(
-                            "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-all",
+                            "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors",
                             isSelected
                               ? "border-accent bg-accent/10"
-                              : "border-border bg-card hover:border-accent/50 hover:bg-accent/5"
+                              : "border-line bg-surface hover:border-accent/50 hover:bg-accent/5"
                           )}
                         >
                           <div className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                            isSelected ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
+                            "size-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                            isSelected ? "bg-accent text-accent-foreground" : "bg-raised text-muted-foreground"
                           )}>
-                            <IconComponent className="w-5 h-5" />
+                            <IconComponent className="size-5" />
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <span className="font-semibold text-sm">{p.name}</span>
-                            <div className="text-xs text-muted-foreground truncate">
+                            <span className="font-semibold text-ui">{p.name}</span>
+                            <div className="text-caption text-muted-foreground truncate">
                               {getProviderDescription(p.id)}
                             </div>
                           </div>
@@ -734,9 +734,9 @@ export default function LlmModelsPage() {
 
               {/* Selected Provider Models */}
               {browseProvider && (
-                <div className="space-y-3 border-t border-border pt-6">
+                <div className="space-y-3 border-t border-line pt-6">
                   <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">
+                    <Label className="text-body font-semibold">
                       {providers.find(p => p.id === browseProvider)?.name} Models
                     </Label>
                     <Button variant="outline" size="sm" onClick={() => setBrowseProvider("")}>
@@ -746,7 +746,7 @@ export default function LlmModelsPage() {
 
                   {/* Model Search */}
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                     <Input
                       placeholder={`Search ${browseProvider} models...`}
                       value={modelSearch}
@@ -766,39 +766,39 @@ export default function LlmModelsPage() {
                         const isAlreadyAdded = models.some((m) => m.modelId === model.id);
                         
                         return (
-                          <Card key={model.id} className="border border-border bg-card">
+                          <Card key={model.id} className="border border-line bg-surface">
                             <CardContent className="p-4">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <span className="font-semibold">{model.displayName}</span>
                                     {isAlreadyAdded && (
-                                      <Badge variant="default" className="text-xs">
-                                        <Check className="w-3 h-3 mr-1" />
+                                      <Badge variant="default" className="text-caption">
+                                        <Check className="size-3 mr-1" />
                                         Added
                                       </Badge>
                                     )}
                                     {model.capabilities.reasoning && (
-                                      <Badge variant="outline" className="text-xs">Reasoning</Badge>
+                                      <Badge variant="outline" className="text-caption">Reasoning</Badge>
                                     )}
                                     {model.capabilities.toolCall && (
-                                      <Badge variant="outline" className="text-xs">Tools</Badge>
+                                      <Badge variant="outline" className="text-caption">Tools</Badge>
                                     )}
                                   </div>
                                   
-                                  <div className="text-sm text-muted-foreground mb-2">
+                                  <div className="text-ui text-muted-foreground mb-2">
                                     {model.id}
                                   </div>
 
                                   <div className="flex flex-wrap gap-2">
-                                    <Badge variant="secondary" className="text-xs">
-                                      <Cpu className="w-3 h-3 mr-1 inline" />
+                                    <Badge variant="secondary" className="text-caption">
+                                      <Cpu className="size-3 mr-1 inline" />
                                       {model.formattedLimits.context} context
                                     </Badge>
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge variant="secondary" className="text-caption">
                                       {model.formattedLimits.output} output
                                     </Badge>
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge variant="secondary" className="text-caption">
                                       {model.formattedCost.input} → {model.formattedCost.output}
                                     </Badge>
                                   </div>
@@ -815,8 +815,8 @@ export default function LlmModelsPage() {
                                       onClick={() => handleAddFromDirectory(model)}
                                       disabled={adding}
                                     >
-                                      {adding && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                                      <Plus className="w-3 h-3 mr-1" />
+                                      {adding && <Loader2 className="size-3 mr-1 animate-spin" />}
+                                      <Plus className="size-3 mr-1" />
                                       Add
                                     </Button>
                                   )}
@@ -838,10 +838,10 @@ export default function LlmModelsPage() {
       {/* System Credentials Tab */}
       {activeTab === "credentials" && (
         <>
-          <Card className="border border-border bg-card">
+          <Card className="border border-line bg-surface">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-accent" />
+                <Shield className="size-5 text-accent" />
                 <CardTitle>System Credentials</CardTitle>
               </div>
               <CardDescription>
@@ -852,14 +852,14 @@ export default function LlmModelsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
-                  <p className="text-sm text-red-400">{error}</p>
+                <div className="p-3 bg-brick/10 border border-brick/50 rounded-lg">
+                  <p className="text-ui text-brick">{error}</p>
                 </div>
               )}
 
               {/* Credentials Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
                   placeholder="Search providers..."
                   value={credentialSearch}
@@ -869,9 +869,9 @@ export default function LlmModelsPage() {
                 {credentialSearch && (
                   <button
                     onClick={() => setCredentialSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-ink"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="size-4" />
                   </button>
                 )}
               </div>
@@ -890,7 +890,7 @@ export default function LlmModelsPage() {
                   return (
                     <div
                       key={provider.id}
-                      className="p-4 border border-border rounded-lg bg-background/50"
+                      className="p-4 border border-line rounded-lg bg-void/50"
                     >
                       {isEditing ? (
                         <div className="space-y-4">
@@ -917,7 +917,7 @@ export default function LlmModelsPage() {
                                 }
                                 placeholder="Enter API key (leave empty to keep existing)"
                               />
-                              <p className="text-xs text-white/60">
+                              <p className="text-caption text-ink/60">
                                 Format: {provider.id === "zai" ? "{id}.{secret}" : "sk-..."}
                               </p>
                             </div>
@@ -932,9 +932,9 @@ export default function LlmModelsPage() {
                                     onChange={(e) =>
                                       setCredentialForm({ ...credentialForm, isEnabled: e.target.checked })
                                     }
-                                    className="w-4 h-4 rounded border-border bg-background text-accent"
+                                    className="size-4 rounded-sm border-line bg-void text-accent"
                                   />
-                                  <span className="text-sm">Enabled</span>
+                                  <span className="text-ui">Enabled</span>
                                 </label>
                               </div>
                             </div>
@@ -942,7 +942,7 @@ export default function LlmModelsPage() {
 
                           <div className="flex gap-2">
                             <Button onClick={() => handleSaveCredential(provider.id)} disabled={savingCredential}>
-                              {savingCredential && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                              {savingCredential && <Loader2 className="size-4 mr-2 animate-spin" />}
                               Save Credentials
                             </Button>
                             <Button
@@ -957,8 +957,8 @@ export default function LlmModelsPage() {
                       ) : (
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <Key className="w-5 h-5 text-primary" />
+                            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <Key className="size-5 text-primary" />
                             </div>
                             <div>
                               <h4 className="font-medium">{provider.name}</h4>
@@ -967,19 +967,19 @@ export default function LlmModelsPage() {
                                   <>
                                     <Badge
                                       variant={credentialStatus.hasKey ? "default" : "outline"}
-                                      className="text-xs"
+                                      className="text-caption"
                                     >
                                       {credentialStatus.hasKey ? "Key Set" : "No Key"}
                                     </Badge>
                                     <Badge
                                       variant={credentialStatus.isEnabled ? "secondary" : "outline"}
-                                      className="text-xs"
+                                      className="text-caption"
                                     >
                                       {credentialStatus.isEnabled ? "Enabled" : "Disabled"}
                                     </Badge>
                                   </>
                                 ) : (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge variant="outline" className="text-caption">
                                     Not Configured
                                   </Badge>
                                 )}
@@ -987,7 +987,7 @@ export default function LlmModelsPage() {
                             </div>
                           </div>
                           <Button variant="outline" onClick={() => startEditingCredential(provider.id)}>
-                            <Settings className="w-4 h-4 mr-2" />
+                            <Settings className="size-4 mr-2" />
                             Configure
                           </Button>
                         </div>

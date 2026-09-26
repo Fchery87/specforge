@@ -26,7 +26,7 @@ const navLinks = (isAdmin: boolean) => [
   },
   {
     href: "/dashboard/quick" as Route,
-    label: "Quick Spec",
+    label: "Quick spec",
     icon: Zap,
   },
   {
@@ -45,41 +45,41 @@ const navLinks = (isAdmin: boolean) => [
     : []),
 ];
 
+const isLinkActive = (href: string, pathname: string | null) =>
+  href === "/dashboard"
+    ? pathname === "/dashboard" || pathname === "/dashboard/new"
+    : Boolean(pathname?.startsWith(href));
+
 function NavLinks() {
   const { isSignedIn, user, isLoaded } = useUser();
   const pathname = usePathname();
 
-  // Prevent hydration mismatch by waiting for client-side auth state
+  // Wait for client-side auth state so the markup does not change after hydration.
   if (!isLoaded || !isSignedIn) return null;
 
   const isAdmin = user?.publicMetadata?.role === "admin";
-  const links = navLinks(isAdmin);
 
   return (
-    <div className="hidden md:flex items-center gap-1">
-      {links.map((link) => {
-        const isActive =
-          link.href === "/dashboard"
-            ? pathname === "/dashboard" || pathname === "/dashboard/new"
-            : pathname?.startsWith(link.href);
+    <div className="hidden items-center gap-1 md:flex">
+      {navLinks(isAdmin).map((link) => {
+        const active = isLinkActive(link.href, pathname);
         const Icon = link.icon;
-        
+
         return (
           <Link
             key={link.href}
             href={link.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 text-sm font-bold uppercase tracking-tight transition-colors relative group",
-              isActive
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+              "flex items-center gap-2 rounded-sm px-3 py-1.5 text-label transition-colors",
+              "duration-(--duration-quick) ease-(--ease-quiet-out)",
+              active
+                ? "bg-raised text-ink"
+                : "text-dim hover:bg-raised/60 hover:text-ink"
             )}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="size-4" />
             <span>{link.label}</span>
-            {isActive && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
           </Link>
         );
       })}
@@ -90,32 +90,29 @@ function NavLinks() {
 function AuthNav({ className }: { className?: string }) {
   const { isSignedIn, user, isLoaded } = useUser();
 
-  // Prevent hydration mismatch by waiting for client-side auth state
   if (!isLoaded) return null;
 
   if (isSignedIn && user) {
     return (
-      <div className={cn("flex items-center gap-6", className)}>
-        <span className="hidden lg:block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Hi, {user.firstName || "Forgemaster"}
+      <div className={cn("flex items-center gap-4", className)}>
+        <span className="hidden text-label text-dim lg:block">
+          {user.firstName || user.username || "Signed in"}
         </span>
-        <UserButton
-          appearance={clerkUserButtonAppearance}
-        />
+        <UserButton appearance={clerkUserButtonAppearance} />
       </div>
     );
   }
 
   return (
-    <div className={cn("flex items-center gap-6", className)}>
+    <div className={cn("flex items-center gap-5", className)}>
       <Link
         href={"/sign-in" as Route}
-        className="text-lg font-bold uppercase tracking-tight hover:text-primary transition-colors"
+        className="text-label text-dim transition-colors duration-(--duration-quick) ease-(--ease-quiet-out) hover:text-ink"
       >
-        Login
+        Sign in
       </Link>
-      <Button asChild className="hidden md:inline-flex">
-        <Link href="/dashboard">Get Started</Link>
+      <Button asChild size="sm" className="hidden md:inline-flex">
+        <Link href="/dashboard">Start a spec</Link>
       </Button>
     </div>
   );
@@ -130,79 +127,69 @@ function MobileMenu() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className="md:hidden"
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
+        <Button variant="outline" size="icon" className="md:hidden" aria-label="Open menu">
+          <Menu className="size-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="fixed left-auto right-0 top-0 h-full w-[min(90vw,22rem)] translate-x-0 translate-y-0 rounded-none border-l-2 border-border bg-background p-0">
+      <DialogContent className="fixed top-0 right-0 left-auto h-full w-[min(88vw,20rem)] max-w-none gap-0 rounded-none rounded-l-lg border-y-0 border-r-0 border-l border-line bg-panel p-0">
         <div className="flex h-full flex-col">
           <DialogTitle className="sr-only">Main menu</DialogTitle>
           <DialogDescription className="sr-only">
-            Access site navigation and account actions.
+            Site navigation and account actions.
           </DialogDescription>
-          <div className="flex items-center gap-3 border-b-2 border-border px-6 py-5">
+
+          <div className="flex items-center gap-3 border-b border-line px-5 py-4">
             <SpecForgeLogo size="sm" showWordmark={false} />
-            <span className="text-lg font-bold uppercase tracking-tight">
-              Menu
-            </span>
+            <span className="text-label text-dim">Menu</span>
           </div>
+
           <div className="flex-1 overflow-y-auto">
             {isSignedIn ? (
-              <div className="flex flex-col">
+              <nav className="flex flex-col p-2">
                 {links.map((link) => {
-                  const isActive =
-                    link.href === "/dashboard"
-                      ? pathname === "/dashboard" || pathname === "/dashboard/new"
-                      : pathname?.startsWith(link.href);
+                  const active = isLinkActive(link.href, pathname);
                   const Icon = link.icon;
 
                   return (
                     <DialogClose key={link.href} asChild>
                       <Link
                         href={link.href}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
-                          "flex items-center gap-3 border-b border-border/70 px-6 py-4 text-sm font-bold uppercase tracking-tight transition-colors",
-                          isActive
-                            ? "bg-primary/10 text-primary"
-                            : "text-foreground hover:text-primary"
+                          "flex items-center gap-3 rounded-sm px-3 py-2.5 text-ui transition-colors",
+                          active ? "bg-raised text-ink" : "text-dim hover:text-ink"
                         )}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="size-4" />
                         <span>{link.label}</span>
                       </Link>
                     </DialogClose>
                   );
                 })}
-              </div>
+              </nav>
             ) : (
-              <div className="flex flex-col gap-4 p-6">
+              <div className="flex flex-col gap-4 p-5">
                 <DialogClose asChild>
                   <Link
                     href={"/sign-in" as Route}
-                    className="text-lg font-bold uppercase tracking-tight hover:text-primary transition-colors"
+                    className="text-ui text-dim transition-colors hover:text-ink"
                   >
-                    Login
+                    Sign in
                   </Link>
                 </DialogClose>
                 <Button asChild className="w-full">
-                  <Link href="/dashboard">Get Started</Link>
+                  <Link href="/dashboard">Start a spec</Link>
                 </Button>
               </div>
             )}
           </div>
+
           {isSignedIn && user ? (
-            <div className="flex items-center justify-between border-t-2 border-border px-6 py-5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Hi, {user.firstName || "Forgemaster"}
+            <div className="flex items-center justify-between border-t border-line px-5 py-4">
+              <span className="text-label text-dim">
+                {user.firstName || user.username || "Signed in"}
               </span>
-              <UserButton
-                appearance={clerkUserButtonAppearance}
-              />
+              <UserButton appearance={clerkUserButtonAppearance} />
             </div>
           ) : null}
         </div>
@@ -213,17 +200,21 @@ function MobileMenu() {
 
 export function SiteHeader() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b-2 border-border bg-background/90 backdrop-blur-sm">
-      <div className="page-container py-4 flex items-center justify-between gap-8">
-        <Link href="/" className="flex items-center flex-shrink-0">
+    <header className="fixed top-0 right-0 left-0 z-50 h-(--header-height) border-b border-line bg-void">
+      <div className="page-container flex h-full items-center justify-between gap-8">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center rounded-sm"
+          aria-label="SpecForge home"
+        >
           <SpecForgeLogo size="md" />
         </Link>
         <NavLinks />
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <AuthNav className="hidden md:flex" />
           <MobileMenu />
         </div>
       </div>
-    </nav>
+    </header>
   );
 }
