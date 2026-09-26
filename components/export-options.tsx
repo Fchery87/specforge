@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import type { Route } from "next";
 import { useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Download, FileCode, Bot, FileText, Archive, Loader2, Check, Clipboard } from "lucide-react";
-import { formatForClaudeCode, formatForCursor } from "@/lib/export/clipboard-formats";
+import { Download, FileCode, Bot, FileText, Archive, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ interface ExportOption {
   label: string;
   description: string;
   icon: typeof FileText;
-  format: "zip" | "skill" | "agents" | "markdown" | "clipboard-claude" | "clipboard-cursor";
+  format: "zip" | "skill" | "agents" | "markdown";
   available: boolean;
 }
 
@@ -45,22 +46,6 @@ const EXPORT_OPTIONS: ExportOption[] = [
     description: "Project context for AI development assistance",
     icon: FileCode,
     format: "agents",
-    available: true,
-  },
-  {
-    id: "copy-claude",
-    label: "Copy for Claude Code",
-    description: "Copy spec to clipboard for CLAUDE.md or agent context",
-    icon: Clipboard,
-    format: "clipboard-claude" as const,
-    available: true,
-  },
-  {
-    id: "copy-cursor",
-    label: "Copy for Cursor",
-    description: "Copy spec to clipboard for .cursorrules",
-    icon: Clipboard,
-    format: "clipboard-cursor" as const,
     available: true,
   },
   {
@@ -160,42 +145,6 @@ export function ExportOptionsPanel({
           break;
         }
 
-        case "clipboard-claude": {
-          const skillContent = `${generateSkillMd({
-            project: {
-              _id: project._id,
-              title: project.title,
-              description: project.description,
-              createdAt: project.createdAt,
-            },
-            artifacts,
-          })}${traceabilityManifest}`;
-          const formatted = formatForClaudeCode({ title: project.title, content: skillContent });
-          await navigator.clipboard.writeText(formatted);
-          toast.success("Copied to Clipboard", {
-            description: "Paste into your CLAUDE.md or agent context.",
-          });
-          break;
-        }
-
-        case "clipboard-cursor": {
-          const skillContent = `${generateSkillMd({
-            project: {
-              _id: project._id,
-              title: project.title,
-              description: project.description,
-              createdAt: project.createdAt,
-            },
-            artifacts,
-          })}${traceabilityManifest}`;
-          const formatted = formatForCursor({ title: project.title, content: skillContent });
-          await navigator.clipboard.writeText(formatted);
-          toast.success("Copied to Clipboard", {
-            description: "Paste into your .cursorrules file.",
-          });
-          break;
-        }
-
         case "markdown":
           // Placeholder
           break;
@@ -222,6 +171,18 @@ export function ExportOptionsPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        {!artifacts.handoff && (
+          <div className="p-3 bg-muted/40 border border-border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm">
+            <span className="text-muted-foreground">
+              Handoff notes have not been generated yet.
+            </span>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/project/${project._id}/phase/handoff` as Route}>
+                Generate handoff notes
+              </Link>
+            </Button>
+          </div>
+        )}
         {EXPORT_OPTIONS.map((option) => {
           const Icon = option.icon;
           const isExporting = exportingFormat === option.id;

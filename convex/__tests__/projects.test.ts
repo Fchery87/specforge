@@ -3,6 +3,7 @@ import {
   applyAnswerUpdate,
   buildConstitutionTemplateSnapshot,
   getNextUpdatedAt,
+  resolveSkippedPhasesForMode,
 } from "../projects";
 
 describe("buildConstitutionTemplateSnapshot", () => {
@@ -154,3 +155,36 @@ describe("grillSession helpers", () => {
     expect(updated.rounds[1].questions[0].text).toBe("New Q3");
   });
 });
+
+describe("resolveSkippedPhasesForMode", () => {
+  it("stores ['domainModel', 'artifacts'] for a new 'quick' project", () => {
+    expect(resolveSkippedPhasesForMode("quick")).toEqual([
+      "domainModel",
+      "artifacts",
+    ]);
+  });
+
+  it("stores no skipped phases [] for a 'full' project", () => {
+    expect(resolveSkippedPhasesForMode("full")).toEqual([]);
+  });
+
+  it("stores ['brief'] for a 'backend' project", () => {
+    expect(resolveSkippedPhasesForMode("backend")).toEqual(["brief"]);
+  });
+
+  it("overrides the default when an explicit skippedPhases array is provided", () => {
+    expect(resolveSkippedPhasesForMode("quick", ["customPhase"])).toEqual([
+      "customPhase",
+    ]);
+    expect(resolveSkippedPhasesForMode("full", ["brief"])).toEqual(["brief"]);
+    expect(resolveSkippedPhasesForMode("backend", [])).toEqual([]);
+    expect(resolveSkippedPhasesForMode(undefined, ["customPhase"])).toEqual([
+      "customPhase",
+    ]);
+  });
+
+  it("returns undefined when no mode and no explicit skipped phases are provided", () => {
+    expect(resolveSkippedPhasesForMode()).toBeUndefined();
+  });
+});
+

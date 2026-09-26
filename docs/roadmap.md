@@ -7,7 +7,7 @@
 | Phase | State | Spec | Plan |
 | --- | --- | --- | --- |
 | 1. Evidence-backed specifications | Active: live deployment walkthrough pending | [Evidence-backed specifications](specs/2026-09-22-evidence-backed-specs.md) | [Implementation plan](plans/2026-09-22-evidence-backed-specs.md) |
-| 2. Guided three-stage workflow | Not started | [Guided three-stage workflow](specs/2026-09-25-guided-workflow.md) | [Implementation plan](plans/2026-09-25-guided-workflow.md) |
+| 2. Guided three-stage workflow | Complete | [Guided three-stage workflow](specs/2026-09-25-guided-workflow.md) | - |
 
 The local implementation and repository gates are complete. The remaining rollout check needs a configured Convex development deployment and GitHub OAuth credentials.
 

@@ -3,6 +3,7 @@ import { FALLBACK_MODELS } from './chunking';
 import { FALLBACK_REGISTRY } from './model-data';
 import type { RegistryEntry } from './model-data';
 import { getFirstEnabledModelForProvider } from './model-catalog';
+import { checkGenerationReadiness } from './credential-readiness';
 
 export interface SystemCredential {
   apiKey: string;
@@ -94,6 +95,15 @@ export function resolveCredentials(
   systemCredentials: Map<string, SystemCredential>,
   enabledModels?: Array<{ provider: string; modelId: string }>
 ): ProviderCredentials | null {
+  const readiness = checkGenerationReadiness({
+    userConfig,
+    systemCredentials,
+    enabledModels,
+  });
+  if (!readiness.ready) {
+    return null;
+  }
+
   if (userConfig?.useSystem) {
     const systemKey = userConfig.systemKeyId ?? userConfig.provider;
     const systemCred = systemCredentials.get(systemKey);
@@ -111,7 +121,20 @@ export function resolveCredentials(
     }
 
     if (systemCredentials.size > 0) {
-      for (const [provider, systemCred] of systemCredentials.entries()) {
+      let chosenEntry: [string, SystemCredential] | undefined;
+      if (enabledModels && enabledModels.length > 0) {
+        for (const entry of systemCredentials.entries()) {
+          if (enabledModels.some((m) => m.provider === entry[0])) {
+            chosenEntry = entry;
+            break;
+          }
+        }
+      }
+      if (!chosenEntry) {
+        chosenEntry = systemCredentials.entries().next().value;
+      }
+      if (chosenEntry) {
+        const [provider, systemCred] = chosenEntry;
         const modelId = getFirstEnabledModelForProvider(provider, enabledModels);
 
         return {
@@ -157,7 +180,20 @@ export function resolveCredentials(
   }
 
   if (systemCredentials.size > 0) {
-    for (const [provider, systemCred] of systemCredentials.entries()) {
+    let chosenEntry: [string, SystemCredential] | undefined;
+    if (enabledModels && enabledModels.length > 0) {
+      for (const entry of systemCredentials.entries()) {
+        if (enabledModels.some((m) => m.provider === entry[0])) {
+          chosenEntry = entry;
+          break;
+        }
+      }
+    }
+    if (!chosenEntry) {
+      chosenEntry = systemCredentials.entries().next().value;
+    }
+    if (chosenEntry) {
+      const [provider, systemCred] = chosenEntry;
       const modelId = getFirstEnabledModelForProvider(provider, enabledModels);
 
       return {

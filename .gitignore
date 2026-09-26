@@ -6,6 +6,8 @@ node_modules/
 # Testing
 coverage/
 .nyc_output/
+e2e/.auth/
+test-results/
 
 # Next.js
 .next/

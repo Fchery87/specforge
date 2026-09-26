@@ -30,6 +30,16 @@ import {
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
 
+import type { Route } from 'next';
+import {
+  nextAction,
+  WORKFLOW_STAGES,
+  type NextAction,
+  type PhaseId,
+  type PhaseStatusMap,
+  type ProjectMode,
+} from '@/lib/workflow';
+
 const PHASE_ORDER = ['brief', 'constitution', 'prd', 'domainModel', 'spec', 'userStories', 'handoff'];
 const PHASE_LABELS: Record<string, string> = {
   brief: 'Brief',
@@ -41,6 +51,38 @@ const PHASE_LABELS: Record<string, string> = {
   handoff: 'Handoff',
 };
 
+export function getDashboardCardAction(
+  action: NextAction,
+  projectId: string,
+  skippedPhases: readonly (PhaseId | string)[] = [],
+): { label: string; href: string } {
+  if (action.kind === 'export') {
+    return {
+      label: 'Export',
+      href: `/project/${projectId}/phase/handoff`,
+    };
+  }
+
+  let stageLabel = 'Requirements';
+  let targetPhase: PhaseId = 'brief';
+
+  if (action.kind === 'continue' || action.kind === 'review') {
+    const stage = WORKFLOW_STAGES.find((s) => s.id === action.stageId) ?? WORKFLOW_STAGES[0];
+    stageLabel = stage.label;
+    const enabledPhases = stage.phaseIds.filter((p) => !skippedPhases.includes(p));
+    targetPhase = enabledPhases[0] ?? stage.phaseIds[0];
+  } else {
+    const stage = WORKFLOW_STAGES.find((s) => s.phaseIds.includes(action.phaseId)) ?? WORKFLOW_STAGES[0];
+    stageLabel = stage.label;
+    targetPhase = action.phaseId;
+  }
+
+  return {
+    label: `Resume at ${stageLabel}`,
+    href: `/project/${projectId}/phase/${targetPhase}`,
+  };
+}
+
 export interface ProjectCardProps {
   project: {
     _id: Id<'projects'>;
@@ -48,6 +90,7 @@ export interface ProjectCardProps {
     description: string;
     status: 'draft' | 'active' | 'complete';
     mode?: 'full' | 'quick' | 'backend';
+    skippedPhases?: string[];
     createdAt: number;
     updatedAt: number;
   };
@@ -60,6 +103,7 @@ export interface ProjectCardProps {
     verificationStatus: 'passed' | 'failed' | 'warning' | 'not_checked';
     currentPhaseId?: string;
   };
+  phases?: PhaseStatusMap;
   isPinned?: boolean;
   onPin?: () => void;
   onUnpin?: () => void;
@@ -110,6 +154,7 @@ function HealthBadge({ status }: { status: string }) {
 export function ProjectCard({
   project,
   metrics,
+  phases,
   isPinned,
   onPin,
   onUnpin,
@@ -134,6 +179,24 @@ export function ProjectCard({
     verificationStatus: liveMetrics.verificationStatus,
     currentPhaseId: liveMetrics.currentPhaseId,
   } : undefined);
+
+  // Fallback to reactive phases if not provided by parent query
+  const queriedPhases = useQuery(
+    api.projects.getProjectPhases,
+    !phases ? { projectId: project._id } : 'skip'
+  );
+
+  const effectivePhases = phases ?? queriedPhases ?? [];
+  const skipped = (project.skippedPhases ?? []) as readonly PhaseId[];
+  const mode = (project.mode ?? 'full') as ProjectMode;
+
+  const currentNextAction = React.useMemo(() => {
+    return nextAction(effectivePhases, skipped, mode);
+  }, [effectivePhases, skipped, mode]);
+
+  const { label: ctaLabel, href: ctaHref } = React.useMemo(() => {
+    return getDashboardCardAction(currentNextAction, project._id, skipped);
+  }, [currentNextAction, project._id, skipped]);
 
   const progress = effectiveMetrics?.completionPercentage ?? 0;
   const completedPhases = effectiveMetrics?.completedPhases ?? 0;
@@ -172,7 +235,7 @@ export function ProjectCard({
 
   return (
     <div className="relative group h-full">
-      <Link href={`/project/${project._id}`} className="block h-full">
+      <Link href={ctaHref as Route} className="block h-full">
         <Card
           variant="interactive"
           className={cn(
@@ -364,7 +427,7 @@ export function ProjectCard({
                 Updated {formatRelativeTime(project.updatedAt)}
               </span>
               <span className="flex items-center font-bold uppercase tracking-wider text-[11px] sm:text-xs text-primary group-hover:text-primary transition-colors">
-                Open <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                {ctaLabel} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
               </span>
             </div>
           </CardContent>

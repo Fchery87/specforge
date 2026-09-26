@@ -9,7 +9,6 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { FunctionReference } from "convex/server";
 import { generatePhaseAction, resumePhaseAction, generateProjectZipAction, generateSectionPlanAction, getGenerationTaskAction, getArtifactByPhaseAction, getAllProjectArtifactsAction, cancelArtifactStreamingAction } from "@/lib/convex-actions";
-import { PhaseStatusIndicator } from "@/components/phase-status";
 import { ArtifactPreview } from "@/components/artifact-preview";
 import { QuestionsPanel } from "@/components/questions-panel";
 import type { GrillSessionData } from "@/components/stress-test-modal";
@@ -27,12 +26,17 @@ import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Loader2, Download, Archive, Sparkles, FileText, Layers, Code, Package, BookOpen, Target, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
-import { PhaseSwitcher } from "@/components/phase-switcher";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TicketBoard } from "@/components/ticket-board";
 import { GenerationActivityStream } from "@/components/generation-activity-stream";
 import { VerificationPanel } from "@/components/verification-panel";
 import { EvidenceReviewPanel } from "@/components/evidence-review-panel";
+import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
+import { StageStepper } from "@/components/stage-stepper";
+import { StageTabs } from "@/components/stage-tabs";
+import { NextActionButton } from "@/components/next-action-button";
+import { nextAction, MODE_POLICIES, type PhaseId, type ProjectMode } from "@/lib/workflow";
+
 
 function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
   return {
@@ -47,14 +51,14 @@ function toSectionPlanConfig(p: GeneratedSectionPlan): SectionPlanConfig {
 }
 
 const PHASE_CONFIG: Record<string, { label: string; icon: typeof FileText; description: string }> = {
-  constitution: { label: "Constitution", icon: FileText, description: "Core invariants, non-goals, and architectural boundaries" },
+  constitution: { label: "Project Rules", icon: FileText, description: "Core invariants, non-goals, and architectural boundaries" },
   brief: { label: "Brief", icon: BookOpen, description: "Project scope, user personas, and initial evidence baseline" },
   prd: { label: "PRD", icon: Target, description: "Evidence-backed requirements with stable claim IDs" },
   domainModel: { label: "Domain Model", icon: Layers, description: "Entities, invariant rules, and state transitions" },
-  specs: { label: "Specifications", icon: Code, description: "Deep interface contracts, explicit test seams, and architecture" },
-  stories: { label: "User Stories", icon: ClipboardList, description: "Vertical tracer bullets with blocking dependency graphs" },
-  artifacts: { label: "Artifacts", icon: Sparkles, description: "Live schema validation, in-browser editor, and code models" },
-  handoff: { label: "Handoff", icon: Package, description: "Agent-native bundle, SKILL.md, and verified requirement traceability" },
+  specs: { label: "Architecture", icon: Code, description: "Deep interface contracts, explicit test seams, and architecture" },
+  stories: { label: "Tasks", icon: ClipboardList, description: "Vertical tracer bullets with blocking dependency graphs" },
+  artifacts: { label: "Schemas", icon: Sparkles, description: "Live schema validation, in-browser editor, and code models" },
+  handoff: { label: "Export", icon: Package, description: "Agent-native bundle, SKILL.md, and verified requirement traceability" },
 };
 
 export default function PhasePage() {
@@ -75,7 +79,9 @@ export default function PhasePage() {
     api.projects.getProjectPhases,
     isLoaded && isSignedIn ? { projectId } : "skip"
   );
+  const readiness = useQuery(api.userConfigs.getGenerationReadiness);
   const generatePhase = useAction(generatePhaseAction);
+
   const resumePhase = useAction(resumePhaseAction);
   const generateZip = useAction(generateProjectZipAction);
   const cancelArtifactStreaming = useMutation(cancelArtifactStreamingAction);
@@ -125,6 +131,10 @@ export default function PhasePage() {
   const phaseConfig = PHASE_CONFIG[phaseId] || { label: phaseId, icon: FileText, description: "" };
   const PhaseIcon = phaseConfig.icon;
   const isSkipped = project?.skippedPhases?.includes(phaseId) ?? false;
+  const currentMode = (project?.mode ?? "full") as ProjectMode;
+  const nextActionItem = project
+    ? nextAction(phases ?? [], (project.skippedPhases ?? []) as readonly PhaseId[], currentMode)
+    : null;
 
   // Handle AI plan generation (Task 16)
   async function handleGenerateAiPlan() {
@@ -343,26 +353,24 @@ export default function PhasePage() {
 
       {/* Back Navigation */}
       <div className="page-container py-6 relative z-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Breadcrumbs
-            items={[
-              { label: "Dashboard", href: "/dashboard" },
-              { label: project?.title ?? "Project", href: `/project/${projectId}` },
-              { label: phaseConfig.label },
-            ]}
-          />
-          {phases && (
-            <PhaseSwitcher
-              currentPhaseId={phaseId}
-              phases={phases.map(p => ({
-                phaseId: p.phaseId,
-                status: project?.skippedPhases?.includes(p.phaseId) ? "skipped" : (p.status ?? "pending"),
-              }))}
-              projectId={projectId}
-            />
-          )}
-        </div>
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", href: "/dashboard" },
+            { label: project?.title ?? "Project", href: `/project/${projectId}` },
+            { label: phaseId === "constitution" ? "Project Rules" : phaseConfig.label },
+          ]}
+        />
       </div>
+
+      {/* Stage Stepper (above the title/phase header) */}
+      <section className="page-container pb-6 relative z-10">
+        <StageStepper
+          projectId={projectId}
+          currentPhase={phaseId}
+          phases={phases ?? []}
+          skippedPhases={project?.skippedPhases ?? []}
+        />
+      </section>
 
       {/* Phase Header */}
       <section className="page-container pb-8 relative z-10">
@@ -371,20 +379,55 @@ export default function PhasePage() {
             <PhaseIcon className="w-5 h-5 text-black" />
           </div>
           <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-            {phaseConfig.label}
+            {phaseId === "constitution" ? project.title : phaseConfig.label}
           </span>
         </div>
         <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
-          {project.title}
+          {phaseId === "constitution" ? "Project Rules" : project.title}
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl">
           {phaseConfig.description}
         </p>
       </section>
 
+      {/* Stage Tabs & Next Action (under phase header) */}
+      <section className="page-container pb-8 relative z-10">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+          <StageTabs
+            projectId={projectId}
+            currentPhase={phaseId}
+            phases={phases ?? []}
+            skippedPhases={project?.skippedPhases ?? []}
+            onToggleSkip={async (phaseToToggle) => {
+              try {
+                await toggleSkip({ projectId, phaseId: phaseToToggle, skip: false });
+                toast.success(`Enabled ${PHASE_CONFIG[phaseToToggle]?.label ?? phaseToToggle}`);
+              } catch {
+                toast.error(`Failed to enable section`);
+              }
+            }}
+          />
+          {nextActionItem && (
+            <div className="shrink-0 ml-auto">
+              <NextActionButton
+                projectId={projectId}
+                action={nextActionItem}
+                skippedPhases={project?.skippedPhases ?? []}
+              />
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Generation Readiness Banner */}
+      <section className={readiness?.ready === false ? "page-container pb-6 relative z-10" : undefined}>
+        <GenerationReadinessBanner ready={readiness?.ready ?? true} />
+      </section>
+
       {/* Skipped Phase Banner */}
       {isSkipped && (
         <section className="page-container pb-6 relative z-10">
+
           <div className="p-4 border border-amber-500/30 bg-amber-500/10 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -393,7 +436,7 @@ export default function PhasePage() {
                 </span>
                 {project?.mode && (
                   <span className="text-xs text-muted-foreground">
-                    ({project.mode === 'quick' ? 'Quick Feature Spec' : project.mode === 'backend' ? 'API & Backend Service' : 'Custom Workflow'})
+                    ({MODE_POLICIES[project.mode as ProjectMode]?.label ?? 'Custom Workflow'})
                   </span>
                 )}
               </div>
@@ -419,18 +462,6 @@ export default function PhasePage() {
           </div>
         </section>
       )}
-
-      {/* Phase Status Indicator */}
-      <section className="page-container pb-8 relative z-10">
-        <PhaseStatusIndicator
-          phases={(phases ?? []).map(p => ({
-            ...p,
-            status: project?.skippedPhases?.includes(p.phaseId) ? "skipped" : (p.status ?? "pending"),
-          }))}
-          currentPhase={phaseId}
-          projectId={projectId}
-        />
-      </section>
 
       {/* Main Content Grid */}
       <section className="page-container page-section border-t-2 border-border relative z-10">

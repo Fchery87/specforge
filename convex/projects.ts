@@ -6,17 +6,7 @@ import { canAccessProject } from '../lib/authz';
 import { normalizeProjectInput } from '../lib/project-input';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource } from './lib/evidence';
-
-const DEFAULT_PHASES = [
-  'constitution',
-  'brief',
-  'prd',
-  'domainModel',
-  'specs',
-  'stories',
-  'artifacts',
-  'handoff',
-];
+import { PHASE_ORDER, MODE_POLICIES, type ProjectMode } from '../lib/workflow';
 
 type ConstitutionTemplateSnapshot = Pick<
   Doc<'constitutionTemplates'>,
@@ -31,6 +21,19 @@ export function buildConstitutionTemplateSnapshot(
     constitutionContent: template.constitutionContent,
     lockedConstraints: template.lockedConstraints,
   };
+}
+
+export function resolveSkippedPhasesForMode(
+  mode?: ProjectMode,
+  explicitSkipped?: string[],
+): string[] | undefined {
+  if (explicitSkipped !== undefined) {
+    return explicitSkipped;
+  }
+  if (mode && mode in MODE_POLICIES) {
+    return [...MODE_POLICIES[mode].skippedPhases];
+  }
+  return undefined;
 }
 
 // mapPhaseToArtifactType is now imported from './lib/phase-utils'
@@ -69,13 +72,7 @@ export const createProject = mutation({
       });
     }
 
-    const skippedPhases = args.skippedPhases ?? (
-      args.mode === 'quick'
-        ? ['constitution', 'domainModel', 'artifacts']
-        : args.mode === 'backend'
-        ? ['brief', 'stories']
-        : undefined
-    );
+    const skippedPhases = resolveSkippedPhasesForMode(args.mode, args.skippedPhases);
 
     const now = Date.now();
     const projectId = await ctx.db.insert('projects', {
@@ -90,7 +87,7 @@ export const createProject = mutation({
       ...(skippedPhases ? { skippedPhases } : {}),
     });
 
-    for (const phaseId of DEFAULT_PHASES) {
+    for (const phaseId of PHASE_ORDER) {
       await ctx.db.insert('phases', {
         projectId,
         phaseId,

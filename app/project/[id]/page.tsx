@@ -4,30 +4,33 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Route } from "next";
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useQuery, useMutation, useAction, useConvex } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { PhaseStepper } from "@/components/phase-stepper";
-import { generateAllPhasesAction } from "@/lib/convex-actions";
+import {
+  generateAllPhasesAction,
+  getAllProjectArtifactsAction,
+  generateProjectZipAction,
+} from "@/lib/convex-actions";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ProjectPhaseCard } from "@/components/project-phase-card";
-import { Sparkles, Layers, FileText, BookOpen, Code, Package, Target, ClipboardList, Loader2 } from "lucide-react";
+import { StageCard } from "@/components/stage-card";
+import { ProjectRulesCard } from "@/components/project-rules-card";
+import { ExportOptionsPanel } from "@/components/export-options";
+import { Sparkles, Loader2, Download } from "lucide-react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-const PHASES = [
-  { id: "constitution", label: "Constitution", icon: FileText, description: "Core invariants, non-goals, and architectural boundaries" },
-  { id: "brief", label: "Brief", icon: BookOpen, description: "Project scope, user personas, and initial evidence baseline" },
-  { id: "prd", label: "PRD", icon: Target, description: "Evidence-backed requirements with stable claim IDs" },
-  { id: "domainModel", label: "Domain Model", icon: Layers, description: "Entities, invariant rules, and state transitions" },
-  { id: "specs", label: "Spec & Architecture", icon: Code, description: "Deep interface contracts, explicit test seams, and architecture" },
-  { id: "stories", label: "Tasks/Stories", icon: ClipboardList, description: "Vertical tracer bullets with blocking dependency graphs" },
-  { id: "artifacts", label: "Artifacts", icon: Sparkles, description: "Live schema validation, in-browser editor, and code models" },
-  { id: "handoff", label: "Handoff + ZIP", icon: Package, description: "Agent-native bundle, SKILL.md, and verified requirement traceability" },
-];
+import { WORKFLOW_STAGES, PHASE_ORDER, MODE_POLICIES, type ProjectMode } from "@/lib/workflow";
+import { getToastMessage } from "@/lib/notifications";
 
 export default function ProjectPage() {
   const params = useParams<{ id: string }>();
@@ -35,7 +38,12 @@ export default function ProjectPage() {
   const toggleSkip = useMutation(api.projects.toggleSkipPhase);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [showGenerateAllConfirm, setShowGenerateAllConfirm] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+
   const generateAll = useAction(generateAllPhasesAction);
+  const generateZip = useAction(generateProjectZipAction);
+  const convex = useConvex();
 
   const project = useQuery(
     api.projects.getProject,
@@ -43,6 +51,10 @@ export default function ProjectPage() {
   );
   const phases = useQuery(
     api.projects.getProjectPhases,
+    isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
+  );
+  const allArtifacts = useQuery(
+    getAllProjectArtifactsAction,
     isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
   );
 
@@ -115,9 +127,11 @@ export default function ProjectPage() {
     ])
   );
 
-  const hasPendingPhases = [...phaseStatusMap.values()].some(
-    s => s === 'pending'
-  ) || PHASES.some(p => !skippedPhases.includes(p.id) && !phaseStatusMap.has(p.id));
+  const hasPendingPhases = PHASE_ORDER.some((phaseId) => {
+    if (skippedPhases.includes(phaseId)) return false;
+    const status = phaseStatusMap.get(phaseId);
+    return !status || status === "pending";
+  });
 
   async function handleGenerateAll() {
     setShowGenerateAllConfirm(false);
@@ -130,6 +144,41 @@ export default function ProjectPage() {
       toast.error('Failed to schedule generation');
     } finally {
       setIsGeneratingAll(false);
+    }
+  }
+
+  async function handleDownloadZip() {
+    setIsDownloadingZip(true);
+    const startToast = getToastMessage("export_start");
+    const toastId = toast.message(startToast.title, {
+      description: startToast.description,
+    });
+    try {
+      if (!project?.zipStorageId) {
+        await generateZip({ projectId: params.id as Id<"projects"> });
+      }
+
+      const zipUrl = await convex.query(api.projects.getProjectZipUrl, {
+        projectId: params.id as Id<"projects">,
+      });
+
+      if (zipUrl) {
+        window.location.href = zipUrl;
+        const doneToast = getToastMessage("export_done");
+        toast.success(doneToast.title, {
+          id: toastId,
+          description: doneToast.description,
+        });
+      } else {
+        throw new Error("Failed to get download URL");
+      }
+    } catch (error) {
+      toast.error("Download Failed", {
+        id: toastId,
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsDownloadingZip(false);
     }
   }
 
@@ -150,28 +199,38 @@ export default function ProjectPage() {
 
       {/* Project Header */}
       <section className="page-container pb-12 relative z-10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-black" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-black" />
+            </div>
+            <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+              Project
+            </span>
+            {project.mode === 'quick' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-500 border border-sky-500/30 rounded-full">
+                {MODE_POLICIES.quick.label}
+              </span>
+            )}
+            {project.mode === 'backend' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-500 border border-purple-500/30 rounded-full">
+                {MODE_POLICIES.backend.label}
+              </span>
+            )}
+            {project.mode === 'full' && (
+              <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-secondary text-foreground border border-border rounded-full">
+                {MODE_POLICIES.full.label}
+              </span>
+            )}
           </div>
-          <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
-            Project
-          </span>
-          {project.mode === 'quick' && (
-            <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-sky-500/10 text-sky-500 border border-sky-500/30 rounded-full">
-              Quick Feature Spec
-            </span>
-          )}
-          {project.mode === 'backend' && (
-            <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-purple-500/10 text-purple-500 border border-purple-500/30 rounded-full">
-              API & Backend Service
-            </span>
-          )}
-          {project.mode === 'full' && (
-            <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-secondary text-foreground border border-border rounded-full">
-              Full System Blueprint
-            </span>
-          )}
+          <Button
+            variant="outline"
+            onClick={() => setIsExportOpen(true)}
+            className="gap-2 shrink-0 self-start sm:self-auto"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </Button>
         </div>
         <h1 className="text-v-h2 font-bold leading-none uppercase tracking-tighter mb-4">
           {project.title}
@@ -183,30 +242,15 @@ export default function ProjectPage() {
         )}
       </section>
 
-      {/* Phase Stepper */}
-      <section className="page-container pb-8 relative z-10">
-        <PhaseStepper
-          projectId={params.id}
-          currentPhase={
-            // Find the first phase that is not 'ready' and not 'skipped'
-            PHASES.find((p) => {
-              const status = phaseStatusMap.get(p.id);
-              return !status || (status !== 'ready' && status !== 'skipped');
-            })?.id ?? 'brief'
-          }
-          phaseStatuses={Object.fromEntries(phaseStatusMap)}
-        />
-      </section>
-
-      {/* Phase Cards */}
+      {/* Workflow Stages */}
       <section className="page-container page-section border-t-2 border-border relative z-10">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <h2 className="text-v-h3 font-bold uppercase tracking-tighter">
-            Workflow Phases
+            Workflow Stages
           </h2>
           <div className="flex flex-wrap items-center gap-2">
             <Button asChild variant="outline">
-              <Link href={`/project/${params.id}/quick` as Route}>Quick Spec history</Link>
+              <Link href={`/project/${params.id}/quick` as Route}>Saved quick specs</Link>
             </Button>
             <Button
               onClick={() => setShowGenerateAllConfirm(true)}
@@ -218,26 +262,30 @@ export default function ProjectPage() {
             </Button>
           </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {PHASES.map((phase, idx) => (
-            <ProjectPhaseCard
-              key={phase.id}
+        <div className="grid gap-6 md:grid-cols-2">
+          {WORKFLOW_STAGES.map((stage) => (
+            <StageCard
+              key={stage.id}
               projectId={params.id}
-              phaseId={phase.id}
-              label={phase.label}
-              description={phase.description}
-              icon={phase.icon}
-              index={idx}
-              status={phaseStatusMap.get(phase.id)}
-              isSkipped={skippedPhases.includes(phase.id)}
-              onToggleSkip={
-                phase.id !== "constitution" || skippedPhases.includes("constitution")
-                  ? (skip: boolean) =>
-                      toggleSkip({ projectId: params.id as Id<"projects">, phaseId: phase.id, skip })
-                  : undefined
+              stage={stage}
+              phases={phases ?? []}
+              skippedPhases={skippedPhases}
+              mode={(project.mode ?? "full") as ProjectMode}
+              onToggleSkip={(phaseId, skip) =>
+                toggleSkip({
+                  projectId: params.id as Id<"projects">,
+                  phaseId: phaseId as string,
+                  skip,
+                })
               }
             />
           ))}
+          <ProjectRulesCard
+            projectId={params.id}
+            constitutionContent={
+              allArtifacts?.find((a) => a.type === "constitution")?.content
+            }
+          />
         </div>
       </section>
 
@@ -256,6 +304,37 @@ export default function ProjectPage() {
         variant="default"
         onConfirm={handleGenerateAll}
       />
+
+      {/* Export Dialog */}
+      <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Export Project</DialogTitle>
+            <DialogDescription>
+              Export your specification bundle, AI agent guides, and project artifacts.
+            </DialogDescription>
+          </DialogHeader>
+          <ExportOptionsPanel
+            project={{
+              _id: project._id,
+              title: project.title,
+              description: project.description,
+              createdAt: project.createdAt,
+              zipStorageId: project.zipStorageId,
+            }}
+            artifacts={{
+              brief: allArtifacts?.find((a) => a.type === "brief")?.content,
+              constitution: allArtifacts?.find((a) => a.type === "constitution")?.content,
+              prd: allArtifacts?.find((a) => a.type === "prd")?.content,
+              techSpec: allArtifacts?.find((a) => a.type === "techSpec")?.content,
+              userStories: allArtifacts?.find((a) => a.type === "userStories")?.content,
+              handoff: allArtifacts?.find((a) => a.type === "handoff")?.content,
+            }}
+            onDownloadZip={handleDownloadZip}
+            isDownloadingZip={isDownloadingZip}
+          />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
