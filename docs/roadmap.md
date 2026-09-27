@@ -12,7 +12,7 @@
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
 | 5. Magenta brand | Complete | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
 | 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
-| 7. Change and bug-fix specs | Active: claim identity done (tasks 1 and 2), changes next | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | [Implementation plan](plans/2026-09-27-change-specs.md) |
+| 7. Change and bug-fix specs | Active: tasks 1 to 4 done, applying a change next | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | [Implementation plan](plans/2026-09-27-change-specs.md) |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
