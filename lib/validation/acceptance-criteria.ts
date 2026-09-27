@@ -345,3 +345,26 @@ export function criterionClasses(
       : 'unclassified';
   });
 }
+
+/**
+ * Reject a supplied class list that does not have one entry per criterion.
+ *
+ * The pairing is positional, so a list shorter than the criteria silently moves classes onto the
+ * wrong ones rather than reporting anything. An absent list is fine — that is a legacy row or a
+ * caller that has no classes, and both read as `unclassified` — but a supplied list must line up.
+ *
+ * Convex validators check each argument's shape and cannot express a relation between two of them, so
+ * this has to run in a handler. Kept here, pure, so it is testable without a deployment.
+ */
+export function assertCriteriaQualityAligned(
+  criteria: readonly string[],
+  quality?: readonly string[] | null
+): void {
+  if (quality == null) return;
+  if (quality.length !== criteria.length) {
+    throw new Error(
+      `acceptanceCriteriaQuality must hold one entry per acceptance criterion: ` +
+        `received ${quality.length} for ${criteria.length} criteria`
+    );
+  }
+}

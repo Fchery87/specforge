@@ -3,6 +3,7 @@ import type { QueryCtx, MutationCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { acceptanceCriteriaQualityValidator } from './schema';
+import { assertCriteriaQualityAligned } from '../lib/validation/acceptance-criteria';
 
 // Shared auth helper: look up ticket -> project -> verify ownership
 async function authorizeTicketAccess(
@@ -121,6 +122,7 @@ export async function insertTicketHandler(
   },
 ) {
   await authorizeProjectAccess(ctx, args.projectId);
+  assertCriteriaQualityAligned(args.acceptanceCriteria, args.acceptanceCriteriaQuality);
   const now = Date.now();
   return await ctx.db.insert('tickets', {
     ...args,

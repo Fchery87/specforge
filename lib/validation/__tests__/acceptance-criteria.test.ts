@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertCriteriaQualityAligned,
   classifyCriteria,
   classifyCriterion,
   criterionClasses,
@@ -268,5 +269,48 @@ describe('criterionClasses', () => {
   it('round-trips what the parser stores', () => {
     const stored = classifyCriteria(criteria);
     expect(criterionClasses(criteria, stored)).toEqual(stored);
+  });
+});
+
+/**
+ * The pairing is positional, so a class list of the wrong length moves classes onto the wrong
+ * criteria without reporting anything. Convex validators check each argument's shape and cannot
+ * express a relation between two arguments, so the check runs in the handler and lives here.
+ */
+describe('assertCriteriaQualityAligned', () => {
+  const criteria = ['a', 'b', 'c'];
+
+  it('accepts one class per criterion', () => {
+    expect(() =>
+      assertCriteriaQualityAligned(criteria, ['observable', 'vague', 'unobservable'])
+    ).not.toThrow();
+  });
+
+  it('accepts an absent list, which is a legacy row or a caller with no classes', () => {
+    expect(() => assertCriteriaQualityAligned(criteria)).not.toThrow();
+    expect(() => assertCriteriaQualityAligned(criteria, null)).not.toThrow();
+  });
+
+  it('rejects a shorter list, which would shift classes onto the wrong criteria', () => {
+    expect(() => assertCriteriaQualityAligned(criteria, ['observable'])).toThrow(
+      /one entry per acceptance criterion/
+    );
+  });
+
+  it('rejects a longer list', () => {
+    expect(() =>
+      assertCriteriaQualityAligned(criteria, ['observable', 'vague', 'unobservable', 'vague'])
+    ).toThrow(/one entry per acceptance criterion/);
+  });
+
+  it('rejects any list for no criteria', () => {
+    expect(() => assertCriteriaQualityAligned([], ['observable'])).toThrow();
+    expect(() => assertCriteriaQualityAligned([])).not.toThrow();
+  });
+
+  it('names both counts, so a caller can see what it sent', () => {
+    expect(() => assertCriteriaQualityAligned(criteria, ['observable'])).toThrow(
+      /received 1 for 3 criteria/
+    );
   });
 });
