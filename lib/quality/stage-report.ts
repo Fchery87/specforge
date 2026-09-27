@@ -112,6 +112,24 @@ export interface StageDocument {
   markdown: string;
 }
 
+/**
+ * One stage's quality as the export pack carries it: the report plus the identity a heading needs.
+ *
+ * Pure data. `stageId` and `stageLabel` name the block, the four reports are the ones above verbatim,
+ * and `untestableCriteria` carries criterion text only. The classes behind those criteria are not
+ * included because the pack lists the criteria under their own heading rather than annotating each
+ * one, and carrying a second copy of the class invites the two copies to drift.
+ */
+export interface StageQualityForExport {
+  stageId: string;
+  stageLabel: string;
+  traceability: TraceabilityReport;
+  testability: TestabilityReport;
+  coverage: CoverageReport;
+  length: LengthReport;
+  untestableCriteria: string[];
+}
+
 export interface StageReportInput {
   /**
    * The stage's documents, one per measured phase.

@@ -12,6 +12,90 @@
 // Note: Doc type not needed for this implementation
 // import type { Doc } from '../../convex/_generated/dataModel';
 
+import type { StageQualityForExport } from '../quality/stage-report';
+
+const TESTABILITY_CLASS_WORDS: Record<
+  'unobservable' | 'vague' | 'unclassified',
+  string
+> = {
+  unobservable: 'not observable',
+  vague: 'vague',
+  unclassified: 'unclassified',
+};
+
+/**
+ * The `## Requirement quality` section for the pack, worded exactly as the reading surface words it,
+ * so the pack and the screen cannot disagree. Advisory: every line is a to-do for the agent, never a
+ * gate, never a score.
+ *
+ * When every stage is skipped there is nothing to act on, so the heading is not written either and
+ * the output is byte-for-byte what it was without the report.
+ */
+function requirementQualitySections(
+  requirementQuality?: readonly StageQualityForExport[]
+): string[] {
+  if (!requirementQuality?.length) return [];
+
+  const lines: string[] = [];
+
+  for (const stage of requirementQuality) {
+    const { traceability, testability, coverage, length } = stage;
+    // Zeros for an unmeasured stage are noise to a coding agent; a heading exists to be acted on.
+    if (
+      traceability.total === 0 &&
+      testability.total === 0 &&
+      coverage.sections === 0
+    ) {
+      continue;
+    }
+
+    if (lines.length === 0) {
+      lines.push('## Requirement quality', '');
+    }
+
+    lines.push(`### ${stage.stageLabel}`, '');
+    lines.push(
+      `- ${traceability.traced} of ${traceability.total} requirements traced`,
+    );
+    if (traceability.untraced > 0) {
+      lines.push(`- ${traceability.untraced} untraced`);
+    }
+    lines.push(
+      `- ${testability.observable} of ${testability.total} criteria testable`,
+    );
+    for (const className of ['unobservable', 'vague', 'unclassified'] as const) {
+      const count = testability[className];
+      if (count > 0) {
+        lines.push(`- ${count} ${TESTABILITY_CLASS_WORDS[className]}`);
+      }
+    }
+    lines.push(
+      `- ${coverage.sections} of ${coverage.sections + coverage.missingSections} sections present`,
+    );
+    if (coverage.emptySections > 0) {
+      lines.push(`- ${coverage.emptySections} empty`);
+    }
+    if (coverage.missingSections > 0) {
+      lines.push(`- ${coverage.missingSections} missing`);
+    }
+    lines.push(`- ${length.words} of ${length.budgetWords} words`);
+    if (length.overBudget) {
+      lines.push('- over budget');
+    }
+    lines.push('');
+
+    if (stage.untestableCriteria.length > 0) {
+      lines.push('### Untestable criteria', '');
+      for (const criterion of stage.untestableCriteria) {
+        lines.push(`- ${criterion}`);
+      }
+      lines.push('');
+    }
+  }
+
+  return lines;
+}
+
 /**
  * Input type for SKILL.md generation
  */
@@ -30,6 +114,11 @@ export interface SkillMdInput {
     userStories?: string;
     handoff?: string;
   };
+  /**
+   * The requirement-quality report the reading surface shows, one entry per stage. Optional: without
+   * it the pack says nothing about quality, rather than inventing a signal the user was not shown.
+   */
+  requirementQuality?: readonly StageQualityForExport[];
 }
 
 /**
@@ -37,7 +126,7 @@ export interface SkillMdInput {
  * Follows the agentskills.io specification
  */
 export function generateSkillMd(input: SkillMdInput): string {
-  const { project, artifacts } = input;
+  const { project, artifacts, requirementQuality } = input;
   const kebabName = kebabCase(project.title);
 
   // Parse constitution if available
@@ -53,6 +142,7 @@ export function generateSkillMd(input: SkillMdInput): string {
     project,
     artifacts,
     constitution,
+    requirementQuality,
   );
 
   return `${yamlFrontmatter}\n${markdownContent}`;
@@ -85,6 +175,7 @@ function buildMarkdownContent(
   project: SkillMdInput['project'],
   artifacts: SkillMdInput['artifacts'],
   constitution: ParsedConstitution | null,
+  requirementQuality?: readonly StageQualityForExport[],
 ): string {
   const sections: string[] = [];
 
@@ -373,6 +464,8 @@ function buildMarkdownContent(
     sections.push('- **User Stories:** Acceptance criteria and user flows');
   }
   sections.push('');
+
+  sections.push(...requirementQualitySections(requirementQuality));
 
   // Getting Started
   sections.push('## Getting Started');

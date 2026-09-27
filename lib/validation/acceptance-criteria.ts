@@ -368,3 +368,28 @@ export function assertCriteriaQualityAligned(
     );
   }
 }
+
+/**
+ * The criteria an exported pack should list as untestable: every criterion whose stored class is
+ * `unobservable` or `vague`, carried in input order as text.
+ *
+ * The class list is normalised through `criterionClasses`, so a stored list of the wrong length
+ * cannot shift a class onto the wrong criterion: each index pairs with its own stored value or reads
+ * as `unclassified`.
+ *
+ * `unclassified` is never included, and that is the rule rather than a gap. Nobody judged those
+ * criteria, so a pack that called them untestable would be labelling them retroactively, which is
+ * the same judgement the stored read above refuses to make.
+ *
+ * This module owns the class vocabulary, so the rule lives here and nowhere else.
+ */
+export function untestableCriteria(
+  criteria: readonly string[],
+  criterionClassList: readonly string[] | null | undefined
+): string[] {
+  const classes = criterionClasses(criteria, criterionClassList);
+  return criteria.filter(
+    (_, index) =>
+      classes[index] === 'unobservable' || classes[index] === 'vague'
+  );
+}

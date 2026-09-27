@@ -37,3 +37,5 @@ export {
   type SifArtifact,
   type ConformanceLevel,
 } from './sif-schema';
+
+export type { StageQualityForExport } from '../quality/stage-report';
