@@ -15,9 +15,9 @@ changes. Each task lands as its own commit, and the gates in `.keel/config.md` e
 | 2 | Generation prompts list the phase's live claims with their IDs and tell the model to keep an ID on a requirement it rewords | Done | `9439b4a` | Prompt test asserts the ID list and the instruction appear in the assembled prompt for PRD and Architecture; `lib/llm/prompts/__tests__/claim-ids.test.ts`; schema accepted by `npx convex dev --once` on dev |
 | 3 | Schema: `changes`, `changeOps` (op as a discriminated union), `claimRevisions`, `projects.nextChangeNumber` | Done | `69485ee` | `npm run typecheck`; `npx convex dev --once` pushes to the dev deployment |
 | 4 | Change mutations: create (refused when the project has no live requirements), replace ops on a draft, abandon; owner checks on each | Done | `69485ee` | `convex/__tests__/changes.test.ts`: create, refusal, foreign-owner refusal, ops replaced only while draft |
-| 5 | `applyChange`: check every `baseText`, then add, modify with a `claimRevisions` row, remove, and mark touched phases stale with `staleReason: "CHG-nnnn applied"`, in one mutation | Done, unverified: SHA recorded after the squash merge | — | `changes.test.ts`: ID issued on add; ID, evidence links and revision kept on modify; `retiredAt` on remove; a stale `baseText` applies nothing and names the op |
-| 6 | Draft parser in `lib/changes/`: parse the model's ops, drop ops naming unknown or retired claims with a note, reject a bug fix with no added acceptance criterion | Not started | — | `lib/changes/__tests__/parse-draft.test.ts` with literal inputs and expected ops |
-| 7 | `draftChange` action: live claims with IDs, the description, bug fields and repository evidence in; parsed ops out, saved to the draft | Not started | — | Action test with a stubbed model response asserts the saved ops and the dropped-op note |
+| 5 | `applyChange`: check every `baseText`, then add, modify with a `claimRevisions` row, remove, and mark touched phases stale with `staleReason: "CHG-nnnn applied"`, in one mutation | Done | `e99fad7` | `changes.test.ts`: ID issued on add; ID, evidence links and revision kept on modify; `retiredAt` on remove; a stale `baseText` applies nothing and names the op |
+| 6 | Draft parser in `lib/changes/`: parse the model's ops, drop ops naming unknown or retired claims with a note, reject a bug fix with no added acceptance criterion | Done, unverified: SHA recorded after the squash merge | — | `lib/changes/__tests__/parse-draft.test.ts` with literal inputs and expected ops |
+| 7 | `draftChange` action: live claims with IDs, the description, bug fields and repository evidence in; parsed ops out, saved to the draft | Done, unverified: SHA recorded after the squash merge | — | `lib/changes/__tests__/run-draft.test.ts` drives the draft with a stubbed model: one pass, a retry for a missing regression criterion, and the note when the retry still has none; `getDraftContextHandler` tests pin the inputs. A live model call waits for task 13 |
 | 8 | Project page "Changes" section and the "New change" form (feature or bug; bug asks observed, expected, reproduction) | Not started | — | Component tests; `/design` fixture captured at 1440 and 390 in both themes |
 | 9 | Change page `/project/[id]/change/[changeId]`: ops as a diff, edit, delete and add ops, apply, and the conflict refresh | Not started | — | Component tests for each op's rendering and the conflict state; `/design` captures |
 | 10 | Phase page line when a change was applied after the document was generated, with the regenerate control | Not started | — | Phase page test with `isStale` and `staleReason` set |
@@ -44,5 +44,10 @@ actually ran. `Done, unverified` is honest and must say what is missing.
   and 9 read.
 - Task 5 also refuses a bug fix with no added acceptance criterion, which the spec requires of every
   bug fix; task 6 keeps the same rule in the draft parser so the reader sees it before applying.
+- Task 6's parser flags a bug fix with no regression criterion rather than rejecting the whole draft.
+  Task 7 then drafts once more with a reminder, and if the retry still has none it keeps the edits and
+  tells the reader to add the criterion, because `applyChange` refuses a bug fix without one.
+- Task 7 moved the credential and client setup out of `generateQuickSpec` into
+  `convex/actions/llmSession.ts`, which the draft action shares.
 - Prod has no data, so the task 12 migration only matters on dev and for any user data created
   before it ships.

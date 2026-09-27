@@ -115,7 +115,8 @@ change would undo it.
 4. **Apply.** One mutation checks every `baseText`, then applies all ops in one transaction:
    insert claims for `add` with new IDs, write a `claimRevisions` row and patch the text for
    `modify`, set `retiredAt` for `remove`. Evidence links move with the claim, because the claim row
-   is the same row. The documents of every phase the change touched are marked out of date, through
+   is the same row. The documents of every phase whose requirements were added, reworded or removed
+   are marked out of date (a `reaffirm` changes no wording, so its phase stays current), through
    the existing `isStale`, `staleReason` and `staleSince` fields on `phases`, which the dashboard
    already reads. If any
    `baseText` no longer matches, nothing applies and the page offers to refresh the draft.
