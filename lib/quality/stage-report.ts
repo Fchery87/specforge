@@ -1,7 +1,6 @@
 import type { ParsedClaim } from '../claims';
 import { claimState, parseClaimManifest } from '../claims';
-import { parseSpecOutline } from '../spec-outline';
-import { slugifyHeading } from '../spec-outline';
+import { parseSpecOutline, slugifyHeading, type SpecSection } from '../spec-outline';
 import type { SectionPlanConfig } from '../llm/section-plans';
 import { criterionClasses, type StoredCriterionClass } from '../validation/acceptance-criteria';
 import { isOverBudget, wordsForTokens } from './budgets';
@@ -57,16 +56,71 @@ export interface LengthReport {
   overBudget: boolean;
 }
 
+/**
+ * One plan section, as the document actually carries it.
+ *
+ * The spec requires an over-budget section to be marked **where the section is**, not only in a
+ * summary, and an empty section to be visible at its own heading. A stage-level word count cannot do
+ * that, so each section is resolved to its own extent. `headingKey` is the anchor id of the heading it
+ * matched, which is what lets a caller mark the right heading in the rendered document.
+ */
+export interface SectionQuality {
+  /** The plan section's id. */
+  id: string;
+  title: string;
+  /**
+   * The phase whose plan defines this section and whose document was measured for it.
+   *
+   * A caller marking one artifact filters by this. The match was made inside that phase's own
+   * document, so a same-named heading in a sibling phase can neither be marked into a document
+   * that does not contain it nor satisfy this section from a document that does.
+   */
+  phaseId: string;
+  /** The document heading's anchor id, or null when the section is absent. */
+  headingKey: string | null;
+  present: boolean;
+  /** Present but carrying no claim, so the prose states no requirement. */
+  empty: boolean;
+  /** Words in the section's heading subtree. */
+  words: number;
+  budgetWords: number;
+  overBudget: boolean;
+}
+
 export interface StageReport {
   traceability: TraceabilityReport;
   testability: TestabilityReport;
   coverage: CoverageReport;
   length: LengthReport;
+  /**
+   * Per-section detail behind the four summaries.
+   *
+   * The stored row does not carry this: `saveStageReport` persists the four summaries, and this is
+   * what the reading surface needs to mark a section at its own heading. Splitting them keeps the
+   * stored shape small and lets the detail change without a schema migration.
+   */
+  sections: SectionQuality[];
+}
+
+/**
+ * One phase's artifact text, kept whole rather than joined.
+ */
+export interface StageDocument {
+  /** The phase the document belongs to, which ties it to that phase's plan sections. */
+  phaseId: string;
+  /** The artifact's markdown, measured as its own document. */
+  markdown: string;
 }
 
 export interface StageReportInput {
-  /** The stage's document text, which is what the coverage and length dimensions read. */
-  markdown: string;
+  /**
+   * The stage's documents, one per measured phase.
+   *
+   * A section is matched inside the document whose `phaseId` the plan names, and never across the
+   * join of the whole stage's text: the reading surface renders one document alone and derives its
+   * anchors there, so an anchor of the joined text can be an anchor of no document anyone renders.
+   */
+  documents: readonly StageDocument[];
   /** The stage's claim records, already parsed. Traceability reads these and nothing else. */
   claims: readonly ParsedClaim[];
   /** The plan the document was written against, which is what coverage and the budget read. */
@@ -98,14 +152,42 @@ function sectionKeys(plan: SectionPlanConfig): string[] {
 }
 
 /**
- * Which plan sections the document contains, and how many claims each carries.
+ * The keys a document heading can be matched by.
+ *
+ * `section.id` is the slug of the whole heading text and is the anchor the rendered document carries,
+ * which is why it and nothing else may be recorded as `headingKey`. `slugifyHeading(section.title)` is
+ * the same slug with the numbering stripped, which is how the plan knows the section: an unnumbered
+ * generated heading slugs identically either way, while `## 1. Scope` anchors as `1-scope` and reads
+ * as `Scope`. Matching on both is what lets a numbered document be measured, and it is the anchor id
+ * that lets a caller mark the heading the reader actually sees.
+ */
+function documentKeys(section: SpecSection): string[] {
+  const keys = new Set<string>();
+  const anchor = slugifyHeading(section.id);
+  const title = slugifyHeading(section.title);
+  if (anchor) keys.add(anchor);
+  if (title) keys.add(title);
+  return [...keys];
+}
+
+/** One plan section the document contains, measured over its heading subtree. */
+interface MatchedSection {
+  /** The anchor id of the heading that matched, which is what a caller can mark. */
+  anchorId: string;
+  claims: number;
+  words: number;
+}
+
+/**
+ * Which plan sections one document contains, and what each carries, keyed by the plan key that
+ * matched.
  *
  * `mergeSectionContent` writes each section as a level-2 heading of its title-cased name, and
  * `parseSpecOutline` reads the same markdown, so slugging both sides matches them without either
  * needing to know the other's spelling.
  *
- * A plan section's claims are counted over its **subtree**, not its own body. `parseSpecOutline` ends a
- * body at the next heading of any level, so a section written as
+ * A plan section's claims and words are counted over its **subtree**, not its own body.
+ * `parseSpecOutline` ends a body at the next heading of any level, so a section written as
  * `## Requirements` / `### Functional` / claim would have an empty own body and read as a gap while the
  * claim sits right there under it. Generated sections carry sub-headings often enough that this was the
  * most likely false gap in the report. Starting at a matched heading and absorbing the deeper headings
@@ -113,52 +195,96 @@ function sectionKeys(plan: SectionPlanConfig): string[] {
  *
  * Absorbing the subtree also means a nested heading cannot be mistaken for another plan section, since
  * the walk skips past it.
+ *
+ * The same heading can appear twice in one document. Its words and claims exist both times, so they
+ * accumulate and the over-budget and empty judgements read the sum. The anchor kept is the first
+ * occurrence's, because one mark for two headings is one mark too few rather than one per duplicate.
  */
-function matchSections(
+function matchDocument(
   markdown: string,
-  sectionPlan: readonly SectionPlanConfig[]
-): {
-  present: Set<string>;
-  claimsBySection: Map<string, number>;
-} {
-  const planKeys = new Set(sectionPlan.flatMap(sectionKeys));
+  planKeys: ReadonlySet<string>
+): Map<string, MatchedSection> {
   const outline = parseSpecOutline(markdown);
-  const present = new Set<string>();
-  const claimsBySection = new Map<string, number>();
+  const matched = new Map<string, MatchedSection>();
 
   let index = 0;
   while (index < outline.sections.length) {
     const section = outline.sections[index];
-    const key = slugifyHeading(section.title);
+    const key = documentKeys(section).find((candidate) => planKeys.has(candidate));
 
-    if (!key || !planKeys.has(key)) {
+    if (!key) {
       index += 1;
       continue;
     }
 
     let claims = parseClaimManifest(section.body).length;
+    let words = countWords(section.body);
     let next = index + 1;
     while (next < outline.sections.length && outline.sections[next].level > section.level) {
       claims += parseClaimManifest(outline.sections[next].body).length;
+      words += countWords(outline.sections[next].body);
       next += 1;
     }
 
-    present.add(key);
-    claimsBySection.set(key, claims);
+    const previous = matched.get(key);
+    if (previous) {
+      previous.claims += claims;
+      previous.words += words;
+    } else {
+      matched.set(key, { anchorId: section.id, claims, words });
+    }
     index = next;
   }
 
-  return { present, claimsBySection };
+  return matched;
+}
+
+/**
+ * Match each plan section inside its own phase's document.
+ *
+ * The result is keyed by phase, and a plan section is looked up only in the document whose
+ * `phaseId` matches its plan. The anchor a match records must be an anchor of the document the
+ * caller will mark, and the caller renders one phase's document alone, not the joined stage text:
+ * matching the join handed back an anchor of a document nobody renders whenever a heading repeated
+ * across artifacts, and let one phase's headings satisfy another phase's plan.
+ */
+function matchSections(
+  documents: readonly StageDocument[],
+  sectionPlan: readonly SectionPlanConfig[]
+): Map<string, Map<string, MatchedSection>> {
+  const keysByPhase = new Map<string, Set<string>>();
+  for (const plan of sectionPlan) {
+    const keys = keysByPhase.get(plan.phaseId) ?? new Set<string>();
+    for (const key of sectionKeys(plan)) keys.add(key);
+    keysByPhase.set(plan.phaseId, keys);
+  }
+
+  const matched = new Map<string, Map<string, MatchedSection>>();
+  for (const stageDocument of documents) {
+    const planKeys = keysByPhase.get(stageDocument.phaseId);
+    if (!planKeys) continue;
+    matched.set(stageDocument.phaseId, matchDocument(stageDocument.markdown, planKeys));
+  }
+
+  return matched;
 }
 
 export function buildStageReport(input: StageReportInput): StageReport {
-  const { markdown, claims, sectionPlan, criteria, criterionClassList } = input;
+  const { documents, claims, sectionPlan, criteria, criterionClassList } = input;
+
+  // Each document is parsed once and shared, so coverage and the per-section detail cannot disagree
+  // about which headings a plan section matched.
+  const matched = matchSections(documents, sectionPlan);
+  // The length dimension reads the stage as a whole, which is the join the caller no longer hands
+  // in, so it is derived here from the same documents the sections matched inside.
+  const stageMarkdown = documents.map((stageDocument) => stageDocument.markdown).join('\n\n');
 
   return {
     traceability: buildTraceability(claims),
     testability: buildTestability(criteria, criterionClassList),
-    coverage: buildCoverage(markdown, sectionPlan),
-    length: buildLength(markdown, sectionPlan),
+    coverage: buildCoverage(matched, sectionPlan),
+    length: buildLength(stageMarkdown, sectionPlan),
+    sections: buildSections(matched, sectionPlan),
   };
 }
 
@@ -220,18 +346,16 @@ function buildTestability(
  * count as missing, because an optional section is a judgement call rather than a gap.
  */
 function buildCoverage(
-  markdown: string,
+  matched: Map<string, Map<string, MatchedSection>>,
   sectionPlan: readonly SectionPlanConfig[]
 ): CoverageReport {
-  const { present, claimsBySection } = matchSections(markdown, sectionPlan);
-
   let sections = 0;
   let emptySections = 0;
   const missingSectionIds: string[] = [];
 
   for (const plan of sectionPlan) {
-    const keys = sectionKeys(plan);
-    const key = keys.find((candidate) => present.has(candidate));
+    const phaseMatched = matched.get(plan.phaseId);
+    const key = sectionKeys(plan).find((candidate) => phaseMatched?.has(candidate));
 
     if (!key) {
       if (plan.required) missingSectionIds.push(plan.id);
@@ -239,7 +363,7 @@ function buildCoverage(
     }
 
     sections += 1;
-    if ((claimsBySection.get(key) ?? 0) === 0) emptySections += 1;
+    if ((phaseMatched?.get(key)?.claims ?? 0) === 0) emptySections += 1;
   }
 
   return {
@@ -248,6 +372,40 @@ function buildCoverage(
     missingSections: missingSectionIds.length,
     missingSectionIds,
   };
+}
+
+/**
+ * Per-section detail, index-aligned with the plan.
+ *
+ * Every plan section gets an entry, present or not, so a caller can show what the plan asked for
+ * rather than only what the document happens to contain. `headingKey` is the anchor id of the heading
+ * that matched, because that is the only key the rendered document has a heading for.
+ * `overBudget` is false for an absent section: there is no section to be over anything, and reporting
+ * one would double-count the gap that `missingSectionIds` already reports.
+ */
+function buildSections(
+  matched: Map<string, Map<string, MatchedSection>>,
+  sectionPlan: readonly SectionPlanConfig[]
+): SectionQuality[] {
+  return sectionPlan.map((plan) => {
+    const phaseMatched = matched.get(plan.phaseId);
+    const key = sectionKeys(plan).find((candidate) => phaseMatched?.has(candidate));
+    const match = key ? phaseMatched?.get(key) : undefined;
+    const words = match?.words ?? 0;
+    const budgetWords = wordsForTokens(plan.estimatedTokens);
+
+    return {
+      id: plan.id,
+      title: plan.title,
+      phaseId: plan.phaseId,
+      headingKey: match?.anchorId ?? null,
+      present: match !== undefined,
+      empty: match !== undefined && match.claims === 0,
+      words,
+      budgetWords,
+      overBudget: match !== undefined && isOverBudget(words, budgetWords),
+    };
+  });
 }
 
 /**
@@ -265,4 +423,31 @@ function buildLength(
   const budgetWords = wordsForTokens(tokens);
 
   return { words, budgetWords, overBudget: isOverBudget(words, budgetWords) };
+}
+
+/**
+ * The two counts that put a mark on a stage in the map, and their split.
+ *
+ * A stage is marked when a requirement has no evidence behind it or a criterion states nothing a
+ * check can confirm, which is the difference worth seeing from the overview: the artifact itself
+ * explains which section and why.
+ *
+ * `unclassified` is deliberately excluded and must never be counted as untestable. A criterion
+ * written before the class existed was never judged by anyone, so a stage carrying only those has no
+ * finding to report, and marking it would relabel the criterion retroactively. That is the same
+ * decision the read side of the ticket parser already made.
+ */
+export interface StageQualityFlag {
+  untraced: number;
+  unobservable: number;
+  vague: number;
+}
+
+/** The mark a stage earns, projected from the report the artifact shows. */
+export function stageQualityFlagFor(report: StageReport): StageQualityFlag {
+  return {
+    untraced: report.traceability.untraced,
+    unobservable: report.testability.unobservable,
+    vague: report.testability.vague,
+  };
 }

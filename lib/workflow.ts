@@ -73,6 +73,17 @@ export function phaseLabel(phaseId: string): string {
   return PHASE_LABELS[phaseId as PhaseId] ?? phaseId;
 }
 
+/**
+ * The stage a phase belongs to, or undefined for a phase outside every stage.
+ *
+ * `constitution` and `handoff` are those two: the rules phase precedes the workflow and the export
+ * phase follows it, so neither is measured as part of a stage. Derived from `WORKFLOW_STAGES` rather
+ * than a second table, so a phase moved between stages moves here in the same edit.
+ */
+export function stageIdForPhase(phaseId: string): StageId | undefined {
+  return WORKFLOW_STAGES.find((stage) => stage.phaseIds.includes(phaseId as PhaseId))?.id;
+}
+
 export type ProjectMode = 'quick' | 'full' | 'backend';
 
 export interface ModePolicy {

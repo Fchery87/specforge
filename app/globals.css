@@ -404,6 +404,19 @@
     font-weight: 400;
     color: var(--ink-dim);
   }
+  /* A length or coverage mark on a clause's own heading. `renderSpecHtml` writes this span into the
+     rendered heading, so there is no markup for a utility class to sit on; the rule belongs here,
+     beside the claim-bullet notation. It stays a word rather than a colour. The markup already
+     separates it from the heading text for a reader using an accessible name, so this margin is the
+     visible half of that one gap. */
+  & .section-mark {
+    font-family: var(--font-sans);
+    font-size: var(--text-caption);
+    font-weight: 400;
+    margin-inline-start: 0.25rem;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
 
   & blockquote {
     border-left: 2px solid var(--ember-deep);

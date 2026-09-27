@@ -9,7 +9,7 @@ import {
   type ClaimState,
   type ParsedClaim,
 } from "@/lib/claims";
-import { renderSpecHtml } from "@/lib/markdown-render";
+import { renderSpecHtml, type SectionMark } from "@/lib/markdown-render";
 import { splitContentByMermaid } from "@/lib/mermaid-splitter";
 import { MermaidDiagram } from "@/components/ui/mermaid-diagram";
 import { useActiveHeading } from "@/hooks/use-active-heading";
@@ -59,7 +59,8 @@ type DocumentBlock =
 function renderBlocks(
   markdown: string,
   headingIds: readonly string[],
-  claimStates: Readonly<Record<string, ClaimState>>
+  claimStates: Readonly<Record<string, ClaimState>>,
+  sectionMarks: Readonly<Record<string, SectionMark>>
 ): DocumentBlock[] {
   return splitContentByMermaid(markdown).map((segment, index) => {
     const key = `${segment.type}-${index}`;
@@ -68,17 +69,30 @@ function renderBlocks(
       return { kind: "mermaid", key, chart: segment.content };
     }
 
-    return { kind: "html", key, html: renderSpecHtml(segment.content, headingIds, claimStates) };
+    return {
+      kind: "html",
+      key,
+      html: renderSpecHtml(segment.content, headingIds, claimStates, sectionMarks),
+    };
   });
 }
 
 export function ArtifactDocument({
   markdown,
   title,
+  sectionMarks,
   className,
 }: {
   markdown: string;
   title?: string;
+  /**
+   * Length marks to place on a clause's heading, keyed by anchor id.
+   *
+   * The caller supplies this rather than the document computing it, because the mark comes from the
+   * stage report, which needs the plan and the criteria. A document that could not be measured, such
+   * as one from a legacy artifact with no plan, simply renders without marks.
+   */
+  sectionMarks?: Readonly<Record<string, SectionMark>>;
   className?: string;
 }) {
   const outline = useMemo(() => parseSpecOutline(markdown, title), [markdown, title]);
@@ -94,8 +108,8 @@ export function ArtifactDocument({
   }, [owned]);
 
   const blocks = useMemo(
-    () => renderBlocks(markdown, ids, claimStates),
-    [markdown, ids, claimStates]
+    () => renderBlocks(markdown, ids, claimStates, sectionMarks ?? {}),
+    [markdown, ids, claimStates, sectionMarks]
   );
 
   const activeId = useActiveHeading(ids, { revision: markdown });

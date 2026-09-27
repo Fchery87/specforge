@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { StageStepper } from "../stage-stepper";
+import { buildStageReport, stageQualityFlagFor } from "@/lib/quality/stage-report";
 import type { PhaseStatusMap } from "@/lib/workflow";
 
 describe("StageStepper", () => {
@@ -144,5 +145,112 @@ describe("StageStepper", () => {
     expect(screen.getByText("Ready")).toBeInTheDocument();
     expect(screen.getByText("Generating")).toBeInTheDocument();
     expect(screen.getByText("Not started")).toBeInTheDocument();
+  });
+});
+
+/**
+ * The map marks a stage whose requirements are untraced or whose criteria state nothing checkable.
+ * The mark is a word in the status text, never a second colour on its own, and it comes from the same
+ * report the artifact shows rather than from a count of its own.
+ *
+ * The label and the status are separate spans in a flex column, so the link's accessible name runs
+ * them together with no separator: "RequirementsReady". That is how it already named itself, and
+ * these assertions are written against the name as it is actually read.
+ */
+describe("StageStepper quality marks", () => {
+  const allReady: PhaseStatusMap = {
+    brief: "ready",
+    prd: "ready",
+    domainModel: "ready",
+    specs: "ready",
+    artifacts: "ready",
+    stories: "ready",
+  };
+
+  it("appends the gap to the status label, inside the link's accessible name", () => {
+    render(
+      <StageStepper
+        projectId="proj-1"
+        phases={allReady}
+        quality={{
+          requirements: { untraced: 1, unobservable: 0, vague: 0 },
+          design: { untraced: 0, unobservable: 2, vague: 1 },
+          tasks: { untraced: 0, unobservable: 0, vague: 0 },
+        }}
+      />
+    );
+
+    expect(
+      screen.getByRole("link", { name: "RequirementsReady, 1 requirement untraced" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "DesignReady, 2 criteria not testable, 1 criterion vague" })
+    ).toBeInTheDocument();
+    // A stage with nothing to report keeps the bare status label.
+    expect(screen.getByRole("link", { name: "TasksReady" })).toBeInTheDocument();
+  });
+
+  it("wraps the status line rather than clipping the gap, and keeps the label truncating", () => {
+    render(
+      <StageStepper
+        projectId="proj-1"
+        phases={allReady}
+        quality={{ requirements: { untraced: 1, unobservable: 0, vague: 0 } }}
+      />
+    );
+
+    const status = screen.getByText(/1 requirement untraced/);
+    expect(status.className).not.toContain("truncate");
+    expect(screen.getByText("Requirements").className).toContain("truncate");
+  });
+
+  it("adds nothing for an all-zero flag or for no flag at all", () => {
+    const zeros = { untraced: 0, unobservable: 0, vague: 0 };
+
+    const { unmount } = render(
+      <StageStepper
+        projectId="proj-1"
+        phases={allReady}
+        quality={{ requirements: zeros, design: zeros, tasks: zeros }}
+      />
+    );
+
+    for (const label of ["Requirements", "Design", "Tasks"]) {
+      expect(screen.getByRole("link", { name: `${label}Ready` })).toBeInTheDocument();
+    }
+
+    unmount();
+
+    render(<StageStepper projectId="proj-1" phases={allReady} />);
+
+    for (const label of ["Requirements", "Design", "Tasks"]) {
+      expect(screen.getByRole("link", { name: `${label}Ready` })).toBeInTheDocument();
+    }
+  });
+
+  it("adds nothing for a stage whose only criteria are unclassified", () => {
+    // Going through the real report is the point: the flag builder has to exclude `unclassified`, and
+    // a criterion written before the class existed is not relabelled untestable by the map.
+    const report = buildStageReport({
+      documents: [],
+      claims: [],
+      sectionPlan: [],
+      criteria: ["A criterion from before the class existed."],
+    });
+    const flag = stageQualityFlagFor(report);
+
+    expect(report.testability.unclassified).toBe(1);
+
+    render(
+      <StageStepper
+        projectId="proj-1"
+        phases={allReady}
+        quality={{ requirements: flag, design: flag, tasks: flag }}
+      />
+    );
+
+    for (const label of ["Requirements", "Design", "Tasks"]) {
+      expect(screen.getByRole("link", { name: `${label}Ready` })).toBeInTheDocument();
+    }
   });
 });

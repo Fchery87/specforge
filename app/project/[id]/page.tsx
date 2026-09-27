@@ -67,6 +67,10 @@ export default function ProjectPage() {
     getAllProjectArtifactsAction,
     isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
   );
+  const stageQuality = useQuery(
+    api.stageReports.getProjectStageQuality,
+    isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
+  );
 
   // Show loading while auth is initializing
   if (!isLoaded) {
@@ -289,6 +293,7 @@ export default function ProjectPage() {
             projectId={params.id}
             phases={phases ?? []}
             skippedPhases={skippedPhases}
+            quality={stageQuality}
           />
         </div>
 

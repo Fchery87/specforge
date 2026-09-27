@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,9 @@ import {
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { ArtifactDocument } from "@/components/artifact-document";
 import { ArtifactEditorModal } from "@/components/artifact-editor-modal";
+import { StageQualityReport } from "@/components/stage-report";
+import { sectionMarksFor } from "@/lib/markdown-render";
+import { stageIdForPhase } from "@/lib/workflow";
 
 /**
  * The critique the pipeline actually stores.
@@ -105,6 +108,39 @@ export function ArtifactPreview({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   const deleteArtifact = useMutation(api.artifacts.deleteArtifact);
+
+  /**
+   * The report for the stage this artifact belongs to.
+   *
+   * The stage is derived from the artifact rather than passed in, so a caller cannot hand an artifact
+   * the report of a stage it is not part of. A phase outside every stage, which is the rules phase and
+   * the export phase, and a caller that passes no `phaseId` at all, which is the quick spec page, both
+   * resolve to `"skip"` and render exactly what this component rendered before the report existed.
+   */
+  const stageId = artifact.phaseId ? stageIdForPhase(artifact.phaseId) : undefined;
+  const result = useQuery(
+    api.stageReports.getStageReport,
+    projectId && stageId
+      ? { projectId: projectId as Id<"projects">, stageId }
+      : "skip"
+  );
+
+  /**
+   * The length marks for this artifact's own phase.
+   *
+   * A stage is measured from the text of up to three phases joined, so the report's sections cover
+   * all of them. Without this filter a heading here could be marked because a same-named heading in a
+   * sibling phase was empty or long, which would point the reader at a section that is fine.
+   */
+  const sectionMarks = useMemo(
+    () =>
+      sectionMarksFor(
+        (result?.report.sections ?? []).filter(
+          (section) => section.phaseId === artifact.phaseId
+        )
+      ),
+    [result, artifact.phaseId]
+  );
 
   async function handleDelete() {
     setIsDeleting(true);
@@ -206,8 +242,13 @@ export function ArtifactPreview({
         </header>
 
         {expanded ? (
-          <div className="mt-8">
-            <ArtifactDocument markdown={artifact.content} title={artifact.title} />
+          <div className="mt-8 flex flex-col gap-8">
+            {result ? <StageQualityReport report={result.report} /> : null}
+            <ArtifactDocument
+              markdown={artifact.content}
+              title={artifact.title}
+              sectionMarks={sectionMarks}
+            />
           </div>
         ) : artifact.previewHtml ? (
           <div

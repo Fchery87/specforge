@@ -4,7 +4,7 @@ import type { Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { WORKFLOW_STAGES } from '../lib/workflow';
 import { getSectionPlansForPhase, type SectionPlanConfig } from '../lib/llm/section-plans';
-import { buildStageReport } from '../lib/quality/stage-report';
+import { buildStageReport, stageQualityFlagFor, type StageDocument, type StageQualityFlag } from '../lib/quality/stage-report';
 import type { ClaimEvidence, ParsedClaim } from '../lib/claims';
 
 /**
@@ -28,7 +28,7 @@ import type { ClaimEvidence, ParsedClaim } from '../lib/claims';
 type ReadCtx = Pick<QueryCtx, 'db'>;
 
 interface StageInputs {
-  markdown: string;
+  documents: StageDocument[];
   claims: ParsedClaim[];
   sectionPlan: SectionPlanConfig[];
   criteria: string[];
@@ -95,7 +95,7 @@ async function loadStageInputs(
   const stage = WORKFLOW_STAGES.find((candidate) => candidate.id === stageId);
   if (!stage) {
     return {
-      markdown: '',
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: [],
@@ -104,7 +104,9 @@ async function loadStageInputs(
     };
   }
 
-  const markdownParts: string[] = [];
+  // One document per phase, not a joined string: a plan section is matched inside the document the
+  // caller will mark, and only the length dimension reads the stage's text joined.
+  const documents: StageDocument[] = [];
   const sectionPlan: SectionPlanConfig[] = [];
   const criteria: string[] = [];
   const criterionClassList: string[] = [];
@@ -133,11 +135,11 @@ async function loadStageInputs(
 
     if (latestVersion) {
       artifactVersionIds.push(latestVersion._id);
-      markdownParts.push(latestVersion.content);
+      documents.push({ phaseId, markdown: latestVersion.content });
     } else {
       // A legacy artifact with no version row is measured from its current content. Its revision is
       // not recorded, because there is none to record, and it is not claimed to be.
-      markdownParts.push(artifact.content);
+      documents.push({ phaseId, markdown: artifact.content });
     }
 
     const tickets = await ctx.db
@@ -183,7 +185,7 @@ async function loadStageInputs(
   }
 
   return {
-    markdown: markdownParts.join('\n\n'),
+    documents,
     claims: parsedClaims,
     sectionPlan,
     criteria,
@@ -270,6 +272,33 @@ export async function getSavedStageReportHandler(
     .first();
 }
 
+/**
+ * The mark every stage earns, for the workflow map.
+ *
+ * One entry per stage, zeros included, because the map renders a stage whether or not anything was
+ * measured for it and a missing key would be a second way to say "nothing to report".
+ *
+ * It reuses `loadStageInputs` and `buildStageReport` rather than counting anything itself. That is the
+ * point: the word on the map and the lines on the artifact are two projections of one computation, so
+ * they are incapable of disagreeing about how many requirements are untraced. A second count here is
+ * how the map would drift from the document it is describing, and the user would have no way to tell
+ * which of the two was wrong.
+ */
+export async function getProjectStageQualityHandler(
+  ctx: QueryCtx,
+  args: { projectId: Id<'projects'> }
+): Promise<Record<string, StageQualityFlag>> {
+  await authorizeProjectAccess(ctx, args.projectId);
+
+  const quality: Record<string, StageQualityFlag> = {};
+  for (const stage of WORKFLOW_STAGES) {
+    const inputs = await loadStageInputs(ctx, args.projectId, stage.id);
+    quality[stage.id] = stageQualityFlagFor(buildStageReport(inputs));
+  }
+
+  return quality;
+}
+
 const reportArgs = {
   projectId: v.id('projects'),
   stageId: v.string(),
@@ -288,4 +317,9 @@ export const saveStageReport = mutation({
 export const getSavedStageReport = query({
   args: reportArgs,
   handler: getSavedStageReportHandler,
+});
+
+export const getProjectStageQuality = query({
+  args: { projectId: v.id('projects') },
+  handler: getProjectStageQualityHandler,
 });

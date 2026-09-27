@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  getProjectStageQualityHandler,
   getSavedStageReportHandler,
   getStageReportHandler,
   saveStageReportHandler,
 } from '../stageReports';
+import { stageQualityFlagFor } from '../../lib/quality/stage-report';
+import { WORKFLOW_STAGES } from '../../lib/workflow';
 
 /**
  * A context that honours the index predicates and the ordering, unlike the simpler mocks elsewhere in
@@ -450,6 +453,98 @@ describe('the module never writes on the read path', () => {
       projectId: 'p1' as never,
       stageId: 'requirements',
     });
+
+    expect(patch).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
+    expect(ctx.__tables.stageReports?.size ?? 0).toBe(0);
+  });
+});
+
+/**
+ * The mark the workflow map puts on a stage. It has to be the same computation the artifact's report
+ * shows, so these tests compare it against a report read through the other handler rather than against
+ * a number written here.
+ */
+describe('getProjectStageQuality', () => {
+  it('returns one entry per stage, with zeros where nothing was measured', async () => {
+    const ctx = makeCtx(seedFor({ latestVersionContent: '## Requirements\n\nx' }));
+
+    const quality = await getProjectStageQualityHandler(ctx as never, {
+      projectId: 'p1' as never,
+    });
+
+    expect(Object.keys(quality).sort()).toEqual(
+      WORKFLOW_STAGES.map((stage) => stage.id).sort()
+    );
+    // The `tasks` stage has no artifact and no ticket in this fixture, so it reports zeros rather than
+    // being absent: the map draws a stage whether or not anything was measured for it.
+    expect(quality.tasks).toEqual({ untraced: 0, unobservable: 0, vague: 0 });
+    expect(quality.design).toEqual({ untraced: 0, unobservable: 0, vague: 0 });
+  });
+
+  it('cannot disagree with the stage report, because it is the same computation', async () => {
+    const ctx = makeCtx(
+      seedFor({
+        latestVersionContent: '## Requirements\n\nx',
+        claims: [
+          {
+            _id: 'c1',
+            projectId: 'p1',
+            artifactId: 'a1',
+            phaseId: 'prd',
+            claimId: 'C-1',
+            decisionStatus: 'unresolved',
+            reviewStatus: 'pending',
+            text: 'a',
+          },
+        ],
+        tickets: [
+          {
+            _id: 't1',
+            projectId: 'p1',
+            phaseId: 'prd',
+            acceptanceCriteria: ['Should be fast.', 'Handle edge cases.'],
+            acceptanceCriteriaQuality: ['unobservable', 'vague'],
+          },
+        ],
+      })
+    );
+
+    const quality = await getProjectStageQualityHandler(ctx as never, {
+      projectId: 'p1' as never,
+    });
+    const report = await getStageReportHandler(ctx as never, {
+      projectId: 'p1' as never,
+      stageId: 'requirements',
+    });
+
+    expect(quality.requirements).toEqual(stageQualityFlagFor(report.report));
+    // No evidence link for the claim, so it is untraced, and the two criteria are classed.
+    expect(quality.requirements).toEqual({ untraced: 1, unobservable: 1, vague: 1 });
+  });
+
+  it('rejects a read by a user who does not own the project', async () => {
+    const ctx = makeCtx(seedFor({}), 'someone-else');
+
+    await expect(
+      getProjectStageQualityHandler(ctx as never, { projectId: 'p1' as never })
+    ).rejects.toThrow(/Forbidden/);
+  });
+
+  it('rejects an unauthenticated read', async () => {
+    const ctx = makeCtx(seedFor({}), '');
+
+    await expect(
+      getProjectStageQualityHandler(ctx as never, { projectId: 'p1' as never })
+    ).rejects.toThrow(/Unauthenticated/);
+  });
+
+  it('writes nothing', async () => {
+    const ctx = makeCtx(seedFor({ latestVersionContent: '## Requirements\n\nx' }));
+    const patch = vi.spyOn(ctx.db, 'patch');
+    const insert = vi.spyOn(ctx.db, 'insert');
+
+    await getProjectStageQualityHandler(ctx as never, { projectId: 'p1' as never });
 
     expect(patch).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();

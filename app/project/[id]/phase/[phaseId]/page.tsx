@@ -80,6 +80,10 @@ export default function PhasePage() {
     isLoaded && isSignedIn ? { projectId } : "skip"
   );
   const readiness = useQuery(api.userConfigs.getGenerationReadiness);
+  const stageQuality = useQuery(
+    api.stageReports.getProjectStageQuality,
+    isLoaded && isSignedIn ? { projectId } : "skip"
+  );
   const generatePhase = useAction(generatePhaseAction);
 
   const resumePhase = useAction(resumePhaseAction);
@@ -364,6 +368,7 @@ export default function PhasePage() {
           currentPhase={phaseId}
           phases={phases ?? []}
           skippedPhases={project?.skippedPhases ?? []}
+          quality={stageQuality}
         />
       </section>
 

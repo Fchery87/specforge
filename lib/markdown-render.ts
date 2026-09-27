@@ -90,6 +90,82 @@ const HEADING_ATTRS = /<h([1-4])[^>]*>/g;
 const CLAIM_BULLET = /<li>(\s*(?:<p>)?\s*)<strong>([A-Za-z][A-Za-z0-9]*-\d+)<\/strong>/g;
 const SAFE_CLAIM_ID = /^[A-Za-z][A-Za-z0-9]*-\d+$/;
 
+/**
+ * A heading that has an id, so a quality mark can be attached to the right clause.
+ *
+ * The id is required in the match: an unanchored heading is not a clause the table of contents knows
+ * about, so there is nothing to mark it against.
+ */
+const ANCHORED_HEADING = /<h([1-4]) id="([^"]+)">([\s\S]*?)<\/h\1>/g;
+
+/**
+ * The vocabulary of a section mark, mapped to the word the reader sees.
+ *
+ * A caller names a token from this set and this module owns the wording, so a mark cannot arrive as
+ * arbitrary text. The reader gets a word rather than a colour, which is the document language's rule.
+ */
+const SECTION_MARK_WORDS = {
+  'over-budget': 'over budget',
+  empty: 'empty',
+} as const;
+
+export type SectionMark = keyof typeof SECTION_MARK_WORDS;
+
+/** The shape `sectionMarksFor` needs, declared structurally so this module owes nothing to the report. */
+export interface MarkableSection {
+  headingKey: string | null;
+  empty: boolean;
+  overBudget: boolean;
+}
+
+/**
+ * Which marks to place, keyed by anchor id.
+ *
+ * A section can qualify for both marks at once: prose with no requirement behind it, written long.
+ * The over-budget mark wins, because trimming is the action and the coverage line already counts
+ * empties. Two marks on one heading, or a mark that replaced a count the reader was given, would be
+ * the same information twice in the place where the document is least able to afford it.
+ */
+export function sectionMarksFor(
+  sections: readonly MarkableSection[]
+): Record<string, SectionMark> {
+  const marks: Record<string, SectionMark> = {};
+
+  for (const section of sections) {
+    if (!section.headingKey) continue;
+    if (section.overBudget) marks[section.headingKey] = 'over-budget';
+    else if (section.empty) marks[section.headingKey] = 'empty';
+  }
+
+  return marks;
+}
+
+/**
+ * Append a mark to the headings named in `sectionMarks`, keyed by anchor id.
+ *
+ * Applied after sanitising, for the same reason claim states are: sanitising strips unknown
+ * attributes and elements, so a mark inserted earlier would be removed. The token is constrained to
+ * the vocabulary above and the id has already passed `SAFE_ID` when the heading was anchored, so
+ * nothing here can introduce markup a caller chose.
+ *
+ * A space separates the mark from the heading's text. A heading's accessible name is its text
+ * content, so without it a reader hears "Problem Statementover budget" as one word. The rule that
+ * styles the span adds a small margin on top, so the reader sees a deliberate gap rather than a
+ * rendered space.
+ */
+function applySectionMarks(
+  html: string,
+  sectionMarks: Readonly<Record<string, SectionMark>>
+): string {
+  return html.replace(ANCHORED_HEADING, (match, level: string, id: string, inner: string) => {
+    const token = sectionMarks[id];
+    const word = token ? SECTION_MARK_WORDS[token] : undefined;
+    if (!word) return match;
+
+    return `<h${level} id="${id}">${inner} <span class="section-mark">${word}</span></h${level}>`;
+  });
+}
+
 function stripTags(html: string): string {
   return html.replace(/<[^>]*>/g, "");
 }
@@ -122,7 +198,8 @@ function stripTags(html: string): string {
 export function renderSpecHtml(
   markdown: string,
   headingIds: readonly string[],
-  claimStates?: Readonly<Record<string, string>>
+  claimStates?: Readonly<Record<string, string>>,
+  sectionMarks?: Readonly<Record<string, SectionMark>>
 ): string {
   const allowed = new Set(headingIds);
   const used = new Set<string>();
@@ -155,9 +232,14 @@ export function renderSpecHtml(
 
   const safe = sanitizeHtml(withIds, HEADING_ID_OPTIONS);
 
-  if (!claimStates) return safe;
+  // Both tags are applied after sanitising, so neither can be stripped by it, and each is applied
+  // independently of the other: a caller may want the length marks without claim states.
+  // The local is deliberately not named `marked`, which is the parser this function calls above.
+  const withMarks = sectionMarks ? applySectionMarks(safe, sectionMarks) : safe;
 
-  return safe.replace(CLAIM_BULLET, (match, gap: string, claimId: string) => {
+  if (!claimStates) return withMarks;
+
+  return withMarks.replace(CLAIM_BULLET, (match, gap: string, claimId: string) => {
     const state = claimStates[claimId];
 
     if (!state || !SAFE_CLAIM_ID.test(claimId) || !SAFE_ID.test(state)) return match;
