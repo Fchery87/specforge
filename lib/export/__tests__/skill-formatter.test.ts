@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { generateAgentsMd } from '../agents-formatter';
+import { generateSkillMd } from '../skill-formatter';
 import type { StageQualityForExport } from '../../quality/stage-report';
 
 /**
  * Written out field by field rather than derived, so a drift in the report shape fails here instead
- * of silently rendering wrong numbers into the pack.
+ * of silently rendering wrong numbers into the pack. The fixtures mirror the AGENTS.md tests, because
+ * both files in the pack must carry the same signal the screen showed.
  */
 const measuredStage: StageQualityForExport = {
   stageId: 'requirements',
@@ -50,87 +51,9 @@ const baseProject = {
   createdAt: 1700000000000,
 };
 
-describe('generateAgentsMd', () => {
-  it('groups decisionRegister by status and asserts proposed decisions do not appear under Rules', () => {
-    const constitutionData = {
-      decisionRegister: [
-        {
-          area: 'State Management',
-          decision: 'Use Convex reactive queries for all shared state',
-          status: 'confirmed',
-          source: 'architecture-review',
-          rationale: 'Consistency and real-time sync',
-        },
-        {
-          area: 'Monorepo Tooling',
-          decision: 'Repository currently uses Turborepo with npm workspaces',
-          status: 'observed',
-          source: 'repo-scan',
-          rationale: 'Observed in package.json',
-        },
-        {
-          area: 'Component Library',
-          decision: 'Adopt Radix Primitives for custom dropdowns',
-          status: 'proposed',
-          source: 'design-proposal',
-          rationale: 'Better a11y support',
-        },
-        {
-          area: 'Telemetry',
-          decision: 'Decide whether to use PostHog or OpenTelemetry',
-          status: 'unresolved',
-          source: 'brief',
-          rationale: 'Need cloud budget approval',
-        },
-      ],
-      openQuestions: ['What is the target maximum p99 latency for search?'],
-    };
-
-    const output = generateAgentsMd({
-      project: {
-        _id: 'p1',
-        title: 'SpecForge Platform',
-        description: 'AI Specification Generator',
-        createdAt: 1700000000000,
-      },
-      artifacts: {
-        constitution: JSON.stringify(constitutionData),
-      },
-    });
-
-    expect(output).toContain('## Rules');
-    expect(output).toContain('## Observed in the repository');
-    expect(output).toContain('## Proposed, not confirmed');
-    expect(output).toContain('## Open questions');
-
-    // Extract section under '## Rules'
-    const rulesIndex = output.indexOf('## Rules');
-    const observedIndex = output.indexOf('## Observed in the repository');
-    const rulesSection = output.slice(rulesIndex, observedIndex);
-
-    expect(rulesSection).toContain('Use Convex reactive queries for all shared state');
-    expect(rulesSection).not.toContain('Adopt Radix Primitives for custom dropdowns');
-
-    // Extract section under '## Observed in the repository'
-    const proposedIndex = output.indexOf('## Proposed, not confirmed');
-    const observedSection = output.slice(observedIndex, proposedIndex);
-    expect(observedSection).toContain('Repository currently uses Turborepo with npm workspaces');
-
-    // Extract section under '## Proposed, not confirmed'
-    const openQuestionsIndex = output.indexOf('## Open questions');
-    const proposedSection = output.slice(proposedIndex, openQuestionsIndex);
-    expect(proposedSection).toContain('Adopt Radix Primitives for custom dropdowns');
-
-    // Extract section under '## Open questions'
-    const afterQuestions = output.slice(openQuestionsIndex);
-    expect(afterQuestions).toContain('Decide whether to use PostHog or OpenTelemetry');
-    expect(afterQuestions).toContain('What is the target maximum p99 latency for search?');
-  });
-});
-
-describe('generateAgentsMd requirement quality', () => {
+describe('generateSkillMd requirement quality', () => {
   it('writes the report lines and lists the untestable criteria under their own heading', () => {
-    const output = generateAgentsMd({
+    const output = generateSkillMd({
       project: baseProject,
       artifacts: {},
       requirementQuality: [measuredStage, unmeasuredStage],
@@ -149,8 +72,6 @@ describe('generateAgentsMd requirement quality', () => {
     expect(output).toContain('- 900 of 800 words');
     expect(output).toContain('- over budget');
 
-    // The criteria sit under their own heading, after the stage's counts, where an agent can act on
-    // them as a list.
     const stageIndex = output.indexOf('### Requirements');
     const untestableIndex = output.indexOf('### Untestable criteria');
     expect(stageIndex).toBeGreaterThan(-1);
@@ -163,14 +84,14 @@ describe('generateAgentsMd requirement quality', () => {
     expect(output).not.toContain('/100');
     expect(output).not.toContain('%');
 
-    // The report belongs before the closing boilerplate, not after it.
+    // The report belongs with the guidance body, before the closing walkthrough.
     expect(output.indexOf('## Requirement quality')).toBeLessThan(
-      output.indexOf('## Getting Help')
+      output.indexOf('## Getting Started')
     );
   });
 
   it('skips a stage whose report has nothing to act on, and the heading when every stage is', () => {
-    const allUnmeasured = generateAgentsMd({
+    const allUnmeasured = generateSkillMd({
       project: baseProject,
       artifacts: {},
       requirementQuality: [unmeasuredStage],
@@ -179,7 +100,7 @@ describe('generateAgentsMd requirement quality', () => {
     expect(allUnmeasured).not.toContain('## Requirement quality');
     expect(allUnmeasured).not.toContain('### Design');
 
-    const mixed = generateAgentsMd({
+    const mixed = generateSkillMd({
       project: baseProject,
       artifacts: {},
       requirementQuality: [measuredStage, unmeasuredStage],
@@ -190,13 +111,13 @@ describe('generateAgentsMd requirement quality', () => {
   });
 
   it('leaves the output byte-identical when requirementQuality is absent, undefined or empty', () => {
-    const withoutField = generateAgentsMd({ project: baseProject, artifacts: {} });
-    const withUndefined = generateAgentsMd({
+    const withoutField = generateSkillMd({ project: baseProject, artifacts: {} });
+    const withUndefined = generateSkillMd({
       project: baseProject,
       artifacts: {},
       requirementQuality: undefined,
     });
-    const withEmpty = generateAgentsMd({
+    const withEmpty = generateSkillMd({
       project: baseProject,
       artifacts: {},
       requirementQuality: [],
