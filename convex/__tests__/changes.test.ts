@@ -4,6 +4,7 @@ import {
   abandonChangeHandler,
   applyChangeHandler,
   createChangeHandler,
+  getDraftContextHandler,
   replaceChangeOpsHandler,
   type ChangeOpInput,
 } from '../changes';
@@ -25,8 +26,10 @@ function makeCtx(authUserId = 'owner'): FakeContext {
       ['c90', { _id: 'c90', projectId: 'p2', phaseId: 'prd', claimId: 'REQ-0001', text: 'Another project.' }],
     ]),
     evidenceSources: new Map([
-      ['s1', { _id: 's1', projectId: 'p1' }],
-      ['s9', { _id: 's9', projectId: 'p2' }],
+      ['s1', { _id: 's1', projectId: 'p1', kind: 'answer', sourceKey: 'answer:prd:q1', revision: 1, locator: 'prd/q1', excerpt: 'An answer.', capturedAt: 1 }],
+      ['s9', { _id: 's9', projectId: 'p2', kind: 'repository_file', sourceKey: 'repo:x', revision: 1, locator: 'x.ts', excerpt: 'Elsewhere.', capturedAt: 1 }],
+      ['f1', { _id: 'f1', projectId: 'p1', kind: 'repository_file', sourceKey: 'repo:invites', revision: 1, locator: 'lib/invites.ts', excerpt: 'old', capturedAt: 2 }],
+      ['f2', { _id: 'f2', projectId: 'p1', kind: 'repository_file', sourceKey: 'repo:invites', revision: 2, locator: 'lib/invites.ts', excerpt: 'export function sendInvite', capturedAt: 3 }],
     ]),
     changes: new Map(),
     changeOps: new Map(),
@@ -339,5 +342,31 @@ describe('applyChange', () => {
     ctx.__tables.artifacts.delete('stories-doc');
     const noDocument = await draftWith(ctx, [addCriterion]);
     await expect(applyChangeHandler(asCtx(ctx), { changeId: noDocument })).rejects.toThrow('Operation 1 adds to a phase that has no document yet');
+  });
+});
+
+describe('getDraftContext', () => {
+  it('gives the draft the live requirements, the phases with documents and the latest file revisions', async () => {
+    const ctx = makeCtx();
+    const changeId = await createChangeHandler(asCtx(ctx), { ...feature, kind: 'bugfix', bug });
+
+    expect(await getDraftContextHandler(asCtx(ctx) as never, { changeId, userId: 'owner' })).toEqual({
+      kind: 'bugfix',
+      title: 'Invite links',
+      summary: 'Let owners share a link.',
+      bug,
+      claims: [{ ref: 'c12', claimId: 'REQ-0012', phaseId: 'prd', text: 'Owners invite members by email.' }],
+      phasesWithDocuments: ['prd', 'stories'],
+      evidence: [{ id: 'f2', locator: 'lib/invites.ts', excerpt: 'export function sendInvite' }],
+    });
+  });
+
+  it("refuses someone else's change and a change that is no longer a draft", async () => {
+    const ctx = makeCtx();
+    const changeId = await draft(ctx);
+
+    await expect(getDraftContextHandler(asCtx(ctx) as never, { changeId, userId: 'intruder' })).rejects.toThrow('Forbidden');
+    await abandonChangeHandler(asCtx(ctx), { changeId });
+    await expect(getDraftContextHandler(asCtx(ctx) as never, { changeId, userId: 'owner' })).rejects.toThrow('Only a draft change can be drafted');
   });
 });
