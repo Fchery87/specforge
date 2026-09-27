@@ -3,6 +3,7 @@ import {
   renderMarkdownSafe,
   renderPreviewHtml,
   renderSpecHtml,
+  sectionMarksFor,
 } from "../markdown-render";
 import { parseSpecOutline } from "../spec-outline";
 
@@ -228,5 +229,86 @@ describe("renderSpecHtml anchor alignment", () => {
 
     expect(html).toContain('data-claim="C-014" data-state="confirmed"');
     expect(html).toContain('data-claim="C-015" data-state="proposed"');
+  });
+});
+
+describe("section marks", () => {
+  const markdown = ["# Spec", "", "## Requirements", "", "Prose.", "", "## Out of scope", "", "None."].join(
+    "\n"
+  );
+  const ids = ["spec", "requirements", "out-of-scope"];
+
+  it("writes the mark as a word on the clause's own heading", () => {
+    const html = renderSpecHtml(markdown, ids, undefined, { requirements: "over-budget" });
+
+    expect(html).toContain("over budget</span></h2>");
+    expect(html).toContain('<h2 id="out-of-scope">Out of scope</h2>');
+  });
+
+  it("places the mark inside the heading, so the table of contents anchor still lands on it", () => {
+    const html = renderSpecHtml(markdown, ids, undefined, { requirements: "empty" });
+
+    expect(html).toContain('<h2 id="requirements">Requirements<span class="section-mark">empty');
+  });
+
+  it("applies both marks and claim states independently in one pass", () => {
+    // Each tag is inserted after sanitising, so neither can strip the other. A document with a marked
+    // section and a settled claim must carry both.
+    const withClaim = ["# Spec", "", "## Requirements", "", "- **C-1** [confirmed; reviewed]: One."].join(
+      "\n"
+    );
+    const html = renderSpecHtml(withClaim, ["spec", "requirements"], { "C-1": "confirmed" }, {
+      requirements: "empty",
+    });
+
+    expect(html).toContain('class="section-mark"');
+    expect(html).toContain('data-claim="C-1" data-state="confirmed"');
+  });
+
+  it("marks nothing when given no marks", () => {
+    expect(renderSpecHtml(markdown, ids)).not.toContain("section-mark");
+    expect(renderSpecHtml(markdown, ids, {}, {})).not.toContain("section-mark");
+  });
+
+  it("ignores an id the outline never produced, so a mark cannot land on an unanchored heading", () => {
+    const html = renderSpecHtml("# A\n\n## B", ["a"], undefined, { b: "empty" });
+
+    expect(html).toContain("<h2>B</h2>");
+    expect(html).not.toContain("section-mark");
+  });
+
+  it("cannot introduce markup, because the word comes from a fixed vocabulary", () => {
+    // The value is a token, not text. A caller passing an unknown token gets nothing rather than the
+    // token rendered.
+    const html = renderSpecHtml(markdown, ids, undefined, {
+      requirements: "<img src=x onerror=alert(1)>" as never,
+    });
+
+    expect(html).not.toContain("onerror");
+    expect(html).not.toContain("section-mark");
+  });
+});
+
+describe("sectionMarksFor", () => {
+  it("marks an over-budget section, an empty section, and neither", () => {
+    const marks = sectionMarksFor([
+      { headingKey: "long", empty: false, overBudget: true },
+      { headingKey: "hollow", empty: true, overBudget: false },
+      { headingKey: "fine", empty: false, overBudget: false },
+    ]);
+
+    expect(marks).toEqual({ long: "over-budget", hollow: "empty" });
+  });
+
+  it("marks an absent section at no heading", () => {
+    expect(sectionMarksFor([{ headingKey: null, empty: true, overBudget: true }])).toEqual({});
+  });
+
+  it("prefers the over-budget word when a section qualifies for both", () => {
+    // Trimming is the action, and the coverage line already counts empties. Two marks on one heading
+    // would be the same fact stated twice where the document can least afford it.
+    expect(sectionMarksFor([{ headingKey: "both", empty: true, overBudget: true }])).toEqual({
+      both: "over-budget",
+    });
   });
 });

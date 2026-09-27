@@ -1,6 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, test, expect, vi } from "vitest";
 import { ArtifactDocument } from "../artifact-document";
+import { sectionMarksFor } from "@/lib/markdown-render";
+import { buildStageReport } from "@/lib/quality/stage-report";
+import { PRD_SECTIONS, type SectionPlanConfig } from "@/lib/llm/section-plans";
 
 vi.mock("@/components/ui/mermaid-diagram", () => ({
   MermaidDiagram: ({ chart, className }: { chart: string; className?: string }) => (
@@ -97,5 +100,88 @@ describe("ArtifactDocument", () => {
     );
 
     expect(container.querySelector("script")).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The regression lock for the numbered-heading defect.
+ *
+ * A numbered heading anchors as the slug of its whole text, so `## 2. Problem Statement` is
+ * `2-problem-statement` while the plan knows the section as `Problem Statement`. Matching on the
+ * title slug alone found no section at all, and recording the title slug handed `renderSpecHtml` a
+ * key no heading carries, so the mark silently never appeared on a numbered document. The path
+ * through the real report is the point: a caller-supplied mark would prove nothing.
+ */
+describe("ArtifactDocument section marks", () => {
+  /** The PRD's second section, budgeted 1500 tokens, which is a 1000-word budget. */
+  const problemStatement = PRD_SECTIONS.find((entry) => entry.id === 'problem-statement') as SectionPlanConfig;
+  const long = Array.from({ length: 1500 }, () => "word").join(" ");
+
+  const markdown = [
+    "# Atlas product requirements",
+    "",
+    "## 1. Executive Summary",
+    "",
+    "An overview.",
+    "",
+    "## 2. Problem Statement",
+    "",
+    long,
+  ].join("\n");
+
+  const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+  const marks = sectionMarksFor(report.sections);
+
+  test("places the over-budget mark on the numbered heading it belongs to", () => {
+    expect(problemStatement.id).toBe("problem-statement");
+    expect(report.sections.find((entry) => entry.id === "problem-statement")?.overBudget).toBe(true);
+
+    const { container } = render(
+      <ArtifactDocument markdown={markdown} title="Atlas product requirements" sectionMarks={marks} />
+    );
+
+    const heading = container.querySelector('h2[id="2-problem-statement"]');
+    expect(heading).not.toBeNull();
+    expect(heading?.querySelector(".section-mark")).toHaveTextContent("over budget");
+    // The unnumbered anchor is not a heading this document has, so nothing lands on it.
+    expect(container.querySelector('h2[id="problem-statement"]')).toBeNull();
+  });
+
+  test("places the empty mark on a numbered heading whose section carries no claim", () => {
+    const emptyMarkdown = [
+      "# Atlas product requirements",
+      "",
+      "## 1. Executive Summary",
+      "",
+      "- **C-1** [confirmed; reviewed]: A requirement. — Evidence: lib/a.ts (abc123, supports)",
+      "",
+      "## 2. Problem Statement",
+      "",
+      "Prose with no requirement behind it.",
+    ].join("\n");
+
+    const emptyReport = buildStageReport({
+      markdown: emptyMarkdown,
+      claims: [],
+      sectionPlan: PRD_SECTIONS,
+    });
+
+    expect(emptyReport.sections.find((entry) => entry.id === "problem-statement")?.empty).toBe(true);
+
+    const { container } = render(
+      <ArtifactDocument
+        markdown={emptyMarkdown}
+        title="Atlas product requirements"
+        sectionMarks={sectionMarksFor(emptyReport.sections)}
+      />
+    );
+
+    expect(
+      container.querySelector('h2[id="2-problem-statement"] .section-mark')
+    ).toHaveTextContent("empty");
+    // The section that does carry a claim gets no mark.
+    expect(
+      container.querySelector('h2[id="1-executive-summary"] .section-mark')
+    ).toBeNull();
   });
 });

@@ -340,6 +340,7 @@ describe('buildStageReport shape', () => {
     expect(Object.keys(report).sort()).toEqual([
       'coverage',
       'length',
+      'sections',
       'testability',
       'traceability',
     ]);
@@ -359,5 +360,142 @@ describe('buildStageReport shape', () => {
     };
 
     expect(buildStageReport(input)).toEqual(buildStageReport(input));
+  });
+});
+
+/**
+ * Per-section detail exists so an over-budget or empty section can be marked **where it is**. A
+ * stage-level word count cannot do that, which is why these are separate from the `length` summary.
+ */
+describe('buildStageReport sections detail', () => {
+  it('has one entry per plan section, in plan order', () => {
+    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+
+    expect(report.sections.map((section) => section.id)).toEqual(
+      PRD_SECTIONS.map((section) => section.id)
+    );
+  });
+
+  it('reports an absent section as not present, with no words and not over budget', () => {
+    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+
+    for (const section of report.sections) {
+      expect(section.present).toBe(false);
+      expect(section.headingKey).toBeNull();
+      expect(section.empty).toBe(false);
+      expect(section.words).toBe(0);
+      expect(section.overBudget).toBe(false);
+    }
+  });
+
+  it('gives a present section its heading key, so a caller can mark that heading', () => {
+    const markdown = documentFrom([{ name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') }]);
+    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+
+    const requirements = report.sections.find((section) => section.id === 'requirements');
+    expect(requirements?.present).toBe(true);
+    expect(requirements?.headingKey).toBe('requirements');
+  });
+
+  it('flags a present section with no claim as empty', () => {
+    const markdown = documentFrom([
+      { name: 'requirements', content: 'Prose but no requirement.' },
+      { name: 'executive-summary', content: claimLine('C-1', 'confirmed', 'reviewed') },
+    ]);
+    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+
+    const requirements = report.sections.find((section) => section.id === 'requirements');
+    const summary = report.sections.find((section) => section.id === 'executive-summary');
+
+    expect(requirements?.empty).toBe(true);
+    expect(summary?.empty).toBe(false);
+  });
+
+  it('flags a section past its own budget, not the stage budget', () => {
+    // The PRD's second section is budgeted 1500 tokens, about 1000 words. 1500 words is 50 percent
+    // past it while the document as a whole is nowhere near the stage budget, which is the distinction
+    // that makes a per-section mark worth having. 1200 would sit exactly on the 20 percent tolerance
+    // and correctly not be flagged.
+    const long = Array.from({ length: 1500 }, () => 'word').join(' ');
+    const markdown = documentFrom([{ name: 'problem-statement', content: long }]);
+    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+
+    const section = report.sections.find((entry) => entry.id === 'problem-statement');
+    expect(section?.words).toBe(1500);
+    expect(section?.budgetWords).toBe(1000);
+    expect(section?.overBudget).toBe(true);
+
+    // The stage as a whole is not over: its budget is far larger than one section's.
+    expect(report.length.overBudget).toBe(false);
+  });
+
+  it('does not flag a section inside its tolerance', () => {
+    const long = Array.from({ length: 1150 }, () => 'word').join(' ');
+    const markdown = documentFrom([{ name: 'problem-statement', content: long }]);
+    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+
+    const section = report.sections.find((entry) => entry.id === 'problem-statement');
+    expect(section?.overBudget).toBe(false);
+  });
+
+  it('counts a section budget from the plan, using the same conversion as the stage budget', () => {
+    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+
+    for (const [index, plan] of PRD_SECTIONS.entries()) {
+      expect(report.sections[index].budgetWords).toBe(
+        Math.round(plan.estimatedTokens * (4 / 6))
+      );
+    }
+  });
+
+  /**
+   * A numbered heading anchors as the slug of its whole text, so `## 1. Scope` is `1-scope` while
+   * `section.title` is `Scope`. Matching on the title slug alone found nothing for a numbered
+   * document, and recording the title slug made `headingKey` a key the rendered document has no
+   * heading for, so `applySectionMarks` never placed anything.
+   */
+  it('matches a numbered heading and records its anchor id', () => {
+    const markdown = [
+      '## 1. Executive Summary',
+      '',
+      'Overview.',
+      '',
+      '## 5. Requirements',
+      '',
+      claimLine('C-1', 'confirmed', 'reviewed'),
+    ].join('\n');
+
+    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+
+    expect(report.coverage.sections).toBe(2);
+    expect(report.sections.find((entry) => entry.id === 'executive-summary')?.headingKey).toBe(
+      '1-executive-summary'
+    );
+    expect(report.sections.find((entry) => entry.id === 'requirements')?.headingKey).toBe(
+      '5-requirements'
+    );
+  });
+
+  it('still matches an unnumbered heading by its title, which is what a generated document writes', () => {
+    const markdown = documentFrom([{ name: 'executive-summary', content: 'Overview.' }]);
+    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+
+    expect(report.sections.find((entry) => entry.id === 'executive-summary')?.headingKey).toBe(
+      'executive-summary'
+    );
+  });
+
+  /**
+   * A stage spans up to three phases and is measured from their texts joined. Without the phase on
+   * the section, a caller cannot tell which artifact a section belongs to, so a same-named heading in
+   * a sibling phase could be marked in the wrong document.
+   */
+  it('carries the phase each section belongs to', () => {
+    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+
+    for (const [index, plan] of PRD_SECTIONS.entries()) {
+      expect(report.sections[index].phaseId).toBe(plan.phaseId);
+    }
+    expect(report.sections.every((entry) => entry.phaseId === 'prd')).toBe(true);
   });
 });
