@@ -34,6 +34,7 @@ import {
   type PhaseStatusMap,
   type ProjectMode,
   PHASE_ORDER,
+  MODE_POLICIES,
 } from '@/lib/workflow';
 
 export function getDashboardCardAction(
@@ -105,12 +106,6 @@ const STATUS_WORD: Record<ProjectCardProps['project']['status'], string> = {
   draft: 'Draft',
   active: 'Active',
   complete: 'Complete',
-};
-
-const MODE_WORD: Record<NonNullable<ProjectCardProps['project']['mode']>, string> = {
-  quick: 'Quick Spec',
-  backend: 'API & Backend',
-  full: 'Full Blueprint',
 };
 
 export function ProjectCard({
@@ -218,7 +213,7 @@ export function ProjectCard({
           {project.mode ? (
             <>
               <span aria-hidden>, </span>
-              <span>{MODE_WORD[project.mode]}</span>
+              <span>{MODE_POLICIES[project.mode].label} mode</span>
             </>
           ) : null}
         </p>

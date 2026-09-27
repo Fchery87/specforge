@@ -10,7 +10,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { generateAllPhasesAction, generateAllQuestionAnswersAction } from "@/lib/convex-actions";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CombinedQuestions, type CombinedAnswerItem } from "@/components/combined-questions";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { MODE_POLICIES, type ProjectMode } from "@/lib/workflow";
 
@@ -117,26 +117,17 @@ export default function CombinedQuestionsPage() {
           items={[
             { label: "Dashboard", href: "/dashboard" },
             { label: project.title, href: `/project/${projectId}` },
-            { label: "Questions" },
+            { label: "Generate all phases" },
           ]}
         />
       </div>
 
-      {/* Header */}
       <section className="page-container pb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="size-10 bg-primary flex items-center justify-center">
-            <Sparkles className="size-5 text-primary-foreground" />
-          </div>
-          <span className="text-ui font-bold text-muted-foreground">
-            {modeLabel} Setup Round
-          </span>
-        </div>
-        <h1 className="text-heading font-bold leading-none mb-4">
-          Project Questions
-        </h1>
-        <p className="text-title text-muted-foreground max-w-3xl">
-          Review and answer the core questions across all stages. AI suggestions are pre-filled below. When you are ready, click Generate everything to build your full specification bundle.
+        <p className="text-label text-dim">{modeLabel} mode</p>
+        <h1 className="mt-2 font-display text-heading font-semibold text-ink">Generate all phases</h1>
+        <p className="mt-3 max-w-xl text-body text-muted-foreground">
+          Check the answers for every phase in one place. Suggested answers are filled in for you. When
+          they read right, generate all phases and follow the progress on the project page.
         </p>
       </section>
 

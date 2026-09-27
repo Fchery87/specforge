@@ -88,6 +88,7 @@ export type ProjectMode = 'quick' | 'full' | 'backend';
 
 export interface ModePolicy {
   label: string;
+  description: string;
   reviewAfter: readonly StageId[];
   skippedPhases: readonly PhaseId[];
 }
@@ -95,16 +96,19 @@ export interface ModePolicy {
 export const MODE_POLICIES: Record<ProjectMode, ModePolicy> = {
   quick: {
     label: 'Lite',
+    description: 'For a feature or a fix. Skips the domain model and schemas, and generates without review stops.',
     reviewAfter: [],
     skippedPhases: ['domainModel', 'artifacts'],
   },
   full: {
     label: 'Full',
+    description: 'For a new product. Every phase, with a review after each stage.',
     reviewAfter: ['requirements', 'design', 'tasks'],
     skippedPhases: [],
   },
   backend: {
     label: 'Backend',
+    description: 'For services and APIs. Skips the brief, starts from the PRD, and reviews after each stage.',
     reviewAfter: ['requirements', 'design', 'tasks'],
     skippedPhases: ['brief'],
   },
