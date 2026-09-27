@@ -9,9 +9,9 @@
 | 1. Evidence-backed specifications | Active: live deployment walkthrough pending | [Evidence-backed specifications](specs/2026-09-22-evidence-backed-specs.md) | [Implementation plan](plans/2026-09-22-evidence-backed-specs.md) |
 | 2. Guided three-stage workflow | Complete | [Guided three-stage workflow](specs/2026-09-25-guided-workflow.md) | - |
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
-| 4. Stage prompts and requirement quality | In progress: tasks 1 to 8 and 10 of 10 finished | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | [Implementation plan](plans/2026-09-26-stage-prompts-and-requirement-quality.md) |
+| 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
 
-The local implementation and repository gates are complete for phases 2 and 3. The remaining rollout
+The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
 
 Phase 3 replaced the brutalist visual system with Ember and turned the generated specification into a
@@ -20,11 +20,13 @@ supersedes, including the page composition from phase 2. The implementation plan
 lifecycle requires of a finished plan; the evidence it produced is in `design/decisions.tsv`,
 `design/screens/step-11/` and the ADR.
 
-Phase 4 has a spec and an open plan. It is the deferred half of phase 2: the three-stage grouping is
-presented, while the prompts and the stored data behind it are still the eight phases. The spec
-scopes that to one prompt per stage, testable acceptance criteria, a requirement-quality report, and a
-document length budget, and it explicitly does not merge the eight phase ids. The plan runs pure
-modules first, then the schema and read, then the surface and export.
+Phase 4 is complete. Every stage generates behind one prompt that states what its documents must
+accomplish, every acceptance criterion carries a testability class, and a requirement-quality report
+is rendered on the reading surface, marked at the section that earned it, worded in the workflow map,
+and carried into the exported pack. It ran as pull requests #32, #33 and #34, its gate set exited
+zero on `main` at `3048992`, and the report's captured surfaces are in `design/screens/stage-report/`.
+The implementation plan is deleted, as the lifecycle requires of a finished plan. One open decision
+is recorded in the guided workflow spec: the `artifacts` phase inherits the design prompt.
 
 ## Later phases
 
