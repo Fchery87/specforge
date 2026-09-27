@@ -56,7 +56,7 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
     <Card variant="static" className="mb-3">
       <CardContent className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-bold text-ui leading-tight">{ticket.title}</p>
+          <p className="font-semibold text-ui leading-tight">{ticket.title}</p>
           <div className="flex items-center gap-1 shrink-0">
             <Badge variant="outline" className={PRIORITY_CLASS[ticket.priority]}>
               {ticket.priority}

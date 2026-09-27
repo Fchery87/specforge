@@ -11,7 +11,7 @@
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
 | 5. Magenta brand | Complete on `feature/magenta-brand`, pending review and merge | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
-| 6. Workflow and navigation | Complete on `feature/workflow-fixes`, `feature/project-sidebar` and `feature/setup-and-quick-spec`, pending review and merge | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
+| 6. Workflow and navigation | Complete on `feature/workflow-fixes`, `feature/project-sidebar`, `feature/setup-and-quick-spec` and `feature/restyle-remaining`, pending review and merge | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -48,6 +48,7 @@ repository connection moved to the project page. Three project navigation protot
 chose the rail, and phase pages now carry a project sidebar with every phase and its status; the
 stage band stays on the project overview. A missing model is now reported before any generation and
 every generate control says why it is off, and a Quick spec can start a Lite project that holds it.
+Settings and the saved quick specs page now match the rest, and weights above 600 fail the lint.
 
 ## Later phases
 
@@ -56,7 +57,7 @@ Each later phase gets its own spec when the phase before it exits. Phases 7 to 1
 7. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
 8. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
 9. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
-10. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`.
+10. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`. Deferred by phase 6: the project sidebar puts every phase one click away, so this waits until readers show they still need it.
 
 ## Historical plan index
 

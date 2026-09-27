@@ -109,7 +109,7 @@ export default function ModerationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">0</p>
+              <p className="text-heading font-semibold">0</p>
               <p className="text-caption text-muted-foreground mt-2">Generated documents</p>
             </CardContent>
           </Card>
@@ -121,7 +121,7 @@ export default function ModerationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-warning">0</p>
+              <p className="text-heading font-semibold text-warning">0</p>
               <p className="text-caption text-muted-foreground mt-2">Requires review</p>
             </CardContent>
           </Card>
@@ -133,7 +133,7 @@ export default function ModerationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">0</p>
+              <p className="text-heading font-semibold">0</p>
               <p className="text-caption text-muted-foreground mt-2">Constitution templates</p>
             </CardContent>
           </Card>
@@ -145,7 +145,7 @@ export default function ModerationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-destructive">0</p>
+              <p className="text-heading font-semibold text-destructive">0</p>
               <p className="text-caption text-muted-foreground mt-2">Removed content</p>
             </CardContent>
           </Card>
@@ -165,7 +165,7 @@ export default function ModerationPage() {
             <div className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-title font-bold">
+                  <h2 className="text-title font-semibold">
                     Generated Artifacts
                   </h2>
                   <p className="text-muted-foreground mt-2">
@@ -192,7 +192,7 @@ export default function ModerationPage() {
 
           <TabsContent value="templates">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 Constitution Templates
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -213,7 +213,7 @@ export default function ModerationPage() {
 
           <TabsContent value="filters">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 Content Filters
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -274,7 +274,7 @@ export default function ModerationPage() {
       {/* Guidelines Section */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Moderation Guidelines
           </h2>
         </div>

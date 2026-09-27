@@ -105,7 +105,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-caption font-bold text-muted-foreground">
+          <span className="text-caption font-semibold text-muted-foreground">
             {label}
           </span>
           <span className="text-caption text-muted-foreground">
@@ -157,7 +157,7 @@ export function ActivityFeed() {
       <Card className="h-[500px] flex flex-col">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-title font-bold">
+            <CardTitle className="text-title font-semibold">
               Recent Activity
             </CardTitle>
             <Clock className="size-4 text-muted-foreground" />
@@ -178,7 +178,7 @@ export function ActivityFeed() {
       <Card className="h-[500px] flex flex-col">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-title font-bold">
+            <CardTitle className="text-title font-semibold">
               Recent Activity
             </CardTitle>
             <Clock className="size-4 text-muted-foreground" />
@@ -203,7 +203,7 @@ export function ActivityFeed() {
     <Card className="h-[500px] flex flex-col">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-title font-bold">
+          <CardTitle className="text-title font-semibold">
             Recent Activity
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -218,7 +218,7 @@ export function ActivityFeed() {
           <div className="space-y-6 pb-4">
             {grouped.map(([timeGroup, items]) => (
               <div key={timeGroup}>
-                <h4 className="text-caption font-bold text-muted-foreground mb-3 sticky top-0 bg-void/80 py-1">
+                <h4 className="text-caption font-semibold text-muted-foreground mb-3 sticky top-0 bg-void/80 py-1">
                   {timeGroup}
                 </h4>
                 <div className="space-y-1">

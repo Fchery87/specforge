@@ -126,7 +126,7 @@ rg -n "'use client'" components/
 - **Motion**: Wrap with `AnimatePresence` for exit animations
 - **Tailwind**: Radius has three values only: `rounded-sm` (10px controls), `rounded-lg` (16px containers), `rounded-full` (pills)
 - **Colour**: Use a token utility. Never a raw hex, an `rgba()`, or a `bg-zinc-*`. See [docs/design.md](../docs/design.md)
-- **Type**: Three roles. `font-display` (Funnel Display) for headings, `font-sans` (Funnel Sans) for interface and specification prose, `font-mono` (Red Hat Mono) for IDs and code. Headings get Funnel Display from the base styles, so do not set `font-sans` on a heading. Headings are sentence case, never uppercase
+- **Type**: Three roles. `font-display` (Funnel Display) for headings, `font-sans` (Funnel Sans) for interface and specification prose, `font-mono` (Red Hat Mono) for IDs and code. Headings get Funnel Display from the base styles, so do not set `font-sans` on a heading. Headings are sentence case, never uppercase. Weights are `font-normal`, `font-medium` and `font-semibold`; `font-bold` and heavier fail `design/lint-tokens.mjs`
 - **Colour names**: Hue tokens are named for meaning: `brand`, `success`, `warning`, `destructive`, `info`. The Ember names (`ember`, `sage`, `brick`, `amber`, `slate`) are deleted
 - **Press, not hover**: `Button` scales to 0.97 on press. Nothing moves on hover
 - **Focus**: The global `:focus-visible` outline is the only focus treatment. Do not add `ring-*` focus styles

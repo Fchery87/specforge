@@ -40,8 +40,8 @@ measurable:
 
 ## Non-goals
 
-- Restyling the settings and quick history pages.
-- The jump-to palette, which stays a later phase and is reconsidered once the navigation exists.
+- The jump-to palette. With the sidebar, every phase is one click away, so the palette is deferred
+  until readers show they still need it.
 
 ## Approach
 
@@ -100,6 +100,16 @@ Found on the way: `CombinedQuestions` re-rendered forever when a caller omitted 
 because the default `[]` was a new array each render and an effect depends on it. The default is now
 one stable array.
 
+### Remaining pages
+
+Settings and the saved quick specs page take the Magenta layout: a display heading and one lede in
+place of breadcrumbs, eyebrows and icon tiles; underlined tabs like the phase page's; and the
+heading-only "API Key Security" card folded into the model card's description.
+
+`font-bold` sat outside the type scale in 26 files, including the admin console. Every use becomes
+`font-semibold`, and `design/lint-tokens.mjs` now fails `font-bold`, `font-extrabold`, `font-black`
+and arbitrary weights of 700 and above, so the tree-wide CI lint keeps it out.
+
 ## Deletion inventory
 
 Deleted by the small fixes:
@@ -123,3 +133,9 @@ Deleted by the setup check and Quick spec work:
 
 - The Quick spec page's breadcrumbs, icon tile and card chrome.
 - The unconditional "Saved quick specs" button on the project page.
+
+Deleted by the remaining-pages pass:
+
+- The settings page's breadcrumbs, "Configuration Hub" eyebrow and "API Key Security" card.
+- The saved quick specs page's breadcrumbs.
+- `components/dashboard/dashboard-search.tsx`, which nothing imported.

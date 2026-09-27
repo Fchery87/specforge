@@ -72,17 +72,17 @@ export function AdminNav() {
               <Shield className="size-4 text-primary-foreground" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-ui font-bold text-ink">
+              <span className="text-ui font-semibold text-ink">
                 Admin Console
               </span>
-              <span className="hidden sm:inline-block px-1.5 py-0.5 text-caption font-bold bg-primary/20 text-primary border border-primary/40">
+              <span className="hidden sm:inline-block px-1.5 py-0.5 text-caption font-semibold bg-primary/20 text-primary border border-primary/40">
                 System
               </span>
             </div>
           </div>
           <Link
             href="/dashboard"
-            className="md:hidden flex items-center gap-1 px-2.5 py-1 text-caption font-bold text-muted-foreground hover:text-primary transition-colors border border-line/50 rounded-sm"
+            className="md:hidden flex items-center gap-1 px-2.5 py-1 text-caption font-semibold text-muted-foreground hover:text-primary transition-colors border border-line/50 rounded-sm"
           >
             <span>Exit</span>
             <ArrowUpRight className="size-3.5" />
@@ -105,7 +105,7 @@ export function AdminNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 text-caption font-bold transition-colors whitespace-nowrap border border-transparent",
+                  "flex items-center gap-1.5 px-3 py-1.5 text-caption font-semibold transition-colors whitespace-nowrap border border-transparent",
                   isActive
                     ? "bg-primary text-primary-foreground border-primary"
                     : "text-muted-foreground hover:text-ink hover:bg-raised/40"
@@ -122,7 +122,7 @@ export function AdminNav() {
         <div className="hidden md:flex items-center">
           <Link
             href="/dashboard"
-            className="flex items-center gap-1 px-2.5 py-1 text-caption font-bold text-muted-foreground hover:text-primary transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 text-caption font-semibold text-muted-foreground hover:text-primary transition-colors"
           >
             <span>Exit Admin</span>
             <ArrowUpRight className="size-3.5" />

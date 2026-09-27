@@ -68,6 +68,11 @@ const scaleRules = [
     why: "Three radii only: rounded-sm (10px) controls, rounded-lg (16px) containers, rounded-full pills.",
   },
   {
+    name: "off-scale weight",
+    pattern: /\bfont-(?:bold|extrabold|black)\b|\bfont-\[(?:[7-9]\d\d)\]/,
+    why: "Weights stop at 600: font-normal, font-medium, font-semibold.",
+  },
+  {
     name: "tracking override",
     pattern: /\btracking-(?:tighter|tight|wide|widest|wider)\b|\btracking-\[/,
     why: "Tracking belongs to the type scale, not to a call site.",

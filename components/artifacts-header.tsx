@@ -18,7 +18,7 @@ export function ArtifactsHeader(props: {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        <h2 className="text-title font-bold">Artifacts</h2>
+        <h2 className="text-title font-semibold">Artifacts</h2>
         {showCancelled && <Badge variant="outline">Cancelled</Badge>}
         {showCancelled && (
           <span className="text-caption text-muted-foreground">
