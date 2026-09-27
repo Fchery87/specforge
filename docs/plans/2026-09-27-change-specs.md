@@ -1,6 +1,6 @@
 # Change and bug-fix specs
 
-**Status:** Not started
+**Status:** In progress
 
 **Spec:** [Change and bug-fix specs](../specs/2026-09-27-change-specs.md)
 
@@ -11,8 +11,8 @@ changes. Each task lands as its own commit, and the gates in `.keel/config.md` e
 
 | # | Task | State | SHA | Verified by |
 | --- | --- | --- | --- | --- |
-| 1 | `reconcileArtifactClaims` matches an item's leading `**REQ-nnnn**` against live claims before falling back to text, and strips the `[status; review]:` prefix from the stored text | Not started | — | `convex/__tests__/evidence.test.ts`: a reworded item carrying `**REQ-0012**` keeps `REQ-0012` with the new text; an unknown ID falls back to text matching |
-| 2 | Generation prompts list the phase's live claims with their IDs and tell the model to keep an ID on a requirement it rewords | Not started | — | Prompt test asserts the ID list and the instruction appear in the assembled prompt for PRD and Architecture |
+| 1 | `reconcileArtifactClaims` matches an item's leading `**REQ-nnnn**` against live claims before falling back to text, and strips the `[status; review]:` prefix from the stored text | Done | `80669b0` | `convex/__tests__/evidence.test.ts`: a reworded item carrying `**REQ-0012**` keeps `REQ-0012` with the new text; an unknown ID falls back to text matching |
+| 2 | Generation prompts list the phase's live claims with their IDs and tell the model to keep an ID on a requirement it rewords | Done | `21fbcef` | Prompt test asserts the ID list and the instruction appear in the assembled prompt for PRD and Architecture; `lib/llm/prompts/__tests__/claim-ids.test.ts`; schema accepted by `npx convex dev --once` on dev |
 | 3 | Schema: `changes`, `changeOps` (op as a discriminated union), `claimRevisions`, `projects.nextChangeNumber` | Not started | — | `npm run typecheck`; `npx convex dev --once` pushes to the dev deployment |
 | 4 | Change mutations: create (refused when the project has no live requirements), replace ops on a draft, abandon; owner checks on each | Not started | — | `convex/__tests__/changes.test.ts`: create, refusal, foreign-owner refusal, ops replaced only while draft |
 | 5 | `applyChange`: check every `baseText`, then add, modify with a `claimRevisions` row, remove, and mark touched phases stale with `staleReason: "CHG-nnnn applied"`, in one mutation | Not started | — | `changes.test.ts`: ID issued on add; ID, evidence links and revision kept on modify; `retiredAt` on remove; a stale `baseText` applies nothing and names the op |

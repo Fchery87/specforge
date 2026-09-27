@@ -200,6 +200,36 @@ describe('sanitizeGeneratedContent', () => {
 });
 
 describe('buildSectionPrompts and technical contracts', () => {
+  it.each(['prd', 'specs'])('asks the %s writer to keep the IDs of existing requirements', (phaseId) => {
+    const { systemPrompt } = buildSectionPrompts({
+      projectContext: {
+        title: 'Ledger',
+        description: 'A shared ledger',
+        questions: '',
+        liveClaims: [{ claimId: 'REQ-0012', text: 'A team owner invites members by email.' }],
+      },
+      sectionName: 'requirements',
+      sectionQuestions: [],
+      previousSections: [],
+      phaseId,
+    });
+
+    expect(systemPrompt).toContain('- **REQ-0012** A team owner invites members by email.');
+    expect(systemPrompt).toContain('Keep the ID even if you change the wording.');
+  });
+
+  it('leaves the ID rule out when the phase has no requirements yet', () => {
+    const { systemPrompt } = buildSectionPrompts({
+      projectContext: { title: 'Ledger', description: 'A shared ledger', questions: '' },
+      sectionName: 'requirements',
+      sectionQuestions: [],
+      previousSections: [],
+      phaseId: 'prd',
+    });
+
+    expect(systemPrompt).not.toContain('Existing requirements in this document');
+  });
+
   it('incorporates sectionInstructions into systemPrompt', () => {
     const { systemPrompt } = buildSectionPrompts({
       projectContext: { title: 'SpecForge', description: 'Spec generator', questions: '' },

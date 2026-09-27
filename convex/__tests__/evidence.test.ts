@@ -206,4 +206,77 @@ describe('evidence source revisions', () => {
 
     expect(ctx.__tables.verificationResults.get('result2')?.outdatedAt).toBeTypeOf('number');
   });
+
+  describe('claim identity', () => {
+    function seedClaim(ctx: FakeContext, overrides: Record<string, unknown> = {}) {
+      ctx.__tables.claims.set('claim12', {
+        _id: 'claim12', projectId: 'p1', phaseId: 'prd', artifactId: 'artifact1', artifactVersion: 1,
+        claimId: 'REQ-0012', text: 'A team owner invites members by email.', kind: 'requirement',
+        decisionStatus: 'confirmed', reviewStatus: 'current', retiredAt: undefined, ...overrides,
+      });
+      ctx.__tables.evidenceLinks.set('link12', { _id: 'link12', projectId: 'p1', claimId: 'claim12', sourceId: 'src1' });
+      const project = ctx.__tables.projects.get('p1');
+      if (project) project.nextClaimNumber = 13;
+    }
+
+    const reconcile = (ctx: FakeContext, content: string) =>
+      reconcileArtifactClaims(asMutationCtx(ctx), {
+        projectId: 'p1' as never,
+        phaseId: 'prd',
+        artifactId: 'artifact1' as never,
+        content,
+      });
+
+    it('keeps the ID, evidence and decision of a reworded claim written under its ID', async () => {
+      const ctx = makeCtx();
+      seedClaim(ctx);
+
+      await reconcile(ctx, '- **REQ-0012** A team owner invites members by email or by a shared link.');
+
+      expect([...ctx.__tables.claims.values()]).toEqual([
+        expect.objectContaining({
+          _id: 'claim12',
+          claimId: 'REQ-0012',
+          text: 'A team owner invites members by email or by a shared link.',
+          decisionStatus: 'confirmed',
+          reviewStatus: 'needs_review',
+          retiredAt: undefined,
+        }),
+      ]);
+      expect(ctx.__tables.evidenceLinks.get('link12')?.claimId).toBe('claim12');
+    });
+
+    it('leaves an unchanged claim written under its ID as it was', async () => {
+      const ctx = makeCtx();
+      seedClaim(ctx);
+
+      await reconcile(ctx, '- **REQ-0012** A team owner invites members by email.');
+
+      expect(ctx.__tables.claims.get('claim12')).toMatchObject({ text: 'A team owner invites members by email.', reviewStatus: 'current' });
+    });
+
+    it('does not adopt an ID the project never issued', async () => {
+      const ctx = makeCtx();
+      seedClaim(ctx);
+
+      await reconcile(ctx, '- **REQ-0999** Members can leave a team at any time they choose.');
+
+      const claims = [...ctx.__tables.claims.values()];
+      expect(claims.find((claim) => claim._id === 'claim12')?.retiredAt).toBeTypeOf('number');
+      expect(claims.find((claim) => claim._id !== 'claim12')).toMatchObject({
+        claimId: 'REQ-0013',
+        text: 'Members can leave a team at any time they choose.',
+      });
+    });
+
+    it('falls back to wording when the item carries no ID', async () => {
+      const ctx = makeCtx();
+      seedClaim(ctx, { text: 'A team owner must invite members by email.' });
+
+      await reconcile(ctx, '- A team owner must invite members by email.');
+
+      expect(ctx.__tables.claims.get('claim12')).toMatchObject({ claimId: 'REQ-0012', retiredAt: undefined });
+      expect(ctx.__tables.claims.size).toBe(1);
+    });
+  });
 });

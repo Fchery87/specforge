@@ -15,6 +15,20 @@ describe('evidence source helpers', () => {
     expect(extractClaimCandidates('- The architecture decision will use event sourcing.', 'constitution')[0]?.kind).toBe('decision');
   });
 
+  it('reads the ID an item was written under and strips the manifest wrapping', () => {
+    const markdown = [
+      '- **REQ-0012** A team owner invites members by email address.',
+      '- **REQ-0013** [confirmed; reviewed]: Entries are never edited in place. — Evidence: lib/ledger.ts (4f2a91c, supports)',
+      '- **REQ-0014** [proposed; needs_review]: Exports reconcile to the cent. — Evidence not captured',
+    ].join('\n');
+
+    expect(extractClaimCandidates(markdown, 'prd')).toEqual([
+      { text: 'A team owner invites members by email address.', kind: 'requirement', claimId: 'REQ-0012' },
+      { text: 'Entries are never edited in place.', kind: 'requirement', claimId: 'REQ-0013' },
+      { text: 'Exports reconcile to the cent.', kind: 'requirement', claimId: 'REQ-0014' },
+    ]);
+  });
+
   it('accepts only evidence markers from the captured source allowlist', () => {
     const claims = extractClaimCandidates(
       '- The service must deny access to expired sessions. <!-- evidence-source: src-1 -->\n' +

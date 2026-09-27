@@ -4,7 +4,15 @@ export interface ClaimCandidate {
   text: string;
   kind: 'decision' | 'requirement' | 'acceptance_criterion';
   sourceIds?: string[];
+  /** The ID the item was written under, such as `REQ-0012`. Unverified: reconciliation trusts it
+   * only when it names a live claim of the same project and phase. */
+  claimId?: string;
 }
+
+/** `**REQ-0012**`, optionally followed by the manifest's `[confirmed; reviewed]:`. */
+const CLAIM_ID_PREFIX = /^\*\*(?<claimId>[A-Z][A-Z0-9]*-\d+)\*\*\s*(?:\[[^\]]*\])?\s*:?\s*/;
+/** The manifest's ` — Evidence: ...` or ` — Evidence not captured` tail. */
+const MANIFEST_EVIDENCE_TAIL = /\s+[—–]\s+Evidence(?::.*|\s+not captured\.?)$/;
 
 export interface ClaimManifestItem {
   claimId: string;
@@ -57,13 +65,19 @@ export function extractClaimCandidates(
     const rawItem = line.match(/^(?:[-*+]\s+|\d+[.)]\s+)(.+)$/)?.[1]?.trim();
     if (!rawItem) continue;
     const sourceMatches = [...rawItem.matchAll(/<!--\s*evidence-source:\s*([A-Za-z0-9_-]+)\s*-->/g)];
-    const item = rawItem.replace(/\s*<!--\s*evidence-source:\s*[A-Za-z0-9_-]+\s*-->/g, '').trim();
+    const unmarked = rawItem.replace(/\s*<!--\s*evidence-source:\s*[A-Za-z0-9_-]+\s*-->/g, '').trim();
+    const claimId = unmarked.match(CLAIM_ID_PREFIX)?.groups?.claimId;
+    const item = claimId
+      ? unmarked.replace(CLAIM_ID_PREFIX, '').replace(MANIFEST_EVIDENCE_TAIL, '').trim()
+      : unmarked;
     if (item.length < 18 || item.length > 4_000) continue;
-    if (!/\b(must|shall|required|requirement|acceptance|should|will|decision|constraint|given|when|then)\b/i.test(item)) continue;
-    if (claims.some((claim) => claim.text.toLowerCase() === item.toLowerCase())) continue;
+    // An item written under an ID is a claim by declaration, so the wording test does not apply.
+    if (!claimId && !/\b(must|shall|required|requirement|acceptance|should|will|decision|constraint|given|when|then)\b/i.test(item)) continue;
+    if (claims.some((claim) => (claimId && claim.claimId === claimId) || claim.text.toLowerCase() === item.toLowerCase())) continue;
     claims.push({
       text: item,
       kind,
+      ...(claimId ? { claimId } : {}),
       ...(sourceMatches.length
         ? { sourceIds: [...new Set(sourceMatches.map((match) => match[1]).filter((id) => allowedSourceIds.has(id)))] }
         : {}),
