@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Check, Loader2, AlertCircle, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { StageQualityFlag } from "@/lib/quality/stage-report";
 import {
   WORKFLOW_STAGES,
   stageStatus,
@@ -17,6 +18,14 @@ export interface StageStepperProps {
   currentPhase?: PhaseId | string;
   phases: PhaseStatusMap;
   skippedPhases?: readonly (PhaseId | string)[];
+  /**
+   * The requirement-quality counts per stage id, from `getProjectStageQuality`.
+   *
+   * Optional, so a caller with no report to show renders the map exactly as it did before. The counts
+   * come from the same computation the artifact's report uses, so the word here and the lines there
+   * cannot disagree.
+   */
+  quality?: Readonly<Record<string, StageQualityFlag>>;
   className?: string;
 }
 
@@ -27,6 +36,39 @@ const STAGE_STATUS_LABELS: Record<StageStatus, string> = {
   ready: "Ready",
   error: "Error",
 };
+
+/** `criterion` takes a singular, which "1 criteria" would get wrong. */
+function criterionNoun(count: number): string {
+  return count === 1 ? "criterion" : "criteria";
+}
+
+/**
+ * The gap a stage carries, as words.
+ *
+ * A word rather than a second colour, because the document language says a status is readable without
+ * separating the tones. `unclassified` is absent: a criterion written before the class existed was
+ * never judged, so counting it would call it untestable. Every count at zero yields no words at all,
+ * which leaves the status text exactly as it was.
+ */
+function qualityWords(flag: StageQualityFlag | undefined): string[] {
+  if (!flag) return [];
+
+  const words: string[] = [];
+
+  if (flag.untraced > 0) {
+    words.push(
+      `${flag.untraced} requirement${flag.untraced === 1 ? "" : "s"} untraced`
+    );
+  }
+  if (flag.unobservable > 0) {
+    words.push(`${flag.unobservable} ${criterionNoun(flag.unobservable)} not testable`);
+  }
+  if (flag.vague > 0) {
+    words.push(`${flag.vague} ${criterionNoun(flag.vague)} vague`);
+  }
+
+  return words;
+}
 
 function getStageTargetPhase(
   stage: WorkflowStage,
@@ -85,6 +127,7 @@ export function StageStepper({
   currentPhase,
   phases,
   skippedPhases = [],
+  quality,
   className,
 }: StageStepperProps) {
   return (
@@ -95,6 +138,7 @@ export function StageStepper({
       {WORKFLOW_STAGES.map((stage, idx) => {
         const status = stageStatus(stage, phases, skippedPhases as readonly PhaseId[]);
         const targetPhase = getStageTargetPhase(stage, phases, skippedPhases);
+        const gapWords = qualityWords(quality?.[stage.id]);
         const isHighlighted =
           currentPhase !== "constitution" &&
           Boolean(currentPhase) &&
@@ -148,8 +192,11 @@ export function StageStepper({
                 >
                   {stage.label}
                 </span>
-                <span className="text-caption text-muted-foreground truncate">
+                {/* No `truncate` here: the gap is the reason to look at the stage, so it wraps rather
+                    than being clipped at the width of the card. */}
+                <span className="text-caption text-muted-foreground">
                   {STAGE_STATUS_LABELS[status]}
+                  {gapWords.length > 0 ? `, ${gapWords.join(", ")}` : null}
                 </span>
               </div>
             </div>

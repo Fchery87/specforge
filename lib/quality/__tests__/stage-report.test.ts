@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildStageReport, countWords } from '../stage-report';
+import { buildStageReport, countWords, stageQualityFlagFor } from '../stage-report';
 import { parseClaimManifest, type ParsedClaim } from '../../claims';
 import { mergeSectionContent } from '../../llm/chunking';
 import { getSectionPlansForPhase, PRD_SECTIONS } from '../../llm/section-plans';
@@ -497,5 +497,50 @@ describe('buildStageReport sections detail', () => {
       expect(report.sections[index].phaseId).toBe(plan.phaseId);
     }
     expect(report.sections.every((entry) => entry.phaseId === 'prd')).toBe(true);
+  });
+});
+
+/**
+ * The mark a stage earns in the workflow map. It is a projection of the same report the artifact
+ * shows, which is the only reason the map's word and the document's lines cannot disagree.
+ */
+describe('stageQualityFlagFor', () => {
+  it('projects the untraced and untestable counts off the report', () => {
+    const report = buildStageReport({
+      markdown: '',
+      claims: claimsFrom(
+        [
+          claimLine('C-1', 'confirmed', 'reviewed', false),
+          claimLine('C-2', 'confirmed', 'reviewed', true),
+        ].join('\n')
+      ),
+      sectionPlan: [],
+      criteria: ['Returns 204.', 'Should be fast.', 'Handle edge cases.'],
+      criterionClassList: ['observable', 'unobservable', 'vague'],
+    });
+
+    expect(stageQualityFlagFor(report)).toEqual({ untraced: 1, unobservable: 1, vague: 1 });
+  });
+
+  /**
+   * A criterion written before the class existed was never judged, so counting it here would call it
+   * untestable and relabel it retroactively. The stage stays unmarked.
+   */
+  it('does not count an unclassified criterion as untestable', () => {
+    const report = buildStageReport({
+      markdown: '',
+      claims: [],
+      sectionPlan: [],
+      criteria: ['A criterion from before the class existed.'],
+    });
+
+    expect(report.testability.unclassified).toBe(1);
+    expect(stageQualityFlagFor(report)).toEqual({ untraced: 0, unobservable: 0, vague: 0 });
+  });
+
+  it('reports zeros for a stage nothing was measured for', () => {
+    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: [] });
+
+    expect(stageQualityFlagFor(report)).toEqual({ untraced: 0, unobservable: 0, vague: 0 });
   });
 });

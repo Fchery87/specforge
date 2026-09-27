@@ -364,3 +364,30 @@ function buildLength(
 
   return { words, budgetWords, overBudget: isOverBudget(words, budgetWords) };
 }
+
+/**
+ * The two counts that put a mark on a stage in the map, and their split.
+ *
+ * A stage is marked when a requirement has no evidence behind it or a criterion states nothing a
+ * check can confirm, which is the difference worth seeing from the overview: the artifact itself
+ * explains which section and why.
+ *
+ * `unclassified` is deliberately excluded and must never be counted as untestable. A criterion
+ * written before the class existed was never judged by anyone, so a stage carrying only those has no
+ * finding to report, and marking it would relabel the criterion retroactively. That is the same
+ * decision the read side of the ticket parser already made.
+ */
+export interface StageQualityFlag {
+  untraced: number;
+  unobservable: number;
+  vague: number;
+}
+
+/** The mark a stage earns, projected from the report the artifact shows. */
+export function stageQualityFlagFor(report: StageReport): StageQualityFlag {
+  return {
+    untraced: report.traceability.untraced,
+    unobservable: report.testability.unobservable,
+    vague: report.testability.vague,
+  };
+}
