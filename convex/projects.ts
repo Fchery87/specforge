@@ -659,7 +659,24 @@ export async function deleteProjectHandler(
       .withIndex('by_claim', (q) => q.eq('claimId', claim._id))
       .collect();
     for (const review of reviews) await ctx.db.delete(review._id);
+    const revisions = await ctx.db
+      .query('claimRevisions')
+      .withIndex('by_claim', (q) => q.eq('claim', claim._id))
+      .collect();
+    for (const revision of revisions) await ctx.db.delete(revision._id);
     await ctx.db.delete(claim._id);
+  }
+  const changes = await ctx.db
+    .query('changes')
+    .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+    .collect();
+  for (const change of changes) {
+    const ops = await ctx.db
+      .query('changeOps')
+      .withIndex('by_change', (q) => q.eq('changeId', change._id))
+      .collect();
+    for (const op of ops) await ctx.db.delete(op._id);
+    await ctx.db.delete(change._id);
   }
   const sources = await ctx.db
     .query('evidenceSources')
