@@ -38,7 +38,7 @@ describe("ArtifactDocument", () => {
     expect(container.querySelector('h2[id="1-scope"]')).toBeInTheDocument();
     expect(container.querySelector('h3[id="1-1-archive-a-project"]')).toBeInTheDocument();
 
-    const toc = screen.getByRole("navigation", { name: "On this page" });
+    const toc = screen.getByRole("navigation", { name: "Contents" });
     expect(toc).toBeInTheDocument();
     expect(toc.querySelectorAll("a")).toHaveLength(4);
     expect(toc.querySelector('a[href="#1-scope"]')).toBeInTheDocument();
@@ -87,11 +87,29 @@ describe("ArtifactDocument", () => {
     expect(traceability).toHaveTextContent("2 claims, untraced");
   });
 
+  test("totals the document's claims by state at the foot of the gap map", () => {
+    render(<ArtifactDocument markdown={MARKDOWN} />);
+    const totals = screen.getByRole("list", { name: "Claims in this document" });
+
+    expect(totals).toHaveTextContent(/Confirmed\s*1/);
+    expect(totals).toHaveTextContent(/Proposed\s*0/);
+    expect(totals).toHaveTextContent(/Untraced\s*1/);
+  });
+
+  test("puts the contents before the document, so it reads as a left rail", () => {
+    const { container } = render(<ArtifactDocument markdown={MARKDOWN} title="Atlas" />);
+    const toc = screen.getByRole("navigation", { name: "Contents" });
+    const article = container.querySelector("article");
+
+    expect(article).not.toBeNull();
+    expect(toc.compareDocumentPosition(article as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   test("renders the body without a table of contents when there are no headings", () => {
     render(<ArtifactDocument markdown="Just a paragraph, with no headings at all." />);
 
     expect(screen.getByText("Just a paragraph, with no headings at all.")).toBeInTheDocument();
-    expect(screen.queryByRole("navigation", { name: "On this page" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Contents" })).not.toBeInTheDocument();
   });
 
   test("strips a script tag out of the rendered body", () => {

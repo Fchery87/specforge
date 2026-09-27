@@ -142,13 +142,33 @@ all render through one of the two, so the reader meets one notation everywhere.
 
 ## One description per page
 
-The workflow is described once per page. `components/stage-stepper.tsx` is the map,
-`components/next-action-button.tsx` is the instruction, and `components/add-section-menu.tsx` is the
-one control that brings a skipped phase back. `components/stage-phase-links.tsx` sits beside the
-instruction and lists only the current stage's phases, so a generated document stays reachable once
-its stage has finished. **`lib/workflow.ts` owns the phase labels**, so a renamed phase is renamed
-once. The earlier `StageCard` and `StageTabs` were deleted with the collapse. Do not add a fifth
-description of the same eight phases.
+The workflow is described once per page, each description with one job.
+
+- `components/stage-stepper.tsx` is the map: a band with one column per stage and one segment per
+  phase, ink when ready, part-filled brand where the reader is. `components/stage-band.tsx` holds the
+  segments, so the dashboard rows draw the same band without the labels.
+- `components/next-action-panel.tsx` is the instruction on the project page, and
+  `components/next-action-button.tsx` the instruction elsewhere. A stage under review with untraced
+  claims is named by its count: "Settle 2 untraced claims in Requirements".
+- `components/phase-ledger.tsx` is the ledger on the project page: every phase, its stage and its
+  status, in stage order rather than storage order.
+- `components/add-section-menu.tsx` is the one control that brings a skipped phase back, and
+  `components/stage-phase-links.tsx` lists the current stage's phases on a phase page.
+
+**`lib/workflow.ts` owns the phase labels and the phase lookup**: `phaseState`, `stageTargetPhase` and
+`currentPhaseFor` are the one reading of a phase's status, so the band, the ledger and the next action
+cannot disagree. Do not add another description of the same eight phases.
+
+## Layout
+
+A working surface sits on a sheet: `rounded-lg border border-line bg-surface` on the page ground.
+The project workspace, a phase's document, and the project list each get one. The phase page splits
+into two tabs, the document and the clarifications, and opens on whichever the phase needs next.
+
+The reading surface puts the contents rail on the left: section numbers, a gap word for any section
+whose claims are unsettled, and the document's claim totals at the foot. A claim bullet renders as a
+hallmark, its ID stamped solid once confirmed, outlined while proposed, dashed while untraced. The
+`hallmark` utility draws the same stamp in React, as `SpecClause` does on the landing page.
 
 ## Components
 

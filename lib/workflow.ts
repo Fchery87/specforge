@@ -186,6 +186,33 @@ function isPhaseSkipped(
   return info?.status === 'skipped';
 }
 
+/**
+ * A phase's status, with the skip list applied and a missing record read as `pending`. The one lookup
+ * every surface uses, so the band, the ledger and the next action cannot disagree about a phase.
+ */
+export function phaseState(
+  phases: PhaseStatusMap,
+  skipped: readonly (PhaseId | string)[],
+  phaseId: PhaseId,
+): PhaseRawStatus {
+  if (isPhaseSkipped(phaseId, phases, skipped)) return 'skipped';
+  return getPhaseInfo(phases, phaseId)?.status ?? 'pending';
+}
+
+/**
+ * Where a stage's link goes: its first enabled phase that is not ready, or its first enabled phase
+ * once all of them are, or its first phase when every phase is skipped.
+ */
+export function stageTargetPhase(
+  stage: WorkflowStage,
+  phases: PhaseStatusMap,
+  skipped: readonly (PhaseId | string)[],
+): PhaseId {
+  const enabled = stage.phaseIds.filter((id) => !isPhaseSkipped(id, phases, skipped));
+  if (enabled.length === 0) return stage.phaseIds[0];
+  return enabled.find((id) => getPhaseInfo(phases, id)?.status !== 'ready') ?? enabled[0];
+}
+
 export function stageStatus(
   stage: WorkflowStage,
   phases: PhaseStatusMap,
@@ -225,6 +252,26 @@ export function stageStatus(
   });
 
   return hasStarted ? 'in-progress' : 'not-started';
+}
+
+/** Where the reader is, given the next action: the phase that action works on. */
+export function currentPhaseFor(
+  action: NextAction,
+  phases: PhaseStatusMap,
+  skipped: readonly (PhaseId | string)[],
+): PhaseId {
+  switch (action.kind) {
+    case 'answer':
+    case 'generate':
+      return action.phaseId;
+    case 'review':
+    case 'continue': {
+      const stage = WORKFLOW_STAGES.find((candidate) => candidate.id === action.stageId);
+      return stage ? stageTargetPhase(stage, phases, skipped) : EXPORT_PHASE;
+    }
+    case 'export':
+      return EXPORT_PHASE;
+  }
 }
 
 export function nextAction(

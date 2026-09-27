@@ -7,6 +7,13 @@ vi.mock("@/components/ui/mermaid-diagram", () => ({
   ),
 }));
 
+// The preview renders project rows, which reach for Convex. Their data arrives as props, so the
+// queries are skipped and a stub is enough.
+vi.mock("convex/react", () => ({
+  useMutation: () => vi.fn(),
+  useQuery: () => undefined,
+}));
+
 import DesignPreviewPage from "@/app/design/page";
 
 /**
@@ -45,5 +52,17 @@ describe("design preview", () => {
     // marks do not spill onto them: `1-scope` matches no plan section.
     expect(container.querySelector('h2[id="1-scope"]')).not.toBeNull();
     expect(container.querySelector('h2[id="1-scope"] .section-mark')).toBeNull();
+  });
+
+  it("shows the workspace and the project rows without a deployment", () => {
+    render(<DesignPreviewPage />);
+
+    expect(screen.getByRole("navigation", { name: "Workflow stages" })).toBeInTheDocument();
+    expect(screen.getByText("Settle 2 untraced claims in Requirements")).toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /Domain Model.*Generating/ })).toHaveAttribute(
+      "aria-current",
+      "step"
+    );
+    expect(screen.getByRole("link", { name: "Resume at Design" })).toBeInTheDocument();
   });
 });

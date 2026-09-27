@@ -323,6 +323,44 @@
   @apply py-16 md:py-20;
 }
 
+/* A hallmark: one stamped mark in a clause's evidence strip. The radius is relative to the chip,
+   like inline code, so it stays a stamp rather than becoming a pill. */
+@utility hallmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.4em;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  background-color: var(--surface);
+}
+
+@utility hallmark-struck {
+  background-color: var(--ink);
+  border-color: var(--ink);
+  color: var(--void);
+}
+
+@utility hallmark-review {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+@utility hallmark-missing {
+  border-style: dashed;
+  border-color: var(--destructive);
+  color: var(--destructive);
+  background-color: transparent;
+}
+
 /* Document prose. Applied to rendered artifact markdown. */
 @utility document-prose {
   max-width: var(--measure);
@@ -400,30 +438,62 @@
     margin-top: 0.35em;
   }
 
-  /* A claim bullet carries its evidence state in the margin, using the same spine the reader
-     meets in the rest of the product. A claim with no evidence keeps its spine and turns to the warning colour. */
+  /* A claim bullet is a hallmark: its ID is stamped as a chip, solid once confirmed, outlined while
+     proposed, dashed while untraced. The spine on the left carries the same state, so a gap is drawn
+     rather than left invisible. The state is also a word in the bullet, never colour alone. */
   & li[data-claim] {
     list-style: none;
     margin-left: -1.25rem;
-    border-left: 2px solid var(--line);
-    padding-left: 1.25rem;
+    border-left: 2px solid transparent;
+    padding: 0.625rem 0 0.625rem 1.25rem;
   }
 
-  & li[data-state="untraced"] {
-    border-left-color: color-mix(in oklab, var(--warning) 70%, transparent);
-  }
-
-  & li[data-state="proposed"] {
-    border-left-color: var(--line-strong);
+  & li[data-claim] + li[data-claim] {
+    margin-top: 0;
+    border-top: 1px solid var(--line);
   }
 
   & li[data-claim] > strong:first-child {
+    display: inline-flex;
+    align-items: center;
+    height: 1.375rem;
+    margin-right: 0.5rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 0.4em;
     font-family: var(--font-mono);
     font-size: var(--text-caption);
     font-variant-numeric: tabular-nums;
-    font-weight: 400;
-    color: var(--ink-dim);
+    font-weight: 500;
+    color: var(--ink-muted);
+    vertical-align: 0.08em;
   }
+
+  & li[data-state="confirmed"] > strong:first-child {
+    background-color: var(--ink);
+    border-color: var(--ink);
+    color: var(--void);
+  }
+
+  & li[data-state="proposed"] {
+    border-left-color: var(--warning);
+  }
+
+  & li[data-state="proposed"] > strong:first-child {
+    border-color: var(--warning);
+    color: var(--warning);
+  }
+
+  & li[data-state="untraced"] {
+    border-left-color: var(--destructive);
+  }
+
+  & li[data-state="untraced"] > strong:first-child {
+    border-style: dashed;
+    border-color: var(--destructive);
+    color: var(--destructive);
+  }
+
   /* A length or coverage mark on a clause's own heading. `renderSpecHtml` writes this span into the
      rendered heading, so there is no markup for a utility class to sit on; the rule belongs here,
      beside the claim-bullet notation. It stays a word rather than a colour. The markup already

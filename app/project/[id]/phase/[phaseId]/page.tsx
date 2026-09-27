@@ -35,6 +35,8 @@ import { StageStepper } from "@/components/stage-stepper";
 import { NextActionButton } from "@/components/next-action-button";
 import { AddSectionMenu } from "@/components/add-section-menu";
 import { StagePhaseLinks } from "@/components/stage-phase-links";
+import * as Tabs from "@radix-ui/react-tabs";
+import { cn } from "@/lib/utils";
 import { nextAction, MODE_POLICIES, type PhaseId, type ProjectMode } from "@/lib/workflow";
 
 
@@ -99,6 +101,9 @@ export default function PhasePage() {
   
   // Interactive section planning state (Phase 4 P2)
   const [showSectionPlan, setShowSectionPlan] = useState(false);
+  // Which half of the phase is in view. Unset means "follow the phase": the document once there is
+  // something to read, the questions before that.
+  const [view, setView] = useState<"document" | "questions" | null>(null);
   const staticSectionPlans = getSectionPlansForPhase(phaseId);
   // AI-generated section plans (Task 16)
   const generateSectionPlanFn = useAction(generateSectionPlanAction);
@@ -169,6 +174,8 @@ export default function PhasePage() {
   // Handle generation with preferences from section plan
   async function handleGenerateWithPreferences(preferences: UserSectionPreference[]) {
     setShowSectionPlan(false);
+    // Watch the document arrive.
+    setView("document");
     setIsPhaseStarting(true);
     setPhaseTaskId(null);
     phaseStatusRef.current = null;
@@ -348,6 +355,11 @@ export default function PhasePage() {
     );
   }
 
+  const artifactCount = phase.artifacts?.length ?? 0;
+  const questionCount = phase.questions?.length ?? 0;
+  const activeView =
+    view ?? (artifactCount > 0 || isGenerating || showStreamingPreview ? "document" : "questions");
+
   return (
     <main className="min-h-[calc(100vh-var(--header-height))]">
       {/* Back Navigation */}
@@ -377,7 +389,7 @@ export default function PhasePage() {
         <p className="text-label text-dim">
           {phaseId === "constitution" ? project.title : phaseConfig.label}
         </p>
-        <h1 className="mt-2 text-heading font-medium text-ink">
+        <h1 className="mt-2 font-display text-heading font-semibold text-ink">
           {phaseId === "constitution" ? "Project Rules" : project.title}
         </h1>
         <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">
@@ -464,14 +476,109 @@ export default function PhasePage() {
         </section>
       )}
 
-      {/* Main Content Grid */}
-      <section className="page-container page-section border-t border-line">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-12">
-          {/* Left Column: Questions */}
-          <div className="min-w-0">
-            <h2 className="mb-6 text-title font-medium text-ink">
-              Clarifications
-            </h2>
+      {/* The phase in two halves: the document to read, and the questions that shape it. */}
+      <section className="page-container pb-16">
+        <Tabs.Root
+          value={activeView}
+          onValueChange={(value) => setView(value as "document" | "questions")}
+        >
+          <Tabs.List aria-label="Phase" className="flex gap-1 border-b border-line">
+            {(
+              [
+                ["document", "Document", artifactCount],
+                ["questions", "Clarifications", questionCount],
+              ] as const
+            ).map(([value, label, count]) => (
+              <Tabs.Trigger
+                key={value}
+                value={value}
+                className={cn(
+                  "-mb-px flex items-center gap-2 rounded-t-sm border-b-2 border-transparent px-3 py-2.5 text-ui text-muted-foreground",
+                  "transition-colors duration-(--duration-quick) hover:text-ink focus-ring",
+                  "data-[state=active]:border-brand data-[state=active]:font-medium data-[state=active]:text-ink"
+                )}
+              >
+                {label}
+                {count > 0 ? (
+                  <span className="font-mono text-caption tabular-nums text-dim">{count}</span>
+                ) : null}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+
+          <Tabs.Content value="document" className="mt-6 focus-visible:outline-none">
+            <div className="rounded-lg border border-line bg-surface px-5 py-6 md:px-8 md:py-8">
+              <ArtifactsHeader
+                streamStatus={streamingArtifact?.streamStatus}
+                hasArtifacts={!!phase.artifacts && phase.artifacts.length > 0}
+                onDownloadAll={handleDownloadZip}
+                isDownloading={isDownloadingZip}
+              />
+
+              {isGenerating && (
+                <div className="mb-6">
+                  <GenerationActivityStream
+                    activities={generationTask?.activityLog ?? []}
+                    isActive={isGenerating}
+                  />
+                </div>
+              )}
+
+              {showStreamingPreview ? (
+                <StreamingArtifactPreview
+                  title={streamingArtifact?.title ?? "Generating…"}
+                  previewHtml={streamingArtifact?.previewHtml ?? ""}
+                  streamStatus={streamingArtifact?.streamStatus ?? (isGenerating ? "streaming" : undefined)}
+                  currentSection={streamingArtifact?.currentSection}
+                  sectionsCompleted={streamingArtifact?.sectionsCompleted}
+                  sectionsTotal={streamingArtifact?.sectionsTotal}
+                  onCancel={handleCancelGeneration}
+                  isCancelling={isCancelling}
+                />
+              ) : (phase.artifacts ?? []).length > 0 ? (
+                <div className="flex flex-col gap-14">
+                  {phase.artifacts.map((a) => (
+                    <div key={a._id} className="flex flex-col gap-8">
+                      <ArtifactPreview artifact={a} projectId={projectId} />
+                      <EvidenceReviewPanel projectId={projectId} artifactId={a._id} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  variant="inbox"
+                  title="No artifacts yet"
+                  description="Answer the interview questions or complete stress-test grilling to generate verified artifacts."
+                  className="py-12"
+                />
+              )}
+
+              {/* Export options for handoff phase */}
+              {phaseId === "handoff" && project && (
+                <ExportOptionsPanel
+                  project={{
+                    _id: project._id,
+                    title: project.title,
+                    description: project.description,
+                    createdAt: project.createdAt,
+                    zipStorageId: project.zipStorageId,
+                  }}
+                  artifacts={{
+                    brief: allArtifacts?.find((a) => a.type === "brief")?.content,
+                    constitution: allArtifacts?.find((a) => a.type === "constitution")?.content,
+                    prd: allArtifacts?.find((a) => a.type === "prd")?.content,
+                    techSpec: allArtifacts?.find((a) => a.type === "techSpec")?.content,
+                    userStories: allArtifacts?.find((a) => a.type === "userStories")?.content,
+                    handoff: allArtifacts?.find((a) => a.type === "handoff")?.content,
+                  }}
+                  onDownloadZip={handleDownloadZip}
+                  isDownloadingZip={isDownloadingZip}
+                />
+              )}
+            </div>
+          </Tabs.Content>
+
+          <Tabs.Content value="questions" className="mt-6 max-w-3xl focus-visible:outline-none">
             {showSectionPlan ? (
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-2">
@@ -518,79 +625,8 @@ export default function PhasePage() {
                 onResumePhase={handleResumePhase}
               />
             )}
-          </div>
-
-          {/* Right Column: the reading surface */}
-          <div className="min-w-0">
-            <ArtifactsHeader
-              streamStatus={streamingArtifact?.streamStatus}
-              hasArtifacts={!!phase.artifacts && phase.artifacts.length > 0}
-              onDownloadAll={handleDownloadZip}
-              isDownloading={isDownloadingZip}
-            />
-
-            {isGenerating && (
-              <div className="mb-6">
-                <GenerationActivityStream
-                  activities={generationTask?.activityLog ?? []}
-                  isActive={isGenerating}
-                />
-              </div>
-            )}
-
-            {showStreamingPreview ? (
-              <StreamingArtifactPreview
-                title={streamingArtifact?.title ?? "Generating…"}
-                previewHtml={streamingArtifact?.previewHtml ?? ""}
-                streamStatus={streamingArtifact?.streamStatus ?? (isGenerating ? "streaming" : undefined)}
-                currentSection={streamingArtifact?.currentSection}
-                sectionsCompleted={streamingArtifact?.sectionsCompleted}
-                sectionsTotal={streamingArtifact?.sectionsTotal}
-                onCancel={handleCancelGeneration}
-                isCancelling={isCancelling}
-              />
-            ) : (phase.artifacts ?? []).length > 0 ? (
-              <div className="flex flex-col gap-14">
-                {phase.artifacts.map((a) => (
-                  <div key={a._id} className="flex flex-col gap-8">
-                    <ArtifactPreview artifact={a} projectId={projectId} />
-                    <EvidenceReviewPanel projectId={projectId} artifactId={a._id} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                variant="inbox"
-                title="No artifacts yet"
-                description="Answer the interview questions or complete stress-test grilling to generate verified artifacts."
-                className="py-12"
-              />
-            )}
-
-            {/* Export options for handoff phase */}
-            {phaseId === "handoff" && project && (
-              <ExportOptionsPanel
-                project={{
-                  _id: project._id,
-                  title: project.title,
-                  description: project.description,
-                  createdAt: project.createdAt,
-                  zipStorageId: project.zipStorageId,
-                }}
-                artifacts={{
-                  brief: allArtifacts?.find((a) => a.type === "brief")?.content,
-                  constitution: allArtifacts?.find((a) => a.type === "constitution")?.content,
-                  prd: allArtifacts?.find((a) => a.type === "prd")?.content,
-                  techSpec: allArtifacts?.find((a) => a.type === "techSpec")?.content,
-                  userStories: allArtifacts?.find((a) => a.type === "userStories")?.content,
-                  handoff: allArtifacts?.find((a) => a.type === "handoff")?.content,
-                }}
-                onDownloadZip={handleDownloadZip}
-                isDownloadingZip={isDownloadingZip}
-              />
-            )}
-          </div>
-        </div>
+          </Tabs.Content>
+        </Tabs.Root>
       </section>
 
       {/* Ticket Board for stories phase */}

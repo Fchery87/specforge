@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { StageBand } from '@/components/stage-band';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,12 +19,8 @@ import {
   PinOff,
   Copy,
   Trash2,
-  CheckCircle2,
-  AlertTriangle,
   RefreshCw,
   Loader2,
-  Clock,
-  ArrowRight,
 } from 'lucide-react';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -39,7 +34,6 @@ import {
   type PhaseStatusMap,
   type ProjectMode,
   PHASE_ORDER,
-  phaseLabel,
 } from '@/lib/workflow';
 
 export function getDashboardCardAction(
@@ -101,46 +95,23 @@ export interface ProjectCardProps {
   onDelete?: () => void;
 }
 
-function HealthBadge({ status }: { status: string }) {
-  const config: Record<
-    string,
-    { label: string; icon: typeof CheckCircle2; className: string } | null
-  > = {
-    passed: {
-      label: 'Verified',
-      icon: CheckCircle2,
-      className: 'bg-success/10 text-success border-success/30',
-    },
-    failed: {
-      label: 'Issues',
-      icon: AlertTriangle,
-      className: 'bg-destructive/10 text-destructive border-destructive/30',
-    },
-    warning: {
-      label: 'Warning',
-      icon: AlertTriangle,
-      className: 'bg-warning/10 text-warning border-warning/30',
-    },
-    not_checked: null,
-  };
+const VERIFICATION_WORD: Record<string, { label: string; tone: string } | undefined> = {
+  passed: { label: 'Verified', tone: 'text-success' },
+  failed: { label: 'Verification failed', tone: 'text-destructive' },
+  warning: { label: 'Verification warning', tone: 'text-warning' },
+};
 
-  const badge = config[status ?? 'not_checked'];
-  if (!badge) return null;
+const STATUS_WORD: Record<ProjectCardProps['project']['status'], string> = {
+  draft: 'Draft',
+  active: 'Active',
+  complete: 'Complete',
+};
 
-  const Icon = badge.icon;
-
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold rounded-sm border',
-        badge.className
-      )}
-    >
-      <Icon className="size-3" />
-      {badge.label}
-    </span>
-  );
-}
+const MODE_WORD: Record<NonNullable<ProjectCardProps['project']['mode']>, string> = {
+  quick: 'Quick Spec',
+  backend: 'API & Backend',
+  full: 'Full Blueprint',
+};
 
 export function ProjectCard({
   project,
@@ -189,7 +160,6 @@ export function ProjectCard({
     return getDashboardCardAction(currentNextAction, project._id, skipped);
   }, [currentNextAction, project._id, skipped]);
 
-  const progress = effectiveMetrics?.completionPercentage ?? 0;
   const completedPhases = effectiveMetrics?.completedPhases ?? 0;
   const totalPhases = effectiveMetrics?.totalPhases ?? PHASE_ORDER.length;
   const hasStale = effectiveMetrics?.stalenessFlags?.some((f) => f.isStale) ?? false;
@@ -224,206 +194,112 @@ export function ProjectCard({
     toast.success('Project ID copied to clipboard');
   }
 
+  const verification = VERIFICATION_WORD[effectiveMetrics?.verificationStatus ?? 'not_checked'];
+
   return (
-    <div className="relative group h-full">
-      <Link href={ctaHref as Route} className="block h-full">
-        <Card
-          variant="interactive"
-          className={cn(
-            'h-full relative overflow-hidden flex flex-col justify-between',
-            'transition-colors duration-(--duration-standard) border',
-            project.status === 'complete' && 'border-t-success/80',
-            project.status === 'active' && 'border-t-primary/80',
-            project.status === 'draft' && 'border-t-line-strong'
-          )}
-        >
-          {/* Top Status Accent Bar */}
-          <div
-            className={cn(
-              'absolute top-0 left-0 right-0 h-1',
-              project.status === 'complete' && 'bg-success',
-              project.status === 'active' && 'bg-primary',
-              project.status === 'draft' && 'bg-muted-foreground/30'
+    <div
+      className={cn(
+        'group relative grid items-center gap-x-8 gap-y-3 px-5 py-4 transition-colors duration-(--duration-quick)',
+        'md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.6fr)_10rem_13rem] hover:bg-void'
+      )}
+    >
+      <div className="min-w-0">
+        <p className="flex items-center gap-2">
+          <span className="truncate text-body font-semibold text-ink">{project.title}</span>
+          {isPinned ? (
+            <Pin aria-label="Pinned" className="size-3.5 shrink-0 fill-brand text-brand" />
+          ) : null}
+        </p>
+        <p className="truncate text-ui text-muted-foreground">
+          {project.description || 'No description provided.'}
+        </p>
+        <p className="mt-0.5 text-caption text-dim">
+          <span>{STATUS_WORD[project.status]}</span>
+          {project.mode ? (
+            <>
+              <span aria-hidden>, </span>
+              <span>{MODE_WORD[project.mode]}</span>
+            </>
+          ) : null}
+        </p>
+      </div>
+
+      <div className="min-w-0">
+        <StageBand phases={effectivePhases} skippedPhases={skipped} />
+      </div>
+
+      <div className="text-label">
+        <p className="text-muted-foreground">
+          {completedPhases} of {totalPhases} phases ready
+        </p>
+        {verification || hasStale ? (
+          <p className="flex items-center gap-2">
+            {verification ? <span className={verification.tone}>{verification.label}</span> : null}
+            {hasStale ? (
+              <span className="inline-flex items-center gap-1 text-warning">
+                <RefreshCw aria-hidden className="size-3" />
+                Stale
+              </span>
+            ) : null}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex items-center justify-between gap-4 md:justify-end">
+        <div className="md:text-right">
+          {/* The row is one target: this link stretches over it. The options menu sits above it. */}
+          <Link
+            href={ctaHref as Route}
+            className="rounded-sm text-label font-semibold text-brand focus-ring after:absolute after:inset-0 after:content-['']"
+          >
+            {ctaLabel}
+          </Link>
+          <p className="text-caption text-dim">Updated {formatRelativeTime(project.updatedAt)}</p>
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="relative z-10 flex size-8 items-center justify-center rounded-sm text-dim transition-colors hover:bg-raised hover:text-ink focus-ring"
+              aria-label="Project options"
+            >
+              <MoreHorizontal className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuItem onClick={handlePin} disabled={isPinning}>
+              {isPinning ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : isPinned ? (
+                <PinOff className="mr-2 size-4" />
+              ) : (
+                <Pin className="mr-2 size-4" />
+              )}
+              <span>{isPinned ? 'Unpin project' : 'Pin project'}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleCopyId}>
+              <Copy className="mr-2 size-4" />
+              <span>Copy ID</span>
+            </DropdownMenuItem>
+            {onDelete && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </>
             )}
-          />
-
-          <CardHeader className="p-5 sm:p-6 pb-4 space-y-3">
-            {/* Header Status & Action Controls */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                {/* Status Badge */}
-                {project.status === 'complete' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-success/10 text-success border border-success/30 rounded-sm">
-                    <span className="size-1.5 rounded-full bg-success animate-pulse" />
-                    Complete
-                  </span>
-                )}
-                {project.status === 'active' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-primary/10 text-primary border border-primary/30 rounded-sm">
-                    <span className="size-1.5 rounded-full bg-primary" />
-                    Active
-                  </span>
-                )}
-                {project.status === 'draft' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-raised/60 text-muted-foreground border border-line/60 rounded-sm">
-                    <span className="size-1.5 rounded-full bg-muted-foreground/60" />
-                    Draft
-                  </span>
-                )}
-
-                {/* Mode Badge */}
-                {project.mode === 'quick' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-info/10 text-info border border-info/30 rounded-sm">
-                    Quick Spec
-                  </span>
-                )}
-                {project.mode === 'backend' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-info/10 text-info border border-info/30 rounded-sm">
-                    API & Backend
-                  </span>
-                )}
-                {project.mode === 'full' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-raised/80 text-ink border border-line rounded-sm">
-                    Full Blueprint
-                  </span>
-                )}
-
-                {/* Health & Staleness Badges */}
-                <HealthBadge status={effectiveMetrics?.verificationStatus ?? 'not_checked'} />
-                {hasStale && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-warning/10 text-warning border border-warning/30 rounded-sm">
-                    <RefreshCw className="size-2.5" />
-                    Stale
-                  </span>
-                )}
-              </div>
-
-              {/* Pin & Dropdown Actions */}
-              <div
-                className="flex items-center gap-1 z-10 shrink-0"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                {isPinned && (
-                  <div
-                    className="size-7 flex items-center justify-center bg-primary/10 border border-primary/30 text-primary"
-                    title="Pinned project"
-                  >
-                    <Pin className="size-3.5 fill-primary" />
-                  </div>
-                )}
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="size-7 rounded-sm border border-line/60 bg-raised/40 hover:bg-raised hover:border-primary/50 text-muted-foreground hover:text-ink flex items-center justify-center transition-colors"
-                      aria-label="Project options"
-                    >
-                      <MoreHorizontal className="size-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44">
-                    <DropdownMenuItem onClick={handlePin} disabled={isPinning}>
-                      {isPinning ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : isPinned ? (
-                        <PinOff className="mr-2 h-4 w-4" />
-                      ) : (
-                        <Pin className="mr-2 h-4 w-4" />
-                      )}
-                      <span>{isPinned ? 'Unpin Project' : 'Pin Project'}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleCopyId}>
-                      <Copy className="mr-2 h-4 w-4" />
-                      <span>Copy ID</span>
-                    </DropdownMenuItem>
-                    {onDelete && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onDelete();
-                          }}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-
-            {/* Title & Description */}
-            <div className="space-y-1">
-              <CardTitle className="text-body sm:text-title font-bold truncate group-hover:text-primary transition-colors">
-                {project.title}
-              </CardTitle>
-              <CardDescription className="line-clamp-2 text-caption sm:text-ui text-muted-foreground leading-relaxed min-h-[2.5rem]">
-                {project.description || 'No description provided.'}
-              </CardDescription>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-5 sm:p-6 pt-0 space-y-4">
-            {/* Segmented Phase Pipeline */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-caption">
-                <span className="text-caption font-bold text-muted-foreground">
-                  Pipeline Progress
-                </span>
-                <span className="font-mono font-bold text-ink tabular-nums text-caption">
-                  {completedPhases}/{totalPhases} ({progress}%)
-                </span>
-              </div>
-
-              {/* Segmented Phase Track */}
-              <div className="flex gap-1 h-1.5 w-full">
-                {PHASE_ORDER.map((phaseId, idx) => {
-                  const isCompleted = idx < completedPhases;
-                  const isCurrent = phaseId === effectiveMetrics?.currentPhaseId;
-
-                  return (
-                    <div
-                      key={phaseId}
-                      className={cn(
-                        'h-full flex-1 rounded-sm transition-colors duration-(--duration-standard)',
-                        isCompleted && 'bg-success',
-                        isCurrent && !isCompleted && 'bg-primary animate-pulse',
-                        !isCompleted && !isCurrent && 'bg-raised/40 hover:bg-raised/70'
-                      )}
-                      title={`Phase ${idx + 1}: ${phaseLabel(phaseId)} ${
-                        isCompleted
-                          ? '(Completed)'
-                          : isCurrent
-                            ? '(In Progress)'
-                            : '(Pending)'
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Footer Metadata & CTA */}
-            <div className="flex items-center justify-between pt-3 border-t border-line/50 text-caption">
-              <span className="flex items-center text-muted-foreground text-caption sm:text-caption">
-                <Clock className="size-3.5 mr-1.5 text-muted-foreground/70" />
-                Updated {formatRelativeTime(project.updatedAt)}
-              </span>
-              <span className="flex items-center font-bold text-caption sm:text-caption text-primary group-hover:text-primary transition-colors">
-                {ctaLabel} <ArrowRight className="size-3.5 ml-1" />
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }

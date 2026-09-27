@@ -25,11 +25,11 @@ const claimStateClass: Record<ClaimState, string> = {
   untraced: "text-destructive",
 };
 
-/** The spine colour. An untraced claim keeps its spine and turns it amber, so a gap is drawn. */
+/** The spine colour, drawn only where the strip stacks under the body. */
 const spineClass: Record<ClaimState, string> = {
   confirmed: "border-line",
-  proposed: "border-line",
-  untraced: "border-warning/70",
+  proposed: "border-warning",
+  untraced: "border-destructive",
 };
 
 export interface EvidenceItem {
@@ -64,6 +64,16 @@ export function SpecSectionHeading({
   );
 }
 
+const hallmarkState: Record<ClaimState, string> = {
+  confirmed: "hallmark-struck",
+  proposed: "hallmark-review",
+  untraced: "hallmark-missing",
+};
+
+/**
+ * A clause in three columns: its number in the margin, its body, and its hallmarks, the stamped
+ * strip of claim ID, evidence and state. Below `md` the strip drops under the body.
+ */
 export function SpecClause({
   number,
   claimId,
@@ -79,55 +89,41 @@ export function SpecClause({
 }) {
   const hasEvidence = Boolean(evidence && evidence.length > 0);
   const effectiveState: ClaimState = hasEvidence ? state : "untraced";
-  const firstEvidenceIndex = 0;
 
   return (
-    <section id={claimId} className="flex scroll-mt-24 gap-5 md:gap-6">
+    <section
+      id={claimId}
+      className="grid scroll-mt-24 gap-x-6 gap-y-3 border-t border-line pt-6 md:grid-cols-[4rem_minmax(0,1fr)_17rem]"
+    >
       <div className={marginCell}>{number}</div>
 
-      <div
-        className={cn(
-          "min-w-0 flex-1 border-l pl-5",
-          spineClass[effectiveState]
-        )}
-      >
-        <p className="mb-2 flex items-center gap-3">
-          <span className="font-mono text-caption tabular-nums text-dim">{claimId}</span>
-          <span className={cn("text-caption", claimStateClass[effectiveState])}>
-            {claimStateLabel[effectiveState]}
-          </span>
-        </p>
-
+      <div className={cn("min-w-0 border-l-2 pl-5 md:border-l-0 md:pl-0", spineClass[effectiveState])}>
         <div className="document-prose text-ink">{children}</div>
-
-        {hasEvidence ? (
-          <div className="mt-4 flex flex-col">
-            {evidence?.map((item, index) => (
-              <div
-                key={`${item.kind}-${item.source}-${index}`}
-                className={cn(
-                  "grid grid-cols-[6rem_1fr] gap-x-4 gap-y-1 py-2 md:grid-cols-[7rem_1fr_auto]",
-                  index > firstEvidenceIndex && "border-t border-line/60"
-                )}
-              >
-                <span className="text-caption text-dim">{item.kind}</span>
-                <span className="font-mono text-caption break-words text-ink">{item.source}</span>
-                {item.pin ? (
-                  <span className="font-mono text-caption tabular-nums text-dim md:text-right">
-                    {item.pin}
-                  </span>
-                ) : (
-                  <span />
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-3 text-caption text-warning">
+        {hasEvidence ? null : (
+          <p className="mt-3 text-caption text-destructive">
             No evidence yet. Answer the question or cite the file that settles it.
           </p>
         )}
       </div>
+
+      <ul
+        aria-label={`Claim ${claimId}, ${claimStateLabel[effectiveState].toLowerCase()}`}
+        className="flex flex-wrap content-start gap-1 md:pt-1"
+      >
+        <li className={cn("hallmark", effectiveState === "confirmed" && "hallmark-struck")}>
+          {claimId}
+        </li>
+        {evidence?.map((item, index) => (
+          <li key={`${item.kind}-${item.source}-${index}`} className="hallmark" title={item.kind}>
+            <span className="sr-only">{item.kind}: </span>
+            {item.source}
+            {item.pin ? <span className="text-dim">{item.pin}</span> : null}
+          </li>
+        ))}
+        <li className={cn("hallmark", hallmarkState[effectiveState])}>
+          {claimStateLabel[effectiveState]}
+        </li>
+      </ul>
     </section>
   );
 }

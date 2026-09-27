@@ -1,5 +1,10 @@
 import { notFound } from "next/navigation";
+import type { Id } from "@/convex/_generated/dataModel";
 import { ArtifactDocument } from "@/components/artifact-document";
+import { ProjectCard } from "@/components/dashboard/project-card";
+import { NextActionPanel } from "@/components/next-action-panel";
+import { PhaseLedger } from "@/components/phase-ledger";
+import { StageStepper } from "@/components/stage-stepper";
 import { StageQualityReport } from "@/components/stage-report";
 import type { ParsedClaim } from "@/lib/claims";
 import { getSectionPlansForPhase } from "@/lib/llm/section-plans";
@@ -158,6 +163,70 @@ const PREVIEW_REPORT = buildStageReport({
   criterionClassList: PREVIEW_CRITERIA.slice(0, 3).map(classifyCriterion),
 });
 
+/** A project part-way through Design, with two untraced claims left in its requirements. */
+const WORKSPACE_PHASES = [
+  { phaseId: "constitution", status: "ready" as const },
+  { phaseId: "brief", status: "ready" as const },
+  { phaseId: "prd", status: "ready" as const },
+  { phaseId: "domainModel", status: "generating" as const },
+  { phaseId: "specs", status: "pending" as const },
+  { phaseId: "artifacts", status: "pending" as const },
+  { phaseId: "stories", status: "pending" as const },
+];
+
+const WORKSPACE_QUALITY = { requirements: { untraced: 2, unobservable: 0, vague: 0 } };
+
+const HOUR = 3_600_000;
+const PREVIEW_NOW = Date.UTC(2026, 8, 27, 12);
+
+const PREVIEW_PROJECTS = [
+  {
+    project: {
+      _id: "preview-atlas" as Id<"projects">,
+      title: "Atlas",
+      description: "Evidence workspace for agencies",
+      status: "active" as const,
+      mode: "full" as const,
+      createdAt: PREVIEW_NOW - 200 * HOUR,
+      updatedAt: PREVIEW_NOW - HOUR / 15,
+    },
+    phases: WORKSPACE_PHASES,
+    completed: 3,
+    pinned: true,
+  },
+  {
+    project: {
+      _id: "preview-ledgerline" as Id<"projects">,
+      title: "Ledgerline",
+      description: "Invoice reconciliation API",
+      status: "complete" as const,
+      mode: "backend" as const,
+      createdAt: PREVIEW_NOW - 400 * HOUR,
+      updatedAt: PREVIEW_NOW - 26 * HOUR,
+    },
+    phases: WORKSPACE_PHASES.map((phase) => ({ ...phase, status: "ready" as const })),
+    completed: 8,
+    pinned: false,
+  },
+  {
+    project: {
+      _id: "preview-tidepool" as Id<"projects">,
+      title: "Tidepool",
+      description: "Shift scheduling for clinics",
+      status: "draft" as const,
+      mode: "quick" as const,
+      createdAt: PREVIEW_NOW - 300 * HOUR,
+      updatedAt: PREVIEW_NOW - 190 * HOUR,
+    },
+    phases: [
+      { phaseId: "constitution", status: "ready" as const },
+      { phaseId: "brief", status: "pending" as const },
+    ],
+    completed: 1,
+    pinned: false,
+  },
+];
+
 export default function DesignPreviewPage() {
   if (process.env.NODE_ENV === "production") notFound();
 
@@ -174,7 +243,60 @@ export default function DesignPreviewPage() {
         </p>
       </div>
 
-      <ArtifactDocument markdown={FIXTURE} title="Atlas product requirements" />
+      <div className="rounded-lg border border-line bg-surface px-5 py-6 md:px-8 md:py-8">
+        <ArtifactDocument markdown={FIXTURE} title="Atlas product requirements" />
+      </div>
+
+      <section className="mt-16 border-t border-line pt-8">
+        <p className="text-caption text-dim">The project workspace</p>
+        <h2 className="mt-2 text-title font-medium text-ink">One map, one instruction, one ledger</h2>
+        <div className="mt-8 rounded-lg border border-line bg-surface px-5 py-7 md:px-8 md:py-9">
+          <h3 className="font-display text-heading font-semibold text-ink">Atlas</h3>
+          <p className="mt-2 text-label text-dim">Full mode</p>
+          <StageStepper
+            className="mt-9"
+            projectId="preview-atlas"
+            currentPhase="domainModel"
+            phases={WORKSPACE_PHASES}
+            quality={WORKSPACE_QUALITY}
+          />
+          <NextActionPanel
+            className="mt-8"
+            projectId="preview-atlas"
+            action={{ kind: "review", stageId: "requirements" }}
+            quality={WORKSPACE_QUALITY}
+          />
+          <PhaseLedger
+            className="mt-8"
+            projectId="preview-atlas"
+            phases={WORKSPACE_PHASES}
+            currentPhase="domainModel"
+          />
+        </div>
+      </section>
+
+      <section className="mt-16 border-t border-line pt-8">
+        <p className="text-caption text-dim">Projects</p>
+        <h2 className="mt-2 text-title font-medium text-ink">How far each spec has come</h2>
+        <div className="mt-8 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+          {PREVIEW_PROJECTS.map(({ project, phases, completed, pinned }) => (
+            <ProjectCard
+              key={project._id}
+              project={project}
+              phases={phases}
+              isPinned={pinned}
+              metrics={{
+                completionPercentage: Math.round((completed / 8) * 100),
+                completedPhases: completed,
+                totalPhases: 8,
+                healthScore: 100,
+                stalenessFlags: [],
+                verificationStatus: completed === 8 ? "passed" : "not_checked",
+              }}
+            />
+          ))}
+        </div>
+      </section>
 
       <section className="mt-16 border-t border-line pt-8">
         <p className="text-caption text-dim">Second example, a measured stage</p>

@@ -254,3 +254,64 @@ describe("StageStepper quality marks", () => {
     }
   });
 });
+
+describe("StageStepper band", () => {
+  const segmentsOf = (container: HTMLElement, stage: string) =>
+    Array.from(
+      container.querySelectorAll<HTMLElement>(`[data-stage="${stage}"] [data-phase]`)
+    ).map((segment) => [segment.dataset.phase, segment.dataset.state]);
+
+  it("draws one segment per phase, in stage order, with its state", () => {
+    const { container } = render(
+      <StageStepper
+        projectId="proj-1"
+        phases={{
+          brief: "ready",
+          prd: "error",
+          domainModel: "generating",
+          specs: "pending",
+          artifacts: "skipped",
+          stories: "pending",
+        }}
+        skippedPhases={["artifacts"]}
+      />
+    );
+
+    expect(segmentsOf(container, "requirements")).toEqual([
+      ["brief", "ready"],
+      ["prd", "error"],
+    ]);
+    expect(segmentsOf(container, "design")).toEqual([
+      ["domainModel", "generating"],
+      ["specs", "pending"],
+      ["artifacts", "skipped"],
+    ]);
+    expect(segmentsOf(container, "tasks")).toEqual([["stories", "pending"]]);
+  });
+
+  it("marks where the reader is: the first unfinished phase of a stage already under way", () => {
+    const { container } = render(
+      <StageStepper
+        projectId="proj-1"
+        phases={{ brief: "ready", prd: "pending", domainModel: "pending" }}
+      />
+    );
+
+    expect(segmentsOf(container, "requirements")).toEqual([
+      ["brief", "ready"],
+      ["prd", "now"],
+    ]);
+    // A stage that has not started has no position in it.
+    expect(segmentsOf(container, "design")[0]).toEqual(["domainModel", "pending"]);
+  });
+
+  it("keeps the segments out of the accessible name", () => {
+    const { container } = render(
+      <StageStepper projectId="proj-1" phases={{ brief: "ready", prd: "ready" }} />
+    );
+
+    for (const band of container.querySelectorAll("[data-band]")) {
+      expect(band).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+});

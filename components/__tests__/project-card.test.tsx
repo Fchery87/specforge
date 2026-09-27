@@ -28,7 +28,7 @@ describe("ProjectCard component", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
-  it("renders pipeline progress and phase segments when metrics provided", () => {
+  it("states progress as phases ready, beside the stage band", () => {
     const mockMetrics = {
       completionPercentage: 57,
       completedPhases: 4,
@@ -38,11 +38,29 @@ describe("ProjectCard component", () => {
       verificationStatus: "passed" as const,
     };
 
-    render(<ProjectCard project={mockProject} metrics={mockMetrics} />);
+    const { container } = render(
+      <ProjectCard
+        project={mockProject}
+        metrics={mockMetrics}
+        phases={[
+          { phaseId: "brief", status: "ready" as const },
+          { phaseId: "prd", status: "pending" as const },
+        ]}
+      />
+    );
 
-    expect(screen.getByText("Pipeline Progress")).toBeInTheDocument();
-    expect(screen.getByText("4/7 (57%)")).toBeInTheDocument();
+    expect(screen.getByText("4 of 7 phases ready")).toBeInTheDocument();
     expect(screen.getByText("Verified")).toBeInTheDocument();
+    // The band draws one segment per phase in the three stages: 2 + 3 + 1.
+    expect(container.querySelectorAll("[data-band] [data-phase]")).toHaveLength(6);
+    expect(container.querySelector('[data-phase="prd"]')).toHaveAttribute("data-state", "now");
+  });
+
+  it("keeps the options menu outside the row's link", () => {
+    render(<ProjectCard project={mockProject} onDelete={() => {}} />);
+    const options = screen.getByRole("button", { name: /project options/i });
+
+    expect(options.closest("a")).toBeNull();
   });
 
   it("calls onDelete callback when Delete menu option is clicked", async () => {

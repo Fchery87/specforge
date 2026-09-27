@@ -47,7 +47,7 @@ Each later phase gets its own spec when the phase before it exits. Phases 6 to 9
 6. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
 7. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
 8. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
-9. Workspace flow. A next action that names the claims blocking a stage, a jump-to palette for clauses and claims, and per-project stage bars on the dashboard, as shown in `design/prototypes/brand-directions.html`.
+9. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`.
 
 ## Historical plan index
 

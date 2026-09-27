@@ -77,6 +77,22 @@ do not change. `app/icon.svg` carries the same mark for the browser tab.
 The button primitive presses to 0.97. The ease-out token takes the stronger curve. Nothing moves on
 hover.
 
+## Amendment, 2026-09-27: the layout pass
+
+The first rollout changed colour and type on the existing layouts, and the owner's review found the
+product still did not look like the chosen prototype. A second pass set the prototype's composition:
+the project workspace as a sheet with the stage band, a next action and a phase ledger; the dashboard
+as a list of rows each carrying the band; the reading surface with the contents rail on the left and
+claims stamped as hallmarks; and the phase page as two tabs.
+
+Two items this spec listed as non-goals came with the composition because they need no new data: the
+next action names a stage's untraced claims from the existing stage-quality counts, and each project
+row draws the stage band from the phases it already loads. The jump-to palette stays out of scope.
+
+Deleted by the layout pass: `components/dashboard/pinned-projects.tsx`, whose grid the pinned-first
+list replaces; the dashboard's three action cards, whose actions are the header buttons; and its
+stat cards, which repeated `PersonalAnalytics`.
+
 ## Deletion inventory
 
 Deleted outright:

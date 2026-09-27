@@ -7,37 +7,17 @@ import { useQuery, useMutation } from "convex/react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Progress } from "@/components/ui/progress";
-import { Plus, Sparkles, ArrowRight, Clock, Zap, Loader2, Trash2, Search } from "lucide-react";
+import { Plus, Zap, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { PersonalAnalytics } from "@/components/dashboard/personal-analytics";
-import { PinnedProjects } from "@/components/dashboard/pinned-projects";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
-import { DashboardSearch } from "@/components/dashboard/dashboard-search";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
-import { SpecForgeLogo } from "@/components/ui/logo";
-
-function getRelativeTime(timestamp: number): string {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return "Just now";
-}
-
 
 export default function DashboardPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -45,11 +25,6 @@ export default function DashboardPage() {
   const projects = useQuery(
     api.projects.getProjects,
     isLoaded && isSignedIn ? {} : "skip"
-  );
-
-  const recentProjects = useQuery(
-    api.userDashboard.getRecentProjects,
-    isLoaded && isSignedIn ? { limit: 5 } : "skip"
   );
 
   const pinnedProjects = useQuery(
@@ -103,7 +78,11 @@ export default function DashboardPage() {
 
   const pinnedIds = new Set((pinnedProjects || []).map((p: { _id: string }) => p._id));
   
-  let sortedProjects = [...(projects || [])].sort((a, b) => b.updatedAt - a.updatedAt);
+  // Pinned projects first, then the most recently updated.
+  let sortedProjects = [...(projects || [])].sort(
+    (a, b) =>
+      Number(pinnedIds.has(b._id)) - Number(pinnedIds.has(a._id)) || b.updatedAt - a.updatedAt
+  );
   
   if (searchQuery) {
     const query = searchQuery.toLowerCase();
@@ -150,264 +129,147 @@ export default function DashboardPage() {
         isLoading={isDeleting}
       />
 
-      {/* Hero header */}
-      <section className="page-header">
-        <div className="page-container">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <span className="text-label text-dim">Command Center</span>
-            <NotificationBell />
+      <section className="page-container pt-10 pb-8 md:pt-14">
+        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <h1 className="font-display text-heading font-semibold text-ink">Projects</h1>
+            <p className="mt-2 max-w-xl text-body text-muted-foreground">
+              How far each spec has come, and where it needs you.
+            </p>
           </div>
-          <h1 className="mt-2 text-heading font-medium text-ink">Your Projects</h1>
-          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Manage specification pipelines, review evidence changes, and export agent-native handoffs.</p>
-        </div>
-      </section>
-
-      {/* Personal Analytics Widget */}
-      <section className="page-section page-container border-t border-line">
-        <PersonalAnalytics />
-      </section>
-
-      {/* Pinned Projects */}
-      <section className="page-section page-container border-t border-line">
-        <PinnedProjects />
-      </section>
-
-      {/* Quick Actions */}
-      <section className="page-section page-container border-t border-line">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* New Project Card - Primary CTA */}
-          <Link href="/dashboard/new" className="md:col-span-2 lg:col-span-1 block">
-            <Card variant="interactive" className="h-full group">
-              <CardHeader>
-                <div className="size-14 border border-primary bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 group-hover:border-primary transition-colors">
-                  <Plus className="size-7 text-primary transition-colors" />
-                </div>
-                <CardTitle>New Project</CardTitle>
-                <CardDescription>
-                  Run the complete specification pipeline with codebase scanning, evidence linking, and tracer bullet decomposition
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center text-primary font-bold transition-colors">
-                  Create Project <ArrowRight className="size-4 ml-2" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Recent Activity Card */}
-          <Card variant="default">
-            <CardHeader>
-              <div className="size-14 border border-line bg-raised/30 flex items-center justify-center mb-4">
-                <Clock className="size-7 text-muted-foreground" />
-              </div>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>
-                Your latest project updates
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentProjects && recentProjects.length > 0 ? (
-                <ul className="space-y-2">
-                  {recentProjects.map((project) => (
-                    <li key={project._id} className="flex items-center justify-between text-ui">
-                      <Link
-                        href={`/project/${project._id}`}
-                        className="text-ink hover:text-primary transition-colors truncate max-w-[180px]"
-                      >
-                        {project.title}
-                      </Link>
-                      <span className="text-muted-foreground text-caption">
-                        {getRelativeTime(project.updatedAt)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground text-ui">No recent activity</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Spec Card */}
-          <Link href={"/dashboard/quick" as Route} className="block">
-            <Card variant="interactive" className="h-full group">
-              <CardHeader>
-                <div className="size-14 border border-line bg-raised/30 flex items-center justify-center mb-4 group-hover:border-primary group-hover:bg-primary/10 transition-colors">
-                  <Zap className="size-7 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <CardTitle>Quick Spec</CardTitle>
-                <CardDescription>
-                  Generate a fast one-page architectural spec and Mermaid diagram, then save directly to project history
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center text-primary font-bold text-ui transition-colors">
-                  Open Quick Spec <ArrowRight className="size-4 ml-2" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-      </section>
-
-      {/* Projects List Section with Search */}
-      <section className="page-section page-container border-t border-line">
-        <div className="mb-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-title font-bold">
-              All Projects
-            </h2>
-            <Button variant="outline" size="sm" asChild>
+          <div className="flex flex-wrap items-center gap-2">
+            <NotificationBell />
+            <Button asChild variant="outline">
+              <Link href={"/dashboard/quick" as Route}>
+                <Zap aria-hidden className="size-4" />
+                Quick spec
+              </Link>
+            </Button>
+            <Button asChild>
               <Link href="/dashboard/new">
-                <Plus className="size-4 mr-2" /> New
+                <Plus aria-hidden className="size-4" />
+                New project
               </Link>
             </Button>
           </div>
+        </div>
+      </section>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+      <section className="page-container pb-16">
+        <div className="overflow-hidden rounded-lg border border-line bg-surface">
+          <div className="flex flex-col gap-3 border-b border-line px-5 py-4 lg:flex-row lg:items-center">
+            <div className="relative flex-1 lg:max-w-sm">
+              <Search aria-hidden className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-dim" />
               <input
                 type="search"
-                placeholder="Search projects by title or description..."
+                aria-label="Search projects"
+                placeholder="Search by title or description"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-9 pr-4 bg-raised/30 border border-line/50 focus:bg-void transition-colors text-ui"
+                className="h-9 w-full rounded-sm border border-field bg-void pl-9 pr-3 text-ui text-ink placeholder:text-dim"
               />
             </div>
 
-            <div className="flex flex-wrap gap-2 items-center">
-              {['draft', 'active', 'complete'].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => {
-                    setStatusFilter((prev) =>
-                      prev.includes(status)
-                        ? prev.filter((s) => s !== status)
-                        : [...prev, status]
-                    );
-                  }}
-                  className={cn(
-                    "px-3 py-1.5 text-caption font-medium capitalize transition-colors border",
-                    statusFilter.includes(status)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-void text-muted-foreground border-line hover:border-muted-foreground"
-                  )}
-                >
-                  {status}
-                </button>
-              ))}
-
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by status">
+              {(["draft", "active", "complete"] as const).map((status) => {
+                const on = statusFilter.includes(status);
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => {
+                      setStatusFilter((prev) =>
+                        prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+                      );
+                    }}
+                    className={cn(
+                      "h-8 rounded-full border px-3 text-label capitalize transition-colors duration-(--duration-quick)",
+                      on
+                        ? "border-ink bg-ink text-void"
+                        : "border-line text-muted-foreground hover:border-line-strong hover:text-ink"
+                    )}
+                  >
+                    {status}
+                  </button>
+                );
+              })}
               {(searchQuery || statusFilter.length > 0) && (
                 <button
+                  type="button"
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilter([]);
                   }}
-                  className="text-caption text-muted-foreground hover:text-ink transition-colors ml-1"
+                  className="ml-1 rounded-sm text-label text-muted-foreground hover:text-ink focus-ring"
                 >
                   Clear filters
                 </button>
               )}
             </div>
+
+            <p className="text-label text-dim lg:ml-auto" aria-live="polite">
+              {sortedProjects.length} {sortedProjects.length === 1 ? "project" : "projects"}
+            </p>
           </div>
 
-          <p className="text-caption text-muted-foreground">
-            {sortedProjects.length} {sortedProjects.length === 1 ? 'project' : 'projects'} found
-          </p>
-        </div>
-
-        {sortedProjects.length === 0 ? (
-          <EmptyState
-            variant="folder"
-            title={searchQuery || statusFilter.length > 0 ? "No Projects Match" : "No Projects Yet"}
-            description={
-              searchQuery || statusFilter.length > 0
-                ? "Try adjusting your search query or status filter."
-                : "Create your first project to begin generating specifications, domain models, and agent handoff files."
-            }
-          >
-            {searchQuery || statusFilter.length > 0 ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter([]);
-                }}
-                className="mt-4"
-              >
-                Clear Filters
-              </Button>
-            ) : (
-              <Link href="/dashboard/new">
-                <Button className="mt-4">
-                  <Plus className="size-4 mr-2" /> Create First Project
+          {sortedProjects.length === 0 ? (
+            <EmptyState
+              variant="folder"
+              title={searchQuery || statusFilter.length > 0 ? "No projects match" : "No projects yet"}
+              description={
+                searchQuery || statusFilter.length > 0
+                  ? "Change the search or clear the status filter."
+                  : "Start a project with a title and a paragraph. SpecForge asks what it needs before it writes anything."
+              }
+            >
+              {searchQuery || statusFilter.length > 0 ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter([]);
+                  }}
+                  className="mt-4"
+                >
+                  Clear filters
                 </Button>
-              </Link>
-            )}
-          </EmptyState>
-        ) : (
-          /* Projects Grid with Progress */
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {sortedProjects.map((project) => (
-              <ProjectCard
-                key={project._id}
-                project={project}
-                isPinned={pinnedIds.has(project._id)}
-                onDelete={() => {
-                  setDeleteDialogState({
-                    open: true,
-                    projectId: project._id,
-                    projectTitle: project.title,
-                  });
-                }}
-              />
-            ))}
-          </div>
-        )}
+              ) : (
+                <Button asChild className="mt-4">
+                  <Link href="/dashboard/new">
+                    <Plus aria-hidden className="size-4" />
+                    New project
+                  </Link>
+                </Button>
+              )}
+            </EmptyState>
+          ) : (
+            <div className="divide-y divide-line">
+              {sortedProjects.map((project) => (
+                <ProjectCard
+                  key={project._id}
+                  project={project}
+                  isPinned={pinnedIds.has(project._id)}
+                  onDelete={() => {
+                    setDeleteDialogState({
+                      open: true,
+                      projectId: project._id,
+                      projectTitle: project.title,
+                    });
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* Activity Feed Section */}
-      <section className="page-section page-container border-t border-line">
-        <div className="grid gap-8 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <h2 className="text-title font-bold mb-6">
-              Activity Feed
-            </h2>
+      <section className="page-container border-t border-line py-14">
+        <PersonalAnalytics />
+        <div className="mt-12">
+          <h2 className="text-title font-semibold text-ink">Activity</h2>
+          <div className="mt-5">
             <ActivityFeed />
-          </div>
-          <div>
-            <h2 className="text-title font-bold mb-6">
-              Quick Stats
-            </h2>
-            <div className="space-y-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-heading font-semibold text-primary">
-                    {projects?.length || 0}
-                  </div>
-                  <p className="text-ui text-muted-foreground mt-1">Total Projects</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-heading font-semibold">
-                    {projects?.filter((p) => p.status === "active").length || 0}
-                  </div>
-                  <p className="text-ui text-muted-foreground mt-1">Active Projects</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-heading font-semibold text-success">
-                    {projects?.filter((p) => p.status === "complete").length || 0}
-                  </div>
-                  <p className="text-ui text-muted-foreground mt-1">Completed</p>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
       </section>
