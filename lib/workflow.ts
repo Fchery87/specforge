@@ -52,6 +52,22 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
 export const RULES_PHASE: PhaseId = 'constitution';
 export const EXPORT_PHASE: PhaseId = 'handoff';
 
+export interface OutlineGroup {
+  label: string;
+  phaseIds: readonly PhaseId[];
+}
+
+/**
+ * Every phase in reading order, grouped as the reader meets them: the rules, each stage, then the
+ * handoff. Not `PHASE_ORDER`, which is storage order and puts Tasks between two Design phases. The
+ * project sidebar and the phase ledger both draw from this, so they cannot list phases differently.
+ */
+export const PROJECT_OUTLINE: readonly OutlineGroup[] = [
+  { label: 'Rules', phaseIds: [RULES_PHASE] },
+  ...WORKFLOW_STAGES.map((stage) => ({ label: stage.label, phaseIds: stage.phaseIds })),
+  { label: 'Handoff', phaseIds: [EXPORT_PHASE] },
+];
+
 /**
  * The display name of each phase. One definition, because a phase renamed in one place and not
  * another shows the user two names for the same thing. These are the names from the guided
@@ -88,6 +104,7 @@ export type ProjectMode = 'quick' | 'full' | 'backend';
 
 export interface ModePolicy {
   label: string;
+  description: string;
   reviewAfter: readonly StageId[];
   skippedPhases: readonly PhaseId[];
 }
@@ -95,16 +112,19 @@ export interface ModePolicy {
 export const MODE_POLICIES: Record<ProjectMode, ModePolicy> = {
   quick: {
     label: 'Lite',
+    description: 'For a feature or a fix. Skips the domain model and schemas, and generates without review stops.',
     reviewAfter: [],
     skippedPhases: ['domainModel', 'artifacts'],
   },
   full: {
     label: 'Full',
+    description: 'For a new product. Every phase, with a review after each stage.',
     reviewAfter: ['requirements', 'design', 'tasks'],
     skippedPhases: [],
   },
   backend: {
     label: 'Backend',
+    description: 'For services and APIs. Skips the brief, starts from the PRD, and reviews after each stage.',
     reviewAfter: ['requirements', 'design', 'tasks'],
     skippedPhases: ['brief'],
   },
@@ -120,6 +140,14 @@ export type NextAction =
   | { kind: 'export' };
 
 export type PhaseRawStatus = 'pending' | 'generating' | 'ready' | 'error' | 'skipped';
+
+export const PHASE_STATUS_WORDS: Record<PhaseRawStatus, string> = {
+  pending: 'Not started',
+  generating: 'Generating',
+  ready: 'Ready',
+  error: 'Error',
+  skipped: 'Skipped',
+};
 
 export interface PhaseQuestion {
   id?: string;
@@ -186,6 +214,33 @@ function isPhaseSkipped(
   return info?.status === 'skipped';
 }
 
+/**
+ * A phase's status, with the skip list applied and a missing record read as `pending`. The one lookup
+ * every surface uses, so the band, the ledger and the next action cannot disagree about a phase.
+ */
+export function phaseState(
+  phases: PhaseStatusMap,
+  skipped: readonly (PhaseId | string)[],
+  phaseId: PhaseId,
+): PhaseRawStatus {
+  if (isPhaseSkipped(phaseId, phases, skipped)) return 'skipped';
+  return getPhaseInfo(phases, phaseId)?.status ?? 'pending';
+}
+
+/**
+ * Where a stage's link goes: its first enabled phase that is not ready, or its first enabled phase
+ * once all of them are, or its first phase when every phase is skipped.
+ */
+export function stageTargetPhase(
+  stage: WorkflowStage,
+  phases: PhaseStatusMap,
+  skipped: readonly (PhaseId | string)[],
+): PhaseId {
+  const enabled = stage.phaseIds.filter((id) => !isPhaseSkipped(id, phases, skipped));
+  if (enabled.length === 0) return stage.phaseIds[0];
+  return enabled.find((id) => getPhaseInfo(phases, id)?.status !== 'ready') ?? enabled[0];
+}
+
 export function stageStatus(
   stage: WorkflowStage,
   phases: PhaseStatusMap,
@@ -225,6 +280,26 @@ export function stageStatus(
   });
 
   return hasStarted ? 'in-progress' : 'not-started';
+}
+
+/** Where the reader is, given the next action: the phase that action works on. */
+export function currentPhaseFor(
+  action: NextAction,
+  phases: PhaseStatusMap,
+  skipped: readonly (PhaseId | string)[],
+): PhaseId {
+  switch (action.kind) {
+    case 'answer':
+    case 'generate':
+      return action.phaseId;
+    case 'review':
+    case 'continue': {
+      const stage = WORKFLOW_STAGES.find((candidate) => candidate.id === action.stageId);
+      return stage ? stageTargetPhase(stage, phases, skipped) : EXPORT_PHASE;
+    }
+    case 'export':
+      return EXPORT_PHASE;
+  }
 }
 
 export function nextAction(

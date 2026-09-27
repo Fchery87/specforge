@@ -43,7 +43,7 @@ function Gap({ value, word }: { value: number; word: string }) {
   return (
     <>
       ,{" "}
-      <span className="text-amber">
+      <span className="text-warning">
         <Count value={value} /> {word}
       </span>
     </>
@@ -151,7 +151,7 @@ export function StageQualityReport({
           {length.overBudget && length.budgetWords > 0 ? (
             <>
               ,{" "}
-              <span className="text-amber">over budget</span>
+              <span className="text-warning">over budget</span>
             </>
           ) : null}
           {overBudgetSections > 0 ? (

@@ -48,7 +48,7 @@ function StatCard({
     <Card
       className={cn(
         "relative overflow-hidden",
-        accent ? "border-ember/50 bg-ember/5" : "border-line/50"
+        accent ? "border-brand/50 bg-brand/5" : "border-line/50"
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -56,7 +56,7 @@ function StatCard({
         <div
           className={cn(
             "flex size-8 items-center justify-center rounded-sm",
-            accent ? "bg-ember text-primary-foreground" : "bg-raised/50 text-dim"
+            accent ? "bg-brand text-primary-foreground" : "bg-raised/50 text-dim"
           )}
         >
           <Icon className="size-4" />
@@ -64,7 +64,7 @@ function StatCard({
       </CardHeader>
 
       <CardContent>
-        <div className={cn("text-heading font-semibold text-ink", accent && "text-ember")}>
+        <div className={cn("text-heading font-semibold text-ink", accent && "text-brand")}>
           {value}
         </div>
 
@@ -75,7 +75,7 @@ function StatCard({
             <span
               className={cn(
                 "text-caption",
-                trend === "up" ? "text-sage" : "text-brick"
+                trend === "up" ? "text-success" : "text-destructive"
               )}
             >
               {trend === "up" ? "Trending up" : "Trending down"}
@@ -85,7 +85,7 @@ function StatCard({
       </CardContent>
 
       {accent && (
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-ember/30" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-brand/30" />
       )}
     </Card>
   );
@@ -129,8 +129,8 @@ export function PersonalAnalytics() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
         <div className="relative">
-          <Activity className="size-5 text-ember" />
-          <div className="absolute -top-1 -right-1 size-2 animate-pulse rounded-full bg-ember" />
+          <Activity className="size-5 text-brand" />
+          <div className="absolute -top-1 -right-1 size-2 animate-pulse rounded-full bg-brand" />
         </div>
         <h2 className="text-ui font-medium text-ink">Your stats</h2>
         <span className="bg-raised/50 px-2 py-0.5 text-caption text-dim">30 days</span>
@@ -174,11 +174,11 @@ export function PersonalAnalytics() {
           <span>{stats.phasesCompleted} phases completed</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="size-2 rounded-full bg-sage" />
+          <div className="size-2 rounded-full bg-success" />
           <span>{stats.activeProjects} active projects</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="size-2 rounded-full bg-ember" />
+          <div className="size-2 rounded-full bg-brand" />
           <span>{stats.completedProjects} completed</span>
         </div>
       </div>

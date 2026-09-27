@@ -95,12 +95,12 @@ export default function AnalyticsPage() {
   // Get provider icon color
   const getProviderColor = (provider: string) => {
     const colors: Record<string, string> = {
-      openai: 'bg-sage/20 text-sage',
-      anthropic: 'bg-amber/20 text-amber',
-      google: 'bg-slate/20 text-slate',
-      mistral: 'bg-slate/20 text-slate',
-      zai: 'bg-slate/20 text-slate',
-      minimax: 'bg-slate/20 text-slate',
+      openai: 'bg-success/20 text-success',
+      anthropic: 'bg-warning/20 text-warning',
+      google: 'bg-info/20 text-info',
+      mistral: 'bg-info/20 text-info',
+      zai: 'bg-info/20 text-info',
+      minimax: 'bg-info/20 text-info',
     };
     return colors[provider] || 'bg-raised text-muted-foreground';
   };
@@ -112,7 +112,7 @@ export default function AnalyticsPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">Usage Analytics</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Track token consumption, costs, and platform usage patterns.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Track token consumption, costs, and platform usage patterns.</p>
         </div>
       </section>
 
@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{formatNumber(analytics.summary.totalTasks)}</p>
+              <p className="text-heading font-semibold">{formatNumber(analytics.summary.totalTasks)}</p>
               <div className="flex items-center gap-2 mt-2">
                 <Activity className="size-4 text-muted-foreground" />
                 <span className="text-caption text-muted-foreground">Generation tasks</span>
@@ -166,14 +166,14 @@ export default function AnalyticsPage() {
             </CardHeader>
             <CardContent>
               <p className={cn(
-                "text-heading font-bold",
-                analytics.summary.successRate >= 90 ? "text-sage" : 
-                analytics.summary.successRate >= 70 ? "text-amber" : "text-brick"
+                "text-heading font-semibold",
+                analytics.summary.successRate >= 90 ? "text-success" : 
+                analytics.summary.successRate >= 70 ? "text-warning" : "text-destructive"
               )}>
                 {analytics.summary.successRate.toFixed(1)}%
               </p>
               <div className="flex items-center gap-2 mt-2">
-                <CheckCircle className="size-4 text-sage" />
+                <CheckCircle className="size-4 text-success" />
                 <span className="text-caption text-muted-foreground">
                   {analytics.summary.completedTasks} completed
                 </span>
@@ -188,9 +188,9 @@ export default function AnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{formatNumber(analytics.summary.totalTokens)}</p>
+              <p className="text-heading font-semibold">{formatNumber(analytics.summary.totalTokens)}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Zap className="size-4 text-amber" />
+                <Zap className="size-4 text-warning" />
                 <span className="text-caption text-muted-foreground">Estimated consumption</span>
               </div>
             </CardContent>
@@ -203,7 +203,7 @@ export default function AnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-primary">{formatCurrency(analytics.summary.estimatedCost)}</p>
+              <p className="text-heading font-semibold text-primary">{formatCurrency(analytics.summary.estimatedCost)}</p>
               <div className="flex items-center gap-2 mt-2">
                 <DollarSign className="size-4 text-primary" />
                 <span className="text-caption text-muted-foreground">Approximate spend</span>
@@ -216,7 +216,7 @@ export default function AnalyticsPage() {
       {/* Provider Usage */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Provider Usage
           </h2>
           <p className="text-muted-foreground mt-2">
@@ -241,11 +241,11 @@ export default function AnalyticsPage() {
                 <div className="space-y-3">
                   <div>
                     <p className="text-ui text-muted-foreground">Tokens</p>
-                    <p className="text-title font-bold">{formatNumber(data.tokens)}</p>
+                    <p className="text-title font-semibold">{formatNumber(data.tokens)}</p>
                   </div>
                   <div className="pt-3 border-t border-line">
                     <p className="text-ui text-muted-foreground">Est. Cost</p>
-                    <p className="text-title font-bold text-primary">{formatCurrency(data.cost)}</p>
+                    <p className="text-title font-semibold text-primary">{formatCurrency(data.cost)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -267,7 +267,7 @@ export default function AnalyticsPage() {
       {/* Top Users */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Top Users
           </h2>
           <p className="text-muted-foreground mt-2">
@@ -293,7 +293,7 @@ export default function AnalyticsPage() {
                   >
                     <div className="col-span-1">
                       <span className={cn(
-                        "inline-flex items-center justify-center size-6 rounded-sm text-ui font-bold",
+                        "inline-flex items-center justify-center size-6 rounded-sm text-ui font-semibold",
                         index < 3 ? "bg-primary text-primary-foreground" : "bg-raised text-muted-foreground"
                       )}>
                         {index + 1}
@@ -311,7 +311,7 @@ export default function AnalyticsPage() {
                       <span className="font-medium">{user.projects}</span>
                     </div>
                     <div className="col-span-3">
-                      <span className="font-bold">{user.tasks}</span>
+                      <span className="font-semibold">{user.tasks}</span>
                     </div>
                   </div>
                 ))
@@ -329,7 +329,7 @@ export default function AnalyticsPage() {
       {/* Model Usage */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Model Usage
           </h2>
           <p className="text-muted-foreground mt-2">

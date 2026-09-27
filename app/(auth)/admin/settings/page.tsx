@@ -191,7 +191,7 @@ export default function SettingsPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">Global Settings</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Configure feature flags, rate limits, and system-wide settings.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Configure feature flags, rate limits, and system-wide settings.</p>
         </div>
       </section>
 
@@ -207,7 +207,7 @@ export default function SettingsPage() {
           {/* Feature Flags Tab */}
           <TabsContent value="features">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 Feature Flags
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -222,7 +222,7 @@ export default function SettingsPage() {
                   variant="default"
                   className={cn(
                     "transition-colors",
-                    flag.enabled && flag.key === 'maintenance_mode' && "border-brick/50 bg-brick/5"
+                    flag.enabled && flag.key === 'maintenance_mode' && "border-destructive/50 bg-destructive/5"
                   )}
                 >
                   <CardContent className="p-6">
@@ -233,19 +233,19 @@ export default function SettingsPage() {
                           flag.enabled 
                             ? "bg-primary/10" 
                             : "bg-raised",
-                          flag.key === 'maintenance_mode' && flag.enabled && "bg-brick/20"
+                          flag.key === 'maintenance_mode' && flag.enabled && "bg-destructive/20"
                         )}>
                           <ToggleLeft className={cn(
                             "size-6",
                             flag.enabled 
                               ? "text-primary" 
                               : "text-muted-foreground",
-                            flag.key === 'maintenance_mode' && flag.enabled && "text-brick"
+                            flag.key === 'maintenance_mode' && flag.enabled && "text-destructive"
                           )} />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold">{flag.name}</h3>
+                            <h3 className="font-semibold">{flag.name}</h3>
                             {flag.key === 'maintenance_mode' && flag.enabled && (
                               <Badge variant="destructive">Active</Badge>
                             )}
@@ -274,7 +274,7 @@ export default function SettingsPage() {
           {/* System Config Tab */}
           <TabsContent value="config">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 System Configuration
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -287,7 +287,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Gauge className="size-5 text-primary" />
-                  <h3 className="font-bold">Rate Limits</h3>
+                  <h3 className="font-semibold">Rate Limits</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -316,7 +316,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Lock className="size-5 text-primary" />
-                  <h3 className="font-bold">Security</h3>
+                  <h3 className="font-semibold">Security</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -345,7 +345,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="size-5 text-primary" />
-                  <h3 className="font-bold">Generation</h3>
+                  <h3 className="font-semibold">Generation</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -375,7 +375,7 @@ export default function SettingsPage() {
           {/* Advanced Tab */}
           <TabsContent value="advanced">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 Advanced Settings
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -420,10 +420,10 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card variant="default" className="border-amber/50">
+              <Card variant="default" className="border-warning/50">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <AlertCircle className="size-5 text-amber" />
+                    <AlertCircle className="size-5 text-warning" />
                     <CardTitle>Danger Zone</CardTitle>
                   </div>
                   <CardDescription>
@@ -452,7 +452,7 @@ export default function SettingsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="size-5 text-amber" />
+              <AlertCircle className="size-5 text-warning" />
               Enable Maintenance Mode
             </DialogTitle>
             <DialogDescription>

@@ -9,21 +9,21 @@ import { useAuth } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
-  generateAllPhasesAction,
   getAllProjectArtifactsAction,
   generateProjectZipAction,
 } from "@/lib/convex-actions";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { StageStepper } from "@/components/stage-stepper";
-import { NextActionButton } from "@/components/next-action-button";
+import { NextActionPanel } from "@/components/next-action-panel";
+import { PhaseLedger } from "@/components/phase-ledger";
 import { AddSectionMenu } from "@/components/add-section-menu";
 import { ProjectRulesCard } from "@/components/project-rules-card";
 import { ExportOptionsPanel } from "@/components/export-options";
 import { Sparkles, Loader2, Download } from "lucide-react";
+import { CodebaseConnector } from "@/components/codebase-connector";
+import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import {
   PHASE_ORDER,
   MODE_POLICIES,
+  currentPhaseFor,
   nextAction,
   phaseLabel,
   type PhaseId,
@@ -46,12 +47,9 @@ export default function ProjectPage() {
   const params = useParams<{ id: string }>();
   const { isLoaded, isSignedIn } = useAuth();
   const toggleSkip = useMutation(api.projects.toggleSkipPhase);
-  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
-  const [showGenerateAllConfirm, setShowGenerateAllConfirm] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
-  const generateAll = useAction(generateAllPhasesAction);
   const generateZip = useAction(generateProjectZipAction);
   const convex = useConvex();
 
@@ -66,6 +64,10 @@ export default function ProjectPage() {
   const allArtifacts = useQuery(
     getAllProjectArtifactsAction,
     isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
+  );
+  const readiness = useQuery(
+    api.userConfigs.getGenerationReadiness,
+    isLoaded && isSignedIn ? {} : "skip"
   );
   const stageQuality = useQuery(
     api.stageReports.getProjectStageQuality,
@@ -143,11 +145,10 @@ export default function ProjectPage() {
     return !status || status === "pending";
   });
 
-  const nextActionItem = nextAction(
-    phases ?? [],
-    skippedPhases as readonly PhaseId[],
-    (project.mode ?? "full") as ProjectMode
-  );
+  const hasQuickSpec = (allArtifacts ?? []).some((artifact) => artifact.type === "quickSpec");
+  const mode = (project.mode ?? "full") as ProjectMode;
+  const nextActionItem = nextAction(phases ?? [], skippedPhases as readonly PhaseId[], mode);
+  const currentPhase = currentPhaseFor(nextActionItem, phases ?? [], skippedPhases);
 
   async function handleEnablePhase(phaseId: string) {
     try {
@@ -159,20 +160,6 @@ export default function ProjectPage() {
       toast.success(`Enabled ${phaseLabel(phaseId)}`);
     } catch {
       toast.error(`Failed to enable ${phaseId}`);
-    }
-  }
-
-  async function handleGenerateAll() {
-    setShowGenerateAllConfirm(false);
-    setIsGeneratingAll(true);
-    try {
-      const result = await generateAll({ projectId: params.id as Id<"projects"> });
-      const count = result?.scheduled ?? 0;
-      toast.success(`Scheduled ${count} phase${count === 1 ? '' : 's'} for generation`);
-    } catch {
-      toast.error('Failed to schedule generation');
-    } finally {
-      setIsGeneratingAll(false);
     }
   }
 
@@ -224,80 +211,72 @@ export default function ProjectPage() {
         />
       </div>
 
-      {/* Project Header */}
-      <section className="page-container pb-12">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-          <div className="min-w-0">
-            <p className="text-label text-dim">Project</p>
-            <h1 className="mt-2 flex flex-wrap items-center gap-3 text-heading font-medium text-ink">
-              {project.title}
-              {project.mode === 'quick' && (
-                <Badge variant="outline">{MODE_POLICIES.quick.label}</Badge>
-              )}
-              {project.mode === 'backend' && (
-                <Badge variant="outline">{MODE_POLICIES.backend.label}</Badge>
-              )}
-              {project.mode === 'full' && (
-                <Badge variant="outline">{MODE_POLICIES.full.label}</Badge>
-              )}
-            </h1>
-            {project.description && (
-              <p className="mt-3 line-clamp-2 max-w-3xl text-body leading-relaxed text-muted-foreground">
-                {project.description}
+      <section className="page-container pb-16">
+        <GenerationReadinessBanner ready={readiness?.ready ?? true} className="mb-6" />
+        <div className="rounded-lg border border-line bg-surface px-5 py-7 md:px-8 md:py-9">
+          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+            <div className="min-w-0">
+              <h1 className="font-display text-heading font-semibold text-ink">{project.title}</h1>
+              <p className="mt-2 text-label text-dim">
+                {MODE_POLICIES[mode].label} mode
+                {project.description ? (
+                  <span className="mt-1 line-clamp-2 block max-w-[72ch] text-ui text-muted-foreground">
+                    {project.description}
+                  </span>
+                ) : null}
               </p>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => setIsExportOpen(true)}
-            className="shrink-0 self-start"
-          >
-            <Download aria-hidden className="size-4" />
-            Export
-          </Button>
-        </div>
-      </section>
+            </div>
 
-      {/* Workflow: one stepper, one next action */}
-      <section className="page-container page-section border-t border-line">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <h2 className="text-title font-medium text-ink">Workflow</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/project/${params.id}/quick` as Route}>Saved quick specs</Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowGenerateAllConfirm(true)}
-              disabled={isGeneratingAll || !hasPendingPhases}
-            >
-              {isGeneratingAll ? (
-                <Loader2 aria-hidden className="size-4 animate-spin" />
-              ) : (
-                <Sparkles aria-hidden className="size-4" />
-              )}
-              Generate all phases
-            </Button>
-            <AddSectionMenu skippedPhases={skippedPhases} onEnable={handleEnablePhase} />
-            <NextActionButton
-              projectId={params.id}
-              action={nextActionItem}
-              skippedPhases={skippedPhases}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              {hasQuickSpec ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/project/${params.id}/quick` as Route}>Saved quick specs</Link>
+                </Button>
+              ) : null}
+              {hasPendingPhases ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/project/${params.id}/questions` as Route}>
+                    <Sparkles aria-hidden className="size-4" />
+                    Generate all phases
+                  </Link>
+                </Button>
+              ) : null}
+              <AddSectionMenu skippedPhases={skippedPhases} onEnable={handleEnablePhase} />
+              <Button variant="outline" size="sm" onClick={() => setIsExportOpen(true)}>
+                <Download aria-hidden className="size-4" />
+                Export
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-8">
+          {/* One map, one instruction, one ledger. */}
           <StageStepper
+            className="mt-9"
             projectId={params.id}
+            currentPhase={currentPhase}
             phases={phases ?? []}
             skippedPhases={skippedPhases}
             quality={stageQuality}
           />
+
+          <NextActionPanel
+            className="mt-8"
+            projectId={params.id}
+            action={nextActionItem}
+            skippedPhases={skippedPhases}
+            quality={stageQuality}
+          />
+
+          <PhaseLedger
+            className="mt-8"
+            projectId={params.id}
+            phases={phases ?? []}
+            skippedPhases={skippedPhases}
+            currentPhase={currentPhase}
+          />
         </div>
 
-        <div className="mt-10">
+        <div className="mt-8">
           <ProjectRulesCard
             projectId={params.id}
             constitutionContent={
@@ -305,19 +284,11 @@ export default function ProjectPage() {
             }
           />
         </div>
+
+        <div className="mt-8">
+          <CodebaseConnector projectId={project._id} />
+        </div>
       </section>
-
-
-      {/* Generate All Confirmation Dialog */}
-      <ConfirmDialog
-        open={showGenerateAllConfirm}
-        onOpenChange={setShowGenerateAllConfirm}
-        title="Generate All Pending Phases"
-        description="This will sequentially queue all remaining un-generated phases for generation. Each phase preserves invariants from prior outputs and extracts verifiable contracts. Are you sure you want to proceed?"
-        confirmLabel="Generate All"
-        variant="default"
-        onConfirm={handleGenerateAll}
-      />
 
       {/* Export Dialog */}
       <Dialog open={isExportOpen} onOpenChange={setIsExportOpen}>

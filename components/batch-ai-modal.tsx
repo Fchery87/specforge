@@ -65,7 +65,7 @@ export function BatchAiModal({
               return (
                 <div key={question.id} className="space-y-2">
                   <div className="flex items-start gap-2">
-                    <span className="flex-shrink-0 flex items-center justify-center size-6 border border-line bg-raised/30 text-caption font-bold">
+                    <span className="flex-shrink-0 flex items-center justify-center size-6 border border-line bg-raised/30 text-caption font-semibold">
                       {idx + 1}
                     </span>
                     <p className="text-ui font-medium flex-1">{question.text}</p>
@@ -73,7 +73,7 @@ export function BatchAiModal({
                       <Loader2 className="size-4 animate-spin text-muted-foreground" />
                     )}
                     {isProcessed && !isProcessing && (
-                      <Check className="size-4 text-sage" />
+                      <Check className="size-4 text-success" />
                     )}
                   </div>
                   {batchAnswer && (

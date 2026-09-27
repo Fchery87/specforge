@@ -31,15 +31,15 @@ const ACTIVITY_ICONS = {
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
-  project_created: 'text-slate bg-slate/10',
-  phase_started: 'text-amber bg-amber/10',
-  phase_completed: 'text-sage bg-sage/10',
+  project_created: 'text-info bg-info/10',
+  phase_started: 'text-warning bg-warning/10',
+  phase_completed: 'text-success bg-success/10',
   generation_started: 'text-primary bg-primary/10',
-  generation_completed: 'text-sage bg-sage/10',
-  generation_failed: 'text-brick bg-brick/10',
-  drift_detected: 'text-amber bg-amber/10',
-  verification_complete: 'text-sage bg-sage/10',
-  project_updated: 'text-slate bg-slate/10',
+  generation_completed: 'text-success bg-success/10',
+  generation_failed: 'text-destructive bg-destructive/10',
+  drift_detected: 'text-warning bg-warning/10',
+  verification_complete: 'text-success bg-success/10',
+  project_updated: 'text-info bg-info/10',
 };
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -105,7 +105,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-caption font-bold text-muted-foreground">
+          <span className="text-caption font-semibold text-muted-foreground">
             {label}
           </span>
           <span className="text-caption text-muted-foreground">
@@ -124,7 +124,7 @@ function ActivityItem({ activity }: { activity: Activity }) {
         )}
 
         {activity.metadata?.errorMessage && (
-          <p className="text-caption text-brick mt-1 truncate">
+          <p className="text-caption text-destructive mt-1 truncate">
             {activity.metadata.errorMessage}
           </p>
         )}
@@ -157,7 +157,7 @@ export function ActivityFeed() {
       <Card className="h-[500px] flex flex-col">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-title font-bold">
+            <CardTitle className="text-title font-semibold">
               Recent Activity
             </CardTitle>
             <Clock className="size-4 text-muted-foreground" />
@@ -178,7 +178,7 @@ export function ActivityFeed() {
       <Card className="h-[500px] flex flex-col">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-title font-bold">
+            <CardTitle className="text-title font-semibold">
               Recent Activity
             </CardTitle>
             <Clock className="size-4 text-muted-foreground" />
@@ -203,11 +203,11 @@ export function ActivityFeed() {
     <Card className="h-[500px] flex flex-col">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-title font-bold">
+          <CardTitle className="text-title font-semibold">
             Recent Activity
           </CardTitle>
           <div className="flex items-center gap-2">
-            <div className="size-2 rounded-full bg-sage animate-pulse" />
+            <div className="size-2 rounded-full bg-success animate-pulse" />
             <span className="text-caption text-muted-foreground">Live</span>
           </div>
         </div>
@@ -218,7 +218,7 @@ export function ActivityFeed() {
           <div className="space-y-6 pb-4">
             {grouped.map(([timeGroup, items]) => (
               <div key={timeGroup}>
-                <h4 className="text-caption font-bold text-muted-foreground mb-3 sticky top-0 bg-void/80 py-1">
+                <h4 className="text-caption font-semibold text-muted-foreground mb-3 sticky top-0 bg-void/80 py-1">
                   {timeGroup}
                 </h4>
                 <div className="space-y-1">

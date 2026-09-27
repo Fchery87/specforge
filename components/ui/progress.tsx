@@ -6,7 +6,7 @@ export function Progress({ className, value, ...props }: React.ComponentPropsWit
   return (
     <ProgressPrimitive.Root className={cn("relative h-2 w-full overflow-hidden rounded-sm bg-raised", className)} {...props}>
       <ProgressPrimitive.Indicator
-        className="h-full w-full flex-1 bg-ember transition-transform duration-(--duration-standard) ease-(--ease-quiet-both)"
+        className="h-full w-full flex-1 bg-brand transition-transform duration-(--duration-standard) ease-(--ease-quiet-both)"
         style={{ transform: `translateX(-${100 - (value ?? 0)}%)` }}
       />
     </ProgressPrimitive.Root>

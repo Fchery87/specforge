@@ -121,9 +121,9 @@ export default function AdminDashboardPage() {
       case 'generating':
         return <Play className="size-4 text-primary" />;
       case 'complete':
-        return <CheckCircle className="size-4 text-sage" />;
+        return <CheckCircle className="size-4 text-success" />;
       case 'context':
-        return <FileCode className="size-4 text-slate" />;
+        return <FileCode className="size-4 text-info" />;
       default:
         return <Info className="size-4 text-muted-foreground" />;
     }
@@ -136,7 +136,7 @@ export default function AdminDashboardPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">System Control</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Inspect system metrics, manage global LLM providers, and audit generation activity.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Inspect system metrics, manage global LLM providers, and audit generation activity.</p>
         </div>
       </section>
 
@@ -154,7 +154,7 @@ export default function AdminDashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{stats.totalProjects}</p>
+              <p className="text-heading font-semibold">{stats.totalProjects}</p>
               <div className="flex gap-4 mt-2 text-ui text-muted-foreground">
                 <span>{stats.projectsByStatus.active} active</span>
                 <span>{stats.projectsByStatus.complete} complete</span>
@@ -173,7 +173,7 @@ export default function AdminDashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{stats.totalArtifacts}</p>
+              <p className="text-heading font-semibold">{stats.totalArtifacts}</p>
               <p className="mt-2 text-ui text-muted-foreground">Generated documents</p>
             </CardContent>
           </Card>
@@ -189,7 +189,7 @@ export default function AdminDashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{stats.totalUsersWithConfig}</p>
+              <p className="text-heading font-semibold">{stats.totalUsersWithConfig}</p>
               <p className="mt-2 text-ui text-muted-foreground">With LLM settings</p>
             </CardContent>
           </Card>
@@ -205,7 +205,7 @@ export default function AdminDashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{enabledModelsCount}</p>
+              <p className="text-heading font-semibold">{enabledModelsCount}</p>
               <p className="mt-2 text-ui text-muted-foreground">of {models?.length || 0} configured</p>
             </CardContent>
           </Card>
@@ -215,7 +215,7 @@ export default function AdminDashboardPage() {
       {/* Provider Status Section */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Provider Status
           </h2>
           <p className="text-muted-foreground mt-2">
@@ -251,7 +251,7 @@ export default function AdminDashboardPage() {
                     <XCircle className="size-4 text-muted-foreground" />
                   ) : null}
                 </div>
-                <p className="font-bold text-ui">
+                <p className="font-semibold text-ui">
                   {provider.short}
                 </p>
                 <p className="text-caption text-muted-foreground mt-1">
@@ -266,7 +266,7 @@ export default function AdminDashboardPage() {
       {/* Quick Navigation Section */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Quick Actions
           </h2>
         </div>
@@ -285,7 +285,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   Manage Users <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -305,7 +305,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   Manage Projects <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -325,7 +325,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   View Analytics <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -345,7 +345,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   Monitor Health <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -365,7 +365,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   View Logs <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -385,7 +385,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   Configure <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -405,7 +405,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   Moderate <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -425,7 +425,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   Manage AI Infrastructure <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -445,7 +445,7 @@ export default function AdminDashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center text-muted-foreground group-hover:text-primary font-bold transition-colors">
+                <div className="flex items-center text-muted-foreground group-hover:text-primary font-semibold transition-colors">
                   View Activity <ArrowRight className="size-4 ml-2" />
                 </div>
               </CardContent>
@@ -457,7 +457,7 @@ export default function AdminDashboardPage() {
       {/* Activity Feed */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Recent Activity
           </h2>
           <p className="text-muted-foreground mt-2">
@@ -493,10 +493,10 @@ export default function AdminDashboardPage() {
                         className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-sm text-caption font-medium mt-1",
                           activity.taskStatus === 'completed'
-                            ? "bg-sage/10 text-sage"
+                            ? "bg-success/10 text-success"
                             : activity.taskStatus === 'failed'
-                            ? "bg-brick/10 text-brick"
-                            : "bg-amber/10 text-amber"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-warning/10 text-warning"
                         )}
                       >
                         {activity.taskStatus}
@@ -519,7 +519,7 @@ export default function AdminDashboardPage() {
       {/* Projects Breakdown */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Project Breakdown
           </h2>
         </div>
@@ -527,15 +527,15 @@ export default function AdminDashboardPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <div className="p-6 border border-line bg-void">
             <p className="text-ui text-muted-foreground mb-2">Draft</p>
-            <p className="text-heading font-bold">{stats.projectsByStatus.draft}</p>
+            <p className="text-heading font-semibold">{stats.projectsByStatus.draft}</p>
           </div>
           <div className="p-6 border border-primary/50 bg-primary/5">
             <p className="text-ui text-primary mb-2">Active</p>
-            <p className="text-heading font-bold text-primary">{stats.projectsByStatus.active}</p>
+            <p className="text-heading font-semibold text-primary">{stats.projectsByStatus.active}</p>
           </div>
           <div className="p-6 border border-line bg-void">
             <p className="text-ui text-muted-foreground mb-2">Complete</p>
-            <p className="text-heading font-bold">{stats.projectsByStatus.complete}</p>
+            <p className="text-heading font-semibold">{stats.projectsByStatus.complete}</p>
           </div>
         </div>
       </section>

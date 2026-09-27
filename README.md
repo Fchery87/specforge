@@ -144,7 +144,7 @@ specforge/
 │   ├── spec-document.tsx       # The document notation: clause spine, margin, evidence
 │   ├── stage-stepper.tsx       # Three-stage progress indicator (the map)
 │   ├── next-action-button.tsx  # One instruction per page
-│   ├── stage-phase-links.tsx   # The current stage's phases, so any generated doc stays reachable
+│   ├── project-nav.tsx         # Project sidebar on phase pages: every phase and its status
 │   ├── add-section-menu.tsx    # Re-enable a skipped phase
 │   ├── project-rules-card.tsx  # Persistent project rules card with decision badge
 │   ├── generation-readiness-banner.tsx # Missing credentials warning banner

@@ -3,7 +3,7 @@
  * Design-rule lint.
  *
  * Encodes the rules from design/brief.md so they are checked, not remembered. Two jobs:
- *   1. every colour literal belongs to the Ember palette
+ *   1. every colour literal belongs to the palette in design/tokens.json
  *   2. none of the retired patterns reappear (glow shadows, glass, noise, gradient decoration,
  *      arrow glyphs on links, all-caps label styling)
  *
@@ -65,7 +65,12 @@ const scaleRules = [
     // The corner modifier is matched too: `rounded-t-xl` is the same violation as `rounded-xl`, and
     // the tree already uses the modifier form, so leaving it out was a false pass.
     pattern: /\brounded(?:-[trblse]{1,2})?-(?:md|xl|2xl|3xl)\b/,
-    why: "Three radii only: rounded-sm controls, rounded-lg containers, rounded-full pills.",
+    why: "Three radii only: rounded-sm (10px) controls, rounded-lg (16px) containers, rounded-full pills.",
+  },
+  {
+    name: "off-scale weight",
+    pattern: /\bfont-(?:bold|extrabold|black)\b|\bfont-\[(?:[7-9]\d\d)\]/,
+    why: "Weights stop at 600: font-normal, font-medium, font-semibold.",
   },
   {
     name: "tracking override",
@@ -107,8 +112,8 @@ const HEX_DIGIT_COUNTS = new Set([3, 4, 6, 8]);
  *
  * A 4-digit value is a 3-digit colour plus an alpha channel, and an 8-digit value is a 6-digit colour
  * plus alpha, so both have a base form the allowlist holds. The first draft expanded only the
- * 4-digit case and compared an 8-digit value as-is, which reported `#c87a4680` (the ember accent with
- * alpha) as off-palette while its own comment claimed eight-digit forms were handled.
+ * 4-digit case and compared an 8-digit value as-is, which reported `#c87a4680` (the retired Ember accent
+ * with alpha) as off-palette while its own comment claimed eight-digit forms were handled.
  *
  * Lengths are counted in digits, excluding the leading `#`, in one place so the two cases cannot
  * disagree about what they are counting.

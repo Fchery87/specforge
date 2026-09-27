@@ -31,13 +31,11 @@ const TOKEN_VAR = {
   muted: "--ink-muted",
   text: "--ink",
   textBright: "--ink-bright",
-  ember: "--ember",
-  emberSoft: "--ember-soft",
-  emberDeep: "--ember-deep",
-  sage: "--sage",
-  brick: "--brick",
-  amber: "--amber",
-  slate: "--slate",
+  brand: "--brand",
+  success: "--success",
+  destructive: "--destructive",
+  warning: "--warning",
+  info: "--info",
   scrim: "--scrim",
 };
 

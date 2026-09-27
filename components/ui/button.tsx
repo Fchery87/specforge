@@ -3,12 +3,15 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+// A press scales to 0.97 so the control acknowledges the click. Nothing moves on hover, and
+// Tailwind v4 only applies `hover:` where the pointer can hover. ADR 0002.
+
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm text-label font-medium transition-colors duration-(--duration-quick) ease-(--ease-quiet-out) disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm text-label font-medium transition-[background-color,border-color,color,transform] duration-(--duration-quick) ease-(--ease-quiet-out) active:scale-[0.97] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground font-semibold hover:bg-ember-soft",
+        default: "bg-primary text-primary-foreground font-semibold hover:bg-brand/90",
         destructive:
           "bg-destructive text-destructive-foreground font-semibold hover:bg-destructive/90",
         outline:

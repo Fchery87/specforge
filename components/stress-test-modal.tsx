@@ -252,7 +252,7 @@ export function StressTestModal({
         <DialogHeader className="shrink-0 space-y-2 pb-3 border-b border-line">
           <div className="flex items-center justify-between gap-2">
             <DialogTitle className="flex items-center gap-2 text-title font-semibold">
-              <ShieldAlert className="size-5 text-amber" />
+              <ShieldAlert className="size-5 text-warning" />
               Stress-Test Plan
             </DialogTitle>
             <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export function StressTestModal({
           ) : isCapped && currentQuestions.length === 0 ? (
             <div className="py-8 space-y-4">
               <div className="p-4 rounded-lg bg-raised/60 border border-line text-center space-y-2">
-                <Sparkles className="size-6 text-amber mx-auto" />
+                <Sparkles className="size-6 text-warning mx-auto" />
                 <h4 className="font-medium text-body">
                   Stress-Test Limit Reached (10 / 10)
                 </h4>
@@ -346,19 +346,19 @@ export function StressTestModal({
                       className={cn(
                         "p-3.5 rounded-sm border space-y-2 transition-colors cursor-pointer",
                         q.answer.trim() === q.recommendedAnswer.trim()
-                          ? "bg-amber/15 border-amber/40 ring-amber/30"
-                          : "bg-amber/10 border-amber/20 hover:bg-amber/15",
+                          ? "bg-warning/15 border-warning/40 ring-warning/30"
+                          : "bg-warning/10 border-warning/20 hover:bg-warning/15",
                       )}
                       onClick={() => handleAcceptRecommendation(q.id)}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-caption font-semibold text-amber dark:text-amber flex items-center gap-1.5">
+                        <span className="text-caption font-semibold text-warning dark:text-warning flex items-center gap-1.5">
                           <Sparkles className="size-3.5 shrink-0" />
                           Recommended 2026 Standard
                           {q.answer.trim() === q.recommendedAnswer.trim() && (
                             <Badge
                               variant="outline"
-                              className="text-caption bg-amber/20 text-amber dark:text-amber border-amber/40 ml-1 py-0 px-1.5"
+                              className="text-caption bg-warning/20 text-warning dark:text-warning border-warning/40 ml-1 py-0 px-1.5"
                             >
                               Selected
                             </Badge>

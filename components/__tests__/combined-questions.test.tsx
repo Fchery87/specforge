@@ -50,7 +50,7 @@ describe("CombinedQuestions", () => {
     },
   ];
 
-  it("asserts that questions from Brief, PRD, and Architecture render under their stage headings, and that Generate everything stays disabled while a required answer is empty", async () => {
+  it("asserts that questions from Brief, PRD, and Architecture render under their stage headings, and that Generate all phases stays disabled while a required answer is empty", async () => {
     // In Lite mode, domainModel and artifacts are skipped
     const skippedPhases = ["domainModel", "artifacts"];
 
@@ -80,8 +80,8 @@ describe("CombinedQuestions", () => {
     // Verify domainModel (skipped) is not rendered
     expect(screen.queryByText("Domain model entities")).not.toBeInTheDocument();
 
-    // "q-specs-1" is required and empty -> "Generate everything" must be disabled
-    const generateBtn = screen.getByRole("button", { name: "Generate everything" });
+    // "q-specs-1" is required and empty -> "Generate all phases" must be disabled
+    const generateBtn = screen.getByRole("button", { name: "Generate all phases" });
     expect(generateBtn).toBeDisabled();
 
     // Fill the empty required question
@@ -162,10 +162,24 @@ describe("CombinedQuestions", () => {
       />
     );
 
-    const generateBtn = screen.getByRole("button", { name: "Generate everything" });
+    const generateBtn = screen.getByRole("button", { name: "Generate all phases" });
     expect(generateBtn).toBeEnabled();
     await userEvent.click(generateBtn);
 
     expect(onGenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps Generate all phases off and says why when no model is connected", () => {
+    render(
+      <CombinedQuestions
+        projectId="p1"
+        phases={[{ phaseId: "brief", questions: [{ id: "q1", text: "Who is it for?", required: true, answer: "Teams" }] }]}
+        onGenerateEverything={vi.fn()}
+        modelReady={false}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Generate all phases" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
   });
 });

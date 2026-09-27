@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   SpecClause,
   SpecDocument,
@@ -18,8 +19,8 @@ const stages = [
     label: "Requirements",
     summary: "What to build, and why",
     phases: [
-      { label: "Brief", state: "Confirmed", tone: "text-sage" },
-      { label: "PRD", state: "Needs review", tone: "text-amber" },
+      { label: "Brief", state: "Confirmed", tone: "text-success" },
+      { label: "PRD", state: "Needs review", tone: "text-warning" },
     ],
   },
   {
@@ -73,72 +74,125 @@ const capabilities = [
   },
 ];
 
+/**
+ * The hero's stage band: finished segments in ink, the current one part-filled in the brand colour,
+ * the rest as hairline tracks. Each group is one stage, so a group's width follows its phase count.
+ */
+const bandGroups = [
+  { label: "Rules", segments: ["done"] },
+  { label: "Requirements", segments: ["done", "done"] },
+  { label: "Design", segments: ["now", "todo", "todo"], current: true },
+  { label: "Tasks", segments: ["todo"] },
+  { label: "Export", segments: ["todo"] },
+] as const;
+
+function StageBand() {
+  return (
+    <div className="mt-6" aria-hidden="true">
+      <div className="grid animate-band-wipe grid-cols-[1fr_2fr_3fr_1fr_1fr] gap-3">
+        {bandGroups.map((group) => (
+          <div key={group.label} className="grid auto-cols-fr grid-flow-col gap-1">
+            {group.segments.map((segment, index) => (
+              <span
+                key={index}
+                className={cn(
+                  "relative h-1.5 overflow-hidden rounded-full",
+                  segment === "done" ? "bg-ink" : "bg-line"
+                )}
+              >
+                {segment === "now" && (
+                  <span className="absolute inset-y-0 left-0 w-[45%] rounded-full bg-brand" />
+                )}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="mt-2.5 grid grid-cols-[1fr_2fr_3fr_1fr_1fr] gap-3 text-caption">
+        {bandGroups.map((group) => (
+          <span
+            key={group.label}
+            className={cn(
+              "truncate",
+              "current" in group ? "font-medium text-ink" : "invisible text-dim sm:visible"
+            )}
+          >
+            {group.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <div>
       <section className="border-b border-line">
-        <div className="page-container grid gap-14 py-16 lg:grid-cols-12 lg:gap-16 lg:py-24">
-          <div className="flex flex-col justify-center lg:col-span-5">
-            <h1 className="text-display font-serif font-normal text-ink">
-              A specification you can defend.
-            </h1>
+        <div className="page-container pt-16 md:pt-24">
+          <h1 className="max-w-[15ch] font-display text-display font-semibold text-ink">
+            Every requirement shows its proof.
+          </h1>
 
-            <p className="mt-6 max-w-md text-body leading-relaxed text-muted-foreground">
-              SpecForge turns a product brief into numbered requirements. Each one is traced to the
-              answer or the commit behind it, then exported as a pack your coding agent can follow.
-            </p>
+          <div className="mt-9 grid items-end gap-8 md:grid-cols-[minmax(0,1fr)_auto] md:gap-10">
+            <div>
+              <p className="max-w-[60ch] text-prose text-muted-foreground">
+                SpecForge turns a product brief into a specification where each clause is traced to
+                the answer, rule, or commit behind it. Your coding agent builds from the spec. You
+                review the evidence.
+              </p>
+              <p className="mt-3 text-label text-dim">
+                Bring your own model. Review between stages, or run all of them in one pass.
+              </p>
+            </div>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button asChild>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild size="lg">
                 <Link href="/dashboard">Start a spec</Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild size="lg" variant="outline">
                 <Link href="/dashboard/quick">Try a quick spec</Link>
               </Button>
             </div>
-
-            <p className="mt-5 text-label text-dim">
-              Full review between stages, or one pass with no stops. Bring your own model.
-            </p>
           </div>
 
-          <div className="lg:col-span-7">
-            <div className="rounded-lg border border-line bg-surface p-5 md:p-7">
-              <div className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-4">
-                <span className="font-mono text-caption text-dim">product-requirements.md</span>
-                <span className="font-mono text-caption text-dim">rev 3</span>
-              </div>
-
-              <SpecDocument>
-                <SpecSectionHeading number="3.3" title="Roles and permissions" />
-                <SpecClause
-                  number="3.3.1"
-                  claimId="C-014"
-                  state="confirmed"
-                  evidence={heroEvidence}
-                >
-                  <p>
-                    A workspace member with the editor role may archive a project. Archiving sets
-                    the project status to archived, keeps every artifact readable, and writes one
-                    audit event. An archived project accepts no new generation runs.
-                  </p>
-                </SpecClause>
-
-                <SpecClause number="3.3.2" claimId="C-015" state="untraced">
-                  <p>
-                    Restoring an archived project requires an owner and produces the same audit
-                    event as archiving.
-                  </p>
-                </SpecClause>
-              </SpecDocument>
+          <div
+            aria-label="Example specification"
+            className="mt-14 animate-sheet-rise rounded-t-lg border border-b-0 border-line bg-surface px-5 pt-6 md:mt-16 md:px-10"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-label text-dim">
+              <span>
+                <span className="font-medium text-ink">Atlas</span> product requirements, revision 3
+              </span>
+              <span>Design stage, domain model generating</span>
             </div>
+
+            <StageBand />
+
+            <SpecDocument className="mt-8 border-t border-line pt-8 pb-10">
+              <SpecSectionHeading number="3.3" title="Roles and permissions" />
+              <SpecClause number="3.3.1" claimId="C-014" state="confirmed" evidence={heroEvidence}>
+                <p>
+                  A workspace member with the editor role may archive a project. Archiving sets the
+                  project status to archived, keeps every artifact readable, and writes one audit
+                  event. An archived project accepts no new generation runs.
+                </p>
+              </SpecClause>
+
+              <SpecClause number="3.3.2" claimId="C-015" state="untraced">
+                <p>
+                  Restoring an archived project requires an owner and produces the same audit event
+                  as archiving.
+                </p>
+              </SpecClause>
+            </SpecDocument>
           </div>
         </div>
       </section>
 
       <section className="border-b border-line">
         <div className="page-container py-16 md:py-20">
-          <h2 className="text-heading font-sans font-medium text-ink">
+          <h2 className="text-heading font-display font-semibold text-ink">
             Three stages, eight phases
           </h2>
           <p className="mt-4 max-w-xl text-body leading-relaxed text-muted-foreground">
@@ -156,7 +210,7 @@ export default function HomePage() {
           <div className="mt-px grid gap-px bg-line md:grid-cols-3">
             {stages.map((stage) => (
               <div key={stage.index} className="bg-void py-6 md:px-6 md:first:pl-0 md:last:pr-0">
-                <p className="font-mono text-caption tabular-nums text-ember">{stage.index}</p>
+                <p className="font-mono text-caption tabular-nums text-brand">{stage.index}</p>
                 <h3 className="mt-2 text-title font-medium text-ink">{stage.label}</h3>
                 <p className="mt-1 text-label text-dim">{stage.summary}</p>
 
@@ -179,7 +233,7 @@ export default function HomePage() {
 
       <section className="border-b border-line">
         <div className="page-container py-16 md:py-20">
-          <h2 className="text-heading font-sans font-medium text-ink">
+          <h2 className="text-heading font-display font-semibold text-ink">
             What makes the spec hold
           </h2>
 
@@ -202,7 +256,7 @@ export default function HomePage() {
       <section>
         <div className="page-container flex flex-col items-start gap-6 py-20 md:flex-row md:items-center md:justify-between md:py-24">
           <div>
-            <h2 className="max-w-2xl text-heading font-sans font-medium text-ink">
+            <h2 className="max-w-2xl text-heading font-display font-semibold text-ink">
               Bring a brief. Leave with a spec your agent can build from.
             </h2>
             <p className="mt-4 max-w-xl text-body leading-relaxed text-muted-foreground">

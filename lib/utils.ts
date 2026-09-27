@@ -1,14 +1,16 @@
 import { clsx, type ClassValue } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
-// The Ember type scale (design/tokens.json, app/globals.css) adds font-size
+// The type scale (design/tokens.json, app/globals.css) adds font-size
 // utilities whose names tailwind-merge cannot infer from a value pattern:
 // `text-caption`, `text-label`, `text-ui`, `text-body`, `text-prose`,
 // `text-title`, `text-heading`, `text-display`. Left unregistered, tailwind-merge
 // classifies each as a text colour and drops it whenever a real colour utility
 // (`text-ink`, `text-dim`, `text-muted-foreground`, ...) shares the element, so
 // the whole scale silently falls back to the inherited size. Registering them
-// against the `font-size` group keeps size and colour independent.
+// against the `font-size` group keeps size and colour independent. The three
+// family roles are registered for the same reason: `font-display` must replace
+// `font-sans` rather than sit beside it.
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
@@ -17,6 +19,7 @@ const twMerge = extendTailwindMerge({
           text: ["caption", "label", "ui", "body", "prose", "title", "heading", "display"],
         },
       ],
+      "font-family": [{ font: ["display", "sans", "mono"] }],
     },
   },
 });

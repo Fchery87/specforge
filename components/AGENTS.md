@@ -124,12 +124,15 @@ rg -n "'use client'" components/
 - **'use client'**: Any component using hooks, event handlers, or browser APIs must have this directive at the top
 - **Radix imports**: Must import from `@radix-ui/react-*` packages (already installed)
 - **Motion**: Wrap with `AnimatePresence` for exit animations
-- **Tailwind**: Radius has three values only: `rounded-sm` (6px controls), `rounded-lg` (12px containers), `rounded-full` (pills)
+- **Tailwind**: Radius has three values only: `rounded-sm` (10px controls), `rounded-lg` (16px containers), `rounded-full` (pills)
 - **Colour**: Use a token utility. Never a raw hex, an `rgba()`, or a `bg-zinc-*`. See [docs/design.md](../docs/design.md)
-- **Type**: Three roles. `font-sans` for chrome, `font-serif` for specification prose, `font-mono` for IDs and code. Headings are sentence case, never uppercase
+- **Type**: Three roles. `font-display` (Funnel Display) for headings, `font-sans` (Funnel Sans) for interface and specification prose, `font-mono` (Red Hat Mono) for IDs and code. Headings get Funnel Display from the base styles, so do not set `font-sans` on a heading. Headings are sentence case, never uppercase. Weights are `font-normal`, `font-medium` and `font-semibold`; `font-bold` and heavier fail `design/lint-tokens.mjs`
+- **Colour names**: Hue tokens are named for meaning: `brand`, `success`, `warning`, `destructive`, `info`. The Ember names (`ember`, `sage`, `brick`, `amber`, `slate`) are deleted
+- **Press, not hover**: `Button` scales to 0.97 on press. Nothing moves on hover
 - **Focus**: The global `:focus-visible` outline is the only focus treatment. Do not add `ring-*` focus styles
 - **The document language**: A specification renders through `components/spec-document.tsx` and `components/artifact-document.tsx`, not as cards
-- **One description per page**: The workflow is described once. `StageStepper` maps it, `NextActionButton` states the next step, `StagePhaseLinks` keeps the current stage's phases reachable, and `AddSectionMenu` re-enables a skipped phase. The earlier `StageCard` and `StageTabs` were deleted with the collapse; do not add a fifth description of the same eight phases
+- **One description per page**: The workflow is described once per job. `StageStepper` is the map (a band, segments from `stage-band.tsx`), `NextActionPanel` or `NextActionButton` states the next step, `PhaseLedger` lists every phase on the project page, `ProjectNav` lists every phase beside a phase page, and `AddSectionMenu` re-enables a skipped phase. Read a phase's status through `phaseState` in `lib/workflow.ts`, never a local lookup
+- **Sheets**: A working surface sits on `rounded-lg border border-line bg-surface`. Claim IDs render as hallmarks (`hallmark`, `hallmark-struck`, `hallmark-review`, `hallmark-missing`)
 - **Document anchors**: A heading's id is derived from the heading's own text and applied only when `parseSpecOutline` produced the same id. A document therefore renders correctly in pieces, with no positional cursor. Do not reintroduce one: the cursor that existed drifted whenever the outline and the renderer disagreed about what counted as a heading, which misdirected the table of contents
 
 ## Pre-PR Checks
@@ -145,4 +148,5 @@ CI lints the whole tree, so a new component is covered as soon as it lands.
 
 [docs/design.md](../docs/design.md) holds the palette, the type scale, the motion and focus rules,
 the document language, and the audit commands. [ADR 0001](../docs/adr/0001-ember-design-system.md)
-records why the previous brutalist system was replaced.
+records the structural system, and [ADR 0002](../docs/adr/0002-magenta-brand.md) records the Magenta
+palette and type that replaced Ember's.

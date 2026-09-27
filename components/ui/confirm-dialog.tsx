@@ -72,13 +72,13 @@ export function ConfirmDialog({
                 "flex size-10 shrink-0 items-center justify-center rounded-sm border",
                 variant === "destructive"
                   ? "border-destructive bg-destructive/10"
-                  : "border-amber bg-amber/10"
+                  : "border-warning bg-warning/10"
               )}
             >
               <IconComponent
                 className={cn(
                   "size-5",
-                  variant === "destructive" ? "text-destructive" : "text-amber"
+                  variant === "destructive" ? "text-destructive" : "text-warning"
                 )}
               />
             </div>

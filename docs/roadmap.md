@@ -1,6 +1,6 @@
 # SpecForge Roadmap
 
-**Updated:** September 26, 2026
+**Updated:** September 27, 2026
 
 ## Current phase
 
@@ -10,6 +10,8 @@
 | 2. Guided three-stage workflow | Complete | [Guided three-stage workflow](specs/2026-09-25-guided-workflow.md) | - |
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
+| 5. Magenta brand | Complete on `feature/magenta-brand`, pending review and merge | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
+| 6. Workflow and navigation | Complete on `feature/workflow-fixes`, `feature/project-sidebar`, `feature/setup-and-quick-spec` and `feature/restyle-remaining`, pending review and merge | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -28,13 +30,34 @@ zero on `main` at `3048992`, and the report's captured surfaces are in `design/s
 The implementation plan is deleted, as the lifecycle requires of a finished plan. One open decision
 is recorded in the guided workflow spec: the `artifacts` phase inherits the design prompt.
 
+Phase 5 replaces Ember's palette and type with the Magenta brand the product owner chose from three
+directions built on fixed grounds, a clean off-white and a true dark black.
+[ADR 0002](adr/0002-magenta-brand.md) records the decision. Ember's structural decisions stand.
+It ran as `0f6d7ff` (decision, spec, plan) and `19304ad` (the rollout: tokens, a 387-use rename to
+semantic colour names, Funnel Display, Funnel Sans and Red Hat Mono, the section-sign mark, press
+feedback, and the landing hero). At `19304ad` typecheck, lint, the suite (122 files, 841 tests), the
+build, the contrast and token-sync audits, the whole-tree palette lint and this validator exited zero;
+`npm run test:e2e` was not run because it needs Clerk test credentials. The live-page audit and the
+captured surfaces are in `design/screens/magenta/`. The implementation plan is deleted, as the
+lifecycle requires of a finished plan.
+
+Phase 6 makes the product easier to move around. The small fixes give each mode one name, send
+"Generate all phases" through the answers page, and make project creation one step with the
+repository connection moved to the project page. Three project navigation prototypes are in
+`design/prototypes/project-navigation.html`, with captures in `design/screens/navigation/`. The owner
+chose the rail, and phase pages now carry a project sidebar with every phase and its status; the
+stage band stays on the project overview. A missing model is now reported before any generation and
+every generate control says why it is off, and a Quick spec can start a Lite project that holds it.
+Settings and the saved quick specs page now match the rest, and weights above 600 fail the lint.
+
 ## Later phases
 
-Each later phase gets its own spec when the phase before it exits. Phases 5 to 7 have no spec yet.
+Each later phase gets its own spec when the phase before it exits. Phases 7 to 10 have no spec yet.
 
-5. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
-6. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
-7. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
+7. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
+8. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
+9. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
+10. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`. Deferred by phase 6: the project sidebar puts every phase one click away, so this waits until readers show they still need it.
 
 ## Historical plan index
 

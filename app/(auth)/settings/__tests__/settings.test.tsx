@@ -50,7 +50,7 @@ describe("SettingsHubPage", () => {
   it("renders page header and tabs", () => {
     render(<SettingsHubPage />);
 
-    expect(screen.getByText("Settings & Preferences")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /ai models/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /workspace/i })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /account/i })).toBeInTheDocument();

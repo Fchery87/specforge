@@ -30,9 +30,9 @@ const stateWord: Record<ClaimState, string> = {
 };
 
 const stateTone: Record<ClaimState, string> = {
-  confirmed: "text-sage",
-  proposed: "text-amber",
-  untraced: "text-brick",
+  confirmed: "text-success",
+  proposed: "text-warning",
+  untraced: "text-destructive",
 };
 
 /**
@@ -115,70 +115,104 @@ export function ArtifactDocument({
   const activeId = useActiveHeading(ids, { revision: markdown });
   const hasOutline = outline.sections.length > 0;
 
+  const totals = summarizeClaims([...owned.values()].flat());
+
+  const article = (
+    <article className="flex min-w-0 flex-col gap-6">
+      {blocks.map((block) =>
+        block.kind === "mermaid" ? (
+          <MermaidDiagram key={block.key} chart={block.chart} className="w-full" />
+        ) : (
+          <div
+            key={block.key}
+            className="document-prose text-ink"
+            dangerouslySetInnerHTML={{ __html: block.html }}
+          />
+        )
+      )}
+    </article>
+  );
+
+  if (!hasOutline) return <div className={className}>{article}</div>;
+
   return (
-    <div className={cn("grid gap-10 lg:grid-cols-[minmax(0,1fr)_14rem] lg:gap-14", className)}>
-      <article className="flex min-w-0 flex-col gap-6">
-        {blocks.map((block) =>
-          block.kind === "mermaid" ? (
-            <MermaidDiagram key={block.key} chart={block.chart} className="w-full" />
-          ) : (
-            <div
-              key={block.key}
-              className="document-prose text-ink"
-              dangerouslySetInnerHTML={{ __html: block.html }}
-            />
-          )
-        )}
-      </article>
+    <div className={cn("grid gap-10 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12", className)}>
+      {/* The contents rail comes first: it is the gap map a reviewer reads before the document. */}
+      <nav aria-label="Contents" className="hidden lg:block">
+        <div className="sticky top-[calc(var(--header-height)+1.5rem)]">
+          <p className="px-2.5 text-label text-dim">Contents</p>
 
-      {hasOutline ? (
-        <nav aria-label="On this page" className="hidden lg:block">
-          <div className="sticky top-[calc(var(--header-height)+1.5rem)]">
-            <p className="text-caption text-dim">On this page</p>
+          <ul className="mt-2 flex flex-col gap-px">
+            {outline.sections.map((section) => {
+              const summary = summarizeClaims(owned.get(section.id) ?? []);
+              const active = activeId === section.id;
 
-            <ul className="mt-3 flex flex-col border-l border-line">
-              {outline.sections.map((section) => {
-                const summary = summarizeClaims(owned.get(section.id) ?? []);
-                const active = activeId === section.id;
-
-                return (
-                  <li key={section.id}>
-                    <a
-                      href={`#${section.id}`}
-                      aria-current={active ? "location" : undefined}
-                      className={cn(
-                        "-ml-px flex flex-col gap-0.5 border-l-2 py-1.5 pr-2 text-label transition-colors",
-                        "duration-(--duration-quick) ease-(--ease-quiet-out)",
-                        section.level >= 3 ? "pl-6" : "pl-3",
-                        section.level >= 4 && "pl-9",
-                        active
-                          ? "border-ember text-ink"
-                          : "border-transparent text-dim hover:text-ink"
-                      )}
-                    >
-                      <span className="flex items-baseline gap-2">
-                        {section.number ? (
-                          <span className="font-mono text-caption tabular-nums text-dim">
-                            {section.number}
-                          </span>
-                        ) : null}
-                        <span className="min-w-0">{section.title}</span>
-                      </span>
-
-                      {summary.total > 0 && summary.state !== "confirmed" ? (
-                        <span className={cn("text-caption", stateTone[summary.state])}>
-                          {summary.total} {summary.total === 1 ? "claim" : "claims"},{" "}
-                          {stateWord[summary.state]}
+              return (
+                <li key={section.id}>
+                  <a
+                    href={`#${section.id}`}
+                    aria-current={active ? "location" : undefined}
+                    className={cn(
+                      "flex flex-col gap-0.5 rounded-sm py-1.5 pr-2 text-label transition-colors",
+                      "duration-(--duration-quick) ease-(--ease-quiet-out)",
+                      section.level >= 3 ? "pl-6" : "pl-2.5",
+                      section.level >= 4 && "pl-9",
+                      active
+                        ? "bg-raised text-ink shadow-[inset_2px_0_0_var(--color-brand)]"
+                        : "text-muted-foreground hover:bg-raised/60 hover:text-ink"
+                    )}
+                  >
+                    <span className="flex items-baseline gap-2">
+                      {section.number ? (
+                        <span className="font-mono text-caption tabular-nums text-dim">
+                          {section.number}
                         </span>
                       ) : null}
-                    </a>
-                  </li>
-                );
-              })}
+                      <span className="min-w-0">{section.title}</span>
+                    </span>
+
+                    {summary.total > 0 && summary.state !== "confirmed" ? (
+                      <span className={cn("font-mono text-caption", stateTone[summary.state])}>
+                        {summary.total} {summary.total === 1 ? "claim" : "claims"},{" "}
+                        {stateWord[summary.state]}
+                      </span>
+                    ) : null}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+
+          {totals.total > 0 ? (
+            <ul
+              aria-label="Claims in this document"
+              className="mt-6 flex flex-col gap-3 border-t border-line px-2.5 pt-5"
+            >
+              {(
+                [
+                  ["Confirmed", totals.confirmed, "text-ink"],
+                  ["Proposed", totals.proposed, "text-warning"],
+                  ["Untraced", totals.untraced, "text-destructive"],
+                ] as const
+              ).map(([label, count, tone]) => (
+                <li key={label} className="flex items-baseline justify-between text-label text-dim">
+                  {label}
+                  <span
+                    className={cn(
+                      "font-display text-title font-semibold tabular-nums",
+                      count > 0 ? tone : "text-dim"
+                    )}
+                  >
+                    {count}
+                  </span>
+                </li>
+              ))}
             </ul>
-          </div>
-        </nav>
-      ) : null}
+          ) : null}
+        </div>
+      </nav>
+
+      {article}
     </div>
   );
 }

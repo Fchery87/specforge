@@ -19,23 +19,23 @@ interface VerificationPanelProps {
 }
 
 const categoryColors: Record<FindingCategory, string> = {
-  bug: "bg-brick/20 text-brick border-brick/50",
-  performance: "bg-amber/20 text-amber border-amber/50",
-  security: "bg-amber/20 text-amber border-amber/50",
-  clarity: "bg-slate/20 text-slate border-slate/50",
-  missing: "bg-slate/20 text-slate border-slate/50",
+  bug: "bg-destructive/20 text-destructive border-destructive/50",
+  performance: "bg-warning/20 text-warning border-warning/50",
+  security: "bg-warning/20 text-warning border-warning/50",
+  clarity: "bg-info/20 text-info border-info/50",
+  missing: "bg-info/20 text-info border-info/50",
 };
 
 const severityColors: Record<FindingSeverity, string> = {
-  critical: "bg-brick/15 text-brick border-brick/40",
-  major: "bg-amber/15 text-amber border-amber/40",
-  minor: "bg-slate/15 text-slate border-slate/40",
+  critical: "bg-destructive/15 text-destructive border-destructive/40",
+  major: "bg-warning/15 text-warning border-warning/40",
+  minor: "bg-info/15 text-info border-info/40",
 };
 
 const statusConfig: Record<VerificationStatus, { icon: typeof CheckCircle; label: string; color: string }> = {
-  pass: { icon: CheckCircle, label: "Pass", color: "text-sage" },
-  fail: { icon: XCircle, label: "Fail", color: "text-brick" },
-  warning: { icon: AlertTriangle, label: "Warning", color: "text-amber" },
+  pass: { icon: CheckCircle, label: "Pass", color: "text-success" },
+  fail: { icon: XCircle, label: "Fail", color: "text-destructive" },
+  warning: { icon: AlertTriangle, label: "Warning", color: "text-warning" },
 };
 
 export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps) {
@@ -113,7 +113,7 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
           {result && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-title font-bold tabular-nums">
+                <div className="text-title font-semibold tabular-nums">
                   {result.overallScore}
                   <span className="text-body font-normal text-muted-foreground">/100</span>
                 </div>
@@ -137,7 +137,7 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
                 title="Copy git diff command: git diff origin/main...HEAD"
               >
                 {copiedCommand ? (
-                  <Check className="size-3.5 text-sage" />
+                  <Check className="size-3.5 text-success" />
                 ) : (
                   <Copy className="size-3.5 text-muted-foreground" />
                 )}
@@ -177,8 +177,8 @@ index 0000000..1234567
           <div className="space-y-4">
             {result.findings.length === 0 ? (
               <div className="text-center py-8">
-                <div className="inline-flex items-center justify-center size-16 rounded-full bg-sage/20 mb-4">
-                  <CheckCircle className="size-8 text-sage" />
+                <div className="inline-flex items-center justify-center size-16 rounded-full bg-success/20 mb-4">
+                  <CheckCircle className="size-8 text-success" />
                 </div>
                 <h3 className="text-title font-semibold mb-2">All Clear!</h3>
                 <p className="text-muted-foreground">
@@ -234,10 +234,10 @@ function StatusBadge({ status }: { status: VerificationStatus }) {
       variant="outline" 
       className={`${
         status === "pass" 
-          ? "bg-sage/20 text-sage border-sage/50" 
+          ? "bg-success/20 text-success border-success/50" 
           : status === "warning"
-          ? "bg-amber/20 text-amber border-amber/50"
-          : "bg-brick/20 text-brick border-brick/50"
+          ? "bg-warning/20 text-warning border-warning/50"
+          : "bg-destructive/20 text-destructive border-destructive/50"
       } px-3 py-1`}
     >
       <Icon className="size-3.5 mr-1.5" />

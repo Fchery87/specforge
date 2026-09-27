@@ -90,17 +90,17 @@ export function ProjectRulesCard({
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <Shield className="size-4 text-primary" />
-            <span className="text-caption font-bold text-muted-foreground">
+            <span className="text-caption font-semibold text-muted-foreground">
               Rules
             </span>
           </div>
           {reviewText && (
-            <span className="inline-flex items-center px-2.5 py-0.5 text-caption font-semibold bg-amber/10 text-amber border border-amber/30 rounded-full">
+            <span className="inline-flex items-center px-2.5 py-0.5 text-caption font-semibold bg-warning/10 text-warning border border-warning/30 rounded-full">
               {reviewText}
             </span>
           )}
         </div>
-        <CardTitle className="text-title font-bold">
+        <CardTitle className="text-title font-semibold">
           Project Rules
         </CardTitle>
         <CardDescription className="text-ui text-muted-foreground mt-1">

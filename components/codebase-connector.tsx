@@ -269,7 +269,7 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
             )}
 
             {success && (
-              <div className="flex items-center gap-2 p-3 bg-sage/10 text-sage rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-success/10 text-success rounded-lg">
                 <CheckCircle2 className="size-4 flex-shrink-0" />
                 <p className="text-ui">Repository connected successfully!</p>
               </div>
@@ -277,7 +277,7 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
           </>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center gap-2 p-3 bg-sage/10 text-sage rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-success/10 text-success rounded-lg">
               <CheckCircle2 className="size-4 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-ui font-medium">Repository connected</p>
@@ -291,15 +291,15 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
 
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="p-3 bg-raised rounded-lg">
-                <p className="text-title font-bold">{codebase.totalFiles.toLocaleString()}</p>
+                <p className="text-title font-semibold">{codebase.totalFiles.toLocaleString()}</p>
                 <p className="text-caption text-muted-foreground">Files</p>
               </div>
               <div className="p-3 bg-raised rounded-lg">
-                <p className="text-title font-bold">{codebase.totalDirectories.toLocaleString()}</p>
+                <p className="text-title font-semibold">{codebase.totalDirectories.toLocaleString()}</p>
                 <p className="text-caption text-muted-foreground">Directories</p>
               </div>
               <div className="p-3 bg-raised rounded-lg">
-                <p className="text-title font-bold">{codebase.keyFiles.length}</p>
+                <p className="text-title font-semibold">{codebase.keyFiles.length}</p>
                 <p className="text-caption text-muted-foreground">Key Files</p>
               </div>
             </div>

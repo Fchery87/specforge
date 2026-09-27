@@ -11,7 +11,7 @@ export default function ProjectNotFound() {
           Project not found
         </p>
 
-        <h1 className="mt-3 text-heading font-sans font-medium text-ink">
+        <h1 className="mt-3 text-heading font-display font-semibold text-ink">
           This project is not available
         </h1>
 

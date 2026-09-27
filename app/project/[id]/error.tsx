@@ -19,12 +19,12 @@ export default function ProjectError({
   return (
     <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center px-5 py-20">
       <div className="w-full max-w-md">
-        <p className="flex items-center gap-2 font-mono text-caption text-brick">
+        <p className="flex items-center gap-2 font-mono text-caption text-destructive">
           <AlertTriangle className="size-3.5" />
           Project could not load
         </p>
 
-        <h1 className="mt-3 text-heading font-sans font-medium text-ink">
+        <h1 className="mt-3 text-heading font-display font-semibold text-ink">
           Something failed while opening this project
         </h1>
 

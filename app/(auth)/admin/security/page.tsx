@@ -34,12 +34,12 @@ import {
 } from "@/components/ui/select";
 
 const ACTION_COLORS: Record<string, string> = {
-  'user_suspended': 'bg-brick/10 text-brick border-brick',
-  'project_deleted': 'bg-amber/10 text-amber border-amber',
-  'projects_bulk_deleted': 'bg-amber/10 text-amber border-amber',
-  'credential_updated': 'bg-slate/10 text-slate border-slate',
-  'feature_flag_updated': 'bg-slate/10 text-slate border-slate',
-  'system_config_updated': 'bg-sage/10 text-sage border-sage',
+  'user_suspended': 'bg-destructive/10 text-destructive border-destructive',
+  'project_deleted': 'bg-warning/10 text-warning border-warning',
+  'projects_bulk_deleted': 'bg-warning/10 text-warning border-warning',
+  'credential_updated': 'bg-info/10 text-info border-info',
+  'feature_flag_updated': 'bg-info/10 text-info border-info',
+  'system_config_updated': 'bg-success/10 text-success border-success',
 };
 
 const TARGET_ICONS: Record<string, React.ReactNode> = {
@@ -122,7 +122,7 @@ export default function SecurityPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">Security & Audit Logs</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Monitor security events, audit trails, and administrative actions.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Monitor security events, audit trails, and administrative actions.</p>
         </div>
       </section>
 
@@ -136,7 +136,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{auditLogs.length}</p>
+              <p className="text-heading font-semibold">{auditLogs.length}</p>
               <p className="text-caption text-muted-foreground mt-2">Logged actions</p>
             </CardContent>
           </Card>
@@ -148,7 +148,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">
+              <p className="text-heading font-semibold">
                 {auditLogs.filter((l) => l.targetType === 'user').length}
               </p>
               <p className="text-caption text-muted-foreground mt-2">User-related events</p>
@@ -162,7 +162,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">
+              <p className="text-heading font-semibold">
                 {auditLogs.filter((l) => l.targetType === 'project').length}
               </p>
               <p className="text-caption text-muted-foreground mt-2">Project-related events</p>
@@ -176,7 +176,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">
+              <p className="text-heading font-semibold">
                 {auditLogs.filter((l) => l.targetType === 'system').length}
               </p>
               <p className="text-caption text-muted-foreground mt-2">Configuration changes</p>
@@ -340,7 +340,7 @@ export default function SecurityPage() {
       {/* Security Tips */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Security Guidelines
           </h2>
         </div>
@@ -349,8 +349,8 @@ export default function SecurityPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-sage/10 flex items-center justify-center">
-                  <CheckCircle className="size-5 text-sage" />
+                <div className="size-10 rounded-lg bg-success/10 flex items-center justify-center">
+                  <CheckCircle className="size-5 text-success" />
                 </div>
                 <CardTitle>Best Practices</CardTitle>
               </div>
@@ -376,8 +376,8 @@ export default function SecurityPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-amber/10 flex items-center justify-center">
-                  <AlertCircle className="size-5 text-amber" />
+                <div className="size-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <AlertCircle className="size-5 text-warning" />
                 </div>
                 <CardTitle>Warning Signs</CardTitle>
               </div>
@@ -385,15 +385,15 @@ export default function SecurityPage() {
             <CardContent>
               <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-amber">•</span>
+                  <span className="text-warning">•</span>
                   Multiple failed auth attempts
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-amber">•</span>
+                  <span className="text-warning">•</span>
                   Unusual API usage patterns
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-amber">•</span>
+                  <span className="text-warning">•</span>
                   Bulk deletions or modifications
                 </li>
               </ul>
@@ -403,8 +403,8 @@ export default function SecurityPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-slate/10 flex items-center justify-center">
-                  <Key className="size-5 text-slate" />
+                <div className="size-10 rounded-lg bg-info/10 flex items-center justify-center">
+                  <Key className="size-5 text-info" />
                 </div>
                 <CardTitle>Compliance</CardTitle>
               </div>
@@ -412,15 +412,15 @@ export default function SecurityPage() {
             <CardContent>
               <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-slate">•</span>
+                  <span className="text-info">•</span>
                   All actions are logged and immutable
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-slate">•</span>
+                  <span className="text-info">•</span>
                   Export logs for compliance audits
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-slate">•</span>
+                  <span className="text-info">•</span>
                   GDPR data export available
                 </li>
               </ul>

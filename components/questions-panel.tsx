@@ -40,6 +40,7 @@ interface QuestionsPanelProps {
   isCancelling?: boolean;
   canResume?: boolean;
   onResumePhase?: () => void;
+  modelReady?: boolean;
 }
 
 export function QuestionsPanel({
@@ -53,6 +54,7 @@ export function QuestionsPanel({
   isCancelling = false,
   canResume = false,
   onResumePhase,
+  modelReady = true,
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
   const generateQuestions = useAction(generateQuestionsAction);
@@ -373,7 +375,7 @@ export function QuestionsPanel({
           <CardDescription className="mt-1">
             Answer these questions to help generate better artifacts.
             {unansweredRequired > 0 && (
-              <span className="text-amber ml-2 font-medium">
+              <span className="text-warning ml-2 font-medium">
                 {unansweredRequired} required question{unansweredRequired !== 1 ? "s" : ""} unanswered
               </span>
             )}
@@ -389,9 +391,9 @@ export function QuestionsPanel({
             variant="outline"
             size="sm"
             onClick={() => setIsStressTestOpen(true)}
-            className="border-amber/30 text-amber dark:text-amber hover:bg-amber/10"
+            className="border-warning/30 text-warning dark:text-warning hover:bg-warning/10"
           >
-            <ShieldAlert className="size-4 mr-1.5 text-amber" />
+            <ShieldAlert className="size-4 mr-1.5 text-warning" />
             Stress-Test Plan
             {grillSession?.totalQuestionsAsked ? (
               <Badge variant="secondary" className="ml-1.5 text-caption px-1.5 py-0">
@@ -428,11 +430,16 @@ export function QuestionsPanel({
           <EmptyState
             variant="default"
             title="No Questions Yet"
-            description="Generate questions to get started with this phase."
-            action={{
-              label: "Generate Questions",
-              onClick: handleRegenerateQuestions,
-            }}
+            description={
+              modelReady
+                ? "Generate questions to get started with this phase."
+                : "Connect a model in Settings to generate questions for this phase."
+            }
+            action={
+              modelReady
+                ? { label: "Generate Questions", onClick: handleRegenerateQuestions }
+                : undefined
+            }
             className="py-8"
           />
         ) : (
@@ -471,6 +478,7 @@ export function QuestionsPanel({
             isCancelling={isCancelling}
             canResume={canResume}
             onResume={onResumePhase}
+            modelReady={modelReady}
           />
         )}
       </CardContent>

@@ -282,7 +282,7 @@ export default function LlmModelsPage() {
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-heading font-bold">LLM Configuration</h1>
+          <h1 className="text-heading font-semibold">LLM Configuration</h1>
           <p className="text-ink/70 mt-2">Manage global LLM models and system credentials for shared use.</p>
         </div>
       </div>
@@ -467,8 +467,8 @@ export default function LlmModelsPage() {
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-brick/10 border border-brick/50 rounded-lg">
-                    <p className="text-ui text-brick">{error}</p>
+                  <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-lg">
+                    <p className="text-ui text-destructive">{error}</p>
                   </div>
                 )}
 
@@ -526,7 +526,7 @@ export default function LlmModelsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleToggleEnabled(model.modelId, model.enabled)}
-                          className={cn(model.enabled ? "text-sage" : "text-ink/60")}
+                          className={cn(model.enabled ? "text-success" : "text-ink/60")}
                         >
                           {model.enabled ? (
                             <Check className="size-4" />
@@ -538,7 +538,7 @@ export default function LlmModelsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteModel(model.modelId)}
-                          className="text-brick hover:text-brick"
+                          className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="size-4" />
                         </Button>
@@ -583,8 +583,8 @@ export default function LlmModelsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {error && (
-                <div className="p-3 bg-brick/10 border border-brick/50 rounded-lg">
-                  <p className="text-ui text-brick">{error}</p>
+                <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-lg">
+                  <p className="text-ui text-destructive">{error}</p>
                 </div>
               )}
 
@@ -852,8 +852,8 @@ export default function LlmModelsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {error && (
-                <div className="p-3 bg-brick/10 border border-brick/50 rounded-lg">
-                  <p className="text-ui text-brick">{error}</p>
+                <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-lg">
+                  <p className="text-ui text-destructive">{error}</p>
                 </div>
               )}
 

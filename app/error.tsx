@@ -18,9 +18,9 @@ export default function GlobalError({
   return (
     <div className="flex min-h-[calc(100vh-var(--header-height))] items-center justify-center px-5 py-20">
       <div className="w-full max-w-md">
-        <p className="font-mono text-caption text-brick">Something failed</p>
+        <p className="font-mono text-caption text-destructive">Something failed</p>
 
-        <h1 className="mt-3 text-heading font-sans font-medium text-ink">
+        <h1 className="mt-3 text-heading font-display font-semibold text-ink">
           This page could not load
         </h1>
 

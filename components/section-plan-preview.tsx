@@ -173,7 +173,7 @@ export function SectionPlanPreview({
 
           {/* Warning if required sections disabled */}
           {hasDisabledRequired && (
-            <div className="flex items-start gap-2 text-amber bg-amber p-3 rounded-lg">
+            <div className="flex items-start gap-2 text-warning bg-warning p-3 rounded-lg">
               <AlertCircle className="size-5 mt-0.5 flex-shrink-0" />
               <div className="text-ui">
                 <strong>Required sections disabled</strong>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import type { Route } from 'next';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useQuery } from 'convex/react';
@@ -8,7 +9,6 @@ import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 import { ArtifactPreview } from '@/components/artifact-preview';
 import { EvidenceReviewPanel } from '@/components/evidence-review-panel';
-import { Breadcrumbs } from '@/components/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -20,26 +20,41 @@ export default function ProjectQuickSpecPage() {
   const artifact = useQuery(api.artifacts.getArtifactByPhase, isLoaded && isSignedIn ? { projectId, phaseId: 'quick' } : 'skip');
 
   if (!isLoaded || project === undefined || artifact === undefined) {
-    return <main className="page-container py-20 text-center"><Loader2 className="mx-auto h-8 w-8 animate-spin" /></main>;
+    return <main className="page-container py-20 text-center"><Loader2 className="mx-auto size-8 animate-spin text-muted-foreground" /></main>;
   }
   if (!project) return <main className="page-container py-20">Project not found.</main>;
 
   return (
-    <main className="page-container py-8">
-      <Breadcrumbs items={[{ label: 'Dashboard', href: '/dashboard' }, { label: project.title, href: `/project/${projectId}` }, { label: 'Quick Spec history' }]} />
-      <div className="my-8 flex flex-wrap items-center justify-between gap-4">
+    <main className="page-container py-10 md:py-14">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-heading font-bold">Quick Spec History</h1>
-          <p className="mt-2 text-muted-foreground">Saved architectural blueprints and diagrams for {project.title}. Inspect versioned claims and review attached evidence.</p>
+          <Link
+            href={`/project/${projectId}` as Route}
+            className="rounded-sm text-label text-dim hover:text-ink focus-ring"
+          >
+            {project.title}
+          </Link>
+          <h1 className="mt-2 font-display text-heading font-semibold text-ink">Saved quick specs</h1>
+          <p className="mt-3 max-w-xl text-body text-muted-foreground">
+            The quick spec saved to this project, with its claims and the evidence behind them.
+          </p>
         </div>
-        <Button asChild variant="outline"><Link href="/dashboard/quick">Generate Quick Spec</Link></Button>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/quick">New quick spec</Link>
+        </Button>
       </div>
-      {artifact ? (
-        <>
-          <ArtifactPreview artifact={artifact} projectId={String(projectId)} />
-          <EvidenceReviewPanel projectId={projectId} artifactId={artifact._id} />
-        </>
-      ) : <p className="border border-dashed border-line p-8 text-muted-foreground">No Quick Spec has been saved to this project yet. Generate a one-page specification from the dashboard and save it here.</p>}
+      <div className="mt-10 flex flex-col gap-8">
+        {artifact ? (
+          <>
+            <ArtifactPreview artifact={artifact} projectId={String(projectId)} />
+            <EvidenceReviewPanel projectId={projectId} artifactId={artifact._id} />
+          </>
+        ) : (
+          <p className="rounded-lg border border-dashed border-line-strong px-6 py-10 text-center text-ui text-dim">
+            No quick spec is saved to this project yet. Generate one from Quick spec and save it here.
+          </p>
+        )}
+      </div>
     </main>
   );
 }

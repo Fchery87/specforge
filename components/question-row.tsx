@@ -57,13 +57,13 @@ export function QuestionRow({
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
-        <span className="flex-shrink-0 flex items-center justify-center size-8 border border-line bg-raised/30 text-ui font-bold">
+        <span className="flex-shrink-0 flex items-center justify-center size-8 border border-line bg-raised/30 text-ui font-semibold">
           {String(index + 1).padStart(2, "0")}
         </span>
         <div className="flex-1">
           <p className={cn("text-body", question.required && "font-medium")}>
             {question.text}
-            {question.required && <span className="text-amber ml-1">*</span>}
+            {question.required && <span className="text-warning ml-1">*</span>}
           </p>
           {aiGenerated && (
             <span className="inline-flex items-center text-caption text-muted-foreground mt-1">
@@ -110,7 +110,7 @@ export function QuestionRow({
               </span>
             )}
             {isSaved && (
-              <span className="flex items-center text-sage">
+              <span className="flex items-center text-success">
                 <Check className="size-3 mr-1" />
                 Saved
               </span>
@@ -119,7 +119,7 @@ export function QuestionRow({
           <span
             className={cn(
               "text-muted-foreground",
-              charCount > maxLength * 0.9 && "text-amber",
+              charCount > maxLength * 0.9 && "text-warning",
             )}
           >
             {charCount.toLocaleString()}/{maxLength.toLocaleString()}

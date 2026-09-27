@@ -2,6 +2,7 @@
 
 import { Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConnectModelNote } from "@/components/generation-readiness-banner";
 
 export function GenerationControls(props: {
   isGenerating: boolean;
@@ -11,6 +12,7 @@ export function GenerationControls(props: {
   isCancelling?: boolean;
   canResume?: boolean;
   onResume?: () => void;
+  modelReady?: boolean;
 }) {
   const {
     isGenerating,
@@ -20,12 +22,15 @@ export function GenerationControls(props: {
     isCancelling,
     canResume,
     onResume,
+    modelReady = true,
   } = props;
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between pt-6 border-t border-line">
       <p className="text-ui text-muted-foreground">
-        {canResume
+        {!modelReady
+          ? <ConnectModelNote />
+          : canResume
           ? "Previous generation paused. You can resume from the last completed step."
           : canGenerate
             ? "All required questions answered."
@@ -43,12 +48,12 @@ export function GenerationControls(props: {
           </Button>
         )}
         {canResume && onResume && !isGenerating && (
-          <Button variant="outline" onClick={onResume}>
+          <Button variant="outline" onClick={onResume} disabled={!modelReady}>
             <Play className="size-4 mr-2" />
             Resume Generation
           </Button>
         )}
-        <Button onClick={onGenerate} disabled={!canGenerate || isGenerating}>
+        <Button onClick={onGenerate} disabled={!modelReady || !canGenerate || isGenerating}>
           {isGenerating ? (
             <>
               <Loader2 className="size-4 mr-2 animate-spin" />

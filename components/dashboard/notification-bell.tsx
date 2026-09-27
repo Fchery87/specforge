@@ -39,12 +39,12 @@ const NOTIFICATION_ICONS = {
 };
 
 const NOTIFICATION_COLORS: Record<string, string> = {
-  generation_complete: 'text-sage bg-sage/10',
-  generation_failed: 'text-brick bg-brick/10',
-  drift_detected: 'text-amber bg-amber/10',
-  phase_stale: 'text-amber bg-amber/10',
-  verification_complete: 'text-sage bg-sage/10',
-  system_announcement: 'text-slate bg-slate/10',
+  generation_complete: 'text-success bg-success/10',
+  generation_failed: 'text-destructive bg-destructive/10',
+  drift_detected: 'text-warning bg-warning/10',
+  phase_stale: 'text-warning bg-warning/10',
+  verification_complete: 'text-success bg-success/10',
+  system_announcement: 'text-info bg-info/10',
 };
 
 interface Notification {
@@ -202,7 +202,7 @@ export function NotificationBell() {
         >
           <Bell className="size-5" />
           {count > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-caption font-bold flex items-center justify-center px-1">
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-caption font-semibold flex items-center justify-center px-1">
               {count > 9 ? '9+' : count}
             </span>
           )}
@@ -212,7 +212,7 @@ export function NotificationBell() {
       <PopoverContent className="w-96 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
-            <h4 className="font-bold text-ui">Notifications</h4>
+            <h4 className="font-semibold text-ui">Notifications</h4>
             {count > 0 && (
               <Badge variant="destructive" className="text-caption px-1.5">
                 {count}

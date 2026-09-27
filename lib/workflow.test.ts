@@ -85,18 +85,21 @@ describe('mode policies', () => {
   it('matches expected mode configurations', () => {
     expect(MODE_POLICIES.quick).toEqual({
       label: 'Lite',
+      description: 'For a feature or a fix. Skips the domain model and schemas, and generates without review stops.',
       reviewAfter: [],
       skippedPhases: ['domainModel', 'artifacts'],
     });
 
     expect(MODE_POLICIES.full).toEqual({
       label: 'Full',
+      description: 'For a new product. Every phase, with a review after each stage.',
       reviewAfter: ['requirements', 'design', 'tasks'],
       skippedPhases: [],
     });
 
     expect(MODE_POLICIES.backend).toEqual({
       label: 'Backend',
+      description: 'For services and APIs. Skips the brief, starts from the PRD, and reviews after each stage.',
       reviewAfter: ['requirements', 'design', 'tasks'],
       skippedPhases: ['brief'],
     });

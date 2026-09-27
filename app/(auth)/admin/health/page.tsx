@@ -106,11 +106,11 @@ export default function HealthMonitorPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'healthy':
-        return <CheckCircle className="size-5 text-sage" />;
+        return <CheckCircle className="size-5 text-success" />;
       case 'degraded':
-        return <AlertTriangle className="size-5 text-amber" />;
+        return <AlertTriangle className="size-5 text-warning" />;
       case 'down':
-        return <XCircle className="size-5 text-brick" />;
+        return <XCircle className="size-5 text-destructive" />;
       default:
         return <Activity className="size-5 text-muted-foreground" />;
     }
@@ -120,11 +120,11 @@ export default function HealthMonitorPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy':
-        return 'bg-sage/10 text-sage border-sage/50';
+        return 'bg-success/10 text-success border-success/50';
       case 'degraded':
-        return 'bg-amber/10 text-amber border-amber/50';
+        return 'bg-warning/10 text-warning border-warning/50';
       case 'down':
-        return 'bg-brick/10 text-brick border-brick/50';
+        return 'bg-destructive/10 text-destructive border-destructive/50';
       default:
         return 'bg-raised text-muted-foreground border-line';
     }
@@ -149,7 +149,7 @@ export default function HealthMonitorPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">System Health Monitor</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Monitor LLM provider health, queue status, and system performance.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Monitor LLM provider health, queue status, and system performance.</p>
         </div>
       </section>
 
@@ -166,10 +166,10 @@ export default function HealthMonitorPage() {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "size-3 rounded-full",
-                  health.errorRate.percentage < 5 ? "bg-sage" : 
-                  health.errorRate.percentage < 15 ? "bg-amber" : "bg-brick"
+                  health.errorRate.percentage < 5 ? "bg-success" : 
+                  health.errorRate.percentage < 15 ? "bg-warning" : "bg-destructive"
                 )} />
-                <span className="text-title font-bold">
+                <span className="text-title font-semibold">
                   {health.errorRate.percentage < 5 ? 'Healthy' : 
                    health.errorRate.percentage < 15 ? 'Degraded' : 'Critical'}
                 </span>
@@ -186,9 +186,9 @@ export default function HealthMonitorPage() {
             </CardHeader>
             <CardContent>
               <p className={cn(
-                "text-heading font-bold",
-                health.errorRate.percentage < 5 ? "text-sage" : 
-                health.errorRate.percentage < 15 ? "text-amber" : "text-brick"
+                "text-heading font-semibold",
+                health.errorRate.percentage < 5 ? "text-success" : 
+                health.errorRate.percentage < 15 ? "text-warning" : "text-destructive"
               )}>
                 {health.errorRate.percentage.toFixed(1)}%
               </p>
@@ -205,9 +205,9 @@ export default function HealthMonitorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{health.queue.inProgress}</p>
+              <p className="text-heading font-semibold">{health.queue.inProgress}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Clock className="size-4 text-amber animate-pulse" />
+                <Clock className="size-4 text-warning animate-pulse" />
                 <span className="text-caption text-muted-foreground">In progress</span>
               </div>
             </CardContent>
@@ -220,7 +220,7 @@ export default function HealthMonitorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{formatNumber(health.storage.projects)}</p>
+              <p className="text-heading font-semibold">{formatNumber(health.storage.projects)}</p>
               <div className="flex items-center gap-2 mt-2">
                 <Database className="size-4 text-muted-foreground" />
                 <span className="text-caption text-muted-foreground">Projects stored</span>
@@ -234,7 +234,7 @@ export default function HealthMonitorPage() {
       <section className="page-section page-container border-t border-line">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-title font-bold">
+            <h2 className="text-title font-semibold">
               Provider Health
             </h2>
             <p className="text-muted-foreground mt-2">
@@ -296,7 +296,7 @@ export default function HealthMonitorPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="p-3 bg-raised/30 rounded-lg">
                         <p className="text-caption text-muted-foreground">Response Time</p>
-                        <p className="text-title font-bold">
+                        <p className="text-title font-semibold">
                           {healthData ? `${Math.round(healthData.responseTime)}ms` : '--'}
                         </p>
                       </div>
@@ -304,8 +304,8 @@ export default function HealthMonitorPage() {
                       <div className="p-3 bg-raised/30 rounded-lg">
                         <p className="text-caption text-muted-foreground">Failures</p>
                         <p className={cn(
-                          "text-title font-bold",
-                          healthData && healthData.consecutiveFailures > 0 ? "text-brick" : ""
+                          "text-title font-semibold",
+                          healthData && healthData.consecutiveFailures > 0 ? "text-destructive" : ""
                         )}>
                           {healthData ? healthData.consecutiveFailures : '--'}
                         </p>
@@ -342,7 +342,7 @@ export default function HealthMonitorPage() {
       {/* Queue Status */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Generation Queue
           </h2>
           <p className="text-muted-foreground mt-2">
@@ -351,15 +351,15 @@ export default function HealthMonitorPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          <Card variant="default" className="border-amber/50">
+          <Card variant="default" className="border-warning/50">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <Clock className="size-5 text-amber" />
+                <Clock className="size-5 text-warning" />
                 <CardTitle>In Progress</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-amber">{health.queue.inProgress}</p>
+              <p className="text-heading font-semibold text-warning">{health.queue.inProgress}</p>
               <p className="text-ui text-muted-foreground mt-2">Tasks being processed</p>
             </CardContent>
           </Card>
@@ -372,20 +372,20 @@ export default function HealthMonitorPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{health.queue.queued}</p>
+              <p className="text-heading font-semibold">{health.queue.queued}</p>
               <p className="text-ui text-muted-foreground mt-2">Waiting to start</p>
             </CardContent>
           </Card>
 
-          <Card variant="default" className="border-brick/50">
+          <Card variant="default" className="border-destructive/50">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <XCircle className="size-5 text-brick" />
+                <XCircle className="size-5 text-destructive" />
                 <CardTitle>Failed</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-brick">{health.queue.failed}</p>
+              <p className="text-heading font-semibold text-destructive">{health.queue.failed}</p>
               <p className="text-ui text-muted-foreground mt-2">Require attention</p>
             </CardContent>
           </Card>
@@ -395,7 +395,7 @@ export default function HealthMonitorPage() {
       {/* Storage Stats */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Storage Overview
           </h2>
           <p className="text-muted-foreground mt-2">
@@ -412,7 +412,7 @@ export default function HealthMonitorPage() {
                 </div>
                 <div>
                   <p className="text-ui text-muted-foreground">Projects</p>
-                  <p className="text-title font-bold">{formatNumber(health.storage.projects)}</p>
+                  <p className="text-title font-semibold">{formatNumber(health.storage.projects)}</p>
                 </div>
               </div>
             </CardContent>
@@ -426,7 +426,7 @@ export default function HealthMonitorPage() {
                 </div>
                 <div>
                   <p className="text-ui text-muted-foreground">Artifacts</p>
-                  <p className="text-title font-bold">{formatNumber(health.storage.artifacts)}</p>
+                  <p className="text-title font-semibold">{formatNumber(health.storage.artifacts)}</p>
                 </div>
               </div>
             </CardContent>
@@ -440,7 +440,7 @@ export default function HealthMonitorPage() {
                 </div>
                 <div>
                   <p className="text-ui text-muted-foreground">Est. Tokens</p>
-                  <p className="text-title font-bold">{formatNumber(Math.round(health.storage.estimatedTokens))}</p>
+                  <p className="text-title font-semibold">{formatNumber(Math.round(health.storage.estimatedTokens))}</p>
                 </div>
               </div>
             </CardContent>

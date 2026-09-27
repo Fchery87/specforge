@@ -110,7 +110,7 @@ describe("ArtifactPreview", () => {
     expect(report).toHaveTextContent("1 of 2 requirements traced, 1 untraced");
     expect(report).toHaveTextContent("2 of 4 criteria testable, 1 not observable, 1 unclassified");
 
-    const toc = screen.getByRole("navigation", { name: "On this page" });
+    const toc = screen.getByRole("navigation", { name: "Contents" });
     expect(
       report.compareDocumentPosition(toc) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -137,7 +137,7 @@ describe("ArtifactPreview", () => {
 
     expect(mockUseQuery.mock.calls[0][1]).toBe("skip");
     expect(screen.queryByRole("region", { name: "Requirement quality" })).toBeNull();
-    expect(screen.getByRole("navigation", { name: "On this page" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Contents" })).toBeInTheDocument();
     expect(container.querySelector('h2[id="deep-module-interfaces"]')).not.toBeNull();
   });
 

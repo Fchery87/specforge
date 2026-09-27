@@ -7,7 +7,7 @@ export default function NotFound() {
       <div className="w-full max-w-md">
         <p className="font-mono text-caption tabular-nums text-dim">404</p>
 
-        <h1 className="mt-3 text-heading font-sans font-medium text-ink">
+        <h1 className="mt-3 text-heading font-display font-semibold text-ink">
           This page does not exist
         </h1>
 

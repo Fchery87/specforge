@@ -5,78 +5,70 @@
 @custom-variant dark (&:is(.dark *));
 
 /* =============================================================================
-   SpecForge Ember
+   SpecForge Magenta
    Source of record for these values: design/tokens.json
    Proven by:  node design/audit-contrast.mjs
+   Kept equal: node design/audit-token-sync.mjs
    Guarded by: node design/lint-tokens.mjs app/globals.css
 
-   Dark is the primary theme. Light uses a neutral ground rather than a warm one,
-   and its accent is a separate, darker value because the dark accent measures
-   3.32:1 on white.
+   Grounds are neutral greys with no hue, a clean off-white and a true dark black, so the
+   magenta accent is the only colour on screen that is not a state. ADR 0002.
    ============================================================================= */
 
 /* Light. */
 :root {
-  --void: #fcfcfd;
+  --void: #f7f7f7;
   --surface: #ffffff;
   --panel: #ffffff;
-  --raised: #f4f4f5;
+  --raised: #efefef;
 
-  --line: #e4e4e7;
-  --line-strong: #c9c9d0;
-  --field: #8b8b93;
+  --line: #e0e0e0;
+  --line-strong: #cbcbcb;
+  --field: #878787;
 
-  --ink: #18181b;
-  --ink-bright: #09090a;
-  --ink-dim: #71717a;
-  --ink-muted: #52525b;
+  --ink: #0a0a0a;
+  --ink-bright: #000000;
+  --ink-dim: #666666;
+  --ink-muted: #4a4a4a;
 
-  --ember: #a05526;
-  --ember-soft: #8c4a21;
-  --ember-deep: #dbbfa8;
-  --sage: #3f6b45;
-  --brick: #a33b3b;
-  --amber: #8a6414;
-  --slate: #39637d;
-
-  --success: var(--sage);
-  --warning: var(--amber);
-  --info: var(--slate);
+  --brand: #d10f6f;
+  --success: #1f7a3f;
+  --destructive: #c4291c;
+  --warning: #8f6000;
+  --info: #3558b8;
 
   /* The wash behind a modal. Dark in both themes, because a scrim dims the page rather than
      matching it. A light scrim would leave a modal floating on a white page. */
-  --scrim: rgba(9, 9, 10, 0.4);
+  --scrim: rgba(10, 10, 10, 0.4);
 }
 
 /* Dark. */
 .dark {
-  --void: #09090a;
-  --surface: #111113;
-  --panel: #17171a;
-  --raised: #202024;
+  --void: #0a0a0a;
+  --surface: #111111;
+  --panel: #161616;
+  --raised: #1f1f1f;
 
-  --line: #26262b;
-  --line-strong: #3a3a44;
-  --field: #6a6a74;
+  --line: #262626;
+  --line-strong: #333333;
+  --field: #6b6b6b;
 
-  --ink: #e9e9ec;
-  --ink-bright: #fafafa;
-  --ink-dim: #85858f;
-  --ink-muted: #a1a1ab;
+  --ink: #f2f2f2;
+  --ink-bright: #ffffff;
+  --ink-dim: #8c8c8c;
+  --ink-muted: #b4b4b4;
 
-  --ember: #c87a46;
-  --ember-soft: #e0a479;
-  --ember-deep: #7d4726;
-  --sage: #7fa37a;
-  --brick: #c97070;
-  --amber: #c6a052;
-  --slate: #6f92a6;
+  --brand: #ff3d9a;
+  --success: #5cc98a;
+  --destructive: #ff7a6b;
+  --warning: #e7b54a;
+  --info: #86a6ff;
 
-  --scrim: rgba(9, 9, 10, 0.75);
+  --scrim: rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
-  /* Ember palette, available directly as utilities. */
+  /* Palette, available directly as utilities. Hue tokens are named for what they mean. */
   --color-void: var(--void);
   --color-surface: var(--surface);
   --color-panel: var(--panel);
@@ -87,13 +79,7 @@
   --color-ink: var(--ink);
   --color-ink-bright: var(--ink-bright);
   --color-dim: var(--ink-dim);
-  --color-ember: var(--ember);
-  --color-ember-soft: var(--ember-soft);
-  --color-ember-deep: var(--ember-deep);
-  --color-sage: var(--sage);
-  --color-brick: var(--brick);
-  --color-amber: var(--amber);
-  --color-slate: var(--slate);
+  --color-brand: var(--brand);
   --color-scrim: var(--scrim);
 
   /* Semantic names the shadcn primitives read. */
@@ -103,7 +89,7 @@
   --color-card-foreground: var(--ink);
   --color-popover: var(--panel);
   --color-popover-foreground: var(--ink);
-  --color-primary: var(--ember);
+  --color-primary: var(--brand);
   --color-primary-foreground: var(--void);
   --color-secondary: var(--raised);
   --color-secondary-foreground: var(--ink-bright);
@@ -111,22 +97,23 @@
   --color-muted-foreground: var(--ink-muted);
   --color-accent: var(--raised);
   --color-accent-foreground: var(--ink-bright);
-  --color-destructive: var(--brick);
+  --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--void);
-  --color-success: var(--sage);
-  --color-warning: var(--amber);
-  --color-info: var(--slate);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-border: var(--line);
   --color-input: var(--field);
-  --color-ring: var(--ember);
+  --color-ring: var(--brand);
 
-  /* Type roles. Three families, no fourth. */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+  /* Type roles. Three families, no fourth: display for headings, sans for interface and document
+     prose, mono for identifiers. */
+  --font-display: var(--font-funnel-display), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-funnel-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-red-hat-mono), ui-monospace, SFMono-Regular, monospace;
 
-  /* Type scale. One ratio, 1.25 anchored at 16px, with one interpolation step
-     at 17px where document prose sits. */
+  /* Type scale. One ratio, 1.25 anchored at 16px, with one interpolation step at 17px where
+     document prose sits. Tracking belongs to the scale, so no call site sets it. */
   --text-caption: 0.75rem;
   --text-caption--line-height: 1rem;
   --text-label: 0.8125rem;
@@ -139,25 +126,53 @@
   --text-prose--line-height: 1.75rem;
   --text-title: 1.25rem;
   --text-title--line-height: 1.75rem;
+  --text-title--letter-spacing: -0.015em;
   --text-heading: 2rem;
-  --text-heading--line-height: 2.5rem;
-  --text-display: 3.5rem;
-  --text-display--line-height: 3.75rem;
+  --text-heading--line-height: 2.25rem;
+  --text-heading--letter-spacing: -0.03em;
+  /* One per page at most. Fluid, because it only ever sets a landing headline. */
+  --text-display: clamp(2.75rem, 1.2rem + 6.2vw, 6.5rem);
+  --text-display--line-height: 0.94;
+  --text-display--letter-spacing: -0.04em;
 
   /* Radius. Three values: controls, containers, pills. Nothing else. */
-  --radius-sm: 6px;
-  --radius-md: 6px;
-  --radius-lg: 12px;
-  --radius-xl: 12px;
-  --radius-2xl: 12px;
+  --radius-sm: 10px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
 
   /* Motion. Five durations, three easings. Entrances ease out, exits ease in at
      half the entrance duration. */
-  --ease-quiet-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-quiet-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-quiet-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-quiet-both: cubic-bezier(0.4, 0, 0.2, 1);
 
   --animate-skeleton: skeleton-pulse 1.6s var(--ease-quiet-both) infinite;
+
+  /* The landing sheet's one orchestrated entrance: the sheet rises, then the stage band wipes in. */
+  --animate-sheet-rise: sheet-rise 600ms var(--ease-quiet-out) 120ms both;
+  --animate-band-wipe: band-wipe 900ms cubic-bezier(0.77, 0, 0.175, 1) 450ms both;
+
+  @keyframes sheet-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes band-wipe {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
 
   @keyframes skeleton-pulse {
     0%,
@@ -218,20 +233,22 @@
   h4,
   h5,
   h6 {
+    font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
     text-wrap: balance;
   }
 
   h1 {
     font-size: var(--text-heading);
     line-height: var(--text-heading--line-height);
-    letter-spacing: -0.022em;
+    letter-spacing: var(--text-heading--letter-spacing);
   }
 
   h2 {
     font-size: var(--text-title);
     line-height: var(--text-title--line-height);
+    letter-spacing: var(--text-title--letter-spacing);
   }
 
   p {
@@ -246,7 +263,7 @@
   }
 
   ::selection {
-    background-color: color-mix(in oklab, var(--ember) 32%, transparent);
+    background-color: color-mix(in oklab, var(--brand) 28%, transparent);
     color: var(--ink-bright);
   }
 
@@ -268,6 +285,8 @@
   ::before,
   ::after {
     animation-duration: 0.01ms !important;
+    /* A delayed entrance would otherwise hold an element invisible and then pop it in. */
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
@@ -304,10 +323,48 @@
   @apply py-16 md:py-20;
 }
 
+/* A hallmark: one stamped mark in a clause's evidence strip. The radius is relative to the chip,
+   like inline code, so it stays a stamp rather than becoming a pill. */
+@utility hallmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.375rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.4em;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  background-color: var(--surface);
+}
+
+@utility hallmark-struck {
+  background-color: var(--ink);
+  border-color: var(--ink);
+  color: var(--void);
+}
+
+@utility hallmark-review {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+@utility hallmark-missing {
+  border-style: dashed;
+  border-color: var(--destructive);
+  color: var(--destructive);
+  background-color: transparent;
+}
+
 /* Document prose. Applied to rendered artifact markdown. */
 @utility document-prose {
   max-width: var(--measure);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-size: var(--text-prose);
   line-height: var(--text-prose--line-height);
 
@@ -318,9 +375,9 @@
   & h2,
   & h3,
   & h4 {
-    font-family: var(--font-sans);
+    font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.015em;
     margin-top: 2em;
     margin-bottom: 0.5em;
   }
@@ -337,10 +394,11 @@
 
   & code {
     font-family: var(--font-mono);
-    font-size: 0.9em;
-    color: var(--ember-soft);
+    font-size: 0.85em;
+    color: var(--ink);
     background-color: var(--raised);
-    border-radius: var(--radius-sm);
+    /* Relative to the text, so an inline chip stays a chip rather than becoming a pill. */
+    border-radius: 0.35em;
     padding: 0.1em 0.3em;
   }
 
@@ -380,30 +438,62 @@
     margin-top: 0.35em;
   }
 
-  /* A claim bullet carries its evidence state in the margin, using the same spine the reader
-     meets in the rest of the product. A claim with no evidence keeps its spine and turns amber. */
+  /* A claim bullet is a hallmark: its ID is stamped as a chip, solid once confirmed, outlined while
+     proposed, dashed while untraced. The spine on the left carries the same state, so a gap is drawn
+     rather than left invisible. The state is also a word in the bullet, never colour alone. */
   & li[data-claim] {
     list-style: none;
     margin-left: -1.25rem;
-    border-left: 2px solid var(--line);
-    padding-left: 1.25rem;
+    border-left: 2px solid transparent;
+    padding: 0.625rem 0 0.625rem 1.25rem;
   }
 
-  & li[data-state="untraced"] {
-    border-left-color: color-mix(in oklab, var(--amber) 70%, transparent);
-  }
-
-  & li[data-state="proposed"] {
-    border-left-color: var(--line-strong);
+  & li[data-claim] + li[data-claim] {
+    margin-top: 0;
+    border-top: 1px solid var(--line);
   }
 
   & li[data-claim] > strong:first-child {
+    display: inline-flex;
+    align-items: center;
+    height: 1.375rem;
+    margin-right: 0.5rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 0.4em;
     font-family: var(--font-mono);
     font-size: var(--text-caption);
     font-variant-numeric: tabular-nums;
-    font-weight: 400;
-    color: var(--ink-dim);
+    font-weight: 500;
+    color: var(--ink-muted);
+    vertical-align: 0.08em;
   }
+
+  & li[data-state="confirmed"] > strong:first-child {
+    background-color: var(--ink);
+    border-color: var(--ink);
+    color: var(--void);
+  }
+
+  & li[data-state="proposed"] {
+    border-left-color: var(--warning);
+  }
+
+  & li[data-state="proposed"] > strong:first-child {
+    border-color: var(--warning);
+    color: var(--warning);
+  }
+
+  & li[data-state="untraced"] {
+    border-left-color: var(--destructive);
+  }
+
+  & li[data-state="untraced"] > strong:first-child {
+    border-style: dashed;
+    border-color: var(--destructive);
+    color: var(--destructive);
+  }
+
   /* A length or coverage mark on a clause's own heading. `renderSpecHtml` writes this span into the
      rendered heading, so there is no markup for a utility class to sit on; the rule belongs here,
      beside the claim-bullet notation. It stays a word rather than a colour. The markup already
@@ -419,7 +509,7 @@
   }
 
   & blockquote {
-    border-left: 2px solid var(--ember-deep);
+    border-left: 2px solid var(--line-strong);
     padding-left: 1rem;
     color: var(--ink-muted);
   }
@@ -447,15 +537,15 @@
   }
 
   & a {
-    color: var(--ember);
+    color: var(--brand);
     text-decoration: underline;
     text-underline-offset: 3px;
     text-decoration-thickness: 1px;
-    text-decoration-color: color-mix(in oklab, var(--ember) 45%, transparent);
+    text-decoration-color: color-mix(in oklab, var(--brand) 45%, transparent);
   }
 
   & a:hover {
-    text-decoration-color: var(--ember);
+    text-decoration-color: var(--brand);
   }
 
   & hr {

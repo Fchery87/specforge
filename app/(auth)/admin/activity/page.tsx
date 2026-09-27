@@ -73,9 +73,9 @@ export default function ActivityMonitorPage() {
       case 'generating':
         return <Play className="size-5 text-primary" />;
       case 'complete':
-        return <CheckCircle className="size-5 text-sage" />;
+        return <CheckCircle className="size-5 text-success" />;
       case 'context':
-        return <FileCode className="size-5 text-slate" />;
+        return <FileCode className="size-5 text-info" />;
       default:
         return <Info className="size-5 text-muted-foreground" />;
     }
@@ -87,9 +87,9 @@ export default function ActivityMonitorPage() {
       case 'generating':
         return 'border-primary/50 bg-primary/5';
       case 'complete':
-        return 'border-sage/50 bg-sage/5';
+        return 'border-success/50 bg-success/5';
       case 'context':
-        return 'border-slate/50 bg-slate/5';
+        return 'border-info/50 bg-info/5';
       default:
         return 'border-line bg-void';
     }
@@ -139,7 +139,7 @@ export default function ActivityMonitorPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">Activity Monitor</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Real-time monitoring of generation tasks, system events, and user activity.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Real-time monitoring of generation tasks, system events, and user activity.</p>
         </div>
       </section>
 
@@ -153,7 +153,7 @@ export default function ActivityMonitorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{stats.total}</p>
+              <p className="text-heading font-semibold">{stats.total}</p>
               <p className="text-caption text-muted-foreground mt-1">Last 100 events</p>
             </CardContent>
           </Card>
@@ -165,9 +165,9 @@ export default function ActivityMonitorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-amber">{stats.inProgress}</p>
+              <p className="text-heading font-semibold text-warning">{stats.inProgress}</p>
               <div className="flex items-center gap-2 mt-1">
-                <RefreshCw className="size-3 text-amber animate-spin" />
+                <RefreshCw className="size-3 text-warning animate-spin" />
                 <p className="text-caption text-muted-foreground">Active tasks</p>
               </div>
             </CardContent>
@@ -180,7 +180,7 @@ export default function ActivityMonitorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-sage">{stats.complete}</p>
+              <p className="text-heading font-semibold text-success">{stats.complete}</p>
               <p className="text-caption text-muted-foreground mt-1">Successful generations</p>
             </CardContent>
           </Card>
@@ -192,9 +192,9 @@ export default function ActivityMonitorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-brick">{stats.failed}</p>
+              <p className="text-heading font-semibold text-destructive">{stats.failed}</p>
               <div className="flex items-center gap-2 mt-1">
-                {stats.failed > 0 && <AlertCircle className="size-3 text-brick" />}
+                {stats.failed > 0 && <AlertCircle className="size-3 text-destructive" />}
                 <p className="text-caption text-muted-foreground">Require attention</p>
               </div>
             </CardContent>
@@ -206,7 +206,7 @@ export default function ActivityMonitorPage() {
       <section className="page-section page-container border-t border-line">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-title font-bold">
+            <h2 className="text-title font-semibold">
               Activity Timeline
             </h2>
             <p className="text-muted-foreground mt-2">
@@ -228,7 +228,7 @@ export default function ActivityMonitorPage() {
           <div className="space-y-8">
             {Object.entries(groupedActivities).map(([date, dayActivities]) => (
               <div key={date}>
-                <h3 className="text-ui font-bold text-muted-foreground mb-4 sticky top-0 bg-void py-2 z-10">
+                <h3 className="text-ui font-semibold text-muted-foreground mb-4 sticky top-0 bg-void py-2 z-10">
                   {date}
                 </h3>
                 <div className="space-y-3">
@@ -264,10 +264,10 @@ export default function ActivityMonitorPage() {
                               className={cn(
                                 "inline-flex items-center px-2.5 py-1 rounded-full text-caption font-medium",
                                 activity.taskStatus === 'completed'
-                                  ? "bg-sage/10 text-sage border border-sage/20"
+                                  ? "bg-success/10 text-success border border-success/20"
                                   : activity.taskStatus === 'failed'
-                                  ? "bg-brick/10 text-brick border border-brick/20"
-                                  : "bg-amber/10 text-amber border border-amber/20"
+                                  ? "bg-destructive/10 text-destructive border border-destructive/20"
+                                  : "bg-warning/10 text-warning border border-warning/20"
                               )}
                             >
                               {activity.taskStatus}
