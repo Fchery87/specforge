@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   getProjectStageQualityHandler,
+  getExportStageQualityHandler,
   getSavedStageReportHandler,
   getStageReportHandler,
   saveStageReportHandler,
@@ -438,6 +439,100 @@ describe('saveStageReport', () => {
         stageId: 'requirements',
       })
     ).rejects.toThrow(/Forbidden/);
+  });
+});
+
+describe('getExportStageQuality', () => {
+  it('returns one entry per workflow stage in order, with the summaries and the criteria text', async () => {
+    const ctx = makeCtx(
+      seedFor({
+        latestVersionContent: '## Requirements\n\nx',
+        claims: [
+          {
+            _id: 'c1',
+            projectId: 'p1',
+            artifactId: 'a1',
+            phaseId: 'prd',
+            claimId: 'C-015',
+            decisionStatus: 'unresolved',
+            reviewStatus: 'pending',
+            text: 'a',
+          },
+        ],
+        tickets: [
+          {
+            _id: 't1',
+            projectId: 'p1',
+            phaseId: 'prd',
+            acceptanceCriteria: ['Returns 204.', 'Should be fast.', 'Handle edge cases.'],
+            acceptanceCriteriaQuality: ['observable', 'unobservable', 'vague'],
+          },
+        ],
+      })
+    );
+
+    const result = await getExportStageQualityHandler(ctx as never, {
+      projectId: 'p1' as never,
+    });
+
+    expect(result.map((stage) => stage.stageId)).toEqual([
+      'requirements',
+      'design',
+      'tasks',
+    ]);
+    expect(result.map((stage) => stage.stageLabel)).toEqual([
+      'Requirements',
+      'Design',
+      'Tasks',
+    ]);
+
+    const requirements = result[0];
+    expect(requirements.traceability).toEqual({ total: 1, traced: 0, untraced: 1 });
+    expect(requirements.testability).toEqual({
+      total: 3,
+      observable: 1,
+      unobservable: 1,
+      vague: 1,
+      unclassified: 0,
+    });
+    expect(requirements.coverage.sections).toBe(1);
+    expect(requirements.length.words).toBeGreaterThan(0);
+    expect(requirements.untestableCriteria).toEqual([
+      'Should be fast.',
+      'Handle edge cases.',
+    ]);
+
+    // A stage with no artifacts is still an entry, so the pack carries every stage in order.
+    expect(result[1].traceability).toEqual({ total: 0, traced: 0, untraced: 0 });
+    expect(result[1].untestableCriteria).toEqual([]);
+  });
+
+  it('rejects an unauthenticated read', async () => {
+    const ctx = makeCtx(seedFor({}), '');
+
+    await expect(
+      getExportStageQualityHandler(ctx as never, { projectId: 'p1' as never })
+    ).rejects.toThrow(/Unauthenticated/);
+  });
+
+  it('rejects a read by a user who does not own the project', async () => {
+    const ctx = makeCtx(seedFor({}), 'someone-else');
+
+    await expect(
+      getExportStageQualityHandler(ctx as never, { projectId: 'p1' as never })
+    ).rejects.toThrow(/Forbidden/);
+  });
+
+  it('writes nothing', async () => {
+    const ctx = makeCtx(seedFor({ latestVersionContent: '## Requirements\n\nx' }));
+    const patch = vi.spyOn(ctx.db, 'patch');
+    const insert = vi.spyOn(ctx.db, 'insert');
+
+    await getExportStageQualityHandler(ctx as never, { projectId: 'p1' as never });
+
+    expect(patch).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
+    expect(ctx.__tables.stageReports?.size ?? 0).toBe(0);
   });
 });
 

@@ -4,7 +4,14 @@ import type { Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { WORKFLOW_STAGES } from '../lib/workflow';
 import { getSectionPlansForPhase, type SectionPlanConfig } from '../lib/llm/section-plans';
-import { buildStageReport, stageQualityFlagFor, type StageDocument, type StageQualityFlag } from '../lib/quality/stage-report';
+import {
+  buildStageReport,
+  stageQualityFlagFor,
+  type StageDocument,
+  type StageQualityFlag,
+  type StageQualityForExport,
+} from '../lib/quality/stage-report';
+import { untestableCriteria } from '../lib/validation/acceptance-criteria';
 import type { ClaimEvidence, ParsedClaim } from '../lib/claims';
 
 /**
@@ -322,4 +329,45 @@ export const getSavedStageReport = query({
 export const getProjectStageQuality = query({
   args: { projectId: v.id('projects') },
   handler: getProjectStageQualityHandler,
+});
+
+/**
+ * The requirement-quality signal the export pack carries, one entry per workflow stage in order.
+ *
+ * The pack reads this recomputed report rather than a stored `stageReports` row. Nothing writes those
+ * rows yet outside this module's own writer test, and a pack must match what the reader just saw on
+ * screen, which is this same path through `loadStageInputs` and `buildStageReport`. A stored snapshot
+ * could only answer with the revisions a past write happened to measure.
+ *
+ * Like every query, this writes nothing.
+ */
+export async function getExportStageQualityHandler(
+  ctx: QueryCtx,
+  args: { projectId: Id<'projects'> }
+) {
+  await authorizeProjectAccess(ctx, args.projectId);
+
+  const stages: StageQualityForExport[] = [];
+  for (const stage of WORKFLOW_STAGES) {
+    const inputs = await loadStageInputs(ctx, args.projectId, stage.id);
+    const report = buildStageReport(inputs);
+    stages.push({
+      stageId: stage.id,
+      stageLabel: stage.label,
+      traceability: report.traceability,
+      testability: report.testability,
+      coverage: report.coverage,
+      length: report.length,
+      untestableCriteria: untestableCriteria(
+        inputs.criteria,
+        inputs.criterionClassList
+      ),
+    });
+  }
+  return stages;
+}
+
+export const getExportStageQuality = query({
+  args: { projectId: v.id('projects') },
+  handler: getExportStageQualityHandler,
 });
