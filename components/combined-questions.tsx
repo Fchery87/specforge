@@ -204,7 +204,7 @@ export function CombinedQuestions({
                                 <div className="flex items-center gap-2 shrink-0">
                                   <Badge
                                     variant="outline"
-                                    className="bg-amber/10 text-amber border-amber/30"
+                                    className="bg-warning/10 text-warning border-warning/30"
                                   >
                                     Suggestion
                                   </Badge>

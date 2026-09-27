@@ -31,8 +31,8 @@ interface TicketCardProps {
 
 const PRIORITY_CLASS: Record<TicketPriority, string> = {
   critical: "text-destructive border-destructive/40",
-  high: "text-amber border-amber/40",
-  medium: "text-amber border-amber/40",
+  high: "text-warning border-warning/40",
+  medium: "text-warning border-warning/40",
   low: "text-muted-foreground border-line",
 };
 
@@ -82,7 +82,7 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
               className={
                 isBlocked
                   ? "bg-destructive/10 text-destructive border-destructive/30 text-caption"
-                  : "bg-sage/10 text-sage border-sage/30 text-caption"
+                  : "bg-success/10 text-success border-success/30 text-caption"
               }
             >
               {isBlocked ? "Blocked" : "Ready (Frontier)"}
@@ -95,7 +95,7 @@ export function TicketCard({ ticket, isBlocked, onStatusChange }: TicketCardProp
             </Badge>
           )}
           {ticket.evidenceReviewStatus === "needs_review" && (
-            <Badge variant="outline" className="border-amber/40 text-amber text-caption">Evidence needs review</Badge>
+            <Badge variant="outline" className="border-warning/40 text-warning text-caption">Evidence needs review</Badge>
           )}
         </div>
 

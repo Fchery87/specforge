@@ -91,7 +91,7 @@ export function EvidenceReviewPanel({
           <div key={claim._id} className="border border-line p-3 text-ui">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <strong>{claim.claimId}</strong>
-              <span className={claim.reviewStatus === 'needs_review' ? 'text-amber' : 'text-muted-foreground'}>
+              <span className={claim.reviewStatus === 'needs_review' ? 'text-warning' : 'text-muted-foreground'}>
                 {claim.decisionStatus} · {claim.reviewStatus.replace('_', ' ')}
               </span>
             </div>

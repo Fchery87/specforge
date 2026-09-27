@@ -19,11 +19,11 @@ export default function Page() {
       <p className="mt-8 max-w-sm text-center text-label leading-relaxed text-dim">
         SpecForge turns a brief into specifications your coding agents can follow. By continuing you
         agree to the{" "}
-        <Link href="/terms" className="text-ember hover:underline">
+        <Link href="/terms" className="text-brand hover:underline">
           terms
         </Link>{" "}
         and the{" "}
-        <Link href="/privacy" className="text-ember hover:underline">
+        <Link href="/privacy" className="text-brand hover:underline">
           privacy policy
         </Link>
         .

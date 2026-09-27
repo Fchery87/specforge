@@ -32,7 +32,7 @@ const MODE_METADATA: Record<
     badge: 'Fast-Track',
     description:
       'Brisk specification for a targeted feature or bug fix. Focuses on requirements, technical architecture, and stories.',
-    icon: <Zap className="size-4 text-amber" />,
+    icon: <Zap className="size-4 text-warning" />,
   },
   full: {
     badge: 'Enterprise',
@@ -44,7 +44,7 @@ const MODE_METADATA: Record<
     badge: 'Architecture',
     description:
       'Service contracts, domain models, schemas, and API specifications for microservices and backend platforms.',
-    icon: <Server className="size-4 text-slate" />,
+    icon: <Server className="size-4 text-info" />,
   },
 };
 
@@ -276,7 +276,7 @@ export default function NewProjectPage() {
                 />
                 <div className="flex justify-between text-ui">
                   <span className="text-muted-foreground">Use a clear, descriptive name</span>
-                  <span className={titleLeft < 20 ? "text-amber" : "text-muted-foreground"}>
+                  <span className={titleLeft < 20 ? "text-warning" : "text-muted-foreground"}>
                     {titleLeft} characters left
                   </span>
                 </div>
@@ -311,7 +311,7 @@ export default function NewProjectPage() {
                 />
                 <div className="flex justify-between text-ui">
                   <span className="text-muted-foreground">Be as detailed as possible</span>
-                  <span className={descLeft < 1000 ? "text-amber" : "text-muted-foreground"}>
+                  <span className={descLeft < 1000 ? "text-warning" : "text-muted-foreground"}>
                     {descLeft.toLocaleString()} characters left
                   </span>
                 </div>

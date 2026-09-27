@@ -95,12 +95,12 @@ export default function AnalyticsPage() {
   // Get provider icon color
   const getProviderColor = (provider: string) => {
     const colors: Record<string, string> = {
-      openai: 'bg-sage/20 text-sage',
-      anthropic: 'bg-amber/20 text-amber',
-      google: 'bg-slate/20 text-slate',
-      mistral: 'bg-slate/20 text-slate',
-      zai: 'bg-slate/20 text-slate',
-      minimax: 'bg-slate/20 text-slate',
+      openai: 'bg-success/20 text-success',
+      anthropic: 'bg-warning/20 text-warning',
+      google: 'bg-info/20 text-info',
+      mistral: 'bg-info/20 text-info',
+      zai: 'bg-info/20 text-info',
+      minimax: 'bg-info/20 text-info',
     };
     return colors[provider] || 'bg-raised text-muted-foreground';
   };
@@ -112,7 +112,7 @@ export default function AnalyticsPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">Usage Analytics</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Track token consumption, costs, and platform usage patterns.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Track token consumption, costs, and platform usage patterns.</p>
         </div>
       </section>
 
@@ -167,13 +167,13 @@ export default function AnalyticsPage() {
             <CardContent>
               <p className={cn(
                 "text-heading font-bold",
-                analytics.summary.successRate >= 90 ? "text-sage" : 
-                analytics.summary.successRate >= 70 ? "text-amber" : "text-brick"
+                analytics.summary.successRate >= 90 ? "text-success" : 
+                analytics.summary.successRate >= 70 ? "text-warning" : "text-destructive"
               )}>
                 {analytics.summary.successRate.toFixed(1)}%
               </p>
               <div className="flex items-center gap-2 mt-2">
-                <CheckCircle className="size-4 text-sage" />
+                <CheckCircle className="size-4 text-success" />
                 <span className="text-caption text-muted-foreground">
                   {analytics.summary.completedTasks} completed
                 </span>
@@ -190,7 +190,7 @@ export default function AnalyticsPage() {
             <CardContent>
               <p className="text-heading font-bold">{formatNumber(analytics.summary.totalTokens)}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Zap className="size-4 text-amber" />
+                <Zap className="size-4 text-warning" />
                 <span className="text-caption text-muted-foreground">Estimated consumption</span>
               </div>
             </CardContent>

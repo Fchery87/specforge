@@ -95,7 +95,7 @@ export default function ModerationPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">Content Moderation</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Review and moderate user-generated content, artifacts, and templates.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Review and moderate user-generated content, artifacts, and templates.</p>
         </div>
       </section>
 
@@ -121,7 +121,7 @@ export default function ModerationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-amber">0</p>
+              <p className="text-heading font-bold text-warning">0</p>
               <p className="text-caption text-muted-foreground mt-2">Requires review</p>
             </CardContent>
           </Card>
@@ -145,7 +145,7 @@ export default function ModerationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold text-brick">0</p>
+              <p className="text-heading font-bold text-destructive">0</p>
               <p className="text-caption text-muted-foreground mt-2">Removed content</p>
             </CardContent>
           </Card>
@@ -225,7 +225,7 @@ export default function ModerationPage() {
               <Card variant="default">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <Ban className="size-5 text-brick" />
+                    <Ban className="size-5 text-destructive" />
                     <CardTitle>Banned Words</CardTitle>
                   </div>
                   <CardDescription>
@@ -244,7 +244,7 @@ export default function ModerationPage() {
               <Card variant="default">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <Gavel className="size-5 text-amber" />
+                    <Gavel className="size-5 text-warning" />
                     <CardTitle>Moderation Rules</CardTitle>
                   </div>
                   <CardDescription>
@@ -283,8 +283,8 @@ export default function ModerationPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-sage/10 flex items-center justify-center">
-                  <CheckCircle className="size-5 text-sage" />
+                <div className="size-10 rounded-lg bg-success/10 flex items-center justify-center">
+                  <CheckCircle className="size-5 text-success" />
                 </div>
                 <CardTitle>Allowed Content</CardTitle>
               </div>
@@ -292,19 +292,19 @@ export default function ModerationPage() {
             <CardContent>
               <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-success" />
                   Software specifications
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-success" />
                   Technical documentation
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-success" />
                   Code and architecture plans
                 </li>
                 <li className="flex items-start gap-2">
-                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-sage" />
+                  <Check aria-hidden className="mt-1 size-4 shrink-0 text-success" />
                   Project requirements
                 </li>
               </ul>
@@ -314,8 +314,8 @@ export default function ModerationPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-brick/10 flex items-center justify-center">
-                  <XCircle className="size-5 text-brick" />
+                <div className="size-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="size-5 text-destructive" />
                 </div>
                 <CardTitle>Prohibited Content</CardTitle>
               </div>
@@ -323,19 +323,19 @@ export default function ModerationPage() {
             <CardContent>
               <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-destructive" />
                   Hate speech or harassment
                 </li>
                 <li className="flex items-start gap-2">
-                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-destructive" />
                   Spam or advertising
                 </li>
                 <li className="flex items-start gap-2">
-                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-destructive" />
                   Malicious code or exploits
                 </li>
                 <li className="flex items-start gap-2">
-                  <X aria-hidden className="mt-1 size-4 shrink-0 text-brick" />
+                  <X aria-hidden className="mt-1 size-4 shrink-0 text-destructive" />
                   Inappropriate or offensive material
                 </li>
               </ul>
@@ -345,8 +345,8 @@ export default function ModerationPage() {
           <Card variant="default">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-slate/10 flex items-center justify-center">
-                  <AlertTriangle className="size-5 text-slate" />
+                <div className="size-10 rounded-lg bg-info/10 flex items-center justify-center">
+                  <AlertTriangle className="size-5 text-info" />
                 </div>
                 <CardTitle>Report Process</CardTitle>
               </div>
@@ -354,19 +354,19 @@ export default function ModerationPage() {
             <CardContent>
               <ul className="space-y-2 text-ui text-muted-foreground">
                 <li className="flex items-start gap-2">
-                  <span className="text-slate">1.</span>
+                  <span className="text-info">1.</span>
                   Content is flagged or reported
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-slate">2.</span>
+                  <span className="text-info">2.</span>
                   Admin reviews within 24 hours
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-slate">3.</span>
+                  <span className="text-info">3.</span>
                   Decision: Approve, Edit, or Remove
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-slate">4.</span>
+                  <span className="text-info">4.</span>
                   Appeal process available
                 </li>
               </ul>

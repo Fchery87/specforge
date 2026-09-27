@@ -22,7 +22,7 @@ function PinnedProjectCard({ project, index }: { project: PinnedProject; index: 
         className={cn(
           'h-full transition-colors duration-(--duration-standard) hover:border-primary/50',
           'border-l',
-          project.status === 'complete' && 'border-l-sage',
+          project.status === 'complete' && 'border-l-success',
           project.status === 'active' && 'border-l-primary',
           project.status === 'draft' && 'border-l-line-strong'
         )}

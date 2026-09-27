@@ -39,12 +39,12 @@ const NOTIFICATION_ICONS = {
 };
 
 const NOTIFICATION_COLORS: Record<string, string> = {
-  generation_complete: 'text-sage bg-sage/10',
-  generation_failed: 'text-brick bg-brick/10',
-  drift_detected: 'text-amber bg-amber/10',
-  phase_stale: 'text-amber bg-amber/10',
-  verification_complete: 'text-sage bg-sage/10',
-  system_announcement: 'text-slate bg-slate/10',
+  generation_complete: 'text-success bg-success/10',
+  generation_failed: 'text-destructive bg-destructive/10',
+  drift_detected: 'text-warning bg-warning/10',
+  phase_stale: 'text-warning bg-warning/10',
+  verification_complete: 'text-success bg-success/10',
+  system_announcement: 'text-info bg-info/10',
 };
 
 interface Notification {

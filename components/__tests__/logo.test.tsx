@@ -3,26 +3,33 @@ import { describe, it, expect } from "vitest";
 import { SpecForgeLogo } from "../ui/logo";
 
 describe("SpecForgeLogo component", () => {
-  it("renders the logo mark and brand wordmark by default", () => {
-    render(<SpecForgeLogo />);
+  it("renders the mark as inline svg beside the wordmark", () => {
+    const { container } = render(<SpecForgeLogo />);
 
-    expect(screen.getByAltText("SpecForge Mark")).toBeInTheDocument();
-    expect(screen.getByText(/Spec/i)).toBeInTheDocument();
-    expect(screen.getByText(/Forge/i)).toBeInTheDocument();
-  });
-
-  it("renders vector variant without an image tag", () => {
-    const { container } = render(<SpecForgeLogo variant="vector" />);
-
-    expect(screen.queryByAltText("SpecForge Mark")).not.toBeInTheDocument();
+    expect(container.querySelector("img")).not.toBeInTheDocument();
     expect(container.querySelector("svg")).toBeInTheDocument();
-    expect(screen.getByText(/Forge/i)).toBeInTheDocument();
+    expect(screen.getByText("SpecForge")).toBeInTheDocument();
   });
 
-  it("can hide the wordmark when showWordmark is false", () => {
+  it("hides the mark from assistive tech when the wordmark already names it", () => {
+    const { container } = render(<SpecForgeLogo />);
+
+    expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("names the mark when the wordmark is hidden", () => {
     render(<SpecForgeLogo showWordmark={false} />);
 
-    expect(screen.getByAltText("SpecForge Mark")).toBeInTheDocument();
-    expect(screen.queryByText(/Spec/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "SpecForge" })).toBeInTheDocument();
+    expect(screen.queryByText("SpecForge")).not.toBeInTheDocument();
+  });
+
+  it("draws the tile and the section sign from theme tokens, not literals", () => {
+    const { container } = render(<SpecForgeLogo />);
+    const svg = container.querySelector("svg");
+
+    expect(svg?.innerHTML).not.toMatch(/#[0-9a-f]{3,8}/i);
+    expect(container.querySelector(".fill-brand")).toBeInTheDocument();
   });
 });

@@ -116,7 +116,7 @@ export default function UserManagementPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">User Directory</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Manage user accounts, view activity, and monitor platform usage.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Manage user accounts, view activity, and monitor platform usage.</p>
         </div>
       </section>
 

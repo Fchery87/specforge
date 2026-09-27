@@ -1,10 +1,12 @@
 # Design system
 
-Ember. A warm accent on a near-black ground, with a document surface at the centre of the product.
+Magenta. Neutral grounds, a clean off-white and a true dark black, with one magenta accent and a
+document surface at the centre of the product.
 
-This is the working guide for anyone changing the interface. The decision that replaced the previous
-brutalist system is recorded in [ADR 0001](adr/0001-ember-design-system.md), and the scope of the
-change is in the [Ember redesign spec](specs/2026-09-25-ember-redesign.md).
+This is the working guide for anyone changing the interface. The structural system, the tokens in one
+place, the document language and the gates, is recorded in [ADR 0001](adr/0001-ember-design-system.md).
+The palette and type are recorded in [ADR 0002](adr/0002-magenta-brand.md), which replaced Ember's, and
+the scope of that change is in the [Magenta brand spec](specs/2026-09-27-magenta-brand.md).
 
 ## Where the values live
 
@@ -18,31 +20,32 @@ Never write a raw colour in a component. Use a token utility.
 
 ## Palette
 
-Dark is the primary theme. Light is a neutral ground, not a warm one, and its accent is a different
-value because the dark accent measures 3.32:1 on white.
+Both grounds are neutral greys with no hue, so the accent is the only colour on screen that is not a
+state. Light and dark are both first-class, and the product defaults to dark.
 
 | Token | Dark | Light | Role | Contrast floor |
 | --- | --- | --- | --- | --- |
-| `void` | `#09090a` | `#fcfcfd` | page ground | |
-| `surface` | `#111113` | `#ffffff` | panels, cards | |
-| `panel` | `#17171a` | `#ffffff` | overlays, menus | |
-| `raised` | `#202024` | `#f4f4f5` | selected rows, hover | |
-| `line` | `#26262b` | `#e4e4e7` | decorative hairline | visible at all |
-| `line-strong` | `#3a3a44` | `#c9c9d0` | grouped divider | visible at all |
-| `field` | `#6a6a74` | `#8b8b93` | control boundary | 3:1 |
-| `dim` | `#85858f` | `#71717a` | labels, keybindings | 4.5:1 |
-| `muted` | `#a1a1ab` | `#52525b` | values, descriptors | 4.5:1 |
-| `text` | `#e9e9ec` | `#18181b` | content | 4.5:1 |
-| `ember` | `#c87a46` | `#a05526` | accent, active, focus | 4.5:1 as text, 3:1 as a ring |
-| `ember-soft` | `#e0a479` | `#8c4a21` | headings, inline code | 4.5:1 |
-| `ember-deep` | `#7d4726` | `#dbbfa8` | track fill | no text use |
-| `sage` | `#7fa37a` | `#3f6b45` | confirmed, additions | 4.5:1 |
-| `brick` | `#c97070` | `#a33b3b` | failed, deletions | 4.5:1 |
-| `amber` | `#c6a052` | `#8a6414` | needs review, warning | 4.5:1 |
-| `slate` | `#6f92a6` | `#39637d` | metadata, keywords | 4.5:1 |
+| `void` | `#0a0a0a` | `#f7f7f7` | page ground | |
+| `surface` | `#111111` | `#ffffff` | panels, documents | |
+| `panel` | `#161616` | `#ffffff` | overlays, menus | |
+| `raised` | `#1f1f1f` | `#efefef` | selected rows, hover | |
+| `line` | `#262626` | `#e0e0e0` | decorative hairline | visible at all |
+| `line-strong` | `#333333` | `#cbcbcb` | grouped divider | visible at all |
+| `field` | `#6b6b6b` | `#878787` | control boundary | 3:1 |
+| `dim` | `#8c8c8c` | `#666666` | labels, keybindings | 4.5:1 |
+| `muted` | `#b4b4b4` | `#4a4a4a` | values, descriptors | 4.5:1 |
+| `ink` | `#f2f2f2` | `#0a0a0a` | content | 4.5:1 |
+| `brand` | `#ff3d9a` | `#d10f6f` | primary action, focus, link, current position | 4.5:1 as text and under its label, 3:1 as a ring |
+| `success` | `#5cc98a` | `#1f7a3f` | confirmed, additions | 4.5:1 |
+| `warning` | `#e7b54a` | `#8f6000` | needs review, proposed | 4.5:1 |
+| `destructive` | `#ff7a6b` | `#c4291c` | untraced, failed, deletions | 4.5:1 |
+| `info` | `#86a6ff` | `#3558b8` | metadata, keywords | 4.5:1 |
 
-The accent is functional. It marks the active phase, the focused element, a link, the primary
-action, and a clause under review. It never appears as a gradient, a glow, or a background wash.
+Hue tokens are named for what they mean, never for their hue, so a future palette change does not
+leave names that lie.
+
+The accent is functional. It marks the primary action, the focused element, a link, and where the
+reader is in the workflow. It never appears as a gradient, a glow, or a background wash.
 
 ```bash
 node design/audit-contrast.mjs   # every pair above against its floor, exits non-zero on a failure
@@ -54,33 +57,39 @@ Three roles, no fourth face.
 
 | Role | Family | Where |
 | --- | --- | --- |
-| Chrome | Inter (`font-sans`) | navigation, controls, labels, tables |
-| Document | Source Serif 4 (`font-serif`) | rendered specification prose |
-| Identifiers | JetBrains Mono (`font-mono`) | claim IDs, clause numbers, hashes, code, counts |
+| Display | Funnel Display (`font-display`) | headings, the landing headline, the wordmark |
+| Interface and prose | Funnel Sans (`font-sans`) | navigation, controls, tables, rendered specification prose |
+| Identifiers | Red Hat Mono (`font-mono`) | claim IDs, clause numbers, hashes, code, counts |
 
-Scale, one ratio of 1.25 anchored at 16px with an interpolation step at 17px:
+`h1` to `h6` take Funnel Display from the base styles. Do not set `font-sans` on a heading.
 
-| Token | Size / line height | Use |
-| --- | --- | --- |
-| `text-caption` | 12 / 16 | metadata, claim IDs, counts |
-| `text-label` | 13 / 20 | navigation, controls, form labels |
-| `text-ui` | 14 / 20 | tables, dense body |
-| `text-body` | 16 / 24 | default body |
-| `text-prose` | 17 / 28 | specification prose |
-| `text-title` | 20 / 28 | clause titles, section headings |
-| `text-heading` | 32 / 40 | page headings |
-| `text-display` | 56 / 60 | one per page, at most |
+Scale, one ratio of 1.25 anchored at 16px with an interpolation step at 17px. Tracking belongs to the
+scale, so no call site sets it.
+
+| Token | Size / line height | Tracking | Use |
+| --- | --- | --- | --- |
+| `text-caption` | 12 / 16 | | metadata, claim IDs, counts |
+| `text-label` | 13 / 20 | | navigation, controls, form labels |
+| `text-ui` | 14 / 20 | | tables, dense body |
+| `text-body` | 16 / 24 | | default body |
+| `text-prose` | 17 / 28 | | specification prose |
+| `text-title` | 20 / 28 | -1.5% | clause titles, section headings |
+| `text-heading` | 32 / 36 | -3% | page headings |
+| `text-display` | 44 to 104, fluid / 0.94 | -4% | one per page, the landing headline |
 
 Rules. Display sizes take negative tracking, never positive. Prose sits under 80 characters per
-line, capped by `--measure` at 68ch. Numbers that align in a column use tabular numerals. Headings
-are sentence case, never uppercased, and never animate.
+line: `--measure` caps document prose at 68ch, and a 16px body block is capped at `max-w-xl`. Funnel
+Sans is narrower than its `0`, so a `ch` cap allows more characters than it suggests; check a long
+block with `design/audit-page.mjs`. Numbers that align in a column use tabular numerals. Headings are
+sentence case, never uppercased, and never animate.
 
 ## Space, radius, elevation
 
 Spacing is a 4px scale. No off-scale values.
 
-Radius has exactly three values: `rounded-sm` (6px) for controls, `rounded-lg` (12px) for containers
-and overlays, `rounded-full` for pills. Nothing else.
+Radius has exactly three values: `rounded-sm` (10px) for controls, `rounded-lg` (16px) for containers
+and overlays, `rounded-full` for pills. Nothing else. Inline code in document prose rounds relative to
+its text so it stays a chip.
 
 Elevation comes from a 1px hairline, not from a shadow. A resting element has no shadow. Only
 popovers, menus, and modals get one.
@@ -88,15 +97,21 @@ popovers, menus, and modals get one.
 ## Motion
 
 Five durations: 0, 100ms (`--duration-quick`), 200ms (`--duration-standard`), 400ms
-(`--duration-considered`), 600ms (`--duration-cinematic`). Three easings: `--ease-quiet-out` for
-entrances, `--ease-quiet-in` for exits, `--ease-quiet-both` for a change that stays.
+(`--duration-considered`), 600ms (`--duration-cinematic`). Three easings: `--ease-quiet-out`
+(`cubic-bezier(0.23, 1, 0.32, 1)`) for entrances, `--ease-quiet-in` for exits, `--ease-quiet-both`
+for a change that stays.
 
-An entrance eases out. An exit eases in and runs at half the entrance duration. Hover, focus, and
-press states are instant. Never animate a layout property on hover: nothing moves or scales under
-the pointer.
+A pressed control scales to 0.97, so a click is acknowledged; `Button` does this and
+`motion-reduce:active:scale-100` drops it under reduced motion. Nothing moves or scales on hover, and
+Tailwind v4 applies `hover:` only where the pointer can hover. Transition named properties, never
+`transition-all`.
 
-Reduced motion collapses every duration to zero at the token level, so components inherit the
-decision rather than each re-implementing it.
+The landing sheet has the one orchestrated entrance: `animate-sheet-rise`, then `animate-band-wipe`
+on the stage band. Anything used many times a day, a menu, a keyboard action, a theme switch, does not
+animate.
+
+Reduced motion collapses every duration and every delay to zero at the token level, so components
+inherit the decision rather than each re-implementing it.
 
 ## Focus
 
@@ -137,7 +152,7 @@ description of the same eight phases.
 
 ## Components
 
-`components/ui/` holds the primitives. The set is themed with Ember tokens and keeps the export
+`components/ui/` holds the primitives. The set is themed with the design tokens and keeps the export
 names and variant names the rest of the app already imports. New components come from the shadcn
 registry and are themed the same way. `components.json` records the configuration.
 

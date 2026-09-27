@@ -373,7 +373,7 @@ export function QuestionsPanel({
           <CardDescription className="mt-1">
             Answer these questions to help generate better artifacts.
             {unansweredRequired > 0 && (
-              <span className="text-amber ml-2 font-medium">
+              <span className="text-warning ml-2 font-medium">
                 {unansweredRequired} required question{unansweredRequired !== 1 ? "s" : ""} unanswered
               </span>
             )}
@@ -389,9 +389,9 @@ export function QuestionsPanel({
             variant="outline"
             size="sm"
             onClick={() => setIsStressTestOpen(true)}
-            className="border-amber/30 text-amber dark:text-amber hover:bg-amber/10"
+            className="border-warning/30 text-warning dark:text-warning hover:bg-warning/10"
           >
-            <ShieldAlert className="size-4 mr-1.5 text-amber" />
+            <ShieldAlert className="size-4 mr-1.5 text-warning" />
             Stress-Test Plan
             {grillSession?.totalQuestionsAsked ? (
               <Badge variant="secondary" className="ml-1.5 text-caption px-1.5 py-0">

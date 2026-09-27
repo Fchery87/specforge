@@ -121,9 +121,9 @@ export default function AdminDashboardPage() {
       case 'generating':
         return <Play className="size-4 text-primary" />;
       case 'complete':
-        return <CheckCircle className="size-4 text-sage" />;
+        return <CheckCircle className="size-4 text-success" />;
       case 'context':
-        return <FileCode className="size-4 text-slate" />;
+        return <FileCode className="size-4 text-info" />;
       default:
         return <Info className="size-4 text-muted-foreground" />;
     }
@@ -136,7 +136,7 @@ export default function AdminDashboardPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">System Control</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Inspect system metrics, manage global LLM providers, and audit generation activity.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Inspect system metrics, manage global LLM providers, and audit generation activity.</p>
         </div>
       </section>
 
@@ -493,10 +493,10 @@ export default function AdminDashboardPage() {
                         className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-sm text-caption font-medium mt-1",
                           activity.taskStatus === 'completed'
-                            ? "bg-sage/10 text-sage"
+                            ? "bg-success/10 text-success"
                             : activity.taskStatus === 'failed'
-                            ? "bg-brick/10 text-brick"
-                            : "bg-amber/10 text-amber"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-warning/10 text-warning"
                         )}
                       >
                         {activity.taskStatus}

@@ -269,7 +269,7 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
             )}
 
             {success && (
-              <div className="flex items-center gap-2 p-3 bg-sage/10 text-sage rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-success/10 text-success rounded-lg">
                 <CheckCircle2 className="size-4 flex-shrink-0" />
                 <p className="text-ui">Repository connected successfully!</p>
               </div>
@@ -277,7 +277,7 @@ export function CodebaseConnector({ projectId, onComplete, className }: Codebase
           </>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center gap-2 p-3 bg-sage/10 text-sage rounded-lg">
+            <div className="flex items-center gap-2 p-3 bg-success/10 text-success rounded-lg">
               <CheckCircle2 className="size-4 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-ui font-medium">Repository connected</p>

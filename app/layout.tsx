@@ -5,26 +5,27 @@ import { clerkBaseAppearance } from "@/lib/clerk-theme";
 import { ThemeProvider } from "next-themes";
 import { ConvexClientProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/toaster";
-import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Funnel_Display, Funnel_Sans, Red_Hat_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-const inter = Inter({
+// Three roles, no fourth. ADR 0002.
+const funnelDisplay = Funnel_Display({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-funnel-display",
   display: "swap",
 });
 
-const sourceSerif = Source_Serif_4({
+const funnelSans = Funnel_Sans({
   subsets: ["latin"],
-  variable: "--font-source-serif",
+  variable: "--font-funnel-sans",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const redHatMono = Red_Hat_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
+  variable: "--font-red-hat-mono",
   display: "swap",
 });
 
@@ -40,16 +41,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       suppressHydrationWarning
       className={cn(
-        inter.variable,
-        sourceSerif.variable,
-        jetbrainsMono.variable,
+        funnelDisplay.variable,
+        funnelSans.variable,
+        redHatMono.variable,
         "font-sans"
       )}
     >
       <body>
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:rounded-sm focus:bg-ember focus:px-4 focus:py-2 focus:text-ui focus:font-medium focus:text-void"
+          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:rounded-sm focus:bg-brand focus:px-4 focus:py-2 focus:text-ui focus:font-medium focus:text-void"
         >
           Skip to main content
         </a>

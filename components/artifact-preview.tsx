@@ -215,7 +215,7 @@ export function ArtifactPreview({
               aria-label={`Delete ${artifact.title}`}
               onClick={() => setShowDeleteDialog(true)}
               disabled={isDeleting}
-              className="text-brick hover:bg-brick/10"
+              className="text-destructive hover:bg-destructive/10"
             >
               {isDeleting ? (
                 <Loader2 aria-hidden className="size-4 animate-spin" />
@@ -274,7 +274,7 @@ export function ArtifactPreview({
                       <span
                         className={cn(
                           "font-mono text-caption tabular-nums",
-                          section.critique.passes ? "text-sage" : "text-brick"
+                          section.critique.passes ? "text-success" : "text-destructive"
                         )}
                       >
                         {section.critique.score}/100
@@ -287,10 +287,10 @@ export function ArtifactPreview({
                   </div>
 
                   {section.critique && !section.critique.passes && section.critique.violations?.length > 0 ? (
-                    <ul className="flex flex-col gap-1 border-l border-brick/40 pl-4">
+                    <ul className="flex flex-col gap-1 border-l border-destructive/40 pl-4">
                       {section.critique.violations.map((violation, violationIndex) => (
                         <li key={violationIndex} className="text-caption text-muted-foreground">
-                          <span className="text-brick">[{violation.category}]</span> {violation.issue}
+                          <span className="text-destructive">[{violation.category}]</span> {violation.issue}
                         </li>
                       ))}
                     </ul>

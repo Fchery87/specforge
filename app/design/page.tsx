@@ -165,10 +165,10 @@ export default function DesignPreviewPage() {
     <div className="page-container py-10">
       <div className="mb-8 border-b border-line pb-6">
         <p className="text-caption text-dim">Design preview, development only</p>
-        <h1 className="mt-2 text-heading font-sans font-medium text-ink">
+        <h1 className="mt-2 text-heading font-display font-semibold text-ink">
           The reading surface
         </h1>
-        <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">
+        <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">
           An artifact rendered as a document. The table of contents doubles as a gap map, so an
           unsettled clause is visible before you read it.
         </p>
@@ -179,7 +179,7 @@ export default function DesignPreviewPage() {
       <section className="mt-16 border-t border-line pt-8">
         <p className="text-caption text-dim">Second example, a measured stage</p>
         <h2 className="mt-2 text-title font-medium text-ink">The report and the section marks</h2>
-        <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">
+        <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">
           The same reading surface with the requirement-quality report above it and a section marked
           where it is: one over budget, one empty, and one heading the plan does not know about.
           Measured by the real report from the real PRD plan, with no deployment and no credentials.

@@ -4,7 +4,7 @@ import type { UserButton } from "@clerk/nextjs";
 type Appearance = NonNullable<ComponentProps<typeof UserButton>["appearance"]>;
 
 /**
- * Clerk appearance for the Ember theme.
+ * Clerk appearance for the SpecForge theme.
  *
  * Everything here reads from the token layer in app/globals.css, so both themes follow without a
  * second set of values. Clerk's own CSS and any inline style it writes both resolve var() at
@@ -14,14 +14,14 @@ type Appearance = NonNullable<ComponentProps<typeof UserButton>["appearance"]>;
 const variables = {
   colorBackground: "var(--panel)",
   colorForeground: "var(--ink)",
-  colorPrimary: "var(--ember)",
+  colorPrimary: "var(--brand)",
   colorMutedForeground: "var(--ink-muted)",
   colorInput: "var(--surface)",
   colorInputForeground: "var(--ink)",
-  colorDanger: "var(--brick)",
-  colorSuccess: "var(--sage)",
-  colorWarning: "var(--amber)",
-  borderRadius: "6px",
+  colorDanger: "var(--destructive)",
+  colorSuccess: "var(--success)",
+  colorWarning: "var(--warning)",
+  borderRadius: "10px",
   fontFamily: "var(--font-sans)",
 } as const;
 
@@ -54,9 +54,9 @@ export const clerkBaseAppearance: Appearance = {
     avatarBox: "size-7 rounded-full",
     formFieldLabel: "text-label text-dim",
     formFieldInput: controlBase,
-    formButtonPrimary: "bg-ember text-void rounded-sm hover:opacity-90",
+    formButtonPrimary: "bg-brand text-void rounded-sm font-semibold hover:bg-brand/90 active:scale-[0.97] transition-transform",
     footerActionText: "text-label text-dim",
-    footerActionLink: "text-label text-ember hover:underline",
+    footerActionLink: "text-label text-brand hover:underline",
   },
 };
 
@@ -95,17 +95,17 @@ export const clerkAuthAppearance: Appearance = {
     dividerText: "text-label text-dim",
     formFieldLabel: "text-label text-dim",
     formFieldInput: controlBase,
-    formButtonPrimary: "bg-ember text-void rounded-sm hover:opacity-90",
+    formButtonPrimary: "bg-brand text-void rounded-sm font-semibold hover:bg-brand/90 active:scale-[0.97] transition-transform",
     footerActionText: "text-label text-dim",
-    footerActionLink: "text-label text-ember hover:underline",
+    footerActionLink: "text-label text-brand hover:underline",
     identityPreviewText: "text-ui text-ink",
-    identityPreviewEditButton: "text-label text-ember hover:underline",
-    formFieldWarningText: "text-label text-amber",
-    formFieldErrorText: "text-label text-brick",
-    alertText: "text-label text-brick",
+    identityPreviewEditButton: "text-label text-brand hover:underline",
+    formFieldWarningText: "text-label text-warning",
+    formFieldErrorText: "text-label text-destructive",
+    alertText: "text-label text-destructive",
     formFieldInputShowPasswordButton: "text-dim hover:text-ink",
     otpCodeFieldInput: controlBase,
-    formResendCodeLink: "text-label text-ember hover:underline",
+    formResendCodeLink: "text-label text-brand hover:underline",
     navbarButton: menuItem,
   },
   options: {

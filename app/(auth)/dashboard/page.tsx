@@ -158,7 +158,7 @@ export default function DashboardPage() {
             <NotificationBell />
           </div>
           <h1 className="mt-2 text-heading font-medium text-ink">Your Projects</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">Manage specification pipelines, review evidence changes, and export agent-native handoffs.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">Manage specification pipelines, review evidence changes, and export agent-native handoffs.</p>
         </div>
       </section>
 
@@ -401,7 +401,7 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-heading font-semibold text-sage">
+                  <div className="text-heading font-semibold text-success">
                     {projects?.filter((p) => p.status === "complete").length || 0}
                   </div>
                   <p className="text-ui text-muted-foreground mt-1">Completed</p>

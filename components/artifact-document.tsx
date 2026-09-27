@@ -30,9 +30,9 @@ const stateWord: Record<ClaimState, string> = {
 };
 
 const stateTone: Record<ClaimState, string> = {
-  confirmed: "text-sage",
-  proposed: "text-amber",
-  untraced: "text-brick",
+  confirmed: "text-success",
+  proposed: "text-warning",
+  untraced: "text-destructive",
 };
 
 /**
@@ -152,7 +152,7 @@ export function ArtifactDocument({
                         section.level >= 3 ? "pl-6" : "pl-3",
                         section.level >= 4 && "pl-9",
                         active
-                          ? "border-ember text-ink"
+                          ? "border-brand text-ink"
                           : "border-transparent text-dim hover:text-ink"
                       )}
                     >

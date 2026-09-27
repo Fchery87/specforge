@@ -165,7 +165,7 @@ export function ArtifactEditorModal({
                   {artifact.type}
                 </Badge>
                 {hasChanges && (
-                  <Badge variant="secondary" className="text-caption bg-amber/10 text-amber border border-amber/20">
+                  <Badge variant="secondary" className="text-caption bg-warning/10 text-warning border border-warning/20">
                     Unsaved Changes
                   </Badge>
                 )}

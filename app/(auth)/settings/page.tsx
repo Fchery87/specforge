@@ -287,7 +287,7 @@ function LlmConfigSection() {
                             </Badge>
                           )}
                           {systemProvidersMap.has(p.id) && (
-                            <Badge variant="outline" className="text-caption border-sage/40 text-sage bg-sage/10">
+                            <Badge variant="outline" className="text-caption border-success/40 text-success bg-success/10">
                               System Ready
                             </Badge>
                           )}
@@ -486,12 +486,12 @@ function LlmConfigSection() {
             {useSystem && (
               <div className="pt-2 border-t border-line/50 text-caption">
                 {hasSystemCredentialsForCurrent ? (
-                  <span className="text-sage flex items-center gap-1.5 font-medium">
+                  <span className="text-success flex items-center gap-1.5 font-medium">
                     <CheckCircle className="size-3.5 flex-shrink-0" />
                     Platform credentials are configured and active for {currentProvider?.name}.
                   </span>
                 ) : (
-                  <span className="text-amber flex items-center gap-1.5 font-medium">
+                  <span className="text-warning flex items-center gap-1.5 font-medium">
                     <AlertCircle className="size-3.5 flex-shrink-0" />
                     No platform credentials configured for {currentProvider?.name}. Enter a personal key or select a provider with platform support.
                   </span>
@@ -501,14 +501,14 @@ function LlmConfigSection() {
           </div>
 
           {error && (
-            <div className="p-3 bg-brick/10 border border-brick/50 rounded-sm flex items-center gap-2 text-ui text-brick">
+            <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-sm flex items-center gap-2 text-ui text-destructive">
               <AlertCircle className="size-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {saved && (
-            <div className="p-3 bg-sage/10 border border-sage/50 rounded-sm flex items-center gap-2 text-ui text-sage">
+            <div className="p-3 bg-success/10 border border-success/50 rounded-sm flex items-center gap-2 text-ui text-success">
               <CheckCircle className="size-4 flex-shrink-0" />
               <span>Configuration saved successfully</span>
             </div>

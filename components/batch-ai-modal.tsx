@@ -73,7 +73,7 @@ export function BatchAiModal({
                       <Loader2 className="size-4 animate-spin text-muted-foreground" />
                     )}
                     {isProcessed && !isProcessing && (
-                      <Check className="size-4 text-sage" />
+                      <Check className="size-4 text-success" />
                     )}
                   </div>
                   {batchAnswer && (

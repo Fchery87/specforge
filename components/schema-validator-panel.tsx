@@ -272,7 +272,7 @@ export function SchemaValidatorPanel({
             >
               {copied ? (
                 <>
-                  <Check className="size-3.5 mr-1 text-sage" />
+                  <Check className="size-3.5 mr-1 text-success" />
                   Copied
                 </>
               ) : (
@@ -323,7 +323,7 @@ export function SchemaValidatorPanel({
         <div className="px-3 py-1.5 border-t border-line bg-raised/30 flex items-center justify-between text-caption">
           <div className="flex items-center gap-2">
             {validation.isValid ? (
-              <Badge variant="outline" className="text-caption border-sage/30 text-sage dark:text-sage bg-sage/10">
+              <Badge variant="outline" className="text-caption border-success/30 text-success dark:text-success bg-success/10">
                 <CheckCircle2 className="size-3 mr-1" />
                 Syntax Valid
               </Badge>
@@ -359,9 +359,9 @@ export function SchemaValidatorPanel({
             className={cn(
               "text-caption font-mono font-bold",
               validation.conformanceScore >= 80
-                ? "border-sage/30 text-sage dark:text-sage bg-sage/10"
+                ? "border-success/30 text-success dark:text-success bg-success/10"
                 : validation.conformanceScore >= 50
-                ? "border-amber/30 text-amber bg-amber/10"
+                ? "border-warning/30 text-warning bg-warning/10"
                 : "border-destructive/40 text-destructive bg-destructive/10"
             )}
           >
@@ -385,9 +385,9 @@ export function SchemaValidatorPanel({
                     <div className="flex items-center justify-between text-caption font-medium">
                       <span className="flex items-center gap-1.5 truncate">
                         {check.passed ? (
-                          <CheckCircle2 className="size-3.5 text-sage flex-shrink-0" />
+                          <CheckCircle2 className="size-3.5 text-success flex-shrink-0" />
                         ) : (
-                          <AlertTriangle className="size-3.5 text-amber flex-shrink-0" />
+                          <AlertTriangle className="size-3.5 text-warning flex-shrink-0" />
                         )}
                         <span className="truncate">{check.name}</span>
                       </span>

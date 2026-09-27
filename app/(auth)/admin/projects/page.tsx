@@ -185,7 +185,7 @@ export default function ProjectManagementPage() {
       case 'active':
         return 'bg-primary/20 text-primary border-primary';
       case 'complete':
-        return 'bg-sage/20 text-sage border-sage';
+        return 'bg-success/20 text-success border-success';
       default:
         return 'bg-raised text-muted-foreground';
     }
@@ -198,7 +198,7 @@ export default function ProjectManagementPage() {
         <div className="page-container">
           <span className="text-label text-dim">Admin Console</span>
           <h1 className="mt-2 text-heading font-medium text-ink">Project Control Center</h1>
-          <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">View, manage, and moderate all projects across the platform.</p>
+          <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">View, manage, and moderate all projects across the platform.</p>
         </div>
       </section>
 

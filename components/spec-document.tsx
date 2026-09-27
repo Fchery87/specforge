@@ -20,16 +20,16 @@ const claimStateLabel: Record<ClaimState, string> = {
 };
 
 const claimStateClass: Record<ClaimState, string> = {
-  confirmed: "text-sage",
-  proposed: "text-amber",
-  untraced: "text-brick",
+  confirmed: "text-success",
+  proposed: "text-warning",
+  untraced: "text-destructive",
 };
 
 /** The spine colour. An untraced claim keeps its spine and turns it amber, so a gap is drawn. */
 const spineClass: Record<ClaimState, string> = {
   confirmed: "border-line",
   proposed: "border-line",
-  untraced: "border-amber/70",
+  untraced: "border-warning/70",
 };
 
 export interface EvidenceItem {
@@ -58,7 +58,7 @@ export function SpecSectionHeading({
 }) {
   return (
     <div id={id} className="flex scroll-mt-24 gap-5 md:gap-6">
-      <span className={cn(marginCell, "text-ember")}>{number}</span>
+      <span className={cn(marginCell, "text-brand")}>{number}</span>
       <h3 className="text-title font-medium text-ink">{title}</h3>
     </div>
   );
@@ -111,7 +111,7 @@ export function SpecClause({
                 )}
               >
                 <span className="text-caption text-dim">{item.kind}</span>
-                <span className="font-mono text-caption break-all text-ink">{item.source}</span>
+                <span className="font-mono text-caption break-words text-ink">{item.source}</span>
                 {item.pin ? (
                   <span className="font-mono text-caption tabular-nums text-dim md:text-right">
                     {item.pin}
@@ -123,7 +123,7 @@ export function SpecClause({
             ))}
           </div>
         ) : (
-          <p className="mt-3 text-caption text-amber">
+          <p className="mt-3 text-caption text-warning">
             No evidence yet. Answer the question or cite the file that settles it.
           </p>
         )}
@@ -149,7 +149,7 @@ export function TracerEdge({
     <div className="flex items-center gap-3">
       <span className="font-mono text-caption tabular-nums text-dim">{from}</span>
       <span
-        className={cn("h-px w-6", state === "untraced" ? "bg-amber/70" : "bg-line-strong")}
+        className={cn("h-px w-6", state === "untraced" ? "bg-warning/70" : "bg-line-strong")}
         aria-hidden
       />
       <span className="font-mono text-caption tabular-nums text-ink">{to}</span>

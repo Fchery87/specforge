@@ -164,7 +164,7 @@ export function StageStepper({
                 className={cn(
                   "size-6 shrink-0 flex items-center justify-center border transition-colors",
                   status === "ready" && "bg-success border-success text-void",
-                  status === "generating" && "border-warning bg-warning/20 text-amber",
+                  status === "generating" && "border-warning bg-warning/20 text-warning",
                   status === "error" && "border-destructive bg-destructive/20 text-destructive",
                   status === "in-progress" && "border-primary bg-primary/20 text-primary",
                   status === "not-started" && "border-line bg-raised/30 text-muted-foreground"

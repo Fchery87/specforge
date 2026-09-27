@@ -95,7 +95,7 @@ export function ProjectRulesCard({
             </span>
           </div>
           {reviewText && (
-            <span className="inline-flex items-center px-2.5 py-0.5 text-caption font-semibold bg-amber/10 text-amber border border-amber/30 rounded-full">
+            <span className="inline-flex items-center px-2.5 py-0.5 text-caption font-semibold bg-warning/10 text-warning border border-warning/30 rounded-full">
               {reviewText}
             </span>
           )}

@@ -380,7 +380,7 @@ export default function PhasePage() {
         <h1 className="mt-2 text-heading font-medium text-ink">
           {phaseId === "constitution" ? "Project Rules" : project.title}
         </h1>
-        <p className="mt-3 max-w-2xl text-body leading-relaxed text-muted-foreground">
+        <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">
           {phaseConfig.description}
         </p>
       </section>
@@ -429,10 +429,10 @@ export default function PhasePage() {
       {isSkipped && (
         <section className="page-container pb-6">
 
-          <div className="flex flex-col justify-between gap-4 rounded-lg border border-amber/40 bg-amber/10 p-4 sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-4 rounded-lg border border-warning/40 bg-warning/10 p-4 sm:flex-row sm:items-center">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <span className="text-label text-amber">
+                <span className="text-label text-warning">
                   Skipped phase
                 </span>
                 {project?.mode && (
@@ -456,7 +456,7 @@ export default function PhasePage() {
                   toast.error(`Failed to enable ${phaseConfig.label}`);
                 }
               }}
-              className="shrink-0 self-start border-amber/40 hover:bg-amber/20 sm:self-auto"
+              className="shrink-0 self-start border-warning/40 hover:bg-warning/20 sm:self-auto"
             >
               Enable this phase
             </Button>

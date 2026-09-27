@@ -109,7 +109,7 @@ function HealthBadge({ status }: { status: string }) {
     passed: {
       label: 'Verified',
       icon: CheckCircle2,
-      className: 'bg-sage/10 text-sage border-sage/30',
+      className: 'bg-success/10 text-success border-success/30',
     },
     failed: {
       label: 'Issues',
@@ -119,7 +119,7 @@ function HealthBadge({ status }: { status: string }) {
     warning: {
       label: 'Warning',
       icon: AlertTriangle,
-      className: 'bg-amber/10 text-amber border-amber/30',
+      className: 'bg-warning/10 text-warning border-warning/30',
     },
     not_checked: null,
   };
@@ -232,7 +232,7 @@ export function ProjectCard({
           className={cn(
             'h-full relative overflow-hidden flex flex-col justify-between',
             'transition-colors duration-(--duration-standard) border',
-            project.status === 'complete' && 'border-t-sage/80',
+            project.status === 'complete' && 'border-t-success/80',
             project.status === 'active' && 'border-t-primary/80',
             project.status === 'draft' && 'border-t-line-strong'
           )}
@@ -241,7 +241,7 @@ export function ProjectCard({
           <div
             className={cn(
               'absolute top-0 left-0 right-0 h-1',
-              project.status === 'complete' && 'bg-sage',
+              project.status === 'complete' && 'bg-success',
               project.status === 'active' && 'bg-primary',
               project.status === 'draft' && 'bg-muted-foreground/30'
             )}
@@ -253,8 +253,8 @@ export function ProjectCard({
               <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                 {/* Status Badge */}
                 {project.status === 'complete' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-sage/10 text-sage border border-sage/30 rounded-sm">
-                    <span className="size-1.5 rounded-full bg-sage animate-pulse" />
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-success/10 text-success border border-success/30 rounded-sm">
+                    <span className="size-1.5 rounded-full bg-success animate-pulse" />
                     Complete
                   </span>
                 )}
@@ -273,12 +273,12 @@ export function ProjectCard({
 
                 {/* Mode Badge */}
                 {project.mode === 'quick' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-slate/10 text-slate border border-slate/30 rounded-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-info/10 text-info border border-info/30 rounded-sm">
                     Quick Spec
                   </span>
                 )}
                 {project.mode === 'backend' && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-slate/10 text-slate border border-slate/30 rounded-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-info/10 text-info border border-info/30 rounded-sm">
                     API & Backend
                   </span>
                 )}
@@ -291,7 +291,7 @@ export function ProjectCard({
                 {/* Health & Staleness Badges */}
                 <HealthBadge status={effectiveMetrics?.verificationStatus ?? 'not_checked'} />
                 {hasStale && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-amber/10 text-amber border border-amber/30 rounded-sm">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-caption font-bold bg-warning/10 text-warning border border-warning/30 rounded-sm">
                     <RefreshCw className="size-2.5" />
                     Stale
                   </span>
@@ -394,7 +394,7 @@ export function ProjectCard({
                       key={phaseId}
                       className={cn(
                         'h-full flex-1 rounded-sm transition-colors duration-(--duration-standard)',
-                        isCompleted && 'bg-sage',
+                        isCompleted && 'bg-success',
                         isCurrent && !isCompleted && 'bg-primary animate-pulse',
                         !isCompleted && !isCurrent && 'bg-raised/40 hover:bg-raised/70'
                       )}
