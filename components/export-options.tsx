@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { useConvex } from "convex/react";
+import { useConvex, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Download, FileCode, Bot, FileText, Archive, Loader2, Check } from "lucide-react";
@@ -87,6 +87,14 @@ export function ExportOptionsPanel({
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
   const convex = useConvex();
 
+  // The same recomputed report the reading surface shows, so the pack cannot disagree with the
+  // screen. Skipped without a project, and undefined while loading, which the formatters treat as
+  // "say nothing about quality" rather than zeros.
+  const stageQuality = useQuery(
+    api.stageReports.getExportStageQuality,
+    project._id ? { projectId: project._id as Id<"projects"> } : "skip"
+  );
+
   async function handleExport(option: ExportOption) {
     if (!option.available) {
       toast.info("Coming Soon", {
@@ -116,6 +124,7 @@ export function ExportOptionsPanel({
               createdAt: project.createdAt,
             },
             artifacts,
+            requirementQuality: stageQuality ?? undefined,
           })}${traceabilityManifest}`;
           downloadFile(
             skillContent,
@@ -137,6 +146,7 @@ export function ExportOptionsPanel({
               createdAt: project.createdAt,
             },
             artifacts,
+            requirementQuality: stageQuality ?? undefined,
           })}${traceabilityManifest}`;
           downloadFile(agentsContent, "AGENTS.md", "text/markdown");
           toast.success("AGENTS.md Downloaded", {
