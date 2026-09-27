@@ -142,8 +142,16 @@ A new table, `stageReports`, holds one row per project and stage:
 | `computedAt` | `v.number()` | When the row was written |
 
 The report is computed by a pure function, `lib/quality/stage-report.ts`, from inputs it is given:
-the stage's markdown, its claim records, and its section plan. Computing it is separate from storing
-it, so it is testable without Convex and re-usable by the export path.
+the stage's documents, one per phase, its claim records, and its section plan. Computing it is
+separate from storing it, so it is testable without Convex and re-usable by the export path.
+
+Amended while implementing. This section first said "the stage's markdown", and the first draft
+joined each phase's artifact into one string. Matching the join recorded anchors of a document
+nobody renders, because the reading surface marks one phase's document alone, so any heading text
+repeated across a stage's artifacts shifted the anchor by one suffix and the mark silently never
+rendered. A plan section is now matched only inside the document whose phase its plan names, a mark
+key is that document's own anchor id, and duplicate headings inside one document accumulate their
+words and claims and keep the first anchor.
 
 The four dimensions are reported separately and never combined into one number. Each is a different
 problem with a different fix, and a blended score would let a well-traced 4,000-word document look
@@ -176,6 +184,10 @@ expressible. Recomputing on read satisfies the intent more directly than writing
 the read path then holds no state to go stale. The stored row earns its place for the export path,
 which runs without the user's request, and because `artifactVersionIds` records exactly which revisions
 were measured, which a later recomputation could no longer reconstruct once a new version landed.
+
+Amended while implementing. The export path in fact reads the recomputed report rather than the
+stored row: nothing writes the rows yet, and a pack has to match what the reader just saw on screen.
+The stored row's remaining reason is a writer nobody has built, and the version list it would record.
 
 ### Where the user sees it
 

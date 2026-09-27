@@ -94,6 +94,13 @@ The mode IDs stay the same, so existing projects need no data migration. Only th
 
 `PhaseStatusMap` is the existing phase status record from `api.projects.getProjectPhases`. `nextAction` returns one of these: answer the questions for a phase, generate a phase, review a stage, continue to the next stage, or export. Every page reads its primary button from `nextAction`, so no component decides the order on its own.
 
+Known open decision, recorded when phase 4 closed. The `artifacts` phase sits in the Design stage
+and inherits the design prompt's contract, a test seam another engineer implements against, while
+its own sections ask for documentation, configuration and a deployment guide, and its label reads
+"Schemas". One section is asked to satisfy two contracts that do not overlap. Moving the phase
+between stages, or giving it its own prompt, is a change to this data shape, so the divergence is
+recorded here rather than fixed under phase 4.
+
 ### Flow
 
 1. **Create.** The new-project page shows three mode cards with the labels and flows from `MODE_POLICIES`. The page reads a new `getGenerationReadiness` query first. If the user has no usable credentials, the page shows a banner that links to the model settings. The user can still write the brief.
