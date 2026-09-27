@@ -1,6 +1,6 @@
 # Stage prompts and requirement quality implementation plan
 
-**Status:** In progress. Tasks 1 to 7 of 10 are finished; tasks 8 to 10 have not started.
+**Status:** In progress. Tasks 1 to 7 and 10 of 10 are finished; tasks 8 and 9 have not started.
 
 **Spec:** [Stage prompts and requirement quality](../specs/2026-09-26-stage-prompts-and-requirement-quality.md)
 
@@ -21,7 +21,7 @@ so no project needs a data migration.
 | 7 | Add `components/stage-report.tsx` in the document language, render it in `components/artifact-preview.tsx` above the table of contents, mark an over-budget section where the section is, and mark a stage with an untraced requirement or an untestable criterion in `components/stage-stepper.tsx` as a word in the status text rather than a colour alone. | Done | c86b284 | `npm run test -- --run` at 816 tests across 120 files, `npm run typecheck`, `npm run lint` at zero warnings, `node design/lint-tokens.mjs $(find app components -name '*.tsx')` at zero errors, and `node design/audit-page.mjs http://localhost:3000/design` at three font families, no off-palette colour and no contrast failure. The report is measured on the live preview rather than only asserted: four dimension lines, an `over budget` mark on `2-problem-statement` and an `empty` mark on `3-goals-and-objectives`, both numbered headings, in dark and light, screenshots in `design/screens/stage-report/`. |
 | 8 | Carry the report into the pack. `lib/export/agents-formatter.ts` writes the report and lists untestable criteria under their own heading; `skill-formatter.ts` follows. | Not started | — | `npx vitest --run lib/export/__tests__/agents-formatter.test.ts components/__tests__/export-options.test.tsx` asserts the report and the untestable criteria reach `AGENTS.md` |
 | 9 | Gates. Full run at one revision. | Not started | — | `npm run typecheck`, `npm run lint`, `npm run test -- --run --reporter=dot --testTimeout=20000`, `npm run build`, `npm run test:e2e`, `node design/audit-contrast.mjs`, `node design/audit-token-sync.mjs`, the whole-tree palette lint and `node .keel/validate-docs-lifecycle.mjs` all exit zero |
-| 10 | Reconcile `lib/llm/prompts/domain-model.ts`. It is imported by nothing, and it ends `Return ONLY a valid JSON object`, which contradicts the markdown-section contract every live phase uses. Either adapt its content into the domainModel section instructions or delete the module. | Not started | — | Whichever way it goes: `grep -rn "DOMAIN_MODEL_PROMPT" convex lib` returns only the module that defines it or nothing at all, and the domainModel phase still generates markdown sections in `convex/actions/__tests__/generatePhase.test.ts` |
+| 10 | Reconcile `lib/llm/prompts/domain-model.ts`. It is imported by nothing, and it ends `Return ONLY a valid JSON object`, which contradicts the markdown-section contract every live phase uses. Either adapt its content into the domainModel section instructions or delete the module. | | Done | f533f61 | `grep -rn "DOMAIN_MODEL_PROMPT" convex lib` returns nothing, and `npx vitest --run convex/actions/__tests__/generatePhase.test.ts` (32 tests) still passes, so the domainModel phase keeps generating markdown sections. typecheck and lint clean. |
 
 States: `Not started`, `In progress`, `Done, unverified`, `Done`.
 
@@ -49,6 +49,7 @@ carried the work, not the branch commit:
 - Task 6 is `a6ec3d8`, the squash of PR #31. It was first recorded as the branch commit `8f713c5`,
   which the squash orphaned, and this row replaces it.
 - Task 7 is `c86b284`, its branch commit, pending the same re-record when its pull request merges.
+- Task 10 is `f533f61`, its branch commit, pending the same re-record when its pull request merges.
 
 Re-record a row in the same pass as the next documentation change rather than opening a pull request
 for one line. A reader who finds a SHA that no longer resolves should look the task up by its commit
