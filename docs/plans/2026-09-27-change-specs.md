@@ -1,0 +1,41 @@
+# Change and bug-fix specs
+
+**Status:** Not started
+
+**Spec:** [Change and bug-fix specs](../specs/2026-09-27-change-specs.md)
+
+## Tasks
+
+Identity comes first, because every later task relies on a claim keeping its ID when its wording
+changes. Each task lands as its own commit, and the gates in `.keel/config.md` exit zero at each.
+
+| # | Task | State | SHA | Verified by |
+| --- | --- | --- | --- | --- |
+| 1 | `reconcileArtifactClaims` matches an item's leading `**REQ-nnnn**` against live claims before falling back to text, and strips the `[status; review]:` prefix from the stored text | Not started | — | `convex/__tests__/evidence.test.ts`: a reworded item carrying `**REQ-0012**` keeps `REQ-0012` with the new text; an unknown ID falls back to text matching |
+| 2 | Generation prompts list the phase's live claims with their IDs and tell the model to keep an ID on a requirement it rewords | Not started | — | Prompt test asserts the ID list and the instruction appear in the assembled prompt for PRD and Architecture |
+| 3 | Schema: `changes`, `changeOps` (op as a discriminated union), `claimRevisions`, `projects.nextChangeNumber` | Not started | — | `npm run typecheck`; `npx convex dev --once` pushes to the dev deployment |
+| 4 | Change mutations: create (refused when the project has no live requirements), replace ops on a draft, abandon; owner checks on each | Not started | — | `convex/__tests__/changes.test.ts`: create, refusal, foreign-owner refusal, ops replaced only while draft |
+| 5 | `applyChange`: check every `baseText`, then add, modify with a `claimRevisions` row, remove, and mark touched phases stale with `staleReason: "CHG-nnnn applied"`, in one mutation | Not started | — | `changes.test.ts`: ID issued on add; ID, evidence links and revision kept on modify; `retiredAt` on remove; a stale `baseText` applies nothing and names the op |
+| 6 | Draft parser in `lib/changes/`: parse the model's ops, drop ops naming unknown or retired claims with a note, reject a bug fix with no added acceptance criterion | Not started | — | `lib/changes/__tests__/parse-draft.test.ts` with literal inputs and expected ops |
+| 7 | `draftChange` action: live claims with IDs, the description, bug fields and repository evidence in; parsed ops out, saved to the draft | Not started | — | Action test with a stubbed model response asserts the saved ops and the dropped-op note |
+| 8 | Project page "Changes" section and the "New change" form (feature or bug; bug asks observed, expected, reproduction) | Not started | — | Component tests; `/design` fixture captured at 1440 and 390 in both themes |
+| 9 | Change page `/project/[id]/change/[changeId]`: ops as a diff, edit, delete and add ops, apply, and the conflict refresh | Not started | — | Component tests for each op's rendering and the conflict state; `/design` captures |
+| 10 | Phase page line when a change was applied after the document was generated, with the regenerate control | Not started | — | Phase page test with `isStale` and `staleReason` set |
+| 11 | Export writes each applied change to `changes/CHG-nnnn-<slug>.md` | Not started | — | `generateProjectZip` test finds the file and its op lines |
+| 12 | Quick spec: replace "Save to an existing project" with "Start a change from this"; migrate saved quick specs into draft changes; `createProjectFromQuickSpec` records the spec as a `user_note` evidence source; delete `saveQuickSpec`, `saveQuickSpecHandler`, the `phaseId: 'quick'` slot, `/project/[id]/quick` and the "Saved quick specs" link | Not started | — | Quick spec page test; `quick-spec-save.test.ts` rewritten for the evidence source; migration test on the fake context; row count of `quickSpec` artifacts on dev is zero after the migration runs |
+| 13 | Walkthrough on the dev deployment: draft and apply a bug fix, see the PRD marked out of date, regenerate, and see the modified requirement keep its ID | Not started | — | Screenshots and the claim IDs before and after, in `design/screens/changes/` |
+
+States: `Not started`, `In progress`, `Done, unverified`, `Done`.
+
+`Done` requires a real SHA that passes `git cat-file -t`, and a verification that
+actually ran. `Done, unverified` is honest and must say what is missing.
+
+## Notes
+
+- Tasks 1 and 2 ship together if task 1 alone would let a regeneration drop IDs the prompt never
+  asked the model to keep. Task 1's fallback keeps today's behaviour for ID-less items, so it can
+  land alone.
+- Task 12 runs last among the code tasks because it deletes a path that saved quick specs use
+  today, and the migration needs `changes` to exist.
+- Prod has no data, so the task 12 migration only matters on dev and for any user data created
+  before it ships.

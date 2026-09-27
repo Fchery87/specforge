@@ -115,7 +115,9 @@ change would undo it.
 4. **Apply.** One mutation checks every `baseText`, then applies all ops in one transaction:
    insert claims for `add` with new IDs, write a `claimRevisions` row and patch the text for
    `modify`, set `retiredAt` for `remove`. Evidence links move with the claim, because the claim row
-   is the same row. The documents of every phase the change touched are marked out of date. If any
+   is the same row. The documents of every phase the change touched are marked out of date, through
+   the existing `isStale`, `staleReason` and `staleSince` fields on `phases`, which the dashboard
+   already reads. If any
    `baseText` no longer matches, nothing applies and the page offers to refresh the draft.
 5. **Record.** An applied change is read-only. The project page lists changes, newest first, and
    the export pack includes each applied change as `changes/CHG-0001-<slug>.md`, so a coding agent
@@ -142,15 +144,18 @@ change would undo it.
 
 ## Deletion inventory
 
-Nothing is deleted when this phase starts. Two things become candidates:
+Nothing is deleted when this phase starts. One thing becomes a candidate and one is decided:
 
 - **Text-only claim matching** in `convex/lib/evidence.ts`. It stays as the fallback for items
   that carry no ID, and is removed once every generation prompt writes IDs back, if the tests show
   no ID-less items remain.
-- **Saving a Quick spec into a project** (`saveQuickSpec`, the single `phaseId: 'quick'` slot and
-  `/project/[id]/quick`). A quick spec saved into a project is a change without ops. Open decision
-  for the owner: keep it, or replace "Save to an existing project" with "Start a change from this"
-  and delete the slot. The recommendation is to replace it, once changes ship.
+- **Saving a Quick spec into a project** is deleted once changes ship. The owner decided on
+  2026-09-27: "Save to an existing project" becomes "Start a change from this", saved quick specs
+  migrate into draft changes, and `saveQuickSpec`, `saveQuickSpecHandler`, the `phaseId: 'quick'`
+  artifact slot, `app/project/[id]/quick/` and the project page's "Saved quick specs" link are
+  removed. `createProjectFromQuickSpec` stays, because a new project has no requirements for a
+  change to act on; it records the quick spec as a `user_note` evidence source through
+  `captureEvidenceSource` instead of the removed slot, so the project's generation can cite it.
 
 ## Verification
 
