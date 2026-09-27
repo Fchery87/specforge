@@ -4,6 +4,7 @@ import {
   classifyCriteria,
   classifyCriterion,
   criterionClasses,
+  untestableCriteria,
   type AcceptanceCriterionClass,
 } from '../acceptance-criteria';
 
@@ -312,5 +313,59 @@ describe('assertCriteriaQualityAligned', () => {
     expect(() => assertCriteriaQualityAligned(criteria, ['observable'])).toThrow(
       /received 1 for 3 criteria/
     );
+  });
+});
+
+describe('untestableCriteria', () => {
+  it('returns the text of unobservable and vague criteria, in order', () => {
+    const criteria = [
+      'The archive endpoint returns 204.',
+      'Archiving should be fast.',
+      'Handle edge cases.',
+    ];
+
+    expect(
+      untestableCriteria(criteria, ['observable', 'unobservable', 'vague'])
+    ).toEqual(['Archiving should be fast.', 'Handle edge cases.']);
+  });
+
+  it('excludes observable and unclassified criteria', () => {
+    const criteria = [
+      'The archive endpoint returns 204.',
+      'A criterion written before the class existed.',
+      'Archiving should be fast.',
+    ];
+
+    expect(
+      untestableCriteria(criteria, ['observable', 'unclassified', 'unobservable'])
+    ).toEqual(['Archiving should be fast.']);
+  });
+
+  it('tolerates a null list, which is a legacy row, and reports nothing', () => {
+    const criteria = ['Archiving should be fast.', 'Handle edge cases.'];
+
+    expect(untestableCriteria(criteria, null)).toEqual([]);
+    expect(untestableCriteria(criteria, undefined)).toEqual([]);
+  });
+
+  it('tolerates a short list without shifting a class onto a later criterion', () => {
+    const criteria = ['Archiving should be fast.', 'Handle edge cases.'];
+
+    // The stored class belongs to the first criterion, which is genuinely unobservable. If it
+    // shifted forward, the vague second criterion would read `unobservable`; if it vanished, the
+    // first would read `unclassified`. Exactly one entry is the only honest answer.
+    expect(untestableCriteria(criteria, ['unobservable'])).toEqual([
+      'Archiving should be fast.',
+    ]);
+  });
+
+  it('tolerates a long list by ignoring the extra entries', () => {
+    const criteria = ['The archive endpoint returns 204.'];
+
+    expect(untestableCriteria(criteria, ['observable', 'vague'])).toEqual([]);
+  });
+
+  it('treats a stored value the module does not recognise as unclassified, not as a defect', () => {
+    expect(untestableCriteria(['Some prose.'], ['fast'])).toEqual([]);
   });
 });
