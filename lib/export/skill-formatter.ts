@@ -57,7 +57,9 @@ function requirementQualitySections(
     lines.push(
       `- ${traceability.traced} of ${traceability.total} requirements traced`,
     );
-    lines.push(`- ${traceability.untraced} untraced`);
+    if (traceability.untraced > 0) {
+      lines.push(`- ${traceability.untraced} untraced`);
+    }
     lines.push(
       `- ${testability.observable} of ${testability.total} criteria testable`,
     );
@@ -70,8 +72,12 @@ function requirementQualitySections(
     lines.push(
       `- ${coverage.sections} of ${coverage.sections + coverage.missingSections} sections present`,
     );
-    lines.push(`- ${coverage.emptySections} empty`);
-    lines.push(`- ${coverage.missingSections} missing`);
+    if (coverage.emptySections > 0) {
+      lines.push(`- ${coverage.emptySections} empty`);
+    }
+    if (coverage.missingSections > 0) {
+      lines.push(`- ${coverage.missingSections} missing`);
+    }
     lines.push(`- ${length.words} of ${length.budgetWords} words`);
     if (length.overBudget) {
       lines.push('- over budget');

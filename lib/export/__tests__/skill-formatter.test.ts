@@ -110,6 +110,44 @@ describe('generateSkillMd requirement quality', () => {
     expect(mixed).not.toContain('### Design');
   });
 
+  it('says nothing about a dimension that is clean, so the pack reads as a to-do list', () => {
+    const cleanStage: StageQualityForExport = {
+      ...measuredStage,
+      traceability: { total: 4, traced: 4, untraced: 0 },
+      testability: {
+        total: 5,
+        observable: 5,
+        unobservable: 0,
+        vague: 0,
+        unclassified: 0,
+      },
+      coverage: {
+        sections: 4,
+        emptySections: 0,
+        missingSections: 0,
+        missingSectionIds: [],
+      },
+      length: { words: 700, budgetWords: 800, overBudget: false },
+      untestableCriteria: [],
+    };
+
+    const output = generateSkillMd({
+      project: baseProject,
+      artifacts: {},
+      requirementQuality: [cleanStage],
+    });
+
+    expect(output).toContain('### Requirements');
+    expect(output).toContain('- 4 of 4 requirements traced');
+    // The reading surface suppresses a count of zero, and the pack words it the same way, so an
+    // agent reads what to do rather than a list of zeros.
+    expect(output).not.toContain('- 0 untraced');
+    expect(output).not.toContain('- 0 empty');
+    expect(output).not.toContain('- 0 missing');
+    expect(output).not.toContain('- over budget');
+    expect(output).not.toContain('### Untestable criteria');
+  });
+
   it('leaves the output byte-identical when requirementQuality is absent, undefined or empty', () => {
     const withoutField = generateSkillMd({ project: baseProject, artifacts: {} });
     const withUndefined = generateSkillMd({
