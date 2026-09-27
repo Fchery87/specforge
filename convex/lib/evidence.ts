@@ -48,7 +48,11 @@ export async function reconcileArtifactClaims(
       await ctx.db.patch(result._id, { outdatedAt: checkedAt });
     }
   }
-  const unused = new Map(currentClaims.map((claim) => [claim.text.trim().toLowerCase(), claim]));
+  const unused = new Map(currentClaims.map((claim) => [claim._id, claim]));
+  const byClaimId = new Map(currentClaims.map((claim) => [claim.claimId, claim]));
+  const byText = new Map(currentClaims.map((claim) => [claim.text.trim().toLowerCase(), claim]));
+  const stillUnused = (claim: (typeof currentClaims)[number] | undefined) =>
+    claim && unused.has(claim._id) ? claim : undefined;
   const latestVersion = await ctx.db
     .query('artifactVersions')
     .withIndex('by_artifact', (q) => q.eq('artifactId', args.artifactId))
@@ -59,10 +63,12 @@ export async function reconcileArtifactClaims(
   let nextClaimNumber = project.nextClaimNumber ?? 1;
 
   for (const candidate of candidates) {
-    const key = candidate.text.toLowerCase();
-    const previous = unused.get(key);
+    const previous =
+      stillUnused(candidate.claimId ? byClaimId.get(candidate.claimId) : undefined) ??
+      stillUnused(byText.get(candidate.text.toLowerCase()));
     if (previous) {
-      unused.delete(key);
+      unused.delete(previous._id);
+      const reworded = previous.text.trim().toLowerCase() !== candidate.text.toLowerCase();
       const addedLinks = await attachSuggestedEvidence(ctx, {
         projectId: args.projectId,
         claimId: previous._id,
@@ -72,7 +78,8 @@ export async function reconcileArtifactClaims(
       await ctx.db.patch(previous._id, {
         artifactId: args.artifactId,
         artifactVersion,
-        ...(addedLinks ? { reviewStatus: 'needs_review' as const } : {}),
+        ...(reworded ? { text: candidate.text } : {}),
+        ...(addedLinks || reworded ? { reviewStatus: 'needs_review' as const } : {}),
         updatedAt: now,
       });
       continue;
