@@ -13,9 +13,9 @@ changes. Each task lands as its own commit, and the gates in `.keel/config.md` e
 | --- | --- | --- | --- | --- |
 | 1 | `reconcileArtifactClaims` matches an item's leading `**REQ-nnnn**` against live claims before falling back to text, and strips the `[status; review]:` prefix from the stored text | Done | `9439b4a` | `convex/__tests__/evidence.test.ts`: a reworded item carrying `**REQ-0012**` keeps `REQ-0012` with the new text; an unknown ID falls back to text matching |
 | 2 | Generation prompts list the phase's live claims with their IDs and tell the model to keep an ID on a requirement it rewords | Done | `9439b4a` | Prompt test asserts the ID list and the instruction appear in the assembled prompt for PRD and Architecture; `lib/llm/prompts/__tests__/claim-ids.test.ts`; schema accepted by `npx convex dev --once` on dev |
-| 3 | Schema: `changes`, `changeOps` (op as a discriminated union), `claimRevisions`, `projects.nextChangeNumber` | Done, unverified: SHA recorded after the squash merge | — | `npm run typecheck`; `npx convex dev --once` pushes to the dev deployment |
-| 4 | Change mutations: create (refused when the project has no live requirements), replace ops on a draft, abandon; owner checks on each | Done, unverified: SHA recorded after the squash merge | — | `convex/__tests__/changes.test.ts`: create, refusal, foreign-owner refusal, ops replaced only while draft |
-| 5 | `applyChange`: check every `baseText`, then add, modify with a `claimRevisions` row, remove, and mark touched phases stale with `staleReason: "CHG-nnnn applied"`, in one mutation | Not started | — | `changes.test.ts`: ID issued on add; ID, evidence links and revision kept on modify; `retiredAt` on remove; a stale `baseText` applies nothing and names the op |
+| 3 | Schema: `changes`, `changeOps` (op as a discriminated union), `claimRevisions`, `projects.nextChangeNumber` | Done | `69485ee` | `npm run typecheck`; `npx convex dev --once` pushes to the dev deployment |
+| 4 | Change mutations: create (refused when the project has no live requirements), replace ops on a draft, abandon; owner checks on each | Done | `69485ee` | `convex/__tests__/changes.test.ts`: create, refusal, foreign-owner refusal, ops replaced only while draft |
+| 5 | `applyChange`: check every `baseText`, then add, modify with a `claimRevisions` row, remove, and mark touched phases stale with `staleReason: "CHG-nnnn applied"`, in one mutation | Done, unverified: SHA recorded after the squash merge | — | `changes.test.ts`: ID issued on add; ID, evidence links and revision kept on modify; `retiredAt` on remove; a stale `baseText` applies nothing and names the op |
 | 6 | Draft parser in `lib/changes/`: parse the model's ops, drop ops naming unknown or retired claims with a note, reject a bug fix with no added acceptance criterion | Not started | — | `lib/changes/__tests__/parse-draft.test.ts` with literal inputs and expected ops |
 | 7 | `draftChange` action: live claims with IDs, the description, bug fields and repository evidence in; parsed ops out, saved to the draft | Not started | — | Action test with a stubbed model response asserts the saved ops and the dropped-op note |
 | 8 | Project page "Changes" section and the "New change" form (feature or bug; bug asks observed, expected, reproduction) | Not started | — | Component tests; `/design` fixture captured at 1440 and 390 in both themes |
@@ -42,5 +42,7 @@ actually ran. `Done, unverified` is honest and must say what is missing.
 - Tasks 3 and 4 also cascade the new tables in `deleteProjectHandler`, pinned by
   `cascade-delete.test.ts`, and add the `listChanges` and `getChange` queries the pages in tasks 8
   and 9 read.
+- Task 5 also refuses a bug fix with no added acceptance criterion, which the spec requires of every
+  bug fix; task 6 keeps the same rule in the draft parser so the reader sees it before applying.
 - Prod has no data, so the task 12 migration only matters on dev and for any user data created
   before it ships.
