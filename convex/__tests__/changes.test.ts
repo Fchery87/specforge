@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { MutationCtx } from '../_generated/server';
 import {
   abandonChangeHandler,
+  applyChangeHandler,
   createChangeHandler,
   replaceChangeOpsHandler,
   type ChangeOpInput,
@@ -14,7 +15,7 @@ type FakeContext = { __tables: Record<string, Map<string, FakeRow>> } & Record<s
 function makeCtx(authUserId = 'owner'): FakeContext {
   const tables: Record<string, Map<string, FakeRow>> = {
     projects: new Map([
-      ['p1', { _id: 'p1', userId: 'owner' }],
+      ['p1', { _id: 'p1', userId: 'owner', nextClaimNumber: 15 }],
       ['p2', { _id: 'p2', userId: 'someone-else' }],
     ]),
     claims: new Map([
@@ -29,6 +30,21 @@ function makeCtx(authUserId = 'owner'): FakeContext {
     ]),
     changes: new Map(),
     changeOps: new Map(),
+    claimRevisions: new Map(),
+    evidenceLinks: new Map([['link12', { _id: 'link12', projectId: 'p1', claimId: 'c12', sourceId: 's1', supportStatus: 'confirmed' }]]),
+    artifacts: new Map([
+      ['prd-doc', { _id: 'prd-doc', projectId: 'p1', phaseId: 'prd' }],
+      ['stories-doc', { _id: 'stories-doc', projectId: 'p1', phaseId: 'stories' }],
+    ]),
+    phases: new Map([
+      ['ph-prd', { _id: 'ph-prd', projectId: 'p1', phaseId: 'prd' }],
+      ['ph-stories', { _id: 'ph-stories', projectId: 'p1', phaseId: 'stories' }],
+      ['ph-specs', { _id: 'ph-specs', projectId: 'p1', phaseId: 'specs' }],
+    ]),
+    verificationResults: new Map([
+      ['vr-prd', { _id: 'vr-prd', projectId: 'p1', phaseId: 'prd' }],
+      ['vr-specs', { _id: 'vr-specs', projectId: 'p1', phaseId: 'specs' }],
+    ]),
   };
   let nextId = 0;
   const findTable = (id: string) => Object.values(tables).find((table) => table.has(id));
@@ -65,6 +81,7 @@ function makeCtx(authUserId = 'owner'): FakeContext {
             return q;
           },
           collect: async () => [...tables[tableName].values()].filter(predicate),
+          first: async () => [...tables[tableName].values()].find(predicate) ?? null,
         };
         return q;
       },
@@ -196,5 +213,131 @@ describe('abandonChange', () => {
     ctx.__tables.projects.set('p1', { _id: 'p1', userId: 'someone-else' });
 
     await expect(abandonChangeHandler(asCtx(ctx), { changeId })).rejects.toThrow('Forbidden');
+  });
+});
+
+describe('applyChange', () => {
+  const op = (reason: string, value: unknown, evidenceSourceIds: string[] = []): ChangeOpInput => ({
+    reason,
+    evidenceSourceIds: evidenceSourceIds as never,
+    op: value as never,
+  });
+  const rewordEmail = op('Links are also allowed.', {
+    type: 'modify', claim: 'c12', baseText: 'Owners invite members by email.', text: 'Owners invite members by email or link.',
+  }, ['s1']);
+  const addCriterion = op('The regression test.', {
+    type: 'add', phaseId: 'stories', kind: 'acceptance_criterion', text: 'Given an invite link, when it is opened, then the invite page loads.',
+  }, ['s1']);
+
+  async function draftWith(ctx: FakeContext, ops: ChangeOpInput[], kind: 'feature' | 'bugfix' = 'feature') {
+    const changeId = await createChangeHandler(asCtx(ctx), { ...feature, kind, ...(kind === 'bugfix' ? { bug } : {}) });
+    await replaceChangeOpsHandler(asCtx(ctx), { changeId, ops });
+    return changeId;
+  }
+
+  it('adds, rewords with history, removes, and marks the touched documents out of date', async () => {
+    const ctx = makeCtx();
+    ctx.__tables.claims.set('c20', { _id: 'c20', projectId: 'p1', phaseId: 'specs', claimId: 'REQ-0020', text: 'Invites expire after a day.' });
+    const changeId = await draftWith(ctx, [
+      addCriterion,
+      rewordEmail,
+      op('Invites no longer expire.', { type: 'remove', claim: 'c20', baseText: 'Invites expire after a day.' }),
+    ]);
+
+    const result = await applyChangeHandler(asCtx(ctx), { changeId });
+
+    expect(result).toEqual({ status: 'applied', addedClaimIds: ['REQ-0015'] });
+    expect([...ctx.__tables.claims.values()].find((claim) => claim.claimId === 'REQ-0015')).toMatchObject({
+      projectId: 'p1', phaseId: 'stories', artifactId: 'stories-doc', kind: 'acceptance_criterion',
+      text: 'Given an invite link, when it is opened, then the invite page loads.', decisionStatus: 'confirmed',
+    });
+    expect(ctx.__tables.claims.get('c12')).toMatchObject({ claimId: 'REQ-0012', text: 'Owners invite members by email or link.' });
+    expect([...ctx.__tables.claimRevisions.values()]).toEqual([
+      expect.objectContaining({ claim: 'c12', text: 'Owners invite members by email.', changeId }),
+    ]);
+    expect(ctx.__tables.evidenceLinks.get('link12')?.claimId).toBe('c12');
+    expect(ctx.__tables.claims.get('c20')?.retiredAt).toBeTypeOf('number');
+    expect(ctx.__tables.projects.get('p1')?.nextClaimNumber).toBe(16);
+    expect(['ph-prd', 'ph-stories', 'ph-specs'].map((id) => ctx.__tables.phases.get(id)?.staleReason)).toEqual([
+      'CHG-0001 applied', 'CHG-0001 applied', 'CHG-0001 applied',
+    ]);
+    expect(ctx.__tables.verificationResults.get('vr-prd')?.outdatedAt).toBeTypeOf('number');
+    expect(ctx.__tables.changes.get(changeId)).toMatchObject({ status: 'applied' });
+  });
+
+  it('leaves untouched documents alone', async () => {
+    const ctx = makeCtx();
+    const changeId = await draftWith(ctx, [rewordEmail]);
+
+    await applyChangeHandler(asCtx(ctx), { changeId });
+
+    expect(ctx.__tables.phases.get('ph-prd')?.isStale).toBe(true);
+    expect(ctx.__tables.phases.get('ph-stories')?.isStale).toBeUndefined();
+    expect(ctx.__tables.verificationResults.get('vr-specs')?.outdatedAt).toBeUndefined();
+  });
+
+  it('applies nothing and names the operation when a requirement was reworded after the draft', async () => {
+    const ctx = makeCtx();
+    const changeId = await draftWith(ctx, [addCriterion, rewordEmail]);
+    ctx.__tables.claims.set('c12', { ...ctx.__tables.claims.get('c12')!, text: 'Owners invite members by SMS.' });
+
+    const result = await applyChangeHandler(asCtx(ctx), { changeId });
+
+    expect(result).toEqual({
+      status: 'conflict',
+      conflicts: [{ order: 1, claimId: 'REQ-0012', reason: 'The requirement was reworded after this change was drafted' }],
+    });
+    expect(ctx.__tables.claimRevisions.size).toBe(0);
+    expect([...ctx.__tables.claims.values()].some((claim) => claim.claimId === 'REQ-0015')).toBe(false);
+    expect(ctx.__tables.changes.get(changeId)?.status).toBe('draft');
+  });
+
+  it('reports a requirement retired since the draft, and two operations on one requirement', async () => {
+    const ctx = makeCtx();
+    const changeId = await draftWith(ctx, [
+      rewordEmail,
+      op('Also reaffirmed.', { type: 'reaffirm', claim: 'c12', baseText: 'Owners invite members by email.' }),
+    ]);
+    const retired = await draftWith(ctx, [rewordEmail]);
+    ctx.__tables.claims.set('c12', { ...ctx.__tables.claims.get('c12')!, retiredAt: 5 });
+
+    expect(await applyChangeHandler(asCtx(ctx), { changeId: retired })).toEqual({
+      status: 'conflict',
+      conflicts: [{ order: 0, claimId: 'REQ-0012', reason: 'The requirement is no longer live' }],
+    });
+    ctx.__tables.claims.set('c12', { ...ctx.__tables.claims.get('c12')!, retiredAt: undefined });
+    expect(await applyChangeHandler(asCtx(ctx), { changeId })).toEqual({
+      status: 'conflict',
+      conflicts: [{ order: 1, claimId: 'REQ-0012', reason: 'Operation 1 already targets this requirement' }],
+    });
+  });
+
+  it('requires a bug fix to add a regression criterion', async () => {
+    const ctx = makeCtx();
+    const without = await draftWith(ctx, [
+      op('The spec is right; the code is wrong.', { type: 'reaffirm', claim: 'c12', baseText: 'Owners invite members by email.' }),
+    ], 'bugfix');
+    const withTest = await draftWith(ctx, [
+      op('The spec is right; the code is wrong.', { type: 'reaffirm', claim: 'c12', baseText: 'Owners invite members by email.' }),
+      addCriterion,
+    ], 'bugfix');
+
+    await expect(applyChangeHandler(asCtx(ctx), { changeId: without })).rejects.toThrow('A bug fix needs at least one added acceptance criterion');
+    expect(await applyChangeHandler(asCtx(ctx), { changeId: withTest })).toEqual({ status: 'applied', addedClaimIds: ['REQ-0015'] });
+    expect(ctx.__tables.claims.get('c12')?.text).toBe('Owners invite members by email.');
+  });
+
+  it('refuses an empty change, a change applied twice, and an addition to a phase with no document', async () => {
+    const ctx = makeCtx();
+    const empty = await draftWith(ctx, []);
+    await expect(applyChangeHandler(asCtx(ctx), { changeId: empty })).rejects.toThrow('A change needs at least one operation');
+
+    const once = await draftWith(ctx, [rewordEmail]);
+    await applyChangeHandler(asCtx(ctx), { changeId: once });
+    await expect(applyChangeHandler(asCtx(ctx), { changeId: once })).rejects.toThrow('Only a draft change can be applied');
+
+    ctx.__tables.artifacts.delete('stories-doc');
+    const noDocument = await draftWith(ctx, [addCriterion]);
+    await expect(applyChangeHandler(asCtx(ctx), { changeId: noDocument })).rejects.toThrow('Operation 1 adds to a phase that has no document yet');
   });
 });

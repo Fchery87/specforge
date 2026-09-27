@@ -5,6 +5,7 @@ import { v, type Infer } from 'convex/values';
 import { canAccessProject } from '../lib/authz';
 import { PHASE_ORDER, type PhaseId } from '../lib/workflow';
 import { bugReportValidator, changeOpValidator } from './schema';
+import { formatChangeId } from '../lib/changes/format';
 
 export type ChangeOp = Infer<typeof changeOpValidator>;
 export type BugReport = Infer<typeof bugReportValidator>;
@@ -165,6 +166,161 @@ export async function abandonChangeHandler(
   await ctx.db.patch(args.changeId, { status: 'abandoned', updatedAt: Date.now() });
 }
 
+export type ApplyChangeResult =
+  | { status: 'applied'; addedClaimIds: string[] }
+  | { status: 'conflict'; conflicts: Array<{ order: number; claimId: string | null; reason: string }> };
+
+type OpRow = Doc<'changeOps'>;
+type TargetedOp = Exclude<ChangeOp, { type: 'add' }>;
+
+/**
+ * Every targeted claim must still read the wording the op was drafted against, and no two ops may
+ * target the same claim. Returns the problems rather than throwing, so the page can name them.
+ */
+async function findConflicts(ctx: MutationCtx, projectId: Id<'projects'>, rows: OpRow[]) {
+  const conflicts: Array<{ order: number; claimId: string | null; reason: string }> = [];
+  const targeted = new Map<string, number>();
+  for (const row of rows) {
+    if (row.op.type === 'add') continue;
+    const op: TargetedOp = row.op;
+    const claim = await ctx.db.get(op.claim);
+    const claimId = claim?.claimId ?? null;
+    if (!claim || claim.projectId !== projectId || !isBaselineClaim(claim)) {
+      conflicts.push({ order: row.order, claimId, reason: 'The requirement is no longer live' });
+      continue;
+    }
+    if (claim.text.trim() !== op.baseText.trim()) {
+      conflicts.push({ order: row.order, claimId, reason: 'The requirement was reworded after this change was drafted' });
+    }
+    const earlier = targeted.get(String(op.claim));
+    if (earlier !== undefined) {
+      conflicts.push({ order: row.order, claimId, reason: `Operation ${earlier + 1} already targets this requirement` });
+    }
+    targeted.set(String(op.claim), row.order);
+  }
+  return conflicts;
+}
+
+async function linkEvidence(
+  ctx: MutationCtx,
+  projectId: Id<'projects'>,
+  claim: Id<'claims'>,
+  sourceIds: Id<'evidenceSources'>[],
+  now: number,
+) {
+  const existing = await ctx.db
+    .query('evidenceLinks')
+    .withIndex('by_claim', (q) => q.eq('claimId', claim))
+    .collect();
+  const linked = new Set(existing.map((link) => String(link.sourceId)));
+  for (const sourceId of sourceIds) {
+    if (linked.has(String(sourceId))) continue;
+    await ctx.db.insert('evidenceLinks', { projectId, claimId: claim, sourceId, supportStatus: 'suggested', createdAt: now });
+  }
+}
+
+/**
+ * Applies a draft in one transaction: adds issue new IDs, modifies keep the ID and record the old
+ * wording, removes retire. Nothing is written when any op conflicts. Every phase whose requirements
+ * moved is marked stale until it is regenerated, and its verification results are marked outdated.
+ */
+export async function applyChangeHandler(
+  ctx: MutationCtx,
+  args: { changeId: Id<'changes'> },
+): Promise<ApplyChangeResult> {
+  const { change, project } = await requireChangeOwner(ctx, args.changeId);
+  if (change.status !== 'draft') throw new Error('Only a draft change can be applied');
+
+  const rows = (
+    await ctx.db
+      .query('changeOps')
+      .withIndex('by_change', (q) => q.eq('changeId', args.changeId))
+      .collect()
+  ).sort((a, b) => a.order - b.order);
+  if (rows.length === 0) throw new Error('A change needs at least one operation');
+  if (
+    change.kind === 'bugfix' &&
+    !rows.some((row) => row.op.type === 'add' && row.op.kind === 'acceptance_criterion')
+  ) {
+    throw new Error('A bug fix needs at least one added acceptance criterion: the regression test');
+  }
+
+  const conflicts = await findConflicts(ctx, change.projectId, rows);
+  if (conflicts.length > 0) return { status: 'conflict', conflicts };
+
+  const now = Date.now();
+  const touchedPhases = new Set<string>();
+  const addedClaimIds: string[] = [];
+  let nextClaimNumber = project.nextClaimNumber ?? 1;
+
+  for (const row of rows) {
+    const { op } = row;
+    if (op.type === 'add') {
+      const artifact = await ctx.db
+        .query('artifacts')
+        .withIndex('by_phase', (q) => q.eq('projectId', change.projectId).eq('phaseId', op.phaseId))
+        .first();
+      if (!artifact) {
+        throw new Error(`Operation ${row.order + 1} adds to a phase that has no document yet`);
+      }
+      const claimId = `REQ-${String(nextClaimNumber++).padStart(4, '0')}`;
+      const claim = await ctx.db.insert('claims', {
+        projectId: change.projectId,
+        phaseId: op.phaseId,
+        claimId,
+        artifactId: artifact._id,
+        kind: op.kind,
+        text: op.text,
+        decisionStatus: 'confirmed',
+        reviewStatus: 'current',
+        createdAt: now,
+        updatedAt: now,
+      });
+      await linkEvidence(ctx, change.projectId, claim, row.evidenceSourceIds, now);
+      addedClaimIds.push(claimId);
+      touchedPhases.add(op.phaseId);
+      continue;
+    }
+
+    const claim = await ctx.db.get(op.claim);
+    if (!claim) continue;
+    if (op.type === 'modify') {
+      await ctx.db.insert('claimRevisions', { claim: claim._id, text: claim.text, changeId: change._id, createdAt: now });
+      await ctx.db.patch(claim._id, { text: op.text, decisionStatus: 'confirmed', updatedAt: now });
+      touchedPhases.add(claim.phaseId);
+    } else if (op.type === 'remove') {
+      await ctx.db.patch(claim._id, { retiredAt: now, updatedAt: now });
+      touchedPhases.add(claim.phaseId);
+    }
+    if (op.type !== 'remove') await linkEvidence(ctx, change.projectId, claim._id, row.evidenceSourceIds, now);
+  }
+
+  if (nextClaimNumber !== (project.nextClaimNumber ?? 1)) {
+    await ctx.db.patch(change.projectId, { nextClaimNumber });
+  }
+
+  const staleReason = `${formatChangeId(change.changeNumber)} applied`;
+  const phases = await ctx.db
+    .query('phases')
+    .withIndex('by_project', (q) => q.eq('projectId', change.projectId))
+    .collect();
+  for (const phase of phases) {
+    if (touchedPhases.has(phase.phaseId)) {
+      await ctx.db.patch(phase._id, { isStale: true, staleReason, staleSince: now });
+    }
+  }
+  const results = await ctx.db
+    .query('verificationResults')
+    .withIndex('by_project', (q) => q.eq('projectId', change.projectId))
+    .collect();
+  for (const result of results) {
+    if (touchedPhases.has(result.phaseId)) await ctx.db.patch(result._id, { outdatedAt: now });
+  }
+
+  await ctx.db.patch(change._id, { status: 'applied', appliedAt: now, updatedAt: now });
+  return { status: 'applied', addedClaimIds };
+}
+
 export const createChange = mutation({
   args: {
     projectId: v.id('projects'),
@@ -179,6 +335,11 @@ export const createChange = mutation({
 export const replaceChangeOps = mutation({
   args: { changeId: v.id('changes'), ops: v.array(changeOpInputValidator) },
   handler: replaceChangeOpsHandler,
+});
+
+export const applyChange = mutation({
+  args: { changeId: v.id('changes') },
+  handler: applyChangeHandler,
 });
 
 export const abandonChange = mutation({
