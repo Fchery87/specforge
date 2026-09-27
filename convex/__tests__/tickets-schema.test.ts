@@ -52,4 +52,57 @@ describe('Ticket data structure', () => {
     };
     expect(ticket.acceptanceCriteria).toHaveLength(0);
   });
+
+  test('acceptanceCriteriaQuality is optional, so a ticket written before it stays valid', () => {
+    // What a legacy row looks like: no quality field at all. It has to typecheck and validate, which
+    // is the whole reason the field is optional rather than required with a backfill.
+    const legacy: Doc<'tickets'> = {
+      _id: 'ticket_1' as Doc<'tickets'>['_id'],
+      _creationTime: Date.now(),
+      projectId: 'proj_123' as Doc<'tickets'>['projectId'],
+      phaseId: 'stories',
+      title: 'Legacy ticket',
+      description: 'Written before the class existed',
+      acceptanceCriteria: ['Users table exists'],
+      status: 'todo',
+      priority: 'high',
+      order: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    expect(legacy.acceptanceCriteriaQuality).toBeUndefined();
+    expect(legacy.acceptanceCriteria).toEqual(['Users table exists']);
+  });
+
+  test('acceptanceCriteriaQuality holds one class per criterion', () => {
+    const ticket = {
+      projectId: 'proj_123',
+      phaseId: 'stories',
+      title: 'Classed ticket',
+      description: 'Written after the class existed',
+      acceptanceCriteria: ['Returns 204.', 'Should be fast.'],
+      acceptanceCriteriaQuality: ['observable', 'unobservable'] as const,
+      status: 'todo' as const,
+      priority: 'high' as const,
+      order: 0,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    expect(ticket.acceptanceCriteriaQuality).toHaveLength(ticket.acceptanceCriteria.length);
+  });
+
+  test('acceptanceCriteria keeps its shape for existing readers', () => {
+    // `acceptanceCriteria` must stay a plain string array: components/ticket-card.tsx reads
+    // `.length` on it and convex/actions/parseTickets.ts matches its entries against claim text. The
+    // new field is parallel, not a replacement, so neither reader has to change.
+    const criteria: string[] = ['Users table exists', 'Projects table exists'];
+    const ticket = { acceptanceCriteria: criteria, acceptanceCriteriaQuality: ['observable', 'observable'] };
+
+    expect(Array.isArray(ticket.acceptanceCriteria)).toBe(true);
+    expect(ticket.acceptanceCriteria.every((entry) => typeof entry === 'string')).toBe(true);
+    expect(ticket.acceptanceCriteria.length).toBe(2);
+    expect(ticket.acceptanceCriteria[0]).toBe('Users table exists');
+  });
 });

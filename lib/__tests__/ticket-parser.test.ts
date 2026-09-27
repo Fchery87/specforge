@@ -84,3 +84,62 @@ Connect Clerk authentication.
     expect(tickets[1].filesToTouch).toEqual(['proxy.ts', 'lib/auth.tsx']);
   });
 });
+
+/**
+ * A ticket's criteria and their classes are indexed together by every reader, so an off-by-one would
+ * attribute a class to the wrong criterion. These lock the alignment rather than the classes, which
+ * `acceptance-criteria.test.ts` covers on its own.
+ */
+describe('parseTicketsFromMarkdown acceptance-criteria classes', () => {
+  const markdown = `
+### US-001: Archive a project
+An editor archives a project.
+
+**Acceptance Criteria:**
+- The archive endpoint returns 204 for an editor
+- Archiving should be fast
+- Handle edge cases
+
+**Priority:** High
+`;
+
+  test('carries one class per criterion, in the same order', () => {
+    const tickets = parseTicketsFromMarkdown(markdown);
+
+    expect(tickets[0].acceptanceCriteria).toEqual([
+      'The archive endpoint returns 204 for an editor',
+      'Archiving should be fast',
+      'Handle edge cases',
+    ]);
+    expect(tickets[0].acceptanceCriteriaQuality).toEqual([
+      'observable',
+      'unobservable',
+      'vague',
+    ]);
+  });
+
+  test('keeps the two arrays the same length for every ticket', () => {
+    const tickets = parseTicketsFromMarkdown(markdown);
+
+    for (const ticket of tickets) {
+      expect(ticket.acceptanceCriteriaQuality).toHaveLength(ticket.acceptanceCriteria.length);
+    }
+  });
+
+  test('gives an empty class list to a ticket with no criteria', () => {
+    // The description deliberately does not contain the phrase the parser scans for as the criteria
+    // header. A description that mentions it is treated as the header line, which is a separate
+    // pre-existing parser behaviour and not what this case is about.
+    const noCriteria = `
+### US-009: Placeholder
+This ticket has a description but nothing to verify yet.
+`;
+    const tickets = parseTicketsFromMarkdown(noCriteria);
+
+    // The ticket is kept because it has a description, and its class list is empty rather than
+    // absent, so a reader can always index the two arrays together.
+    expect(tickets).toHaveLength(1);
+    expect(tickets[0].acceptanceCriteria).toEqual([]);
+    expect(tickets[0].acceptanceCriteriaQuality).toEqual([]);
+  });
+});

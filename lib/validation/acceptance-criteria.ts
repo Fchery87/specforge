@@ -309,3 +309,62 @@ export function classifyCriteria(
 ): AcceptanceCriterionClass[] {
   return criteria.map(classifyCriterion);
 }
+
+/**
+ * A criterion's class as stored on a ticket, or `unclassified` when there is none.
+ *
+ * A ticket written before the class existed has no stored value, and the plan's rule is that such a
+ * criterion reads as `unclassified` rather than being labelled retroactively: classifying it later
+ * would report a judgement nobody made at the time, and the classification is a claim about the text
+ * that a reader may want to check against the version that was reviewed.
+ */
+export type StoredCriterionClass = AcceptanceCriterionClass | 'unclassified';
+
+const STORED_CLASSES: ReadonlySet<string> = new Set<AcceptanceCriterionClass>([
+  'observable',
+  'unobservable',
+  'vague',
+]);
+
+/**
+ * Pair each criterion with the class stored for it.
+ *
+ * The result is always the same length as `criteria`, so a reader can index the two together without
+ * checking. A stored value this module does not recognise is treated as `unclassified` rather than
+ * trusted: the field is persisted data, and a value that did not come from `classifyCriterion` is not
+ * a class, whatever it says.
+ */
+export function criterionClasses(
+  criteria: readonly string[],
+  quality?: readonly string[] | null
+): StoredCriterionClass[] {
+  return criteria.map((_, index) => {
+    const stored = quality?.[index];
+    return stored && STORED_CLASSES.has(stored)
+      ? (stored as AcceptanceCriterionClass)
+      : 'unclassified';
+  });
+}
+
+/**
+ * Reject a supplied class list that does not have one entry per criterion.
+ *
+ * The pairing is positional, so a list shorter than the criteria silently moves classes onto the
+ * wrong ones rather than reporting anything. An absent list is fine — that is a legacy row or a
+ * caller that has no classes, and both read as `unclassified` — but a supplied list must line up.
+ *
+ * Convex validators check each argument's shape and cannot express a relation between two of them, so
+ * this has to run in a handler. Kept here, pure, so it is testable without a deployment.
+ */
+export function assertCriteriaQualityAligned(
+  criteria: readonly string[],
+  quality?: readonly string[] | null
+): void {
+  if (quality == null) return;
+  if (quality.length !== criteria.length) {
+    throw new Error(
+      `acceptanceCriteriaQuality must hold one entry per acceptance criterion: ` +
+        `received ${quality.length} for ${criteria.length} criteria`
+    );
+  }
+}

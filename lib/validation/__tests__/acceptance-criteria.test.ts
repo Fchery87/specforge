@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assertCriteriaQualityAligned,
   classifyCriteria,
   classifyCriterion,
+  criterionClasses,
   type AcceptanceCriterionClass,
 } from '../acceptance-criteria';
 
@@ -199,5 +201,116 @@ describe('classifyCriteria', () => {
 
   it('returns an empty list for no criteria', () => {
     expect(classifyCriteria([])).toEqual([]);
+  });
+});
+
+/**
+ * Reading a ticket's stored classes. A ticket written before the field existed has none, and the rule
+ * is that its criteria read as `unclassified` rather than being labelled retroactively: classifying
+ * one later would report a judgement nobody made when the ticket was reviewed.
+ */
+describe('criterionClasses', () => {
+  const criteria = ['Returns 204.', 'Fast.', 'Handle edge cases.'];
+
+  it('reads each stored class back in order', () => {
+    expect(criterionClasses(criteria, ['observable', 'unobservable', 'vague'])).toEqual([
+      'observable',
+      'unobservable',
+      'vague',
+    ]);
+  });
+
+  it('reads a ticket with no stored classes as all unclassified', () => {
+    expect(criterionClasses(criteria)).toEqual([
+      'unclassified',
+      'unclassified',
+      'unclassified',
+    ]);
+    expect(criterionClasses(criteria, null)).toEqual([
+      'unclassified',
+      'unclassified',
+      'unclassified',
+    ]);
+    expect(criterionClasses(criteria, [])).toEqual([
+      'unclassified',
+      'unclassified',
+      'unclassified',
+    ]);
+  });
+
+  it('always returns one entry per criterion, so the arrays stay index-aligned', () => {
+    // A short stored array must not shift the entries: a criterion with no stored class is
+    // unclassified, not the next criterion's class.
+    expect(criterionClasses(criteria, ['observable'])).toEqual([
+      'observable',
+      'unclassified',
+      'unclassified',
+    ]);
+
+    // A long one is truncated to the criteria, not appended.
+    expect(
+      criterionClasses(criteria, ['observable', 'vague', 'unobservable', 'vague'])
+    ).toHaveLength(criteria.length);
+
+    expect(criterionClasses([], ['observable'])).toEqual([]);
+  });
+
+  it('treats a stored value it does not recognise as unclassified', () => {
+    // The field is persisted data. Anything that did not come from classifyCriterion is not a class,
+    // whatever it says, so it must not reach a reader as a verdict.
+    expect(criterionClasses(['a', 'b'], ['observable', 'excellent'])).toEqual([
+      'observable',
+      'unclassified',
+    ]);
+    expect(criterionClasses(['a'], [''])).toEqual(['unclassified']);
+    expect(criterionClasses(['a'], ['OBSERVABLE'])).toEqual(['unclassified']);
+  });
+
+  it('round-trips what the parser stores', () => {
+    const stored = classifyCriteria(criteria);
+    expect(criterionClasses(criteria, stored)).toEqual(stored);
+  });
+});
+
+/**
+ * The pairing is positional, so a class list of the wrong length moves classes onto the wrong
+ * criteria without reporting anything. Convex validators check each argument's shape and cannot
+ * express a relation between two arguments, so the check runs in the handler and lives here.
+ */
+describe('assertCriteriaQualityAligned', () => {
+  const criteria = ['a', 'b', 'c'];
+
+  it('accepts one class per criterion', () => {
+    expect(() =>
+      assertCriteriaQualityAligned(criteria, ['observable', 'vague', 'unobservable'])
+    ).not.toThrow();
+  });
+
+  it('accepts an absent list, which is a legacy row or a caller with no classes', () => {
+    expect(() => assertCriteriaQualityAligned(criteria)).not.toThrow();
+    expect(() => assertCriteriaQualityAligned(criteria, null)).not.toThrow();
+  });
+
+  it('rejects a shorter list, which would shift classes onto the wrong criteria', () => {
+    expect(() => assertCriteriaQualityAligned(criteria, ['observable'])).toThrow(
+      /one entry per acceptance criterion/
+    );
+  });
+
+  it('rejects a longer list', () => {
+    expect(() =>
+      assertCriteriaQualityAligned(criteria, ['observable', 'vague', 'unobservable', 'vague'])
+    ).toThrow(/one entry per acceptance criterion/);
+  });
+
+  it('rejects any list for no criteria', () => {
+    expect(() => assertCriteriaQualityAligned([], ['observable'])).toThrow();
+    expect(() => assertCriteriaQualityAligned([])).not.toThrow();
+  });
+
+  it('names both counts, so a caller can see what it sent', () => {
+    expect(() => assertCriteriaQualityAligned(criteria, ['observable'])).toThrow(
+      /received 1 for 3 criteria/
+    );
   });
 });

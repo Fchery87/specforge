@@ -43,6 +43,27 @@ export const artifactSectionValidator = v.object({
   ),
 });
 
+/**
+ * The testability class of each acceptance criterion, index-aligned with `acceptanceCriteria`.
+ *
+ * Optional, because a ticket written before this field existed has none and reads as `unclassified`
+ * through `criterionClasses` in `lib/validation/acceptance-criteria.ts`. Optional also means no
+ * migration: existing rows stay valid as they are.
+ *
+ * Defined once and shared, for the reason the artifact section validator above was consolidated: the
+ * `acceptanceCriteria` field was hand-copied into four validators, and that is how a writer and a
+ * stored shape drift apart without anything noticing.
+ */
+export const acceptanceCriteriaQualityValidator = v.optional(
+  v.array(
+    v.union(
+      v.literal('observable'),
+      v.literal('unobservable'),
+      v.literal('vague'),
+    ),
+  ),
+);
+
 export default defineSchema({
   projects: defineTable({
     userId: v.string(),
@@ -495,6 +516,7 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
     acceptanceCriteria: v.array(v.string()),
+    acceptanceCriteriaQuality: acceptanceCriteriaQualityValidator,
     status: v.union(
       v.literal('todo'),
       v.literal('in_progress'),

@@ -2,6 +2,8 @@ import { query, mutation } from './_generated/server';
 import type { QueryCtx, MutationCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
+import { acceptanceCriteriaQualityValidator } from './schema';
+import { assertCriteriaQualityAligned } from '../lib/validation/acceptance-criteria';
 
 // Shared auth helper: look up ticket -> project -> verify ownership
 async function authorizeTicketAccess(
@@ -112,6 +114,7 @@ export async function insertTicketHandler(
     title: string;
     description: string;
     acceptanceCriteria: string[];
+    acceptanceCriteriaQuality?: ('observable' | 'unobservable' | 'vague')[];
     status: 'todo' | 'in_progress' | 'done';
     priority: 'critical' | 'high' | 'medium' | 'low';
     estimatedEffort?: string;
@@ -119,6 +122,7 @@ export async function insertTicketHandler(
   },
 ) {
   await authorizeProjectAccess(ctx, args.projectId);
+  assertCriteriaQualityAligned(args.acceptanceCriteria, args.acceptanceCriteriaQuality);
   const now = Date.now();
   return await ctx.db.insert('tickets', {
     ...args,
@@ -171,6 +175,7 @@ export const insertTicket = mutation({
     title: v.string(),
     description: v.string(),
     acceptanceCriteria: v.array(v.string()),
+    acceptanceCriteriaQuality: acceptanceCriteriaQualityValidator,
     status: v.union(
       v.literal('todo'),
       v.literal('in_progress'),
