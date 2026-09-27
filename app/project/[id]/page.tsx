@@ -22,6 +22,7 @@ import { ProjectRulesCard } from "@/components/project-rules-card";
 import { ExportOptionsPanel } from "@/components/export-options";
 import { Sparkles, Loader2, Download } from "lucide-react";
 import { CodebaseConnector } from "@/components/codebase-connector";
+import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
   Dialog,
@@ -63,6 +64,10 @@ export default function ProjectPage() {
   const allArtifacts = useQuery(
     getAllProjectArtifactsAction,
     isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
+  );
+  const readiness = useQuery(
+    api.userConfigs.getGenerationReadiness,
+    isLoaded && isSignedIn ? {} : "skip"
   );
   const stageQuality = useQuery(
     api.stageReports.getProjectStageQuality,
@@ -140,6 +145,7 @@ export default function ProjectPage() {
     return !status || status === "pending";
   });
 
+  const hasQuickSpec = (allArtifacts ?? []).some((artifact) => artifact.type === "quickSpec");
   const mode = (project.mode ?? "full") as ProjectMode;
   const nextActionItem = nextAction(phases ?? [], skippedPhases as readonly PhaseId[], mode);
   const currentPhase = currentPhaseFor(nextActionItem, phases ?? [], skippedPhases);
@@ -206,6 +212,7 @@ export default function ProjectPage() {
       </div>
 
       <section className="page-container pb-16">
+        <GenerationReadinessBanner ready={readiness?.ready ?? true} className="mb-6" />
         <div className="rounded-lg border border-line bg-surface px-5 py-7 md:px-8 md:py-9">
           <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
             <div className="min-w-0">
@@ -221,9 +228,11 @@ export default function ProjectPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/project/${params.id}/quick` as Route}>Saved quick specs</Link>
-              </Button>
+              {hasQuickSpec ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/project/${params.id}/quick` as Route}>Saved quick specs</Link>
+                </Button>
+              ) : null}
               {hasPendingPhases ? (
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/project/${params.id}/questions` as Route}>

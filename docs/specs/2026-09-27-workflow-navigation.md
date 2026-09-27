@@ -33,12 +33,14 @@ measurable:
    on the project page.
 4. The phase page has a project sidebar listing every phase with its status, and its heading names
    the phase.
+5. A missing model is reported on the dashboard, the project page, the answers page and the Quick
+   spec page, and every generate control is off with the reason beside it.
+6. A Quick spec can start a Lite project that holds it, and the project page links saved quick specs
+   only when the project has one.
 
 ## Non-goals
 
-- The Quick spec tool's save flow. It stays a separate tool in this phase.
-- A setup check before generation on the dashboard. It is a separate small change.
-- Restyling the settings, quick spec and quick history pages.
+- Restyling the settings and quick history pages.
 - The jump-to palette, which stays a later phase and is reconsidered once the navigation exists.
 
 ## Approach
@@ -78,6 +80,26 @@ a button that names the project, the phase and its position ("3 of 7", skipped p
 and opens the same list as a drawer. The owner kept the stage band on the project overview, where it
 summarises rather than navigates. Captures of the build are in `design/screens/navigation/built/`.
 
+### Setup check
+
+`GenerationReadinessBanner` now also renders on the dashboard, the project page, the answers page and
+the Quick spec page. `GenerationControls`, `QuestionsPanel` and `CombinedQuestions` take `modelReady`
+from their page's `getGenerationReadiness` query; when it is false, Generate is disabled and
+`ConnectModelNote` says why beside it, with a link to Settings. The empty questions state drops its
+Generate Questions action and says the same.
+
+### Quick spec to project
+
+`createProjectFromQuickSpec` in `convex/projects.ts` creates a Lite project and saves the quick spec
+into it in one mutation, so a failed save cannot leave an empty project. It reuses
+`createProjectHandler`, extracted from `createProject`, and `saveQuickSpecHandler`. The Quick spec
+page offers "Start a project from this" first and saving to an existing project second, and takes the
+Magenta layout. The project page shows "Saved quick specs" only when a `quickSpec` artifact exists.
+
+Found on the way: `CombinedQuestions` re-rendered forever when a caller omitted `skippedPhases`,
+because the default `[]` was a new array each render and an effect depends on it. The default is now
+one stable array.
+
 ## Deletion inventory
 
 Deleted by the small fixes:
@@ -96,3 +118,8 @@ Deleted by the navigation build:
   the stepper read. Both components stay in use elsewhere.
 - `LEDGER_ORDER`, `groupLabel` and the local status words in `components/phase-ledger.tsx`, replaced
   by `PROJECT_OUTLINE` and `PHASE_STATUS_WORDS`.
+
+Deleted by the setup check and Quick spec work:
+
+- The Quick spec page's breadcrumbs, icon tile and card chrome.
+- The unconditional "Saved quick specs" button on the project page.

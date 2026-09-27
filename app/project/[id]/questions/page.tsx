@@ -10,6 +10,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { generateAllPhasesAction, generateAllQuestionAnswersAction } from "@/lib/convex-actions";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CombinedQuestions, type CombinedAnswerItem } from "@/components/combined-questions";
+import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { MODE_POLICIES, type ProjectMode } from "@/lib/workflow";
@@ -29,6 +30,7 @@ export default function CombinedQuestionsPage() {
     isLoaded && isSignedIn && projectId ? { projectId } : "skip"
   );
 
+  const readiness = useQuery(api.userConfigs.getGenerationReadiness);
   const saveAnswer = useMutation(api.projects.saveAnswer);
   const generateAllPhases = useAction(generateAllPhasesAction);
   const generateAllQuestionAnswers = useAction(generateAllQuestionAnswersAction);
@@ -133,6 +135,7 @@ export default function CombinedQuestionsPage() {
 
       {/* Combined Questions Form */}
       <section className="page-container pb-20">
+        <GenerationReadinessBanner ready={readiness?.ready ?? true} className="mb-6" />
         <CombinedQuestions
           projectId={projectId}
           phases={phases}
@@ -140,6 +143,7 @@ export default function CombinedQuestionsPage() {
           isGenerating={isGenerating}
           onGenerateEverything={handleGenerateEverything}
           onRequestSuggestions={handleRequestSuggestions}
+          modelReady={readiness?.ready ?? true}
         />
       </section>
     </main>

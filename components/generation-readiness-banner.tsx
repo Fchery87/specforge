@@ -33,8 +33,21 @@ export function GenerationReadinessBanner({
         href="/settings"
         className="text-ui font-semibold text-primary hover:underline shrink-0"
       >
-        Settings &rarr;
+        Open Settings
       </Link>
     </div>
+  );
+}
+
+/** Why a generate control is off when no model is connected, placed beside the control. */
+export function ConnectModelNote({ className }: { className?: string }) {
+  return (
+    <span className={className}>
+      Connect a model in{" "}
+      <Link href="/settings" className="font-medium text-ink underline underline-offset-4">
+        Settings
+      </Link>{" "}
+      to generate.
+    </span>
   );
 }

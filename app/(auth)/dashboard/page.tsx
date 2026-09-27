@@ -18,6 +18,7 @@ import { PersonalAnalytics } from "@/components/dashboard/personal-analytics";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
+import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 
 export default function DashboardPage() {
   const { isLoaded, isSignedIn } = useAuth();
@@ -29,6 +30,11 @@ export default function DashboardPage() {
 
   const pinnedProjects = useQuery(
     api.userPreferences.getPinnedProjects,
+    isLoaded && isSignedIn ? {} : "skip"
+  );
+
+  const readiness = useQuery(
+    api.userConfigs.getGenerationReadiness,
     isLoaded && isSignedIn ? {} : "skip"
   );
 
@@ -153,6 +159,7 @@ export default function DashboardPage() {
             </Button>
           </div>
         </div>
+        <GenerationReadinessBanner ready={readiness?.ready ?? true} className="mt-8" />
       </section>
 
       <section className="page-container pb-16">

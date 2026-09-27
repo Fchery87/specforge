@@ -598,6 +598,7 @@ export default function PhasePage() {
                     isCancelling={isCancelling}
                     canResume={canResume}
                     onResumePhase={handleResumePhase}
+                    modelReady={readiness?.ready ?? true}
                   />
                 )}
               </Tabs.Content>
