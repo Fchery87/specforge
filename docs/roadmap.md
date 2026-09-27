@@ -9,7 +9,7 @@
 | 1. Evidence-backed specifications | Active: live deployment walkthrough pending | [Evidence-backed specifications](specs/2026-09-22-evidence-backed-specs.md) | [Implementation plan](plans/2026-09-22-evidence-backed-specs.md) |
 | 2. Guided three-stage workflow | Complete | [Guided three-stage workflow](specs/2026-09-25-guided-workflow.md) | - |
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
-| 4. Stage prompts and requirement quality | In progress: tasks 1 to 6 of 10 finished | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | [Implementation plan](plans/2026-09-26-stage-prompts-and-requirement-quality.md) |
+| 4. Stage prompts and requirement quality | In progress: tasks 1 to 7 of 10 finished | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | [Implementation plan](plans/2026-09-26-stage-prompts-and-requirement-quality.md) |
 
 The local implementation and repository gates are complete for phases 2 and 3. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
