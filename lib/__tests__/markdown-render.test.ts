@@ -248,7 +248,15 @@ describe("section marks", () => {
   it("places the mark inside the heading, so the table of contents anchor still lands on it", () => {
     const html = renderSpecHtml(markdown, ids, undefined, { requirements: "empty" });
 
-    expect(html).toContain('<h2 id="requirements">Requirements<span class="section-mark">empty');
+    expect(html).toContain('<h2 id="requirements">Requirements <span class="section-mark">empty');
+  });
+
+  it("separates the mark from the heading text, so the heading is not announced as one word", () => {
+    const html = renderSpecHtml(markdown, ids, undefined, { requirements: "empty" });
+
+    // The heading's accessible name is its text content. A mark joined straight onto it reads
+    // "Requirementsempty" to anyone who hears the heading rather than sees it.
+    expect(html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ")).toContain("Requirements empty");
   });
 
   it("applies both marks and claim states independently in one pass", () => {

@@ -147,6 +147,11 @@ export function sectionMarksFor(
  * attributes and elements, so a mark inserted earlier would be removed. The token is constrained to
  * the vocabulary above and the id has already passed `SAFE_ID` when the heading was anchored, so
  * nothing here can introduce markup a caller chose.
+ *
+ * A space separates the mark from the heading's text. A heading's accessible name is its text
+ * content, so without it a reader hears "Problem Statementover budget" as one word. The rule that
+ * styles the span adds a small margin on top, so the reader sees a deliberate gap rather than a
+ * rendered space.
  */
 function applySectionMarks(
   html: string,
@@ -157,7 +162,7 @@ function applySectionMarks(
     const word = token ? SECTION_MARK_WORDS[token] : undefined;
     if (!word) return match;
 
-    return `<h${level} id="${id}">${inner}<span class="section-mark">${word}</span></h${level}>`;
+    return `<h${level} id="${id}">${inner} <span class="section-mark">${word}</span></h${level}>`;
   });
 }
 
