@@ -795,4 +795,40 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_created', ['userId', 'createdAt']),
+
+  // Requirement quality: one row per project and stage, recomputed on demand.
+  stageReports: defineTable({
+    projectId: v.id('projects'),
+    stageId: v.string(),
+    // Exactly which revisions were measured, so a stored report cannot be read as describing a
+    // revision it never saw.
+    artifactVersionIds: v.array(v.id('artifactVersions')),
+    // Four dimensions, reported separately and never combined. See lib/quality/stage-report.ts.
+    traceability: v.object({
+      total: v.number(),
+      traced: v.number(),
+      untraced: v.number(),
+    }),
+    testability: v.object({
+      total: v.number(),
+      observable: v.number(),
+      unobservable: v.number(),
+      vague: v.number(),
+      unclassified: v.number(),
+    }),
+    coverage: v.object({
+      sections: v.number(),
+      emptySections: v.number(),
+      missingSections: v.number(),
+      missingSectionIds: v.array(v.string()),
+    }),
+    length: v.object({
+      words: v.number(),
+      budgetWords: v.number(),
+      overBudget: v.boolean(),
+    }),
+    computedAt: v.number(),
+  })
+    .index('by_project', ['projectId'])
+    .index('by_project_stage', ['projectId', 'stageId']),
 });
