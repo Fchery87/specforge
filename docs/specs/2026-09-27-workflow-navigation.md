@@ -31,8 +31,8 @@ measurable:
    reviewed before generation, and that page's button carries the same name.
 3. Creating a project is one step and always opens the project page. The repository connection lives
    on the project page.
-4. The phase page gains a project navigation chosen from the prototypes in
-   `design/prototypes/project-navigation.html`, and its heading names the phase.
+4. The phase page has a project sidebar listing every phase with its status, and its heading names
+   the phase.
 
 ## Non-goals
 
@@ -70,8 +70,13 @@ Three prototypes were built on the Magenta tokens and captured at desktop and ph
 - A drawer: the same list behind that button at every width.
 - A top bar: the phases as a strip under the site header.
 
-The owner picks one direction before it is built. The build replaces the breadcrumbs, the stage
-stepper and the stage phase links on the phase page, and sets the phase name as the heading.
+The owner chose the rail. `components/project-nav.tsx` draws it from `PROJECT_OUTLINE` in
+`lib/workflow.ts`, the one reading order that `PhaseLedger` also uses, with `PHASE_STATUS_WORDS` as
+the one set of status words. On the phase page it replaces the breadcrumbs, the stage stepper and the
+stage phase links, and the heading becomes the phase name, under its stage. Below `lg` it folds into
+a button that names the project, the phase and its position ("3 of 7", skipped phases not counted)
+and opens the same list as a drawer. The owner kept the stage band on the project overview, where it
+summarises rather than navigates. Captures of the build are in `design/screens/navigation/built/`.
 
 ## Deletion inventory
 
@@ -83,5 +88,11 @@ Deleted by the small fixes:
   `handleSkipRepo`) and the mode-dependent landing route.
 - The project page's generate-all confirmation dialog, `handleGenerateAll` and its state.
 
-To be deleted by the navigation build, on the phase page: `Breadcrumbs`, `StageStepper` and
-`StagePhaseLinks`.
+Deleted by the navigation build:
+
+- `components/stage-phase-links.tsx` and its test. The sidebar lists every phase, which also covers
+  the case it existed for, a generated document with no link to it.
+- The phase page's use of `Breadcrumbs` and `StageStepper`, and its stage-quality query, which only
+  the stepper read. Both components stay in use elsewhere.
+- `LEDGER_ORDER`, `groupLabel` and the local status words in `components/phase-ledger.tsx`, replaced
+  by `PROJECT_OUTLINE` and `PHASE_STATUS_WORDS`.

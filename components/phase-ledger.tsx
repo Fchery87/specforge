@@ -2,24 +2,14 @@ import Link from "next/link";
 import type { Route } from "next";
 import { cn } from "@/lib/utils";
 import {
-  EXPORT_PHASE,
-  RULES_PHASE,
-  WORKFLOW_STAGES,
+  PHASE_STATUS_WORDS,
+  PROJECT_OUTLINE,
   phaseLabel,
   phaseState,
-  stageIdForPhase,
   type PhaseId,
   type PhaseRawStatus,
   type PhaseStatusMap,
 } from "@/lib/workflow";
-
-const STATUS_WORD: Record<PhaseRawStatus, string> = {
-  pending: "Not started",
-  generating: "Generating",
-  ready: "Ready",
-  error: "Error",
-  skipped: "Skipped",
-};
 
 const STATUS_TONE: Record<PhaseRawStatus, string> = {
   pending: "text-dim",
@@ -29,22 +19,9 @@ const STATUS_TONE: Record<PhaseRawStatus, string> = {
   skipped: "text-dim",
 };
 
-/**
- * Display order: the rules, each stage's phases in stage order, then export. Not `PHASE_ORDER`, which
- * is storage order and puts Tasks between two Design phases.
- */
-const LEDGER_ORDER: readonly PhaseId[] = [
-  RULES_PHASE,
-  ...WORKFLOW_STAGES.flatMap((stage) => stage.phaseIds),
-  EXPORT_PHASE,
-];
-
-function groupLabel(phaseId: PhaseId): string {
-  if (phaseId === RULES_PHASE) return "Rules";
-  if (phaseId === EXPORT_PHASE) return "Export";
-  const stageId = stageIdForPhase(phaseId);
-  return WORKFLOW_STAGES.find((stage) => stage.id === stageId)?.label ?? "";
-}
+const LEDGER_ROWS = PROJECT_OUTLINE.flatMap((group) =>
+  group.phaseIds.map((phaseId) => ({ phaseId, group: group.label }))
+);
 
 /**
  * The ledger under the stage band: every phase, its stage and its status, one row each. The band
@@ -76,7 +53,7 @@ export function PhaseLedger({
         </tr>
       </thead>
       <tbody>
-        {LEDGER_ORDER.map((phaseId, index) => {
+        {LEDGER_ROWS.map(({ phaseId, group }, index) => {
           const status = phaseState(phases, skippedPhases, phaseId);
           const current = currentPhase === phaseId;
 
@@ -101,8 +78,8 @@ export function PhaseLedger({
                   {phaseLabel(phaseId)}
                 </Link>
               </td>
-              <td className="hidden py-3 pr-3 text-dim sm:table-cell">{groupLabel(phaseId)}</td>
-              <td className={cn("py-3 pr-3", STATUS_TONE[status])}>{STATUS_WORD[status]}</td>
+              <td className="hidden py-3 pr-3 text-dim sm:table-cell">{group}</td>
+              <td className={cn("py-3 pr-3", STATUS_TONE[status])}>{PHASE_STATUS_WORDS[status]}</td>
             </tr>
           );
         })}
