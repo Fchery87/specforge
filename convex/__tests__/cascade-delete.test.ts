@@ -23,6 +23,9 @@ function makeCascadeCtx({
     claims: new Map([['c1', { _id: 'c1', projectId }]]),
     evidenceLinks: new Map([['el1', { _id: 'el1', projectId, claimId: 'c1' }]]),
     evidenceReviews: new Map([['er1', { _id: 'er1', projectId, claimId: 'c1' }]]),
+    claimRevisions: new Map([['cr1', { _id: 'cr1', claim: 'c1' }]]),
+    changes: new Map([['ch1', { _id: 'ch1', projectId }]]),
+    changeOps: new Map([['co1', { _id: 'co1', changeId: 'ch1' }]]),
   };
 
   const ctx: any = {

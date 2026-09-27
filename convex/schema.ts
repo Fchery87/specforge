@@ -64,6 +64,30 @@ export const acceptanceCriteriaQualityValidator = v.optional(
   ),
 );
 
+export const claimKindValidator = v.union(
+  v.literal('decision'),
+  v.literal('requirement'),
+  v.literal('acceptance_criterion'),
+);
+
+/**
+ * One operation in a change spec. A union rather than optional fields, so an `add` cannot name a
+ * target and a `remove` cannot carry new wording. `baseText` is the claim's wording when the op was
+ * drafted; applying a change checks it, so a change never overwrites wording that moved since.
+ */
+export const changeOpValidator = v.union(
+  v.object({ type: v.literal('add'), phaseId: v.string(), kind: claimKindValidator, text: v.string() }),
+  v.object({ type: v.literal('modify'), claim: v.id('claims'), baseText: v.string(), text: v.string() }),
+  v.object({ type: v.literal('remove'), claim: v.id('claims'), baseText: v.string() }),
+  v.object({ type: v.literal('reaffirm'), claim: v.id('claims'), baseText: v.string() }),
+);
+
+export const bugReportValidator = v.object({
+  observed: v.string(),
+  expected: v.string(),
+  reproduction: v.string(),
+});
+
 export default defineSchema({
   projects: defineTable({
     userId: v.string(),
@@ -77,6 +101,7 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
     nextClaimNumber: v.optional(v.number()),
+    nextChangeNumber: v.optional(v.number()),
     skippedPhases: v.optional(v.array(v.string())),
     mode: v.optional(
       v.union(
@@ -445,11 +470,7 @@ export default defineSchema({
     claimId: v.string(),
     artifactId: v.id('artifacts'),
     artifactVersion: v.optional(v.number()),
-    kind: v.union(
-      v.literal('decision'),
-      v.literal('requirement'),
-      v.literal('acceptance_criterion'),
-    ),
+    kind: claimKindValidator,
     text: v.string(),
     decisionStatus: v.union(
       v.literal('confirmed'),
@@ -465,6 +486,36 @@ export default defineSchema({
     .index('by_project', ['projectId'])
     .index('by_artifact', ['artifactId'])
     .index('by_project_claim_id', ['projectId', 'claimId']),
+
+  // A change spec: one feature change or one bug fix against a project's live claims.
+  changes: defineTable({
+    projectId: v.id('projects'),
+    changeNumber: v.number(),
+    kind: v.union(v.literal('feature'), v.literal('bugfix')),
+    title: v.string(),
+    summary: v.string(),
+    bug: v.optional(bugReportValidator),
+    status: v.union(v.literal('draft'), v.literal('applied'), v.literal('abandoned')),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    appliedAt: v.optional(v.number()),
+  }).index('by_project', ['projectId']),
+
+  changeOps: defineTable({
+    changeId: v.id('changes'),
+    order: v.number(),
+    reason: v.string(),
+    evidenceSourceIds: v.array(v.id('evidenceSources')),
+    op: changeOpValidator,
+  }).index('by_change', ['changeId']),
+
+  // Earlier wording of a claim, written when a change modifies it, so the ID keeps its history.
+  claimRevisions: defineTable({
+    claim: v.id('claims'),
+    text: v.string(),
+    changeId: v.optional(v.id('changes')),
+    createdAt: v.number(),
+  }).index('by_claim', ['claim']),
 
   evidenceLinks: defineTable({
     projectId: v.id('projects'),
