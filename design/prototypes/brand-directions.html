@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-dir="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpecForge Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mona+Sans:ital,wdth,wght@0,75..125,200..900;1,75..125,200..900&family=Fragment+Mono&family=Doto:wght,ROND@100..900,0..100&family=Host+Grotesk:wght@300..800&family=Spline+Sans+Mono:wght@300..700&family=Funnel+Display:wght@300..800&family=Funnel+Sans:wght@300..800&family=Red+Hat+Mono:wght@300..700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   SpecForge brand directions.
+   Grounds are fixed by the client: a clean off-white, a true dark black.
+   Directions change type and the single accent, nothing else.
+   ============================================================ */
+:root {
+  --ground: #f7f7f7;
+  --sheet: #ffffff;
+  --plate: #efefef;
+  --line: #e4e4e4;
+  --line-strong: #d0d0d0;
+  --field: #8f8f8f;
+  --ink: #0a0a0a;
+  --ink-2: #4a4a4a;
+  --ink-3: #6b6b6b;
+  --on-ink: #ffffff;
+
+  --review: #9a6700;
+  --missing: #c4291c;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --measure: 66ch;
+}
+:root[data-theme="dark"] {
+  --ground: #0a0a0a;
+  --sheet: #111111;
+  --plate: #191919;
+  --line: #222222;
+  --line-strong: #2e2e2e;
+  --field: #6b6b6b;
+  --ink: #f2f2f2;
+  --ink-2: #b4b4b4;
+  --ink-3: #8c8c8c;
+  --on-ink: #0a0a0a;
+  --review: #e7b54a;
+  --missing: #ff7a6b;
+}
+
+/* ---------- Directions ---------- */
+[data-dir="cobalt"] {
+  --f-display: "Mona Sans", ui-sans-serif, system-ui, sans-serif;
+  --f-sans: "Mona Sans", ui-sans-serif, system-ui, sans-serif;
+  --f-mono: "Fragment Mono", ui-monospace, monospace;
+  --display-weight: 640;
+  --display-track: -0.045em;
+  --display-leading: 0.92;
+  --display-extra: "wdth" 100;
+  --accent: #2447ff;
+  --accent-text: #1f3de0;
+  --on-accent: #ffffff;
+  --radius: 8px;
+}
+[data-theme="dark"][data-dir="cobalt"] { --accent: #3d5cff; --accent-text: #8a9dff; --on-accent: #ffffff; }
+
+[data-dir="signal"] {
+  --f-display: "Doto", ui-monospace, monospace;
+  --f-sans: "Host Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --f-mono: "Spline Sans Mono", ui-monospace, monospace;
+  --display-weight: 900;
+  --display-track: -0.02em;
+  --display-leading: 0.95;
+  --display-extra: "ROND" 100;
+  --display-scale: 0.74;
+  --accent: #ff5a1f;
+  --accent-text: #c2410c;
+  --on-accent: #0a0a0a;
+  --ring: #c2410c;
+  --radius: 4px;
+}
+[data-theme="dark"][data-dir="signal"] { --ring: #ff5a1f; --accent: #ff5a1f; --accent-text: #ff7b47; --on-accent: #0a0a0a; }
+
+[data-dir="magenta"] {
+  --f-display: "Funnel Display", ui-sans-serif, system-ui, sans-serif;
+  --f-sans: "Funnel Sans", ui-sans-serif, system-ui, sans-serif;
+  --f-mono: "Red Hat Mono", ui-monospace, monospace;
+  --display-weight: 600;
+  --display-track: -0.04em;
+  --display-leading: 0.94;
+  --display-extra: normal;
+  --accent: #e4127a;
+  --accent-text: #c10f67;
+  --on-accent: #ffffff;
+  --radius: 12px;
+}
+[data-theme="dark"][data-dir="magenta"] { --accent: #ff3d9a; --accent-text: #ff6fb3; --on-accent: #0a0a0a; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--ring, var(--accent)); outline-offset: 2px; border-radius: 4px; }
+::selection { background: color-mix(in oklab, var(--accent) 28%, transparent); }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+a { color: inherit; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: 40px; }
+@media (max-width: 720px) { .wrap { padding-inline: 16px; } }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- Mark ---------- */
+.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand svg { flex: none; }
+.wordmark { font-family: var(--f-sans); font-weight: 650; font-size: 18px; letter-spacing: -0.03em; }
+.mark-bg { fill: var(--ink); }
+.mark-fg { fill: var(--ground); }
+.mark-dot { fill: var(--accent); }
+
+/* ---------- Header ---------- */
+.top { position: sticky; top: 0; z-index: 10; background: color-mix(in oklab, var(--ground) 88%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; height: 60px; gap: 24px; }
+.top nav { display: flex; gap: 22px; font-size: 14px; color: var(--ink-2); }
+.top nav a { text-decoration: none; }
+.top .spacer { flex: 1; }
+@media (hover: hover) and (pointer: fine) { .top nav a:hover { color: var(--ink); } }
+
+/* ---------- Buttons: press feedback, no hover motion ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 16px;
+  border-radius: var(--radius);
+  font-size: 14px; font-weight: 560; letter-spacing: -0.005em;
+  text-decoration: none; white-space: nowrap;
+  transition: transform 160ms var(--ease-out), background-color 150ms ease, border-color 150ms ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn-accent { background: var(--accent); color: var(--on-accent); }
+.btn-ink { background: var(--ink); color: var(--on-ink); }
+.btn-line { border: 1px solid var(--field); background: var(--sheet); }
+.btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-accent:hover { background: color-mix(in oklab, var(--accent) 88%, var(--ink)); }
+  .btn-ink:hover { background: color-mix(in oklab, var(--ink) 85%, var(--ground)); }
+  .btn-line:hover { border-color: var(--ink-2); }
+}
+.kbd { font-family: var(--f-mono); font-size: 11px; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--ink-3); }
+
+.seg-toggle { display: inline-flex; border: 1px solid var(--line-strong); border-radius: calc(var(--radius) + 2px); padding: 2px; background: var(--sheet); }
+.seg-toggle button { height: 26px; padding: 0 10px; font-size: 12.5px; border-radius: var(--radius); color: var(--ink-2); }
+.seg-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+
+/* ---------- Hallmarks: claim notation ---------- */
+.marks { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; align-content: flex-start; }
+.punch {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: calc(var(--radius) * 0.6);
+  font-family: var(--f-mono); font-size: 11px; line-height: 1;
+  white-space: nowrap; color: var(--ink-2); background: var(--sheet);
+}
+.punch.struck { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.punch.missing { border-style: dashed; border-color: var(--missing); color: var(--missing); background: transparent; }
+.punch.review { border-color: var(--review); color: var(--review); }
+.punch svg { width: 11px; height: 11px; }
+
+/* The stamp. Rare, answers a sign-off, so it may carry a little character. */
+@keyframes stamp {
+  from { transform: scale(1.14); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.stamp > .punch { animation: stamp 240ms var(--ease-out) both; }
+.stamp > .punch:nth-child(2) { animation-delay: 60ms; }
+.stamp > .punch:nth-child(3) { animation-delay: 120ms; }
+.stamp > .punch:nth-child(4) { animation-delay: 180ms; }
+.stamp > .punch:nth-child(5) { animation-delay: 240ms; }
+
+/* ---------- Stage band: monochrome, one accent for "here" ---------- */
+.band { display: grid; grid-template-columns: 1fr 2fr 3fr 1fr 1fr; gap: 12px; }
+.band .grp { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+.seg { height: 6px; border-radius: 3px; background: var(--line); position: relative; overflow: hidden; }
+.seg.done { background: var(--ink); }
+.seg.now { background: var(--line); }
+.seg.now::before { content: ""; position: absolute; inset: 0 55% 0 0; background: var(--accent); border-radius: 3px; }
+.band-labels { display: grid; grid-template-columns: 1fr 2fr 3fr 1fr 1fr; gap: 12px; margin-top: 10px; font-size: 12.5px; color: var(--ink-3); }
+.band-labels span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.band-labels .here { color: var(--ink); font-weight: 600; }
+.band.thin .seg { height: 4px; }
+.band.thin { gap: 6px; }
+
+/* ---------- Hero ---------- */
+.hero { padding-top: 96px; }
+.hero h1 {
+  font-family: var(--f-display);
+  font-weight: var(--display-weight);
+  font-variation-settings: var(--display-extra);
+  font-size: calc(clamp(44px, 7vw, 104px) * var(--display-scale, 1));
+  line-height: var(--display-leading);
+  letter-spacing: var(--display-track);
+  max-width: 15ch;
+  text-wrap: balance;
+}
+[data-dir="signal"] .hero h1 { max-width: 20ch; }
+.hero-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: end; margin-top: 36px; }
+.hero-row .lede { font-size: 18px; line-height: 1.55; color: var(--ink-2); max-width: 52ch; letter-spacing: -0.005em; }
+.hero-row .note { margin-top: 12px; font-size: 13px; color: var(--ink-3); }
+.hero-row .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 900px) { .hero-row { grid-template-columns: 1fr; align-items: start; } }
+
+.hero-sheet {
+  margin-top: 64px;
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 6px) calc(var(--radius) + 6px) 0 0;
+  border-bottom: 0;
+  padding: 24px 40px 8px;
+  box-shadow: 0 -1px 0 var(--line), 0 30px 80px -40px rgb(0 0 0 / 0.18);
+}
+[data-theme="dark"] .hero-sheet { box-shadow: none; }
+.sheet-head { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; color: var(--ink-3); margin-bottom: 22px; flex-wrap: wrap; }
+.sheet-head b { color: var(--ink); font-weight: 600; }
+.clause { display: grid; grid-template-columns: 64px minmax(0, 1fr) 300px; gap: 24px; padding: 26px 0; border-top: 1px solid var(--line); }
+.clause .num { font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); padding-top: 3px; }
+.clause h3 { font-size: 15px; font-weight: 620; margin-bottom: 8px; letter-spacing: -0.01em; }
+.clause p { font-size: 17px; line-height: 1.65; max-width: var(--measure); letter-spacing: -0.003em; }
+.clause code, .rc code { font-family: var(--f-mono); font-size: .82em; background: var(--plate); padding: 1px 5px; border-radius: 4px; }
+.clause .gap-note { margin-top: 10px; font-size: 13px; color: var(--missing); }
+@media (max-width: 900px) { .hero-sheet { padding: 18px 16px 4px; } .clause { grid-template-columns: 1fr; gap: 10px; } }
+
+/* The one orchestrated entrance: sheet rises, band wipes in, the confirmed clause is stamped. */
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.hero-sheet { animation: rise 600ms var(--ease-out) 120ms both; }
+.hero-sheet .band { animation: wipe 900ms var(--ease-in-out) 450ms both; }
+.hero-sheet .stamp > .punch { animation-delay: 1300ms; }
+.hero-sheet .stamp > .punch:nth-child(2) { animation-delay: 1360ms; }
+.hero-sheet .stamp > .punch:nth-child(3) { animation-delay: 1420ms; }
+.hero-sheet .stamp > .punch:nth-child(4) { animation-delay: 1480ms; }
+.hero-sheet .stamp > .punch:nth-child(5) { animation-delay: 1540ms; }
+
+/* ---------- Prototype captions ---------- */
+.cap { margin-top: 112px; padding-bottom: 14px; font-size: 13px; color: var(--ink-3); max-width: 80ch; }
+
+/* ---------- App frames ---------- */
+.app { background: var(--sheet); border: 1px solid var(--line); border-radius: calc(var(--radius) + 6px); overflow: hidden; }
+.app-bar { display: flex; align-items: center; gap: 14px; padding: 0 20px; height: 52px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.crumbs { display: flex; gap: 8px; align-items: center; color: var(--ink-3); min-width: 0; }
+.crumbs b { color: var(--ink); font-weight: 600; }
+.crumbs i { font-style: normal; color: var(--line-strong); }
+.app-bar .spacer { flex: 1; }
+.search { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 10px; min-width: 260px; border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink-3); font-size: 13px; background: var(--ground); }
+.search .kbd { margin-left: auto; }
+
+.ws { padding: 36px 32px 40px; }
+.ws-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; }
+.ws-head h2 { font-family: var(--f-display); font-weight: var(--display-weight); font-variation-settings: var(--display-extra); font-size: 40px; letter-spacing: var(--display-track); line-height: 1; }
+.ws-head .meta { font-size: 13px; color: var(--ink-3); margin-top: 8px; }
+.ws-head .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.ws .band-wrap { margin-top: 32px; }
+
+.next {
+  margin-top: 28px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: center;
+  padding: 18px 20px;
+  border-radius: var(--radius);
+  background: var(--ground);
+  border: 1px solid var(--line);
+}
+.next .pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 20%, transparent); }
+.next small { display: block; font-size: 12.5px; color: var(--ink-3); }
+.next strong { font-size: 17px; font-weight: 620; letter-spacing: -0.015em; }
+.next p { margin-top: 2px; color: var(--ink-2); font-size: 14px; max-width: 72ch; }
+@media (max-width: 720px) { .next { grid-template-columns: auto 1fr; } .next .btn { grid-column: 1 / -1; justify-content: center; } }
+
+.phases { margin-top: 24px; width: 100%; border-collapse: collapse; font-size: 14px; }
+.phases th { text-align: left; font-weight: 500; color: var(--ink-3); font-size: 12.5px; padding: 0 12px 8px; }
+.phases td { padding: 12px; border-top: 1px solid var(--line); }
+.phases .n { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3); width: 40px; }
+.phases tr.cur td { background: color-mix(in oklab, var(--accent) 6%, var(--sheet)); }
+.phases tr.cur td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.phases .dim { color: var(--ink-3); }
+.phases .claims { font-family: var(--f-mono); font-size: 12px; color: var(--ink-2); }
+.st-review { color: var(--review); font-weight: 560; }
+.st-gen { color: var(--accent-text); font-weight: 560; }
+@media (max-width: 720px) { .phases .hide-sm { display: none; } .ws { padding: 24px 16px; } .search, .app-bar .btn { display: none; } }
+
+/* Reader */
+.reader { display: grid; grid-template-columns: 260px minmax(0, 1fr); }
+.toc { border-right: 1px solid var(--line); padding: 24px 14px; font-size: 13px; }
+.toc h4 { font-size: 12.5px; font-weight: 500; color: var(--ink-3); margin: 0 10px 10px; }
+.toc ol { list-style: none; display: grid; gap: 1px; }
+.toc a { display: grid; grid-template-columns: 30px 1fr auto; gap: 6px; align-items: center; padding: 6px 10px; border-radius: calc(var(--radius) - 2px); text-decoration: none; color: var(--ink-2); }
+.toc a.on { background: var(--plate); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .toc a:hover { background: var(--plate); color: var(--ink); } }
+.toc .n { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); }
+.toc .gap { font-family: var(--f-mono); font-size: 10.5px; color: var(--missing); }
+.toc .gap.rv { color: var(--review); }
+.toc .sum { margin: 22px 10px 0; padding-top: 16px; border-top: 1px solid var(--line); display: grid; gap: 14px; }
+.toc .sum div { display: flex; justify-content: space-between; align-items: baseline; color: var(--ink-3); font-size: 12.5px; }
+.toc .sum b { font-family: var(--f-display); font-weight: var(--display-weight); font-variation-settings: var(--display-extra); font-size: 26px; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+@media (max-width: 900px) { .reader { grid-template-columns: 1fr; } .toc { display: none; } }
+
+.doc { padding: 44px 52px 56px; }
+.doc > h2 { font-family: var(--f-display); font-weight: var(--display-weight); font-variation-settings: var(--display-extra); font-size: 34px; letter-spacing: var(--display-track); line-height: 1.05; }
+.doc > .lede { margin-top: 14px; font-size: 17px; line-height: 1.65; color: var(--ink-2); max-width: var(--measure); }
+.doc h3.sec { margin-top: 44px; margin-bottom: 4px; font-size: 19px; font-weight: 640; letter-spacing: -0.02em; display: flex; gap: 14px; align-items: baseline; }
+.doc h3.sec .n { font-family: var(--f-mono); font-size: 12px; color: var(--ink-3); font-weight: 400; }
+.rc { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 36px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.rc h4 { font-size: 15px; font-weight: 620; margin-bottom: 6px; display: flex; gap: 12px; align-items: baseline; letter-spacing: -0.01em; }
+.rc h4 .n { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-3); font-weight: 400; }
+.rc p { font-size: 16.5px; line-height: 1.7; max-width: var(--measure); }
+.rc .side { display: grid; gap: 10px; align-content: start; }
+.rc .why { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
+.rc .why b { font-weight: 560; color: var(--ink-2); }
+.rc .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.rc::before { content: ""; position: absolute; left: -52px; top: 22px; bottom: 22px; width: 2px; border-radius: 2px; background: transparent; transition: background-color 200ms ease; }
+.rc.flag::before { background: var(--review); }
+.rc.miss::before { background: var(--missing); }
+@media (max-width: 1100px) { .rc { grid-template-columns: 1fr; gap: 14px; } }
+@media (max-width: 720px) { .doc { padding: 28px 16px 40px; } .rc::before { left: -16px; } }
+
+/* Projects */
+.rack { background: var(--sheet); border: 1px solid var(--line); border-radius: calc(var(--radius) + 6px); overflow: hidden; }
+.rack-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--line); }
+.rack-head h2 { font-family: var(--f-display); font-weight: var(--display-weight); font-variation-settings: var(--display-extra); font-size: 24px; letter-spacing: var(--display-track); }
+.proj { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 2fr) 160px 100px; gap: 28px; align-items: center; padding: 16px 22px; border-top: 1px solid var(--line); text-decoration: none; }
+.proj:first-of-type { border-top: 0; }
+@media (hover: hover) and (pointer: fine) { .proj:hover { background: var(--ground); } }
+.proj b { display: block; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+.proj small { font-size: 13px; color: var(--ink-3); }
+.proj .need { font-size: 13px; color: var(--ink-2); }
+.proj .need b { display: inline; font-family: var(--f-mono); font-size: 12px; font-weight: 500; color: var(--accent-text); }
+.proj time { font-size: 13px; color: var(--ink-3); text-align: right; }
+@media (max-width: 900px) { .proj { grid-template-columns: 1fr; gap: 10px; } .proj time { text-align: left; } }
+
+/* Brand sheet */
+.sheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card { background: var(--sheet); border: 1px solid var(--line); border-radius: calc(var(--radius) + 6px); padding: 28px; min-width: 0; }
+.card h3 { font-size: 13px; font-weight: 500; color: var(--ink-3); margin-bottom: 22px; }
+@media (max-width: 900px) { .sheet-grid { grid-template-columns: 1fr; } .card { padding: 20px; } }
+.marks-show { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
+.spec-big { font-family: var(--f-display); font-weight: var(--display-weight); font-variation-settings: var(--display-extra); font-size: clamp(36px, 5vw, 56px); letter-spacing: var(--display-track); line-height: 1; }
+.spec-body { font-size: 17px; line-height: 1.65; margin-top: 18px; max-width: 56ch; color: var(--ink-2); }
+.type-dl { display: grid; grid-template-columns: 110px 1fr; gap: 8px 16px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; }
+.type-dl dt { color: var(--ink-3); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px; }
+.sw i { display: block; height: 64px; border-radius: var(--radius); box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink) 10%, transparent); }
+.sw b { display: block; margin-top: 8px; font-size: 13px; font-weight: 600; }
+.sw span { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); }
+.sw em { display: block; font-style: normal; font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+
+footer.end { padding: 72px 0 56px; color: var(--ink-3); font-size: 13px; }
+
+@media (max-width: 720px) {
+  .top nav { display: none; }
+  .top .wrap { gap: 8px; }
+  .top .wordmark { display: none; }
+  .seg-toggle button { padding: 0 7px; }
+  .band-labels span:not(.here) { visibility: hidden; }
+  .band-labels .here { overflow: visible; }
+}
+
+/* Reduced motion keeps the fades and drops the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-sheet { animation-name: fade; }
+  .hero-sheet .band { animation: none; }
+  .stamp > .punch { animation-name: fade; }
+  .btn:active { transform: none; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- The mark: a section sign on a tile, with an accent dot for the claim it certifies. -->
+    <symbol id="mark" viewBox="0 0 32 32">
+      <rect class="mark-bg" x="1" y="1" width="30" height="30" rx="8"/>
+      <path class="mark-fg" d="M16.3 7.2c-3 0-5.1 1.6-5.1 3.9 0 1.3.7 2.3 1.8 3-1.4.7-2.2 1.9-2.2 3.3 0 2.5 2.4 3.6 5 4.6 1.9.7 2.8 1.2 2.8 2.1 0 .9-.9 1.5-2.4 1.5-1.6 0-2.8-.7-3.2-2.1l-2.6.8c.6 2.4 2.9 3.8 5.8 3.8 3.1 0 5.2-1.6 5.2-3.9 0-1.3-.7-2.3-1.8-3 1.4-.7 2.2-1.9 2.2-3.3 0-2.5-2.4-3.6-5-4.6-1.9-.7-2.8-1.2-2.8-2.1 0-.9.9-1.5 2.4-1.5 1.5 0 2.6.6 3.1 1.9l2.6-.8c-.7-2.3-2.9-3.6-5.8-3.6zm-1.7 8.2 2.3.9c1.6.6 2.4 1.1 2.4 2 0 .7-.5 1.2-1.3 1.6l-2.3-.9c-1.6-.6-2.4-1.1-2.4-2 0-.7.5-1.2 1.3-1.6z"/>
+      <circle class="mark-dot" cx="25" cy="7" r="3"/>
+    </symbol>
+    <symbol id="i-commit" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M0 6h3.6M8.4 6H12" stroke="currentColor" stroke-width="1.3"/></symbol>
+    <symbol id="i-file" viewBox="0 0 12 12"><path d="M2.5 1h4.5l2.5 2.5V11h-7z" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+    <symbol id="i-ask" viewBox="0 0 12 12"><path d="M1.5 2h9v6h-5l-2.5 2.5V8h-1.5z" fill="none" stroke="currentColor" stroke-width="1.2"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><svg width="26" height="26"><use href="#mark"/></svg><span class="wordmark">SpecForge</span></a>
+    <nav aria-label="Primary"><a href="#">How it works</a><a href="#">Export formats</a><a href="#">Pricing</a></nav>
+    <span class="spacer"></span>
+    <div class="seg-toggle" role="group" aria-label="Direction">
+      <button type="button" data-dir-set="cobalt" aria-pressed="true">Cobalt</button>
+      <button type="button" data-dir-set="signal" aria-pressed="false">Signal</button>
+      <button type="button" data-dir-set="magenta" aria-pressed="false">Magenta</button>
+    </div>
+    <div class="seg-toggle" role="group" aria-label="Theme">
+      <button type="button" data-theme-set="light" aria-pressed="true">Light</button>
+      <button type="button" data-theme-set="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap" aria-labelledby="hero-h">
+    <h1 id="hero-h">Every requirement shows its proof.</h1>
+    <div class="hero-row">
+      <div>
+        <p class="lede">SpecForge turns a product brief into a specification where each clause is traced to the answer, rule, or commit behind it. Your coding agent builds from the spec. You review the evidence.</p>
+        <p class="note">Bring your own model. Review between stages, or run all of them in one pass.</p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-accent" href="#">Start a spec</a>
+        <a class="btn btn-line" href="#">Try a quick spec</a>
+      </div>
+    </div>
+
+    <div class="hero-sheet" aria-label="Example specification">
+      <div class="sheet-head">
+        <span><b>Atlas</b> product requirements, revision 3</span>
+        <span>Design stage, domain model generating</span>
+      </div>
+      <div class="band" aria-hidden="true">
+        <div class="grp"><span class="seg done"></span></div>
+        <div class="grp"><span class="seg done"></span><span class="seg done"></span></div>
+        <div class="grp"><span class="seg now"></span><span class="seg"></span><span class="seg"></span></div>
+        <div class="grp"><span class="seg"></span></div>
+        <div class="grp"><span class="seg"></span></div>
+      </div>
+      <div class="band-labels" aria-hidden="true"><span>Rules</span><span>Requirements</span><span class="here">Design</span><span>Tasks</span><span>Export</span></div>
+
+      <div style="margin-top:28px">
+        <div class="clause">
+          <span class="num">3.3.1</span>
+          <div>
+            <h3>Archive a project</h3>
+            <p>A workspace member with the editor role may archive a project. Archiving sets <code>status = archived</code>, keeps every artifact readable, and writes one audit event. An archived project accepts no new generation runs.</p>
+          </div>
+          <div class="marks stamp" aria-label="Claim C-014, confirmed by an interview answer and lib/authz.ts at 4f2a91c">
+            <span class="punch struck">C-014</span>
+            <span class="punch"><svg><use href="#i-ask"/></svg>Who may archive</span>
+            <span class="punch"><svg><use href="#i-file"/></svg>lib/authz.ts</span>
+            <span class="punch"><svg><use href="#i-commit"/></svg>4f2a91c</span>
+            <span class="punch struck">Confirmed</span>
+          </div>
+        </div>
+        <div class="clause">
+          <span class="num">3.3.2</span>
+          <div>
+            <h3>Restore a project</h3>
+            <p>Restoring an archived project requires an owner and writes the same audit event as archiving, so the two operations are symmetric in the log.</p>
+            <p class="gap-note">No evidence yet. Answer the open question or cite the file that settles it.</p>
+          </div>
+          <div class="marks" aria-label="Claim C-015, untraced">
+            <span class="punch">C-015</span>
+            <span class="punch missing">Untraced</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <p class="cap">Project workspace. One map, one next action, and the next action names what is blocking.</p>
+    <div class="app">
+      <div class="app-bar">
+        <a class="brand" href="#" aria-label="SpecForge home"><svg width="22" height="22"><use href="#mark"/></svg></a>
+        <div class="crumbs"><span>Projects</span><i>/</i><b>Atlas</b></div>
+        <span class="spacer"></span>
+        <div class="search"><span>Jump to a clause, phase, or claim</span><span class="kbd">⌘K</span></div>
+      </div>
+      <div class="ws">
+        <div class="ws-head">
+          <div><h2>Atlas</h2><p class="meta">Full mode, Claude Opus 5.5, updated 4 minutes ago</p></div>
+          <div class="acts"><a class="btn btn-line btn-sm" href="#">Project rules</a><a class="btn btn-line btn-sm" href="#">Export pack</a></div>
+        </div>
+        <div class="band-wrap">
+          <div class="band" aria-hidden="true">
+            <div class="grp"><span class="seg done"></span></div>
+            <div class="grp"><span class="seg done"></span><span class="seg done"></span></div>
+            <div class="grp"><span class="seg now"></span><span class="seg"></span><span class="seg"></span></div>
+            <div class="grp"><span class="seg"></span></div>
+            <div class="grp"><span class="seg"></span></div>
+          </div>
+          <div class="band-labels"><span>Rules</span><span>Requirements</span><span class="here">Design, 1 of 3</span><span>Tasks</span><span>Export</span></div>
+        </div>
+        <div class="next">
+          <span class="pulse" aria-hidden="true"></span>
+          <div>
+            <small>Next</small>
+            <strong>Settle 2 untraced claims in the PRD</strong>
+            <p>The domain model is generating from a PRD with two claims that have no evidence. Settle them now and the model will not need a second pass.</p>
+          </div>
+          <a class="btn btn-accent" href="#">Review claims</a>
+        </div>
+        <table class="phases">
+          <thead><tr><th></th><th>Phase</th><th class="hide-sm">Stage</th><th>Status</th><th class="hide-sm">Claims</th></tr></thead>
+          <tbody>
+            <tr><td class="n">1</td><td>Project rules</td><td class="dim hide-sm">Rules</td><td class="dim">Confirmed</td><td class="claims hide-sm">6 of 6</td></tr>
+            <tr><td class="n">2</td><td>Brief</td><td class="dim hide-sm">Requirements</td><td class="dim">Confirmed</td><td class="claims hide-sm">9 of 9</td></tr>
+            <tr><td class="n">3</td><td>PRD</td><td class="dim hide-sm">Requirements</td><td class="st-review">Needs review</td><td class="claims hide-sm">22 of 24</td></tr>
+            <tr class="cur"><td class="n">4</td><td><b style="font-weight:620">Domain model</b></td><td class="dim hide-sm">Design</td><td class="st-gen">Generating</td><td class="claims hide-sm">pending</td></tr>
+            <tr><td class="n">5</td><td>Architecture</td><td class="dim hide-sm">Design</td><td class="dim">Not started</td><td class="claims hide-sm"></td></tr>
+            <tr><td class="n">6</td><td>Schemas</td><td class="dim hide-sm">Design</td><td class="dim">Not started</td><td class="claims hide-sm"></td></tr>
+            <tr><td class="n">7</td><td>Tasks</td><td class="dim hide-sm">Tasks</td><td class="dim">Not started</td><td class="claims hide-sm"></td></tr>
+            <tr><td class="n">8</td><td>Export</td><td class="dim hide-sm">Export</td><td class="dim">Not started</td><td class="claims hide-sm"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="cap">Reading surface. The contents list is a gap map, the evidence sits beside the clause it supports, and confirming a clause stamps it.</p>
+    <div class="app">
+      <div class="app-bar">
+        <a class="brand" href="#" aria-label="SpecForge home"><svg width="22" height="22"><use href="#mark"/></svg></a>
+        <div class="crumbs"><span>Atlas</span><i>/</i><span>Requirements</span><i>/</i><b>PRD</b></div>
+        <span class="spacer"></span>
+        <a class="btn btn-line btn-sm" href="#">Compare with revision 2</a>
+      </div>
+      <div class="reader">
+        <nav class="toc" aria-label="Contents">
+          <h4>Contents</h4>
+          <ol>
+            <li><a href="#"><span class="n">1</span><span>Scope</span></a></li>
+            <li><a href="#"><span class="n">2</span><span>Users</span></a></li>
+            <li><a href="#" class="on"><span class="n">3.3</span><span>Roles and permissions</span><span class="gap">1 open</span></a></li>
+            <li><a href="#"><span class="n">4</span><span>Generation runs</span><span class="gap rv" id="toc-review">1 review</span></a></li>
+            <li><a href="#"><span class="n">5</span><span>Invariants</span></a></li>
+            <li><a href="#"><span class="n">6</span><span>Out of scope</span></a></li>
+          </ol>
+          <div class="sum">
+            <div><span>Confirmed</span><b id="n-confirmed">22</b></div>
+            <div><span>Needs review</span><b id="n-review">1</b></div>
+            <div><span>Untraced</span><b>1</b></div>
+          </div>
+        </nav>
+        <article class="doc">
+          <h2>Atlas product requirements</h2>
+          <p class="lede">Atlas keeps a project's evidence in one place. Every clause below is traced to the interview answer, rule, or committed file that justifies it.</p>
+
+          <h3 class="sec"><span class="n">3.3</span>Roles and permissions</h3>
+          <div class="rc">
+            <div>
+              <h4><span class="n">3.3.1</span>Archive a project</h4>
+              <p>A workspace member with the editor role may archive a project. Archiving sets <code>status = archived</code>, keeps every artifact readable, and writes one audit event.</p>
+            </div>
+            <div class="side">
+              <div class="marks"><span class="punch struck">C-014</span><span class="punch"><svg><use href="#i-file"/></svg>lib/authz.ts</span><span class="punch"><svg><use href="#i-commit"/></svg>4f2a91c</span></div>
+              <p class="why"><b>Interview, 22 September.</b> "Editors archive. Only owners bring things back."</p>
+            </div>
+          </div>
+          <div class="rc miss">
+            <div>
+              <h4><span class="n">3.3.2</span>Restore a project</h4>
+              <p>Restoring an archived project requires an owner and writes the same audit event as archiving, so the two operations are symmetric in the log.</p>
+            </div>
+            <div class="side">
+              <div class="marks"><span class="punch">C-015</span><span class="punch missing">Untraced</span></div>
+              <p class="why">Nothing in the interview or the repository settles who may restore.</p>
+              <div class="row"><button class="btn btn-line btn-sm" type="button">Cite a file</button><button class="btn btn-line btn-sm" type="button">Ask a question</button></div>
+            </div>
+          </div>
+
+          <h3 class="sec"><span class="n">4</span>Generation runs</h3>
+          <div class="rc flag" id="review-clause">
+            <div>
+              <h4><span class="n">4.2</span>One run at a time</h4>
+              <p>A project runs at most one generation at a time. A second request while a run is active is rejected with the active run's ID, and the client offers to open it instead of queueing.</p>
+            </div>
+            <div class="side">
+              <div class="marks" id="review-marks"><span class="punch">C-021</span><span class="punch"><svg><use href="#i-file"/></svg>convex/runs.ts</span><span class="punch review" id="review-state">Needs review</span></div>
+              <p class="why"><b>Stress test, question 4.</b> Proposed from the race between two open tabs.</p>
+              <div class="row"><button class="btn btn-accent btn-sm" type="button" id="confirm-btn">Confirm clause</button><button class="btn btn-line btn-sm" type="button">Edit</button></div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <p class="cap">Projects. Each row shows how far the spec has come and how many claims still need you.</p>
+    <div class="rack">
+      <div class="rack-head"><h2>Projects</h2><a class="btn btn-accent btn-sm" href="#">New project</a></div>
+      <a class="proj" href="#">
+        <div><b>Atlas</b><small>Evidence workspace for agencies</small></div>
+        <div class="band thin" aria-label="Design stage"><div class="grp"><span class="seg done"></span></div><div class="grp"><span class="seg done"></span><span class="seg done"></span></div><div class="grp"><span class="seg now"></span><span class="seg"></span><span class="seg"></span></div><div class="grp"><span class="seg"></span></div><div class="grp"><span class="seg"></span></div></div>
+        <span class="need"><b>2</b> claims need you</span>
+        <time>4 min ago</time>
+      </a>
+      <a class="proj" href="#">
+        <div><b>Ledgerline</b><small>Invoice reconciliation API</small></div>
+        <div class="band thin" aria-label="Exported"><div class="grp"><span class="seg done"></span></div><div class="grp"><span class="seg done"></span><span class="seg done"></span></div><div class="grp"><span class="seg done"></span><span class="seg done"></span><span class="seg done"></span></div><div class="grp"><span class="seg done"></span></div><div class="grp"><span class="seg done"></span></div></div>
+        <span class="need">Exported, all claims settled</span>
+        <time>Yesterday</time>
+      </a>
+      <a class="proj" href="#">
+        <div><b>Tidepool</b><small>Shift scheduling for clinics</small></div>
+        <div class="band thin" aria-label="Requirements stage"><div class="grp"><span class="seg done"></span></div><div class="grp"><span class="seg now"></span><span class="seg"></span></div><div class="grp"><span class="seg"></span><span class="seg"></span><span class="seg"></span></div><div class="grp"><span class="seg"></span></div><div class="grp"><span class="seg"></span></div></div>
+        <span class="need"><b>7</b> claims need you</span>
+        <time>Sep 19</time>
+      </a>
+    </div>
+
+    <p class="cap">Brand. The grounds are fixed. The direction sets the type and the one accent.</p>
+    <div class="sheet-grid">
+      <div class="card">
+        <h3>Mark</h3>
+        <div class="marks-show">
+          <svg width="80" height="80"><use href="#mark"/></svg>
+          <svg width="40" height="40"><use href="#mark"/></svg>
+          <svg width="20" height="20"><use href="#mark"/></svg>
+          <span class="brand"><svg width="34" height="34"><use href="#mark"/></svg><span class="wordmark" style="font-size:28px">SpecForge</span></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3 id="type-title">Type</h3>
+        <div class="spec-big">Proof, not promises.</div>
+        <p class="spec-body">A clause is set at 16.5 on 28, under 70 characters a line, so a reviewer can stay with a PRD for an hour.</p>
+        <div class="marks" style="margin-top:14px"><span class="punch struck">C-014</span><span class="punch">4f2a91c</span><span class="punch review">Needs review</span><span class="punch missing">Untraced</span></div>
+        <dl class="type-dl" id="type-dl"></dl>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <h3>Colour</h3>
+        <div class="swatches">
+          <div class="sw"><i style="background:var(--ground)"></i><b>Ground</b><span class="hx" data-v="--ground"></span><em>Page</em></div>
+          <div class="sw"><i style="background:var(--sheet)"></i><b>Sheet</b><span class="hx" data-v="--sheet"></span><em>Documents, panels</em></div>
+          <div class="sw"><i style="background:var(--line)"></i><b>Line</b><span class="hx" data-v="--line"></span><em>Hairlines</em></div>
+          <div class="sw"><i style="background:var(--ink-3)"></i><b>Ink 3</b><span class="hx" data-v="--ink-3"></span><em>Labels, metadata</em></div>
+          <div class="sw"><i style="background:var(--ink)"></i><b>Ink</b><span class="hx" data-v="--ink"></span><em>Text, confirmed</em></div>
+          <div class="sw"><i style="background:var(--accent)"></i><b>Accent</b><span class="hx" data-v="--accent"></span><em>Action, focus, here</em></div>
+          <div class="sw"><i style="background:var(--review)"></i><b>Review</b><span class="hx" data-v="--review"></span><em>Needs review</em></div>
+          <div class="sw"><i style="background:var(--missing)"></i><b>Missing</b><span class="hx" data-v="--missing"></span><em>Untraced, failed</em></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="end wrap">SpecForge brand directions. Switch with the controls in the header.</footer>
+
+<script>
+  const root = document.documentElement;
+  const TYPE = {
+    cobalt: [['Display', 'Mona Sans 640, tracking -4.5%'], ['Reading', 'Mona Sans 400, 16.5 / 28'], ['Identifiers', 'Fragment Mono'], ['Accent', 'Cobalt']],
+    signal: [['Display', 'Doto 900, rounded dots'], ['Reading', 'Host Grotesk 400, 16.5 / 28'], ['Identifiers', 'Spline Sans Mono'], ['Accent', 'International orange']],
+    magenta: [['Display', 'Funnel Display 600, tracking -4%'], ['Reading', 'Funnel Sans 400, 16.5 / 28'], ['Identifiers', 'Red Hat Mono'], ['Accent', 'Magenta']],
+  };
+  const paint = () => {
+    document.querySelectorAll('.hx').forEach(el => { el.textContent = getComputedStyle(root).getPropertyValue(el.dataset.v).trim(); });
+    document.getElementById('type-dl').innerHTML = TYPE[root.dataset.dir].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  };
+  const wire = (attr, key) => document.querySelectorAll(`[${attr}]`).forEach(btn => btn.addEventListener('click', () => {
+    root.dataset[key] = btn.getAttribute(attr);
+    document.querySelectorAll(`[${attr}]`).forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    paint();
+  }));
+  wire('data-dir-set', 'dir');
+  wire('data-theme-set', 'theme');
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('dir')) document.querySelector(`[data-dir-set="${qs.get('dir')}"]`)?.click();
+  if (qs.get('theme')) document.querySelector(`[data-theme-set="${qs.get('theme')}"]`)?.click();
+  paint();
+
+  document.getElementById('confirm-btn').addEventListener('click', (e) => {
+    const marks = document.getElementById('review-marks');
+    marks.querySelector('.punch').className = 'punch struck';
+    const state = document.getElementById('review-state');
+    state.className = 'punch struck'; state.textContent = 'Confirmed';
+    marks.classList.remove('stamp'); void marks.offsetWidth; marks.classList.add('stamp');
+    document.getElementById('review-clause').classList.remove('flag');
+    document.getElementById('toc-review')?.remove();
+    document.getElementById('n-confirmed').textContent = '23';
+    document.getElementById('n-review').textContent = '0';
+    e.currentTarget.remove();
+  });
+</script>
+</body>
+</html>

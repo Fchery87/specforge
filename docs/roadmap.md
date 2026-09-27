@@ -1,6 +1,6 @@
 # SpecForge Roadmap
 
-**Updated:** September 26, 2026
+**Updated:** September 27, 2026
 
 ## Current phase
 
@@ -10,6 +10,7 @@
 | 2. Guided three-stage workflow | Complete | [Guided three-stage workflow](specs/2026-09-25-guided-workflow.md) | - |
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
+| 5. Magenta brand | Active | [Magenta brand](specs/2026-09-27-magenta-brand.md) | [Implementation plan](plans/2026-09-27-magenta-brand.md) |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -28,13 +29,18 @@ zero on `main` at `3048992`, and the report's captured surfaces are in `design/s
 The implementation plan is deleted, as the lifecycle requires of a finished plan. One open decision
 is recorded in the guided workflow spec: the `artifacts` phase inherits the design prompt.
 
+Phase 5 replaces Ember's palette and type with the Magenta brand the product owner chose from three
+directions built on fixed grounds, a clean off-white and a true dark black.
+[ADR 0002](adr/0002-magenta-brand.md) records the decision. Ember's structural decisions stand.
+
 ## Later phases
 
-Each later phase gets its own spec when the phase before it exits. Phases 5 to 7 have no spec yet.
+Each later phase gets its own spec when the phase before it exits. Phases 6 to 9 have no spec yet.
 
-5. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
-6. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
-7. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
+6. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
+7. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
+8. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
+9. Workspace flow. A next action that names the claims blocking a stage, a jump-to palette for clauses and claims, and per-project stage bars on the dashboard, as shown in `design/prototypes/brand-directions.html`.
 
 ## Historical plan index
 

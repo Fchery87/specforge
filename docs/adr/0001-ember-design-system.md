@@ -1,7 +1,7 @@
 # 0001. Replace the brutalist design system with Ember
 
 **Date:** 2026-09-26
-**Status:** Accepted
+**Status:** Accepted. Palette and type superseded by [ADR 0002](0002-magenta-brand.md); structural decisions stand.
 **Supersedes:** the brutalist identity defined in `ARCHITECTURAL_PLAN.md` and the acid-yellow token set in `app/globals.css`
 
 ## Context
