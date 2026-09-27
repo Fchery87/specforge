@@ -369,6 +369,7 @@ export const initGenerationTask = internalMutation({
         title: v.string(),
         description: v.string(),
         questions: v.string(),
+        liveClaims: v.optional(v.array(v.object({ claimId: v.string(), text: v.string() }))),
         constitutionTemplate: v.optional(
           v.object({
             name: v.string(),

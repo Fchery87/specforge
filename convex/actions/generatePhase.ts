@@ -34,6 +34,7 @@ import { retryWithBackoff } from '../../lib/llm/retry';
 import { continueIfTruncated } from '../../lib/llm/continuation';
 import { rateLimiter } from '../rateLimiter';
 import { renderPreviewHtml } from '../../lib/markdown-render';
+import { formatLiveClaimsForPrompt, type LiveClaim } from '../../lib/llm/prompts/claim-ids';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import {
   CONSTITUTION_PROMPT,
@@ -81,6 +82,8 @@ export interface ProjectGenerationContext {
   description: string;
   questions: string;
   constitutionTemplate?: ConstitutionTemplateGuidance;
+  /** The phase's live claims, so the model can keep an ID on a requirement it rewords. */
+  liveClaims?: LiveClaim[];
 }
 
 export function hasMissingRequiredAnswers(questions: Question[]): boolean {
@@ -298,6 +301,10 @@ export const generatePhase = action({
               args.phaseId === 'constitution'
                 ? project.constitutionTemplate
                 : undefined,
+            liveClaims: await ctx.runQuery(internalApi.evidence.listLiveClaimIdsInternal, {
+              projectId: args.projectId,
+              phaseId: args.phaseId,
+            }),
           },
           // Pass section preferences to worker for custom instructions
           sectionPreferences: args.sectionPreferences ?? [],
@@ -654,6 +661,7 @@ Description: ${params.projectContext.description}`,
     params.projectContext.questions
       ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}`
       : null,
+    formatLiveClaimsForPrompt(params.projectContext.liveClaims),
     QUALITY_RULES,
     OUTPUT_RULES,
   ];

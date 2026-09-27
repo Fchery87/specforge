@@ -48,6 +48,21 @@ export const listWorkspace = query({
   },
 });
 
+/** The phase's live claims as ID and wording only, for the generation prompt. */
+export const listLiveClaimIdsInternal = internalQuery({
+  args: { projectId: v.id('projects'), phaseId: v.string() },
+  handler: async (ctx, args) => {
+    const claims = await ctx.db
+      .query('claims')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect();
+    return claims
+      .filter((claim) => claim.phaseId === args.phaseId && claim.retiredAt === undefined)
+      .sort((a, b) => a.claimId.localeCompare(b.claimId))
+      .map((claim) => ({ claimId: claim.claimId, text: claim.text }));
+  },
+});
+
 export const listClaimsInternal = internalQuery({
   args: { projectId: v.id('projects') },
   handler: async (ctx, args) => {
