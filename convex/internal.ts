@@ -6,7 +6,7 @@ import { renderPreviewHtml } from '../lib/markdown-render';
 import { getAffectedPhases } from '../lib/specification/dependency-graph';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource, markEvidenceImpact, reconcileArtifactClaims } from './lib/evidence';
-import { artifactSectionValidator } from './schema';
+import { artifactSectionValidator, acceptanceCriteriaQualityValidator } from './schema';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },
@@ -1259,6 +1259,7 @@ export const createTicketInternal = internalMutation({
     title: v.string(),
     description: v.string(),
     acceptanceCriteria: v.array(v.string()),
+    acceptanceCriteriaQuality: acceptanceCriteriaQualityValidator,
     status: v.union(
       v.literal('todo'),
       v.literal('in_progress'),

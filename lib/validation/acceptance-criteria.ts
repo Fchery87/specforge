@@ -309,3 +309,39 @@ export function classifyCriteria(
 ): AcceptanceCriterionClass[] {
   return criteria.map(classifyCriterion);
 }
+
+/**
+ * A criterion's class as stored on a ticket, or `unclassified` when there is none.
+ *
+ * A ticket written before the class existed has no stored value, and the plan's rule is that such a
+ * criterion reads as `unclassified` rather than being labelled retroactively: classifying it later
+ * would report a judgement nobody made at the time, and the classification is a claim about the text
+ * that a reader may want to check against the version that was reviewed.
+ */
+export type StoredCriterionClass = AcceptanceCriterionClass | 'unclassified';
+
+const STORED_CLASSES: ReadonlySet<string> = new Set<AcceptanceCriterionClass>([
+  'observable',
+  'unobservable',
+  'vague',
+]);
+
+/**
+ * Pair each criterion with the class stored for it.
+ *
+ * The result is always the same length as `criteria`, so a reader can index the two together without
+ * checking. A stored value this module does not recognise is treated as `unclassified` rather than
+ * trusted: the field is persisted data, and a value that did not come from `classifyCriterion` is not
+ * a class, whatever it says.
+ */
+export function criterionClasses(
+  criteria: readonly string[],
+  quality?: readonly string[] | null
+): StoredCriterionClass[] {
+  return criteria.map((_, index) => {
+    const stored = quality?.[index];
+    return stored && STORED_CLASSES.has(stored)
+      ? (stored as AcceptanceCriterionClass)
+      : 'unclassified';
+  });
+}

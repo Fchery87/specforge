@@ -55,6 +55,7 @@ export const parseTicketsFromArtifact = action({
         title: ticket.title,
         description: ticket.description,
         acceptanceCriteria: ticket.acceptanceCriteria,
+        acceptanceCriteriaQuality: ticket.acceptanceCriteriaQuality,
         status: 'todo',
         priority: ticket.priority,
         estimatedEffort: ticket.estimatedEffort,

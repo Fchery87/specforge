@@ -1,7 +1,17 @@
+import { classifyCriteria, type AcceptanceCriterionClass } from './validation/acceptance-criteria';
+
 export interface ParsedTicket {
   title: string;
   description: string;
   acceptanceCriteria: string[];
+  /**
+   * The class of each criterion, index-aligned with `acceptanceCriteria`.
+   *
+   * Computed here rather than at render time because the class is a judgement about the text as it
+   * was parsed. Recomputing later would silently re-judge a criterion against a newer version of the
+   * classifier, which would make a stored review state depend on the deploy.
+   */
+  acceptanceCriteriaQuality: AcceptanceCriterionClass[];
   priority: 'critical' | 'high' | 'medium' | 'low';
   estimatedEffort?: string;
   sliceType?: 'tracer_bullet' | 'wide_refactor';
@@ -125,6 +135,7 @@ export function parseTicketsFromMarkdown(markdown: string): ParsedTicket[] {
         title: titleLine,
         description,
         acceptanceCriteria: criteria,
+        acceptanceCriteriaQuality: classifyCriteria(criteria),
         priority,
         estimatedEffort,
         sliceType,

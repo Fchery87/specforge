@@ -30,10 +30,12 @@ actually ran. `Done, unverified` is honest and must say what is missing.
 
 ## Notes
 
-**Order.** Tasks 1 to 5 are pure and need no Convex or model call, so they can land and be verified
-independently. Task 6 is the first that touches the database. Task 7 is the first the user sees, and
-it is deliberately after the data it renders. Tasks 1 and 3 are the only two that change generation
-output; the rest only observe it.
+**Order.** Tasks 1, 2, 4 and 5 are pure and need no Convex or model call, so they can land and be
+verified independently. Task 3 is the exception, and this note previously claimed it was not: it adds
+a field to `convex/schema.ts` and threads it through the ticket write path, so it touches Convex even
+though it makes no model call and adds no query. Task 6 is the first to add a table and a runtime read
+of its own. Task 7 is the first the user sees, and it is deliberately after the data it renders. Tasks
+1 and 3 are the only two that change generation output; the rest only observe it.
 
 **Squashed SHAs.** Tasks 1 and 2 were reviewed and fixed on `feature/stage-prompts`, then landed
 together as the squash commit `86ec93c` when PR #24 merged. Their individual branch commits are not in
