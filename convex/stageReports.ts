@@ -4,7 +4,7 @@ import type { Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { WORKFLOW_STAGES } from '../lib/workflow';
 import { getSectionPlansForPhase, type SectionPlanConfig } from '../lib/llm/section-plans';
-import { buildStageReport, stageQualityFlagFor, type StageQualityFlag } from '../lib/quality/stage-report';
+import { buildStageReport, stageQualityFlagFor, type StageDocument, type StageQualityFlag } from '../lib/quality/stage-report';
 import type { ClaimEvidence, ParsedClaim } from '../lib/claims';
 
 /**
@@ -28,7 +28,7 @@ import type { ClaimEvidence, ParsedClaim } from '../lib/claims';
 type ReadCtx = Pick<QueryCtx, 'db'>;
 
 interface StageInputs {
-  markdown: string;
+  documents: StageDocument[];
   claims: ParsedClaim[];
   sectionPlan: SectionPlanConfig[];
   criteria: string[];
@@ -95,7 +95,7 @@ async function loadStageInputs(
   const stage = WORKFLOW_STAGES.find((candidate) => candidate.id === stageId);
   if (!stage) {
     return {
-      markdown: '',
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: [],
@@ -104,7 +104,9 @@ async function loadStageInputs(
     };
   }
 
-  const markdownParts: string[] = [];
+  // One document per phase, not a joined string: a plan section is matched inside the document the
+  // caller will mark, and only the length dimension reads the stage's text joined.
+  const documents: StageDocument[] = [];
   const sectionPlan: SectionPlanConfig[] = [];
   const criteria: string[] = [];
   const criterionClassList: string[] = [];
@@ -133,11 +135,11 @@ async function loadStageInputs(
 
     if (latestVersion) {
       artifactVersionIds.push(latestVersion._id);
-      markdownParts.push(latestVersion.content);
+      documents.push({ phaseId, markdown: latestVersion.content });
     } else {
       // A legacy artifact with no version row is measured from its current content. Its revision is
       // not recorded, because there is none to record, and it is not claimed to be.
-      markdownParts.push(artifact.content);
+      documents.push({ phaseId, markdown: artifact.content });
     }
 
     const tickets = await ctx.db
@@ -183,7 +185,7 @@ async function loadStageInputs(
   }
 
   return {
-    markdown: markdownParts.join('\n\n'),
+    documents,
     claims: parsedClaims,
     sectionPlan,
     criteria,

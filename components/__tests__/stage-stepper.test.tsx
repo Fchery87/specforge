@@ -232,7 +232,7 @@ describe("StageStepper quality marks", () => {
     // Going through the real report is the point: the flag builder has to exclude `unclassified`, and
     // a criterion written before the class existed is not relabelled untestable by the map.
     const report = buildStageReport({
-      markdown: "",
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: ["A criterion from before the class existed."],

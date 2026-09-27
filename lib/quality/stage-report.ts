@@ -69,11 +69,11 @@ export interface SectionQuality {
   id: string;
   title: string;
   /**
-   * The phase whose plan defines this section.
+   * The phase whose plan defines this section and whose document was measured for it.
    *
-   * A stage is measured from the text of up to three phases joined, so a section on its own does not
-   * say which artifact it belongs to. A caller marking one artifact has to filter by this, or a
-   * same-named heading in a sibling phase can be marked in a document that does not contain it.
+   * A caller marking one artifact filters by this. The match was made inside that phase's own
+   * document, so a same-named heading in a sibling phase can neither be marked into a document
+   * that does not contain it nor satisfy this section from a document that does.
    */
   phaseId: string;
   /** The document heading's anchor id, or null when the section is absent. */
@@ -102,9 +102,25 @@ export interface StageReport {
   sections: SectionQuality[];
 }
 
-export interface StageReportInput {
-  /** The stage's document text, which is what the coverage and length dimensions read. */
+/**
+ * One phase's artifact text, kept whole rather than joined.
+ */
+export interface StageDocument {
+  /** The phase the document belongs to, which ties it to that phase's plan sections. */
+  phaseId: string;
+  /** The artifact's markdown, measured as its own document. */
   markdown: string;
+}
+
+export interface StageReportInput {
+  /**
+   * The stage's documents, one per measured phase.
+   *
+   * A section is matched inside the document whose `phaseId` the plan names, and never across the
+   * join of the whole stage's text: the reading surface renders one document alone and derives its
+   * anchors there, so an anchor of the joined text can be an anchor of no document anyone renders.
+   */
+  documents: readonly StageDocument[];
   /** The stage's claim records, already parsed. Traceability reads these and nothing else. */
   claims: readonly ParsedClaim[];
   /** The plan the document was written against, which is what coverage and the budget read. */
@@ -163,7 +179,7 @@ interface MatchedSection {
 }
 
 /**
- * Which plan sections the document contains, and what each carries, keyed by the plan key that
+ * Which plan sections one document contains, and what each carries, keyed by the plan key that
  * matched.
  *
  * `mergeSectionContent` writes each section as a level-2 heading of its title-cased name, and
@@ -179,12 +195,15 @@ interface MatchedSection {
  *
  * Absorbing the subtree also means a nested heading cannot be mistaken for another plan section, since
  * the walk skips past it.
+ *
+ * The same heading can appear twice in one document. Its words and claims exist both times, so they
+ * accumulate and the over-budget and empty judgements read the sum. The anchor kept is the first
+ * occurrence's, because one mark for two headings is one mark too few rather than one per duplicate.
  */
-function matchSections(
+function matchDocument(
   markdown: string,
-  sectionPlan: readonly SectionPlanConfig[]
+  planKeys: ReadonlySet<string>
 ): Map<string, MatchedSection> {
-  const planKeys = new Set(sectionPlan.flatMap(sectionKeys));
   const outline = parseSpecOutline(markdown);
   const matched = new Map<string, MatchedSection>();
 
@@ -207,25 +226,64 @@ function matchSections(
       next += 1;
     }
 
-    matched.set(key, { anchorId: section.id, claims, words });
+    const previous = matched.get(key);
+    if (previous) {
+      previous.claims += claims;
+      previous.words += words;
+    } else {
+      matched.set(key, { anchorId: section.id, claims, words });
+    }
     index = next;
   }
 
   return matched;
 }
 
-export function buildStageReport(input: StageReportInput): StageReport {
-  const { markdown, claims, sectionPlan, criteria, criterionClassList } = input;
+/**
+ * Match each plan section inside its own phase's document.
+ *
+ * The result is keyed by phase, and a plan section is looked up only in the document whose
+ * `phaseId` matches its plan. The anchor a match records must be an anchor of the document the
+ * caller will mark, and the caller renders one phase's document alone, not the joined stage text:
+ * matching the join handed back an anchor of a document nobody renders whenever a heading repeated
+ * across artifacts, and let one phase's headings satisfy another phase's plan.
+ */
+function matchSections(
+  documents: readonly StageDocument[],
+  sectionPlan: readonly SectionPlanConfig[]
+): Map<string, Map<string, MatchedSection>> {
+  const keysByPhase = new Map<string, Set<string>>();
+  for (const plan of sectionPlan) {
+    const keys = keysByPhase.get(plan.phaseId) ?? new Set<string>();
+    for (const key of sectionKeys(plan)) keys.add(key);
+    keysByPhase.set(plan.phaseId, keys);
+  }
 
-  // The document is parsed once and shared, so coverage and the per-section detail cannot disagree
+  const matched = new Map<string, Map<string, MatchedSection>>();
+  for (const stageDocument of documents) {
+    const planKeys = keysByPhase.get(stageDocument.phaseId);
+    if (!planKeys) continue;
+    matched.set(stageDocument.phaseId, matchDocument(stageDocument.markdown, planKeys));
+  }
+
+  return matched;
+}
+
+export function buildStageReport(input: StageReportInput): StageReport {
+  const { documents, claims, sectionPlan, criteria, criterionClassList } = input;
+
+  // Each document is parsed once and shared, so coverage and the per-section detail cannot disagree
   // about which headings a plan section matched.
-  const matched = matchSections(markdown, sectionPlan);
+  const matched = matchSections(documents, sectionPlan);
+  // The length dimension reads the stage as a whole, which is the join the caller no longer hands
+  // in, so it is derived here from the same documents the sections matched inside.
+  const stageMarkdown = documents.map((stageDocument) => stageDocument.markdown).join('\n\n');
 
   return {
     traceability: buildTraceability(claims),
     testability: buildTestability(criteria, criterionClassList),
     coverage: buildCoverage(matched, sectionPlan),
-    length: buildLength(markdown, sectionPlan),
+    length: buildLength(stageMarkdown, sectionPlan),
     sections: buildSections(matched, sectionPlan),
   };
 }
@@ -288,7 +346,7 @@ function buildTestability(
  * count as missing, because an optional section is a judgement call rather than a gap.
  */
 function buildCoverage(
-  matched: Map<string, MatchedSection>,
+  matched: Map<string, Map<string, MatchedSection>>,
   sectionPlan: readonly SectionPlanConfig[]
 ): CoverageReport {
   let sections = 0;
@@ -296,7 +354,8 @@ function buildCoverage(
   const missingSectionIds: string[] = [];
 
   for (const plan of sectionPlan) {
-    const key = sectionKeys(plan).find((candidate) => matched.has(candidate));
+    const phaseMatched = matched.get(plan.phaseId);
+    const key = sectionKeys(plan).find((candidate) => phaseMatched?.has(candidate));
 
     if (!key) {
       if (plan.required) missingSectionIds.push(plan.id);
@@ -304,7 +363,7 @@ function buildCoverage(
     }
 
     sections += 1;
-    if ((matched.get(key)?.claims ?? 0) === 0) emptySections += 1;
+    if ((phaseMatched?.get(key)?.claims ?? 0) === 0) emptySections += 1;
   }
 
   return {
@@ -325,12 +384,13 @@ function buildCoverage(
  * one would double-count the gap that `missingSectionIds` already reports.
  */
 function buildSections(
-  matched: Map<string, MatchedSection>,
+  matched: Map<string, Map<string, MatchedSection>>,
   sectionPlan: readonly SectionPlanConfig[]
 ): SectionQuality[] {
   return sectionPlan.map((plan) => {
-    const key = sectionKeys(plan).find((candidate) => matched.has(candidate));
-    const match = key ? matched.get(key) : undefined;
+    const phaseMatched = matched.get(plan.phaseId);
+    const key = sectionKeys(plan).find((candidate) => phaseMatched?.has(candidate));
+    const match = key ? phaseMatched?.get(key) : undefined;
     const words = match?.words ?? 0;
     const budgetWords = wordsForTokens(plan.estimatedTokens);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildStageReport, countWords, stageQualityFlagFor } from '../stage-report';
+import { buildStageReport, countWords, stageQualityFlagFor, type StageDocument } from '../stage-report';
 import { parseClaimManifest, type ParsedClaim } from '../../claims';
 import { mergeSectionContent } from '../../llm/chunking';
 import { getSectionPlansForPhase, PRD_SECTIONS } from '../../llm/section-plans';
@@ -24,6 +24,16 @@ function documentFrom(sections: Array<{ name: string; content: string }>): strin
   return mergeSectionContent(sections);
 }
 
+/** One phase document, the unit a plan section is matched inside. */
+function doc(phaseId: string, markdown: string): StageDocument {
+  return { phaseId, markdown };
+}
+
+/** A prose block of an exact word count, so word-count assertions can be exact. */
+function padding(count: number): string {
+  return Array.from({ length: count }, () => 'word').join(' ');
+}
+
 describe('countWords', () => {
   it('counts whitespace-separated tokens', () => {
     expect(countWords('one two three')).toBe(3);
@@ -46,7 +56,7 @@ describe('buildStageReport traceability', () => {
       ].join('\n')
     );
 
-    const report = buildStageReport({ markdown: '', claims, sectionPlan: [] });
+    const report = buildStageReport({ documents: [], claims, sectionPlan: [] });
 
     expect(report.traceability).toEqual({ total: 3, traced: 2, untraced: 1 });
   });
@@ -58,7 +68,7 @@ describe('buildStageReport traceability', () => {
       [claimLine('C-1', 'confirmed', 'needs_review', true), claimLine('C-2', 'confirmed', 'current', false)].join('\n')
     );
 
-    const report = buildStageReport({ markdown: '', claims, sectionPlan: [] });
+    const report = buildStageReport({ documents: [], claims, sectionPlan: [] });
 
     expect(report.traceability).toEqual({ total: 2, traced: 1, untraced: 1 });
   });
@@ -66,7 +76,7 @@ describe('buildStageReport traceability', () => {
   it('reports counts of zero rather than a percentage when there are no claims', () => {
     // The documented rule: a project with no claim records reports nothing rather than a fabricated
     // trace rate, so there is no percentage here to fabricate.
-    const report = buildStageReport({ markdown: '# Brief\n\nProse.', claims: [], sectionPlan: [] });
+    const report = buildStageReport({ documents: [doc('brief', '# Brief\n\nProse.')], claims: [], sectionPlan: [] });
 
     expect(report.traceability).toEqual({ total: 0, traced: 0, untraced: 0 });
     expect(JSON.stringify(report.traceability)).not.toContain('%');
@@ -76,7 +86,7 @@ describe('buildStageReport traceability', () => {
 describe('buildStageReport testability', () => {
   it('counts one per class, with an unclassed criterion as unclassified', () => {
     const report = buildStageReport({
-      markdown: '',
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: ['Returns 204.', 'Should be fast.', 'Handle edge cases.', 'A criterion from before the class existed.'],
@@ -94,7 +104,7 @@ describe('buildStageReport testability', () => {
 
   it('reports every criterion unclassified when none was ever classed', () => {
     const report = buildStageReport({
-      markdown: '',
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: ['Returns 204.', 'Should be fast.'],
@@ -113,7 +123,7 @@ describe('buildStageReport testability', () => {
     // The normalisation belongs to `criterionClasses` and is exercised there; this asserts the report
     // inherits it rather than re-deriving the pairing.
     const report = buildStageReport({
-      markdown: '',
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: ['a', 'b', 'c'],
@@ -130,7 +140,7 @@ describe('buildStageReport testability', () => {
   });
 
   it('reports nothing to test when the stage produced no criteria', () => {
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: PRD_SECTIONS });
 
     expect(report.testability.total).toBe(0);
   });
@@ -147,7 +157,7 @@ describe('buildStageReport coverage', () => {
       { name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') },
     ]);
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: plan });
 
     expect(report.coverage.sections).toBe(2);
   });
@@ -158,7 +168,7 @@ describe('buildStageReport coverage', () => {
       { name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') },
     ]);
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: plan });
 
     expect(report.coverage.sections).toBe(2);
     expect(report.coverage.emptySections).toBe(1);
@@ -167,7 +177,7 @@ describe('buildStageReport coverage', () => {
   it('counts a present section with no content at all as empty', () => {
     const markdown = documentFrom([{ name: 'executive-summary', content: '' }]);
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: plan });
 
     expect(report.coverage.sections).toBe(1);
     expect(report.coverage.emptySections).toBe(1);
@@ -178,7 +188,7 @@ describe('buildStageReport coverage', () => {
     const required = plan.filter((entry) => entry.required).map((entry) => entry.id);
     const optional = plan.filter((entry) => !entry.required).map((entry) => entry.id);
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: plan });
 
     // Every required section except the one present is missing.
     expect(report.coverage.missingSections).toBe(required.length - 1);
@@ -187,7 +197,7 @@ describe('buildStageReport coverage', () => {
   });
 
   it('reports every plan section missing for an empty document', () => {
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: plan });
 
     expect(report.coverage).toEqual({
       sections: 0,
@@ -199,7 +209,7 @@ describe('buildStageReport coverage', () => {
 
   it('invents no sections for a plan the document does not follow', () => {
     const report = buildStageReport({
-      markdown: '# Something else entirely\n\nProse.',
+      documents: [doc('prd', '# Something else entirely\n\nProse.')],
       claims: [],
       sectionPlan: plan,
     });
@@ -220,7 +230,7 @@ describe('buildStageReport coverage of a section with sub-headings', () => {
   it('counts a claim under a nested heading as the parent section\'s', () => {
     const markdown = `## Requirements\n\n### Functional\n\n${claimLine('C-1', 'confirmed', 'reviewed')}\n`;
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: plan });
 
     expect(report.coverage.sections).toBe(1);
     expect(report.coverage.emptySections).toBe(0);
@@ -229,7 +239,7 @@ describe('buildStageReport coverage of a section with sub-headings', () => {
   it('still counts a section whose only content is prose as empty', () => {
     const markdown = `## Requirements\n\n### Functional\n\nProse, no requirement.\n`;
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: plan });
 
     expect(report.coverage.emptySections).toBe(1);
   });
@@ -246,7 +256,7 @@ describe('buildStageReport coverage of a section with sub-headings', () => {
       claimLine('C-2', 'confirmed', 'reviewed'),
     ].join('\n');
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: plan });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: plan });
 
     expect(report.coverage.sections).toBe(1);
     expect(report.coverage.emptySections).toBe(0);
@@ -260,7 +270,7 @@ describe('buildStageReport coverage of a section with sub-headings', () => {
       if (phasePlan.length === 0) continue;
 
       const markdown = documentFrom(phasePlan.map((entry) => ({ name: entry.id, content: 'x' })));
-      const report = buildStageReport({ markdown, claims: [], sectionPlan: phasePlan });
+      const report = buildStageReport({ documents: [doc(phaseId, markdown)], claims: [], sectionPlan: phasePlan });
 
       expect(report.coverage.sections).toBe(phasePlan.length);
       expect(report.coverage.missingSectionIds).toEqual([]);
@@ -272,9 +282,110 @@ describe('buildStageReport coverage of a section with sub-headings', () => {
     // Statement". A caller writing titles must still match.
     const markdown = documentFrom(PRD_SECTIONS.map((entry) => ({ name: entry.title, content: 'x' })));
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: PRD_SECTIONS });
 
     expect(report.coverage.sections).toBe(PRD_SECTIONS.length);
+  });
+});
+
+/**
+ * A stage spans up to three phases and the reading surface renders one phase's document alone, so a
+ * plan section is matched inside its own phase's document. Matching the stage's joined text instead
+ * recorded anchors of a document nobody renders whenever a heading repeated across artifacts, and
+ * let one phase's headings satisfy another phase's plan.
+ */
+describe('buildStageReport matching inside one phase document', () => {
+  it('records the anchor the section document produces, not the joined parse\'s suffixed one', () => {
+    // The brief document carries a heading only the prd plan knows. Joined, it anchors first and
+    // pushes the prd document's own heading to a suffixed anchor the artifact never renders.
+    const briefDocument = [
+      '# Atlas brief',
+      '',
+      '## Problem Statement',
+      '',
+      'The brief names the problem the prd plan also has a section for.',
+    ].join('\n');
+    const prdDocument = [
+      '# Atlas product requirements',
+      '',
+      '## Problem Statement',
+      '',
+      'Requirements written before their evidence is captured drift.',
+    ].join('\n');
+
+    const report = buildStageReport({
+      documents: [doc('brief', briefDocument), doc('prd', prdDocument)],
+      claims: [],
+      sectionPlan: [...getSectionPlansForPhase('brief'), ...PRD_SECTIONS],
+    });
+
+    const problem = report.sections.find((entry) => entry.id === 'problem-statement');
+    expect(problem?.phaseId).toBe('prd');
+    expect(problem?.present).toBe(true);
+    // The prd document alone anchors this heading unsuffixed; the joined parse would call it
+    // `problem-statement-2`, a heading the rendered artifact does not have.
+    expect(problem?.headingKey).toBe('problem-statement');
+    expect(problem?.words).toBe(
+      countWords('Requirements written before their evidence is captured drift.')
+    );
+    // The brief's same-named heading neither credits the prd section nor matches the brief's plan.
+    expect(
+      report.sections.filter((entry) => entry.phaseId === 'brief').every((entry) => !entry.present)
+    ).toBe(true);
+    expect(report.coverage.sections).toBe(1);
+  });
+
+  it('sums duplicate headings in one document and keeps the first occurrence as the mark', () => {
+    const withClaim = `${claimLine('C-1', 'confirmed', 'reviewed')}\n\n${padding(1200)}`;
+    const withoutClaim = padding(1200);
+    const markdown = [
+      '## Requirements',
+      '',
+      withClaim,
+      '',
+      '## Requirements',
+      '',
+      withoutClaim,
+    ].join('\n');
+
+    const report = buildStageReport({
+      documents: [doc('prd', markdown)],
+      claims: [],
+      sectionPlan: PRD_SECTIONS,
+    });
+
+    const requirements = report.sections.find((entry) => entry.id === 'requirements');
+    // The words exist both times, so the budget judgement reads the sum: either occurrence alone
+    // sits under the 2000-word over-budget line and the two together are past it.
+    expect(requirements?.words).toBe(countWords(withClaim) + countWords(withoutClaim));
+    expect(requirements?.overBudget).toBe(true);
+    // The claim the first occurrence carries must not be lost to the second one.
+    expect(requirements?.empty).toBe(false);
+    // One mark on the first occurrence is one mark too few rather than one per duplicate.
+    expect(requirements?.headingKey).toBe('requirements');
+  });
+
+  it('reports a plan section missing when its phase has no document at all', () => {
+    // The requirements stage spans brief and prd; only the prd artifact exists, and nothing in its
+    // text may stand in for the brief's sections.
+    const prdDocument = documentFrom([
+      { name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') },
+    ]);
+
+    const report = buildStageReport({
+      documents: [doc('prd', prdDocument)],
+      claims: [],
+      sectionPlan: [...getSectionPlansForPhase('brief'), ...PRD_SECTIONS],
+    });
+
+    const briefSections = report.sections.filter((entry) => entry.phaseId === 'brief');
+    expect(briefSections.length).toBeGreaterThan(0);
+    for (const section of briefSections) {
+      expect(section.present).toBe(false);
+      expect(section.headingKey).toBeNull();
+      expect(section.overBudget).toBe(false);
+    }
+    expect(report.coverage.missingSectionIds).toContain('problem-and-objectives');
   });
 });
 
@@ -282,7 +393,7 @@ describe('buildStageReport length', () => {
   it('compares the word count with the plan estimate converted to words', () => {
     const words = Array.from({ length: 500 }, () => 'word').join(' ');
     const report = buildStageReport({
-      markdown: words,
+      documents: [doc('prd', words)],
       claims: [],
       sectionPlan: [{ id: 'a', title: 'A', description: '', estimatedTokens: 1000, required: true, phaseId: 'prd', sectionType: 'documentation' }],
     });
@@ -296,7 +407,7 @@ describe('buildStageReport length', () => {
   it('flags a document past the budget and its tolerance', () => {
     const words = Array.from({ length: 1000 }, () => 'word').join(' ');
     const report = buildStageReport({
-      markdown: words,
+      documents: [doc('prd', words)],
       claims: [],
       sectionPlan: [{ id: 'a', title: 'A', description: '', estimatedTokens: 500, required: true, phaseId: 'prd', sectionType: 'documentation' }],
     });
@@ -308,7 +419,7 @@ describe('buildStageReport length', () => {
 
   it('does not flag a document within the tolerance', () => {
     const report = buildStageReport({
-      markdown: Array.from({ length: 700 }, () => 'word').join(' '),
+      documents: [doc('prd', Array.from({ length: 700 }, () => 'word').join(' '))],
       claims: [],
       sectionPlan: [{ id: 'a', title: 'A', description: '', estimatedTokens: 1000, required: true, phaseId: 'prd', sectionType: 'documentation' }],
     });
@@ -321,7 +432,7 @@ describe('buildStageReport length', () => {
     const prd = getSectionPlansForPhase('prd');
     const tokens = prd.reduce((total, entry) => total + entry.estimatedTokens, 0);
 
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: prd });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: prd });
 
     expect(report.length.budgetWords).toBe(Math.round(tokens * (4 / 6)));
   });
@@ -330,7 +441,7 @@ describe('buildStageReport length', () => {
 describe('buildStageReport shape', () => {
   it('reports the four dimensions separately and combines nothing', () => {
     const report = buildStageReport({
-      markdown: documentFrom([{ name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') }]),
+      documents: [doc('prd', documentFrom([{ name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') }]))],
       claims: claimsFrom(claimLine('C-1', 'confirmed', 'reviewed')),
       sectionPlan: PRD_SECTIONS,
       criteria: ['Returns 204.'],
@@ -354,7 +465,7 @@ describe('buildStageReport shape', () => {
 
   it('is pure, so the same input yields the same report every time', () => {
     const input = {
-      markdown: documentFrom([{ name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') }]),
+      documents: [doc('prd', documentFrom([{ name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') }]))],
       claims: claimsFrom(claimLine('C-1', 'confirmed', 'reviewed')),
       sectionPlan: PRD_SECTIONS,
     };
@@ -369,7 +480,7 @@ describe('buildStageReport shape', () => {
  */
 describe('buildStageReport sections detail', () => {
   it('has one entry per plan section, in plan order', () => {
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: PRD_SECTIONS });
 
     expect(report.sections.map((section) => section.id)).toEqual(
       PRD_SECTIONS.map((section) => section.id)
@@ -377,7 +488,7 @@ describe('buildStageReport sections detail', () => {
   });
 
   it('reports an absent section as not present, with no words and not over budget', () => {
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: PRD_SECTIONS });
 
     for (const section of report.sections) {
       expect(section.present).toBe(false);
@@ -390,7 +501,7 @@ describe('buildStageReport sections detail', () => {
 
   it('gives a present section its heading key, so a caller can mark that heading', () => {
     const markdown = documentFrom([{ name: 'requirements', content: claimLine('C-1', 'confirmed', 'reviewed') }]);
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: PRD_SECTIONS });
 
     const requirements = report.sections.find((section) => section.id === 'requirements');
     expect(requirements?.present).toBe(true);
@@ -402,7 +513,7 @@ describe('buildStageReport sections detail', () => {
       { name: 'requirements', content: 'Prose but no requirement.' },
       { name: 'executive-summary', content: claimLine('C-1', 'confirmed', 'reviewed') },
     ]);
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: PRD_SECTIONS });
 
     const requirements = report.sections.find((section) => section.id === 'requirements');
     const summary = report.sections.find((section) => section.id === 'executive-summary');
@@ -418,7 +529,7 @@ describe('buildStageReport sections detail', () => {
     // and correctly not be flagged.
     const long = Array.from({ length: 1500 }, () => 'word').join(' ');
     const markdown = documentFrom([{ name: 'problem-statement', content: long }]);
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: PRD_SECTIONS });
 
     const section = report.sections.find((entry) => entry.id === 'problem-statement');
     expect(section?.words).toBe(1500);
@@ -432,14 +543,14 @@ describe('buildStageReport sections detail', () => {
   it('does not flag a section inside its tolerance', () => {
     const long = Array.from({ length: 1150 }, () => 'word').join(' ');
     const markdown = documentFrom([{ name: 'problem-statement', content: long }]);
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: PRD_SECTIONS });
 
     const section = report.sections.find((entry) => entry.id === 'problem-statement');
     expect(section?.overBudget).toBe(false);
   });
 
   it('counts a section budget from the plan, using the same conversion as the stage budget', () => {
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: PRD_SECTIONS });
 
     for (const [index, plan] of PRD_SECTIONS.entries()) {
       expect(report.sections[index].budgetWords).toBe(
@@ -465,7 +576,7 @@ describe('buildStageReport sections detail', () => {
       claimLine('C-1', 'confirmed', 'reviewed'),
     ].join('\n');
 
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: PRD_SECTIONS });
 
     expect(report.coverage.sections).toBe(2);
     expect(report.sections.find((entry) => entry.id === 'executive-summary')?.headingKey).toBe(
@@ -478,7 +589,7 @@ describe('buildStageReport sections detail', () => {
 
   it('still matches an unnumbered heading by its title, which is what a generated document writes', () => {
     const markdown = documentFrom([{ name: 'executive-summary', content: 'Overview.' }]);
-    const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [doc('prd', markdown)], claims: [], sectionPlan: PRD_SECTIONS });
 
     expect(report.sections.find((entry) => entry.id === 'executive-summary')?.headingKey).toBe(
       'executive-summary'
@@ -491,7 +602,7 @@ describe('buildStageReport sections detail', () => {
    * a sibling phase could be marked in the wrong document.
    */
   it('carries the phase each section belongs to', () => {
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: PRD_SECTIONS });
 
     for (const [index, plan] of PRD_SECTIONS.entries()) {
       expect(report.sections[index].phaseId).toBe(plan.phaseId);
@@ -507,7 +618,7 @@ describe('buildStageReport sections detail', () => {
 describe('stageQualityFlagFor', () => {
   it('projects the untraced and untestable counts off the report', () => {
     const report = buildStageReport({
-      markdown: '',
+      documents: [],
       claims: claimsFrom(
         [
           claimLine('C-1', 'confirmed', 'reviewed', false),
@@ -528,7 +639,7 @@ describe('stageQualityFlagFor', () => {
    */
   it('does not count an unclassified criterion as untestable', () => {
     const report = buildStageReport({
-      markdown: '',
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: ['A criterion from before the class existed.'],
@@ -539,7 +650,7 @@ describe('stageQualityFlagFor', () => {
   });
 
   it('reports zeros for a stage nothing was measured for', () => {
-    const report = buildStageReport({ markdown: '', claims: [], sectionPlan: [] });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: [] });
 
     expect(stageQualityFlagFor(report)).toEqual({ untraced: 0, unobservable: 0, vague: 0 });
   });

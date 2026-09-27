@@ -149,7 +149,7 @@ const PREVIEW_HEADINGS = [
 const PREVIEW_PLAN = getSectionPlansForPhase(PREVIEW_PHASE);
 
 const PREVIEW_REPORT = buildStageReport({
-  markdown: PREVIEW_HEADINGS,
+  documents: [{ phaseId: PREVIEW_PHASE, markdown: PREVIEW_HEADINGS }],
   claims: PREVIEW_CLAIMS,
   sectionPlan: PREVIEW_PLAN,
   criteria: PREVIEW_CRITERIA,

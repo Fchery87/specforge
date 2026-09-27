@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { SectionQuality, StageReport } from "@/lib/quality/stage-report";
+import { buildStageReport } from "@/lib/quality/stage-report";
+import { getSectionPlansForPhase, PRD_SECTIONS } from "@/lib/llm/section-plans";
 
 /**
  * The query is mocked rather than the report, because what this file tests is which stage the preview
@@ -157,6 +159,48 @@ describe("ArtifactPreview", () => {
     ).toBeNull();
     expect(
       container.querySelector('h2[id="deep-module-interfaces"] .section-mark')
+    ).toHaveTextContent("over budget");
+  });
+
+  it("lands a mark on the heading of the document that contains it when two documents repeat it", () => {
+    // Both documents carry the same heading text. Matching the stage's joined text anchors the prd
+    // occurrence as `2-problem-statement-2`, which this artifact's document does not contain, so
+    // the mark silently never rendered while the summary above still stated the count.
+    const briefDocument = [
+      "# Atlas brief",
+      "",
+      "## 2. Problem Statement",
+      "",
+      "The brief states the problem first.",
+    ].join("\n");
+    const prdDocument = [
+      "# Atlas product requirements",
+      "",
+      "## 2. Problem Statement",
+      "",
+      Array.from({ length: 1500 }, () => "word").join(" "),
+    ].join("\n");
+
+    const report = buildStageReport({
+      documents: [
+        { phaseId: "brief", markdown: briefDocument },
+        { phaseId: "prd", markdown: prdDocument },
+      ],
+      claims: [],
+      sectionPlan: [...getSectionPlansForPhase("brief"), ...PRD_SECTIONS],
+    });
+
+    mockUseQuery.mockReturnValue({ report, artifactVersionIds: [] });
+
+    const { container } = render(
+      <ArtifactPreview
+        artifact={{ ...ARTIFACT, phaseId: "prd", content: prdDocument }}
+        projectId="p1"
+      />
+    );
+
+    expect(
+      container.querySelector('h2[id="2-problem-statement"] .section-mark')
     ).toHaveTextContent("over budget");
   });
 });

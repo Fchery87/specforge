@@ -29,7 +29,7 @@ function dimensionRow(container: HTMLElement, label: string): HTMLElement {
 describe("StageQualityReport", () => {
   it("reports the four dimensions as four separate values", () => {
     const report = buildStageReport({
-      markdown: ["# PRD", "", "## Requirements", "", "- **C-1** [confirmed; reviewed]: A requirement. — Evidence: lib/a.ts (abc123, supports)"].join("\n"),
+      documents: [{ phaseId: "prd", markdown: ["# PRD", "", "## Requirements", "", "- **C-1** [confirmed; reviewed]: A requirement. — Evidence: lib/a.ts (abc123, supports)"].join("\n") }],
       claims: CLAIMS,
       sectionPlan: PRD_SECTIONS,
       criteria: ["Archiving a project returns 204 for an editor."],
@@ -52,7 +52,7 @@ describe("StageQualityReport", () => {
   });
 
   it("prints no percentage and no combined score", () => {
-    const report = buildStageReport({ markdown: "", claims: CLAIMS, sectionPlan: PRD_SECTIONS });
+    const report = buildStageReport({ documents: [], claims: CLAIMS, sectionPlan: PRD_SECTIONS });
     const { container } = render(<StageQualityReport report={report} />);
 
     // A blended number would hide which of the four is wrong, so none is reported at all.
@@ -62,7 +62,7 @@ describe("StageQualityReport", () => {
   });
 
   it("says a stage has no recorded requirements rather than inventing a trace", () => {
-    const report = buildStageReport({ markdown: "", claims: [], sectionPlan: [] });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: [] });
     const { container } = render(<StageQualityReport report={report} />);
 
     const row = dimensionRow(container, "Traceability");
@@ -75,7 +75,7 @@ describe("StageQualityReport", () => {
 
   it("reports each testability class separately and omits a class at zero", () => {
     const report = buildStageReport({
-      markdown: "",
+      documents: [],
       claims: [],
       sectionPlan: [],
       criteria: ["Returns 204.", "Should be fast.", "A criterion from before the class existed."],
@@ -93,7 +93,7 @@ describe("StageQualityReport", () => {
   });
 
   it("says a stage recorded no acceptance criteria", () => {
-    const report = buildStageReport({ markdown: "", claims: [], sectionPlan: [] });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: [] });
     const { container } = render(<StageQualityReport report={report} />);
 
     expect(dimensionRow(container, "Testability")).toHaveTextContent(
@@ -103,11 +103,16 @@ describe("StageQualityReport", () => {
 
   it("names the missing sections rather than only counting them", () => {
     const report = buildStageReport({
-      markdown: [
-        "## Executive Summary",
-        "",
-        "- **C-1** [confirmed; reviewed]: A requirement. — Evidence: lib/a.ts (abc123, supports)",
-      ].join("\n"),
+      documents: [
+        {
+          phaseId: "prd",
+          markdown: [
+            "## Executive Summary",
+            "",
+            "- **C-1** [confirmed; reviewed]: A requirement. — Evidence: lib/a.ts (abc123, supports)",
+          ].join("\n"),
+        },
+      ],
       claims: [],
       sectionPlan: PRD_SECTIONS,
     });
@@ -124,7 +129,7 @@ describe("StageQualityReport", () => {
 
   it("counts the empty sections it found", () => {
     const report = buildStageReport({
-      markdown: ["## Executive Summary", "", "Prose with no requirement."].join("\n"),
+      documents: [{ phaseId: "prd", markdown: ["## Executive Summary", "", "Prose with no requirement."].join("\n") }],
       claims: [],
       sectionPlan: PRD_SECTIONS,
     });
@@ -139,7 +144,7 @@ describe("StageQualityReport", () => {
     // The PRD's second section is budgeted 1000 words, so this is 50 percent past it while the stage
     // as a whole stays inside its own budget.
     const report = buildStageReport({
-      markdown: ["## Problem Statement", "", long].join("\n"),
+      documents: [{ phaseId: "prd", markdown: ["## Problem Statement", "", long].join("\n") }],
       claims: [],
       sectionPlan: PRD_SECTIONS,
     });
@@ -158,7 +163,7 @@ describe("StageQualityReport", () => {
     // budget to be inside. Reporting that as "over budget" would be a fact about the missing plan
     // dressed up as a fact about the document.
     const report = buildStageReport({
-      markdown: "one two three",
+      documents: [{ phaseId: "prd", markdown: "one two three" }],
       claims: [],
       sectionPlan: [],
     });
@@ -174,7 +179,7 @@ describe("StageQualityReport", () => {
   });
 
   it("labels the whole report, so the region has an accessible name", () => {
-    const report = buildStageReport({ markdown: "", claims: [], sectionPlan: [] });
+    const report = buildStageReport({ documents: [], claims: [], sectionPlan: [] });
     render(<StageQualityReport report={report} />);
 
     expect(

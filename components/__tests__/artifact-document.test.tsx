@@ -129,7 +129,11 @@ describe("ArtifactDocument section marks", () => {
     long,
   ].join("\n");
 
-  const report = buildStageReport({ markdown, claims: [], sectionPlan: PRD_SECTIONS });
+  const report = buildStageReport({
+    documents: [{ phaseId: "prd", markdown }],
+    claims: [],
+    sectionPlan: PRD_SECTIONS,
+  });
   const marks = sectionMarksFor(report.sections);
 
   test("places the over-budget mark on the numbered heading it belongs to", () => {
@@ -161,7 +165,7 @@ describe("ArtifactDocument section marks", () => {
     ].join("\n");
 
     const emptyReport = buildStageReport({
-      markdown: emptyMarkdown,
+      documents: [{ phaseId: "prd", markdown: emptyMarkdown }],
       claims: [],
       sectionPlan: PRD_SECTIONS,
     });
