@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MutationCtx } from '../_generated/server';
 import { saveQuickSpecHandler } from '../artifacts';
+import { createProjectFromQuickSpecHandler } from '../projects';
 
 type FakeRow = Record<string, unknown> & { _id: string };
 type FakeIndexQuery = { eq: (field: string, value: unknown) => FakeIndexQuery };
@@ -95,5 +96,36 @@ describe('saveQuickSpec', () => {
     const ctx = makeCtx('attacker', 'owner');
     await expect(saveQuickSpecHandler(asMutationCtx(ctx), args)).rejects.toThrow('Forbidden');
     expect(ctx.__tables.artifacts.size).toBe(0);
+  });
+});
+
+describe('createProjectFromQuickSpec', () => {
+  const input = {
+    title: 'Session refresh',
+    description: 'Refresh expired sessions without a sign-out.',
+    content: '# Session refresh\n\nRequirements.',
+  };
+
+  it('creates a Lite project that holds the quick spec', async () => {
+    const ctx = makeCtx();
+    const projectId = await createProjectFromQuickSpecHandler(asMutationCtx(ctx), input);
+
+    expect(ctx.__tables.projects.get(projectId)).toMatchObject({
+      userId: 'owner',
+      title: 'Session refresh',
+      description: 'Refresh expired sessions without a sign-out.',
+      mode: 'quick',
+      skippedPhases: ['domainModel', 'artifacts'],
+    });
+    expect([...ctx.__tables.phases.values()].filter((phase) => phase.projectId === projectId)).toHaveLength(8);
+    expect([...ctx.__tables.artifacts.values()]).toEqual([
+      expect.objectContaining({ projectId, phaseId: 'quick', type: 'quickSpec', title: 'Session refresh', content: input.content }),
+    ]);
+  });
+
+  it('refuses an empty spec', async () => {
+    await expect(
+      createProjectFromQuickSpecHandler(asMutationCtx(makeCtx()), { ...input, content: '  ' })
+    ).rejects.toThrow('Title and content are required');
   });
 });

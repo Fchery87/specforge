@@ -38,5 +38,14 @@ describe("GenerationControls", () => {
     await user.click(resumeBtn);
     expect(onResume).toHaveBeenCalledTimes(1);
   });
-});
 
+  it("turns Generate off and says why when no model is connected", () => {
+    render(
+      <GenerationControls isGenerating={false} canGenerate onGenerate={() => {}} modelReady={false} />
+    );
+
+    expect(screen.getByRole("button", { name: "Generate Phase" })).toBeDisabled();
+    expect(screen.getByText(/to generate\./)).toHaveTextContent("Connect a model in Settings to generate.");
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+  });
+});

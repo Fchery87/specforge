@@ -13,6 +13,8 @@ const PROJECT = {
 };
 
 let phases: Array<{ phaseId: string; status: string }> = [];
+let artifacts: Array<{ type: string; content: string }> = [];
+let readiness: { ready: boolean } | undefined;
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "p1" }),
@@ -30,6 +32,8 @@ vi.mock("convex/react", () => ({
     const name = getFunctionName(ref);
     if (name === "projects:getProject") return PROJECT;
     if (name === "projects:getProjectPhases") return phases;
+    if (name === "artifacts:getAllProjectArtifacts") return artifacts;
+    if (name === "userConfigs:getGenerationReadiness") return readiness;
     return undefined;
   },
 }));
@@ -76,5 +80,27 @@ describe("ProjectPage", () => {
     render(<ProjectPage />);
 
     expect(screen.getByRole("region", { name: "Repository" })).toHaveTextContent("p1");
+  });
+
+  it("links saved quick specs only when the project has one", () => {
+    phases = [];
+    artifacts = [];
+    const { unmount } = render(<ProjectPage />);
+    expect(screen.queryByRole("link", { name: "Saved quick specs" })).not.toBeInTheDocument();
+    unmount();
+
+    artifacts = [{ type: "quickSpec", content: "# Spec" }];
+    render(<ProjectPage />);
+    expect(screen.getByRole("link", { name: "Saved quick specs" })).toHaveAttribute("href", "/project/p1/quick");
+  });
+
+  it("warns before generation when no model is connected", () => {
+    phases = [];
+    readiness = { ready: false };
+    render(<ProjectPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Connect a model to generate specs");
+    expect(screen.getByRole("link", { name: "Open Settings" })).toHaveAttribute("href", "/settings");
+    readiness = undefined;
   });
 });

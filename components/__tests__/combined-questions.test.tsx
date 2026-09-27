@@ -168,4 +168,18 @@ describe("CombinedQuestions", () => {
 
     expect(onGenerate).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps Generate all phases off and says why when no model is connected", () => {
+    render(
+      <CombinedQuestions
+        projectId="p1"
+        phases={[{ phaseId: "brief", questions: [{ id: "q1", text: "Who is it for?", required: true, answer: "Teams" }] }]}
+        onGenerateEverything={vi.fn()}
+        modelReady={false}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Generate all phases" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+  });
 });

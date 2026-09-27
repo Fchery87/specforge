@@ -40,6 +40,7 @@ interface QuestionsPanelProps {
   isCancelling?: boolean;
   canResume?: boolean;
   onResumePhase?: () => void;
+  modelReady?: boolean;
 }
 
 export function QuestionsPanel({
@@ -53,6 +54,7 @@ export function QuestionsPanel({
   isCancelling = false,
   canResume = false,
   onResumePhase,
+  modelReady = true,
 }: QuestionsPanelProps) {
   const saveAnswer = useMutation(api.projects.saveAnswer);
   const generateQuestions = useAction(generateQuestionsAction);
@@ -428,11 +430,16 @@ export function QuestionsPanel({
           <EmptyState
             variant="default"
             title="No Questions Yet"
-            description="Generate questions to get started with this phase."
-            action={{
-              label: "Generate Questions",
-              onClick: handleRegenerateQuestions,
-            }}
+            description={
+              modelReady
+                ? "Generate questions to get started with this phase."
+                : "Connect a model in Settings to generate questions for this phase."
+            }
+            action={
+              modelReady
+                ? { label: "Generate Questions", onClick: handleRegenerateQuestions }
+                : undefined
+            }
             className="py-8"
           />
         ) : (
@@ -471,6 +478,7 @@ export function QuestionsPanel({
             isCancelling={isCancelling}
             canResume={canResume}
             onResume={onResumePhase}
+            modelReady={modelReady}
           />
         )}
       </CardContent>

@@ -7,6 +7,7 @@ import { normalizeProjectInput } from '../lib/project-input';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource } from './lib/evidence';
 import { PHASE_ORDER, MODE_POLICIES, type ProjectMode } from '../lib/workflow';
+import { saveQuickSpecHandler } from './artifacts';
 
 type ConstitutionTemplateSnapshot = Pick<
   Doc<'constitutionTemplates'>,
@@ -52,53 +53,90 @@ export const createProject = mutation({
     ),
     skippedPhases: v.optional(v.array(v.string())),
   },
-  handler: async (ctx: MutationCtx, args) => {
-    const normalized = normalizeProjectInput({
-      title: args.title,
-      description: args.description,
-    });
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error('Unauthenticated');
-    const userId = identity.subject;
-
-    let constitutionTemplate: ConstitutionTemplateSnapshot | undefined;
-    if (args.constitutionTemplateId) {
-      const template = await ctx.db.get(args.constitutionTemplateId);
-      if (!template) throw new Error('Constitution template not found');
-      if (template.userId !== userId) throw new Error('Forbidden');
-      constitutionTemplate = buildConstitutionTemplateSnapshot(template);
-      await ctx.db.patch(template._id, {
-        usageCount: (template.usageCount ?? 0) + 1,
-      });
-    }
-
-    const skippedPhases = resolveSkippedPhasesForMode(args.mode, args.skippedPhases);
-
-    const now = Date.now();
-    const projectId = await ctx.db.insert('projects', {
-      userId,
-      title: normalized.title,
-      description: normalized.description,
-      status: 'active',
-      createdAt: now,
-      updatedAt: now,
-      constitutionTemplate,
-      ...(args.mode ? { mode: args.mode } : {}),
-      ...(skippedPhases ? { skippedPhases } : {}),
-    });
-
-    for (const phaseId of PHASE_ORDER) {
-      await ctx.db.insert('phases', {
-        projectId,
-        phaseId,
-        status: 'pending',
-        questions: [],
-      });
-    }
-
-    return projectId;
-  },
+  handler: createProjectHandler,
 });
+
+export async function createProjectHandler(
+  ctx: MutationCtx,
+  args: {
+    title: string;
+    description: string;
+    constitutionTemplateId?: Id<'constitutionTemplates'>;
+    mode?: ProjectMode;
+    skippedPhases?: string[];
+  },
+): Promise<Id<'projects'>> {
+  const normalized = normalizeProjectInput({
+    title: args.title,
+    description: args.description,
+  });
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) throw new Error('Unauthenticated');
+  const userId = identity.subject;
+
+  let constitutionTemplate: ConstitutionTemplateSnapshot | undefined;
+  if (args.constitutionTemplateId) {
+    const template = await ctx.db.get(args.constitutionTemplateId);
+    if (!template) throw new Error('Constitution template not found');
+    if (template.userId !== userId) throw new Error('Forbidden');
+    constitutionTemplate = buildConstitutionTemplateSnapshot(template);
+    await ctx.db.patch(template._id, {
+      usageCount: (template.usageCount ?? 0) + 1,
+    });
+  }
+
+  const skippedPhases = resolveSkippedPhasesForMode(args.mode, args.skippedPhases);
+
+  const now = Date.now();
+  const projectId = await ctx.db.insert('projects', {
+    userId,
+    title: normalized.title,
+    description: normalized.description,
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    constitutionTemplate,
+    ...(args.mode ? { mode: args.mode } : {}),
+    ...(skippedPhases ? { skippedPhases } : {}),
+  });
+
+  for (const phaseId of PHASE_ORDER) {
+    await ctx.db.insert('phases', {
+      projectId,
+      phaseId,
+      status: 'pending',
+      questions: [],
+    });
+  }
+
+  return projectId;
+}
+
+/**
+ * Turns a Quick spec into a Lite project that holds it. One mutation, so a failed save cannot leave
+ * an empty project behind.
+ */
+export const createProjectFromQuickSpec = mutation({
+  args: {
+    title: v.string(),
+    description: v.string(),
+    content: v.string(),
+  },
+  handler: createProjectFromQuickSpecHandler,
+});
+
+export async function createProjectFromQuickSpecHandler(
+  ctx: MutationCtx,
+  args: { title: string; description: string; content: string },
+): Promise<Id<'projects'>> {
+  const projectId = await createProjectHandler(ctx, {
+    title: args.title,
+    description: args.description,
+    mode: 'quick',
+  });
+  await saveQuickSpecHandler(ctx, { projectId, title: args.title, content: args.content });
+  return projectId;
+}
 
 export const getProject = query({
   args: { projectId: v.id('projects') },

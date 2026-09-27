@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { WORKFLOW_STAGES } from "@/lib/workflow";
+import { ConnectModelNote } from "@/components/generation-readiness-banner";
 
 export interface QuestionData {
   id: string;
@@ -47,16 +48,21 @@ export interface CombinedQuestionsProps {
   isGenerating?: boolean;
   onGenerateEverything?: (answers: CombinedAnswerItem[]) => Promise<void> | void;
   onRequestSuggestions?: (phaseId: string) => Promise<void> | void;
+  modelReady?: boolean;
   className?: string;
 }
+
+// Stable, because the answers effect depends on it; a fresh `[]` per render re-runs it forever.
+const NO_SKIPPED_PHASES: readonly string[] = [];
 
 export function CombinedQuestions({
   projectId,
   phases,
-  skippedPhases = [],
+  skippedPhases = NO_SKIPPED_PHASES,
   isGenerating = false,
   onGenerateEverything,
   onRequestSuggestions,
+  modelReady = true,
   className,
 }: CombinedQuestionsProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -115,7 +121,7 @@ export function CombinedQuestions({
       question.required && (!answers[question.id] || answers[question.id].trim().length === 0)
   );
 
-  const canGenerate = !hasEmptyRequired && !isGenerating;
+  const canGenerate = modelReady && !hasEmptyRequired && !isGenerating;
 
   async function handleSubmit() {
     if (!canGenerate || !onGenerateEverything) return;
@@ -244,7 +250,9 @@ export function CombinedQuestions({
         {/* Generate all phases bar */}
         <div className="sticky bottom-6 z-20 p-4 bg-void/95 border border-line rounded-lg flex items-center justify-between gap-4">
           <div className="text-ui text-muted-foreground">
-            {hasEmptyRequired
+            {!modelReady
+              ? <ConnectModelNote />
+              : hasEmptyRequired
               ? "Answer all required questions to generate the specification."
               : "All required questions answered. Ready to generate."}
           </div>
