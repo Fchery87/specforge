@@ -52,6 +52,22 @@ export const WORKFLOW_STAGES: readonly WorkflowStage[] = [
 export const RULES_PHASE: PhaseId = 'constitution';
 export const EXPORT_PHASE: PhaseId = 'handoff';
 
+export interface OutlineGroup {
+  label: string;
+  phaseIds: readonly PhaseId[];
+}
+
+/**
+ * Every phase in reading order, grouped as the reader meets them: the rules, each stage, then the
+ * handoff. Not `PHASE_ORDER`, which is storage order and puts Tasks between two Design phases. The
+ * project sidebar and the phase ledger both draw from this, so they cannot list phases differently.
+ */
+export const PROJECT_OUTLINE: readonly OutlineGroup[] = [
+  { label: 'Rules', phaseIds: [RULES_PHASE] },
+  ...WORKFLOW_STAGES.map((stage) => ({ label: stage.label, phaseIds: stage.phaseIds })),
+  { label: 'Handoff', phaseIds: [EXPORT_PHASE] },
+];
+
 /**
  * The display name of each phase. One definition, because a phase renamed in one place and not
  * another shows the user two names for the same thing. These are the names from the guided
@@ -124,6 +140,14 @@ export type NextAction =
   | { kind: 'export' };
 
 export type PhaseRawStatus = 'pending' | 'generating' | 'ready' | 'error' | 'skipped';
+
+export const PHASE_STATUS_WORDS: Record<PhaseRawStatus, string> = {
+  pending: 'Not started',
+  generating: 'Generating',
+  ready: 'Ready',
+  error: 'Error',
+  skipped: 'Skipped',
+};
 
 export interface PhaseQuestion {
   id?: string;

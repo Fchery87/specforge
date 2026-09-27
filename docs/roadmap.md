@@ -11,7 +11,7 @@
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
 | 5. Magenta brand | Complete on `feature/magenta-brand`, pending review and merge | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
-| 6. Workflow and navigation | Active: small fixes on `feature/workflow-fixes`, navigation direction awaiting the owner | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
+| 6. Workflow and navigation | Complete on `feature/workflow-fixes` and `feature/project-sidebar`, pending review and merge | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -44,8 +44,9 @@ lifecycle requires of a finished plan.
 Phase 6 makes the product easier to move around. The small fixes give each mode one name, send
 "Generate all phases" through the answers page, and make project creation one step with the
 repository connection moved to the project page. Three project navigation prototypes are in
-`design/prototypes/project-navigation.html`, with captures in `design/screens/navigation/`; the
-build waits on the owner's pick.
+`design/prototypes/project-navigation.html`, with captures in `design/screens/navigation/`. The owner
+chose the rail, and phase pages now carry a project sidebar with every phase and its status; the
+stage band stays on the project overview.
 
 ## Later phases
 

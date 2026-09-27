@@ -152,11 +152,14 @@ The workflow is described once per page, each description with one job.
   claims is named by its count: "Settle 2 untraced claims in Requirements".
 - `components/phase-ledger.tsx` is the ledger on the project page: every phase, its stage and its
   status, in stage order rather than storage order.
-- `components/add-section-menu.tsx` is the one control that brings a skipped phase back, and
-  `components/stage-phase-links.tsx` lists the current stage's phases on a phase page.
+- `components/add-section-menu.tsx` is the one control that brings a skipped phase back.
+- `components/project-nav.tsx` is the sidebar on a phase page: every phase, grouped by stage, with
+  its status, and the current phase marked. Below `lg` it folds into one button that names the
+  project and phase and opens the same list as a drawer. The phase page's heading is the phase name.
 
 **`lib/workflow.ts` owns the phase labels and the phase lookup**: `phaseState`, `stageTargetPhase` and
-`currentPhaseFor` are the one reading of a phase's status, so the band, the ledger and the next action
+`currentPhaseFor` are the one reading of a phase's status, and `PROJECT_OUTLINE` is the one reading
+order, so the band, the ledger, the sidebar and the next action
 cannot disagree. Do not add another description of the same eight phases.
 
 ## Layout

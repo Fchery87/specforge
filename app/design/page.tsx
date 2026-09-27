@@ -4,6 +4,7 @@ import { ArtifactDocument } from "@/components/artifact-document";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { NextActionPanel } from "@/components/next-action-panel";
 import { PhaseLedger } from "@/components/phase-ledger";
+import { ProjectNav } from "@/components/project-nav";
 import { StageStepper } from "@/components/stage-stepper";
 import { StageQualityReport } from "@/components/stage-report";
 import type { ParsedClaim } from "@/lib/claims";
@@ -272,6 +273,28 @@ export default function DesignPreviewPage() {
             phases={WORKSPACE_PHASES}
             currentPhase="domainModel"
           />
+        </div>
+      </section>
+
+      <section data-preview="phase-page" className="mt-16 border-t border-line pt-8">
+        <p className="text-caption text-dim">A phase page</p>
+        <h2 className="mt-2 text-title font-medium text-ink">Every phase beside the page</h2>
+        <div className="mt-8 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-start lg:gap-12">
+          <ProjectNav
+            projectId="preview-atlas"
+            title="Atlas"
+            modeLabel="Full"
+            phases={WORKSPACE_PHASES}
+            skippedPhases={["artifacts"]}
+            currentPhase="prd"
+          />
+          <div className="min-w-0 pt-6 lg:pt-0">
+            <p className="text-label text-dim">Requirements</p>
+            <h3 className="mt-2 font-display text-heading font-semibold text-ink">PRD</h3>
+            <p className="mt-3 max-w-xl text-body text-muted-foreground">
+              Evidence-backed requirements with stable claim IDs
+            </p>
+          </div>
         </div>
       </section>
 
