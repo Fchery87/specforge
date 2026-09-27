@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-variant="rail">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Navigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400..800&family=Funnel+Sans:wght@400..700&family=Red+Hat+Mono:wght@400..600&display=swap" rel="stylesheet">
+<style>
+/* Throwaway. Three ways to move around one project, on the Magenta tokens. */
+:root {
+  --void: #f7f7f7; --surface: #ffffff; --raised: #efefef;
+  --line: #e0e0e0; --line-strong: #cbcbcb;
+  --ink: #0a0a0a; --muted: #4a4a4a; --dim: #666666;
+  --brand: #d10f6f; --warning: #8f6000; --destructive: #c4291c;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --display: "Funnel Display", system-ui, sans-serif;
+  --sans: "Funnel Sans", system-ui, sans-serif;
+  --mono: "Red Hat Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --void: #0a0a0a; --surface: #111111; --raised: #1f1f1f;
+  --line: #262626; --line-strong: #333333;
+  --ink: #f2f2f2; --muted: #b4b4b4; --dim: #8c8c8c;
+  --brand: #ff3d9a; --warning: #e7b54a; --destructive: #ff7a6b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--void); color: var(--ink); font: 400 15px/1.55 var(--sans); }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+
+/* Prototype controls, not part of any variant. */
+.proto { position: fixed; right: 16px; bottom: 16px; z-index: 90; display: flex; gap: 4px; padding: 4px;
+  border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); }
+.proto button { border: 0; background: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.proto button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+/* Site header. */
+.site { position: sticky; top: 0; z-index: 40; height: 56px; display: flex; align-items: center; gap: 24px;
+  padding: 0 24px; border-bottom: 1px solid var(--line); background: var(--void); }
+.mark { display: flex; align-items: center; gap: 8px; font: 600 16px var(--display); letter-spacing: -0.02em; }
+.mark i { width: 22px; height: 22px; border-radius: 6px; background: var(--ink); position: relative; }
+.mark i::after { content: ""; position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+.site nav { display: flex; gap: 4px; font-size: 13px; color: var(--dim); }
+.site nav a { padding: 6px 10px; border-radius: 8px; }
+.site nav a[aria-current] { background: var(--raised); color: var(--ink); }
+.site .who { margin-left: auto; width: 28px; height: 28px; border-radius: 50%; background: var(--raised); }
+
+/* The phase list every variant draws. */
+.phases { list-style: none; margin: 0; padding: 0; }
+.group { margin: 16px 0 4px; padding: 0 10px; font-size: 12px; color: var(--dim); }
+.group:first-child { margin-top: 0; }
+.phase a { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: 8px; font-size: 14px; }
+.phase a:hover { background: var(--raised); }
+.phase a[aria-current="page"] { background: var(--raised); font-weight: 600; box-shadow: inset 2px 0 0 var(--brand); }
+.phase small { font-size: 12px; color: var(--dim); font-weight: 400; }
+.dot { width: 10px; height: 10px; border-radius: 3px; border: 1.5px solid var(--line-strong); }
+.dot[data-s="ready"] { background: var(--ink); border-color: var(--ink); }
+.dot[data-s="now"] { border-color: var(--brand); background: var(--brand); border-radius: 50%; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+.dot[data-s="review"] { border-color: var(--warning); }
+.dot[data-s="skipped"] { border-style: dashed; }
+.phase[data-s="skipped"] a { color: var(--dim); }
+.tools { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 2px; }
+.tools a { padding: 7px 10px; border-radius: 8px; font-size: 14px; color: var(--muted); }
+.tools a:hover { background: var(--raised); color: var(--ink); }
+
+/* The page body every variant shares. */
+.page { padding: 32px 40px 80px; min-width: 0; }
+.eyebrow { font-size: 13px; color: var(--dim); }
+h1 { margin: 6px 0 0; font: 600 40px/1.05 var(--display); letter-spacing: -0.03em; }
+.lede { margin: 10px 0 0; max-width: 60ch; color: var(--muted); }
+.next { margin-top: 24px; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center;
+  padding: 14px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--void); }
+.next b { display: block; font-weight: 600; }
+.next span { font-size: 13px; color: var(--dim); }
+.next .pip { width: 10px; height: 10px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 20%, transparent); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line-strong);
+  background: var(--surface); font-size: 14px; font-weight: 500; cursor: pointer; transition: transform 160ms var(--ease); white-space: nowrap; }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #0a0a0a; }
+.tabs { margin-top: 28px; display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs a { padding: 8px 12px; font-size: 14px; color: var(--dim); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs a[aria-selected="true"] { color: var(--ink); border-color: var(--brand); font-weight: 500; }
+.doc { margin-top: 24px; max-width: 72ch; }
+.doc h2 { font: 600 22px/1.2 var(--display); letter-spacing: -0.02em; margin: 28px 0 8px; }
+.doc p { margin: 0 0 12px; color: var(--muted); }
+.clause { display: grid; grid-template-columns: 3.2rem 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.clause code { font: 500 12px var(--mono); color: var(--dim); padding-top: 3px; }
+.chips { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.chip { font: 500 11px var(--mono); padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--muted); }
+.chip.ok { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.chip.miss { border: 1px dashed var(--destructive); color: var(--destructive); }
+
+/* ---------- Variant A: rail. The list is always visible beside the page. ---------- */
+.rail { display: none; }
+[data-variant="rail"] .shell { display: grid; grid-template-columns: 17rem minmax(0, 1fr); min-height: calc(100vh - 56px); }
+[data-variant="rail"] .rail { display: block; position: sticky; top: 56px; align-self: start; height: calc(100vh - 56px);
+  overflow-y: auto; padding: 24px 14px; border-right: 1px solid var(--line); }
+.rail .proj { padding: 0 10px 16px; }
+.rail .proj b { display: block; font: 600 17px var(--display); letter-spacing: -0.02em; }
+.rail .proj span { font-size: 12px; color: var(--dim); }
+.rail .proj a { font-size: 12px; color: var(--dim); display: inline-block; margin-bottom: 10px; }
+
+/* ---------- Variant B: drawer. One button names where you are and opens the list. ---------- */
+.locator { display: none; }
+[data-variant="drawer"] .locator { display: flex; align-items: center; gap: 10px; padding: 12px 40px; border-bottom: 1px solid var(--line); }
+.locator button { display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px 6px 8px; border-radius: 10px;
+  border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; font-size: 14px; }
+.locator button:active { transform: scale(0.97); }
+.locator .count { font: 500 12px var(--mono); color: var(--dim); }
+.scrim { position: fixed; inset: 0; background: rgba(10,10,10,.4); opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease); z-index: 60; }
+.drawer { position: fixed; top: 0; bottom: 0; left: 0; width: min(88vw, 20rem); z-index: 70; padding: 20px 14px; overflow-y: auto;
+  background: var(--surface); border-right: 1px solid var(--line); transform: translateX(-100%); transition: transform 240ms var(--ease); }
+[data-open="true"] .scrim { opacity: 1; pointer-events: auto; }
+[data-open="true"] .drawer { transform: none; }
+
+/* ---------- Variant C: top bar. The phases run across the page under the header. ---------- */
+.strip { display: none; }
+[data-variant="strip"] .strip { display: block; position: sticky; top: 56px; z-index: 30; background: var(--void); border-bottom: 1px solid var(--line); }
+.strip .inner { display: flex; align-items: center; gap: 20px; padding: 10px 40px 0; }
+.strip .proj { font: 600 15px var(--display); white-space: nowrap; padding-bottom: 10px; }
+.strip ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.strip li { display: flex; }
+.strip li.sep { width: 1px; background: var(--line); margin: 6px 8px 16px; }
+.strip a { display: grid; gap: 6px; padding: 4px 10px 10px; font-size: 13px; color: var(--dim); white-space: nowrap; border-bottom: 2px solid transparent; }
+.strip a i { height: 4px; border-radius: 4px; background: var(--line); }
+.strip a[data-s="ready"] i { background: var(--ink); }
+.strip a[data-s="now"] i { background: linear-gradient(90deg, var(--brand) 45%, var(--line) 45%); }
+.strip a[data-s="skipped"] i { background: none; border: 1px dashed var(--line-strong); }
+.strip a[aria-current="page"] { color: var(--ink); font-weight: 600; border-color: var(--brand); }
+.strip .more { margin-left: auto; padding-bottom: 10px; }
+
+@media (max-width: 760px) {
+  .site { padding: 0 16px; gap: 12px; }
+  .site nav { display: none; }
+  .page { padding: 24px 16px 96px; }
+  h1 { font-size: 32px; }
+  .next { grid-template-columns: auto 1fr; }
+  .next .btn { grid-column: 1 / -1; justify-content: center; }
+  [data-variant="rail"] .shell { display: block; }
+  [data-variant="rail"] .rail { display: none; }
+  [data-variant="rail"] .locator { display: flex; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  [data-variant="drawer"] .locator { padding: 12px 16px; }
+  .strip .inner { padding: 10px 16px 0; }
+  .strip .proj, .strip .more { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="proto" role="group" aria-label="Prototype controls">
+  <button type="button" data-set-variant="rail">A. Rail</button>
+  <button type="button" data-set-variant="drawer">B. Drawer</button>
+  <button type="button" data-set-variant="strip">C. Top bar</button>
+  <button type="button" data-theme-toggle>Theme</button>
+</div>
+
+<header class="site">
+  <a class="mark" href="#"><i></i>SpecForge</a>
+  <nav><a href="#" aria-current="page">Dashboard</a><a href="#">Quick spec</a><a href="#">Settings</a></nav>
+  <span class="who" aria-hidden="true"></span>
+</header>
+
+<template id="phase-list">
+  <ol class="phases">
+    <li class="group">Rules</li>
+    <li class="phase" data-s="ready"><a href="#"><span class="dot" data-s="ready"></span>Project Rules<small>Ready</small></a></li>
+    <li class="group">Requirements</li>
+    <li class="phase" data-s="ready"><a href="#"><span class="dot" data-s="ready"></span>Brief<small>Ready</small></a></li>
+    <li class="phase" data-s="now"><a href="#" aria-current="page"><span class="dot" data-s="now"></span>PRD<small>2 untraced</small></a></li>
+    <li class="group">Design</li>
+    <li class="phase"><a href="#"><span class="dot"></span>Domain Model<small>Not started</small></a></li>
+    <li class="phase"><a href="#"><span class="dot"></span>Architecture<small>Not started</small></a></li>
+    <li class="phase" data-s="skipped"><a href="#"><span class="dot" data-s="skipped"></span>Schemas<small>Skipped</small></a></li>
+    <li class="group">Tasks</li>
+    <li class="phase"><a href="#"><span class="dot"></span>Tasks<small>Not started</small></a></li>
+    <li class="group">Handoff</li>
+    <li class="phase"><a href="#"><span class="dot"></span>Export<small>Locked</small></a></li>
+  </ol>
+  <div class="tools">
+    <a href="#">Repository</a>
+    <a href="#">Generate all phases</a>
+    <a href="#">Export</a>
+  </div>
+</template>
+
+<div class="strip">
+  <div class="inner">
+    <span class="proj">Ledger</span>
+    <ol>
+      <li><a href="#" data-s="ready"><i></i>Rules</a></li>
+      <li class="sep" aria-hidden="true"></li>
+      <li><a href="#" data-s="ready"><i></i>Brief</a></li>
+      <li><a href="#" data-s="now" aria-current="page"><i></i>PRD</a></li>
+      <li class="sep" aria-hidden="true"></li>
+      <li><a href="#"><i></i>Domain Model</a></li>
+      <li><a href="#"><i></i>Architecture</a></li>
+      <li><a href="#" data-s="skipped"><i></i>Schemas</a></li>
+      <li class="sep" aria-hidden="true"></li>
+      <li><a href="#"><i></i>Tasks</a></li>
+      <li class="sep" aria-hidden="true"></li>
+      <li><a href="#"><i></i>Export</a></li>
+    </ol>
+    <span class="more"><button class="btn" type="button">Project</button></span>
+  </div>
+</div>
+
+<div class="locator">
+  <button type="button" data-open-drawer aria-haspopup="dialog">
+    <span class="dot" data-s="now"></span>
+    <span>Ledger<span style="color:var(--dim)"> / </span><b>PRD</b></span>
+    <span class="count">3 of 8</span>
+  </button>
+</div>
+
+<div class="shell">
+  <aside class="rail" aria-label="Project">
+    <div class="proj">
+      <a href="#">All projects</a>
+      <b>Ledger</b>
+      <span>Full mode</span>
+    </div>
+    <div data-slot="rail"></div>
+  </aside>
+
+  <main class="page">
+    <p class="eyebrow">Requirements stage</p>
+    <h1>PRD</h1>
+    <p class="lede">What the product must do, as numbered requirements, each traced to the answer or source that justifies it.</p>
+
+    <section class="next" aria-label="Next step">
+      <span class="pip" aria-hidden="true"></span>
+      <div><span>Next</span><b>Settle 2 untraced claims in Requirements</b></div>
+      <a class="btn primary" href="#">Review claims</a>
+    </section>
+
+    <nav class="tabs" aria-label="Phase">
+      <a href="#" aria-selected="true">Document</a>
+      <a href="#">Clarifications</a>
+    </nav>
+
+    <article class="doc">
+      <h2>Accounts and sharing</h2>
+      <div class="clause"><code>R-01</code><div>A team owner invites members by email, and each member sees the same ledger.
+        <div class="chips"><span class="chip ok">R-01</span><span class="chip">answer: brief/q3</span></div></div></div>
+      <div class="clause"><code>R-02</code><div>Every entry records who made it and when, and entries are never edited in place.
+        <div class="chips"><span class="chip ok">R-02</span><span class="chip">answer: prd/q1</span></div></div></div>
+      <div class="clause"><code>R-03</code><div>Exports reconcile to the cent against the running balance.
+        <div class="chips"><span class="chip miss">R-03 untraced</span></div></div></div>
+      <h2>Limits</h2>
+      <div class="clause"><code>R-04</code><div>A ledger holds up to 50,000 entries before it is archived.
+        <div class="chips"><span class="chip miss">R-04 untraced</span></div></div></div>
+      <div class="clause"><code>R-05</code><div>The ledger loads its latest 200 entries in under a second on a mid-range phone.
+        <div class="chips"><span class="chip">R-05 proposed</span></div></div></div>
+    </article>
+  </main>
+</div>
+
+<div class="scrim" data-close-drawer></div>
+<aside class="drawer" role="dialog" aria-modal="true" aria-label="Project">
+  <div class="proj" style="padding:0 10px 16px">
+    <a href="#" style="font-size:12px;color:var(--dim)">All projects</a>
+    <b style="display:block;font:600 17px var(--display)">Ledger</b>
+    <span style="font-size:12px;color:var(--dim)">Full mode</span>
+  </div>
+  <div data-slot="drawer"></div>
+</aside>
+
+<script>
+const root = document.documentElement;
+const list = document.getElementById("phase-list");
+document.querySelectorAll("[data-slot]").forEach((slot) => slot.append(list.content.cloneNode(true)));
+
+function setVariant(v) {
+  root.dataset.variant = v;
+  root.dataset.open = "false";
+  document.querySelectorAll("[data-set-variant]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.setVariant === v)));
+  history.replaceState(null, "", "#" + v);
+}
+document.querySelectorAll("[data-set-variant]").forEach((b) => b.addEventListener("click", () => setVariant(b.dataset.setVariant)));
+document.querySelector("[data-theme-toggle]").addEventListener("click", () => {
+  root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+});
+document.querySelector("[data-open-drawer]").addEventListener("click", () => { root.dataset.open = "true"; });
+document.querySelector("[data-close-drawer]").addEventListener("click", () => { root.dataset.open = "false"; });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") root.dataset.open = "false"; });
+
+const params = new URLSearchParams(location.search);
+if (params.get("theme")) root.dataset.theme = params.get("theme");
+setVariant(["rail", "drawer", "strip"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "rail");
+if (params.get("open") === "1") root.dataset.open = "true";
+</script>
+</body>
+</html>

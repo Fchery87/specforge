@@ -11,6 +11,7 @@
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
 | 5. Magenta brand | Complete on `feature/magenta-brand`, pending review and merge | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
+| 6. Workflow and navigation | Active: small fixes on `feature/workflow-fixes`, navigation direction awaiting the owner | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -40,14 +41,20 @@ build, the contrast and token-sync audits, the whole-tree palette lint and this 
 captured surfaces are in `design/screens/magenta/`. The implementation plan is deleted, as the
 lifecycle requires of a finished plan.
 
+Phase 6 makes the product easier to move around. The small fixes give each mode one name, send
+"Generate all phases" through the answers page, and make project creation one step with the
+repository connection moved to the project page. Three project navigation prototypes are in
+`design/prototypes/project-navigation.html`, with captures in `design/screens/navigation/`; the
+build waits on the owner's pick.
+
 ## Later phases
 
-Each later phase gets its own spec when the phase before it exits. Phases 6 to 9 have no spec yet.
+Each later phase gets its own spec when the phase before it exits. Phases 7 to 10 have no spec yet.
 
-6. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
-7. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
-8. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
-9. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`.
+7. Change and bug-fix specs. Specify a change to an existing codebase as added, modified, and removed requirements against the current spec.
+8. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
+9. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
+10. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`.
 
 ## Historical plan index
 

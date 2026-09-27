@@ -5,79 +5,27 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Sparkles, GitBranch, Zap, Compass, Server } from "lucide-react";
+import { ArrowLeft, BookTemplate, ChevronDown, ChevronUp, Loader2, Zap, Compass, Server } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 import { PromptEnhanceButton } from "@/components/prompt-enhance-button";
-import { CodebaseConnector } from "@/components/codebase-connector";
 import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { toast } from "sonner";
 
 import { TITLE_MAX, DESCRIPTION_MAX } from "@/lib/project-input";
-import { MODE_POLICIES, WORKFLOW_STAGES, type ProjectMode } from "@/lib/workflow";
+import { MODE_POLICIES, type ProjectMode } from "@/lib/workflow";
 
-const MODE_METADATA: Record<
-  ProjectMode,
-  {
-    badge: string;
-    description: string;
-    icon: React.ReactNode;
-  }
-> = {
-  quick: {
-    badge: 'Fast-Track',
-    description:
-      'Brisk specification for a targeted feature or bug fix. Focuses on requirements, technical architecture, and stories.',
-    icon: <Zap className="size-4 text-warning" />,
-  },
-  full: {
-    badge: 'Enterprise',
-    description:
-      'Comprehensive 8-phase architecture specification for greenfield systems and major platform initiatives.',
-    icon: <Compass className="size-4 text-primary" />,
-  },
-  backend: {
-    badge: 'Architecture',
-    description:
-      'Service contracts, domain models, schemas, and API specifications for microservices and backend platforms.',
-    icon: <Server className="size-4 text-info" />,
-  },
+const MODE_ICON: Record<ProjectMode, React.ReactNode> = {
+  quick: <Zap className="size-4 text-warning" />,
+  full: <Compass className="size-4 text-primary" />,
+  backend: <Server className="size-4 text-info" />,
 };
 
 const MODE_ORDER: readonly ProjectMode[] = ['quick', 'full', 'backend'] as const;
-
-const stagesSummaryPrefix = WORKFLOW_STAGES.map((s) => s.label).join(', ');
-
-function buildFlowSummary(mode: ProjectMode): string {
-  const policy = MODE_POLICIES[mode];
-  const reviewText =
-    policy.reviewAfter.length === 0
-      ? 'No review stops.'
-      : 'Review after each stage.';
-  return `${stagesSummaryPrefix}. ${reviewText}`;
-}
-
-interface ProjectModeOption {
-  id: ProjectMode;
-  name: string;
-  badge: string;
-  description: string;
-  phasesSummary: string;
-  icon: React.ReactNode;
-}
-
-const PROJECT_MODE_OPTIONS: ProjectModeOption[] = MODE_ORDER.map((mode) => ({
-  id: mode,
-  name: MODE_POLICIES[mode].label,
-  badge: MODE_METADATA[mode].badge,
-  description: MODE_METADATA[mode].description,
-  phasesSummary: buildFlowSummary(mode),
-  icon: MODE_METADATA[mode].icon,
-}));
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -92,8 +40,6 @@ export default function NewProjectPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<Id<"constitutionTemplates"> | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
-  const [showRepoConnector, setShowRepoConnector] = useState(false);
-  const [createdProjectId, setCreatedProjectId] = useState<Id<"projects"> | null>(null);
 
   const titleLeft = TITLE_MAX - title.length;
   const descLeft = DESCRIPTION_MAX - description.length;
@@ -109,10 +55,7 @@ export default function NewProjectPage() {
         constitutionTemplateId: selectedTemplateId ?? undefined,
         mode: selectedMode,
       });
-      // Show repo connector step instead of immediately redirecting
-      setCreatedProjectId(id);
-      setShowRepoConnector(true);
-      setIsCreating(false);
+      router.push(`/project/${id}` as Route);
     } catch (error) {
       console.error("Failed to create project:", error);
       toast.error("Failed to create project", {
@@ -120,16 +63,6 @@ export default function NewProjectPage() {
         duration: 5000,
       });
       setIsCreating(false);
-    }
-  }
-
-  function handleSkipRepo() {
-    if (createdProjectId) {
-      if (selectedMode === 'quick') {
-        router.push(`/project/${createdProjectId}/questions` as Route);
-      } else {
-        router.push(`/project/${createdProjectId}`);
-      }
     }
   }
 
@@ -154,19 +87,10 @@ export default function NewProjectPage() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-12">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="size-10 bg-primary flex items-center justify-center">
-                <Sparkles className="size-5 text-primary-foreground" />
-              </div>
-              <span className="text-ui font-bold text-muted-foreground">
-                New Project
-              </span>
-            </div>
-            <h1 className="text-heading font-bold leading-none mb-4">
-              Start <span className="text-primary">Building</span>
-            </h1>
-            <p className="text-title text-muted-foreground">
-              Provide a project title and initial scope. Detailed requirements, user personas, and system boundaries yield sharper specifications.
+            <h1 className="mb-4 font-display text-heading font-semibold text-ink">New project</h1>
+            <p className="max-w-xl text-body text-muted-foreground">
+              Name the project and describe its scope. The more you say about users, workflows and limits,
+              the fewer questions SpecForge asks later. You can connect a GitHub repository from the project page.
             </p>
           </div>
 
@@ -175,63 +99,22 @@ export default function NewProjectPage() {
 
           {/* Form Card */}
           <Card variant="static" className="border">
-            {showRepoConnector && createdProjectId ? (
-
-              <>
-                <CardHeader>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="size-10 bg-primary flex items-center justify-center">
-                      <GitBranch className="size-5 text-primary-foreground" />
-                    </div>
-                    <span className="text-ui font-bold text-muted-foreground">
-                      Step 2 of 2
-                    </span>
-                  </div>
-                  <CardTitle className="text-title font-semibold">
-                    Connect Your Repository (Optional)
-                  </CardTitle>
-                  <CardDescription>
-                    Link a GitHub repository to pin file citations to specific commits. SpecForge references your file paths and architectural patterns during generation.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <CodebaseConnector 
-                    projectId={createdProjectId} 
-                    onComplete={handleSkipRepo}
-                  />
-                  <div className="flex items-center justify-center">
-                    <Button 
-                      variant="ghost" 
-                      onClick={handleSkipRepo}
-                      className="text-muted-foreground"
-                    >
-                      Skip and view project →
-                    </Button>
-                  </div>
-                </CardContent>
-              </>
-            ) : (
-              <>
-                <CardHeader>
-                  <CardTitle className="text-title font-semibold">Project Details</CardTitle>
-                  <CardDescription>
-                    Define your project title and core requirements. The initial brief establishes your evidence baseline.
-                  </CardDescription>
-                </CardHeader>
-            <CardContent className="space-y-8">
+            <CardContent className="space-y-8 pt-6">
               {/* Specification Mode Selector */}
               <div className="space-y-3">
                 <label className="text-ui font-bold text-muted-foreground">
                   Specification Mode
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {PROJECT_MODE_OPTIONS.map((mode) => {
-                    const isSelected = selectedMode === mode.id;
+                  {MODE_ORDER.map((modeId) => {
+                    const isSelected = selectedMode === modeId;
+                    const mode = MODE_POLICIES[modeId];
                     return (
                       <button
-                        key={mode.id}
+                        key={modeId}
                         type="button"
-                        onClick={() => setSelectedMode(mode.id)}
+                        aria-pressed={isSelected}
+                        onClick={() => setSelectedMode(modeId)}
                         disabled={isCreating}
                         className={`text-left p-4 border transition-colors cursor-pointer flex flex-col justify-between ${
                           isSelected
@@ -240,21 +123,13 @@ export default function NewProjectPage() {
                         }`}
                       >
                         <div>
-                          <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="font-semibold text-ui flex items-center gap-1.5">
-                              {mode.icon}
-                              {mode.name}
-                            </span>
-                            <span className="text-caption font-bold px-1.5 py-0.5 bg-raised text-muted-foreground">
-                              {mode.badge}
-                            </span>
-                          </div>
+                          <span className="mb-2 flex items-center gap-1.5 text-ui font-semibold">
+                            {MODE_ICON[modeId]}
+                            {mode.label}
+                          </span>
                           <p className="text-caption text-muted-foreground mb-3 leading-relaxed">
                             {mode.description}
                           </p>
-                        </div>
-                        <div className="pt-2 border-t border-line/50 text-caption text-muted-foreground font-mono">
-                          {mode.phasesSummary}
                         </div>
                       </button>
                     );
@@ -456,8 +331,6 @@ export default function NewProjectPage() {
                 </Button>
               </div>
             </CardContent>
-            </>
-          )}
           </Card>
         </div>
       </div>

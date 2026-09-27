@@ -241,7 +241,7 @@ export function CombinedQuestions({
           );
         })}
 
-        {/* Generate Everything Bar */}
+        {/* Generate all phases bar */}
         <div className="sticky bottom-6 z-20 p-4 bg-void/95 border border-line rounded-lg flex items-center justify-between gap-4">
           <div className="text-ui text-muted-foreground">
             {hasEmptyRequired
@@ -260,7 +260,7 @@ export function CombinedQuestions({
                 Generating...
               </>
             ) : (
-              "Generate everything"
+              "Generate all phases"
             )}
           </Button>
         </div>

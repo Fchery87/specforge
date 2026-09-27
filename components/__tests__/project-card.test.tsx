@@ -76,12 +76,12 @@ describe("ProjectCard component", () => {
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
-  it("renders mode badge when mode is provided", () => {
+  it("names the mode as the workflow registry does", () => {
     render(<ProjectCard project={{ ...mockProject, mode: "quick" }} />);
-    expect(screen.getByText("Quick Spec")).toBeInTheDocument();
+    expect(screen.getByText("Lite mode")).toBeInTheDocument();
 
     render(<ProjectCard project={{ ...mockProject, mode: "backend" }} />);
-    expect(screen.getByText("API & Backend")).toBeInTheDocument();
+    expect(screen.getByText("Backend mode")).toBeInTheDocument();
   });
 
   it("asserts 'Resume at Design' and the Design href for a project whose Requirements stage is ready", () => {
