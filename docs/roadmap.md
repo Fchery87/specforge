@@ -10,8 +10,8 @@
 | 2. Guided three-stage workflow | Complete | [Guided three-stage workflow](specs/2026-09-25-guided-workflow.md) | - |
 | 3. Ember redesign | Complete | [Ember redesign](specs/2026-09-25-ember-redesign.md) | - |
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
-| 5. Magenta brand | Complete on `feature/magenta-brand`, pending review and merge | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
-| 6. Workflow and navigation | Complete on `feature/workflow-fixes`, `feature/project-sidebar`, `feature/setup-and-quick-spec` and `feature/restyle-remaining`, pending review and merge | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
+| 5. Magenta brand | Complete | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
+| 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -49,6 +49,11 @@ chose the rail, and phase pages now carry a project sidebar with every phase and
 stage band stays on the project overview. A missing model is now reported before any generation and
 every generate control says why it is off, and a Quick spec can start a Lite project that holds it.
 Settings and the saved quick specs page now match the rest, and weights above 600 fail the lint.
+
+Phases 5 and 6 reached `main` together in #40 at `8f63167`, after the phase 6 work ran as #36, #37,
+#38 and #39 into the brand branch. CI's test, design and e2e jobs passed on each of those pull
+requests and on #40. Deploying #40 needs a Convex deploy, for the new `createProjectFromQuickSpec`
+mutation.
 
 ## Later phases
 
