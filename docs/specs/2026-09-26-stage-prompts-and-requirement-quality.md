@@ -149,8 +149,12 @@ The four dimensions are reported separately and never combined into one number. 
 problem with a different fix, and a blended score would let a well-traced 4,000-word document look
 the same as a badly-traced 900-word one.
 
-- **Traceability** reads the claim records from phase 1. `untraced` is the count `claimState` already
-  reports, so the report adds no second definition of the same idea.
+- **Traceability** reads the claim records from phase 1, not claim bullets written into the markdown.
+  `untraced` is the count `claimState` already reports, so the report adds no second definition of the
+  same idea. The two sources are deliberately different: coverage and length read the text, because a
+  section exists or a word is written or it is not, while traceability reads the records, because a
+  claim is a row the evidence system created and a reviewer settled. A stage can therefore show a
+  claim bullet in its prose and report no claims, which is correct.
 - **Testability** reads the acceptance criteria and their classes.
 - **Coverage** compares the sections present in the artifact with `lib/llm/section-plans.ts` for that
   phase, and counts a section present but carrying no claim as empty. A section's claims are counted
@@ -165,7 +169,13 @@ the same as a badly-traced 900-word one.
 - **Length** compares the word count with a budget derived from the plan's `estimatedTokens`.
 
 The report is recomputed on demand from the stored artifact version rather than on a schedule, so it
-cannot describe a revision that is not the one stored, and it needs no cron job.
+cannot describe a revision that is not the one stored, and it needs no cron job. In Convex terms that
+means the **read path is a query that recomputes and returns, and the write path is a mutation that
+recomputes and stores**; a query cannot write, so "a query that recomputes and writes the row" is not
+expressible. Recomputing on read satisfies the intent more directly than writing on read would, since
+the read path then holds no state to go stale. The stored row earns its place for the export path,
+which runs without the user's request, and because `artifactVersionIds` records exactly which revisions
+were measured, which a later recomputation could no longer reconstruct once a new version landed.
 
 ### Where the user sees it
 
