@@ -137,7 +137,7 @@ A new table, `stageReports`, holds one row per project and stage:
 | `artifactVersionIds` | `v.array(v.id('artifactVersions'))` | Exactly which revisions were measured |
 | `traceability` | object | `total`, `traced`, `untraced` claim counts |
 | `testability` | object | `total`, `observable`, `unobservable`, `vague`, `unclassified` |
-| `coverage` | object | `sections`, `emptySections`, `missingSections` |
+| `coverage` | object | `sections`, `emptySections`, `missingSections`, `missingSectionIds` |
 | `length` | object | `words`, `budgetWords`, `overBudget` |
 | `computedAt` | `v.number()` | When the row was written |
 
@@ -153,9 +153,15 @@ the same as a badly-traced 900-word one.
   reports, so the report adds no second definition of the same idea.
 - **Testability** reads the acceptance criteria and their classes.
 - **Coverage** compares the sections present in the artifact with `lib/llm/section-plans.ts` for that
-  phase, and counts a section present but containing no requirement as empty. A required section
-  absent from the artifact is missing, which is the gap the current per-section generation can leave
-  silently.
+  phase, and counts a section present but carrying no claim as empty. A section's claims are counted
+  over its subtree rather than its own body, because a plan section written as
+  `## Requirements` / `### Functional` / claim has an empty own body while its claim sits directly
+  under it; counting the own body alone reported that as a gap, and probing the first implementation
+  showed it was the most likely false gap in the report. A required section absent from the artifact is
+  missing, which is the gap the current per-section generation can leave silently, and
+  `missingSectionIds` names which, so a reader can act rather than only count. Occupying a table cell
+  or a blockquote does not make a bullet a claim, because `parseClaimManifest` does not read it as one
+  there either, so the report and the evidence system agree about what a claim is.
 - **Length** compares the word count with a budget derived from the plan's `estimatedTokens`.
 
 The report is recomputed on demand from the stored artifact version rather than on a schedule, so it
