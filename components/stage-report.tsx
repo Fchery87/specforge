@@ -124,9 +124,15 @@ export function StageQualityReport({
             <Gap value={coverage.missingSections} word="missing" />
           ) : null}
           {coverage.missingSectionIds.length > 0 ? (
-            <span className="mt-1 block font-mono text-caption text-dim">
-              {coverage.missingSectionIds.join(", ")}
-            </span>
+            <>
+              {/* A text node separates the ids from the count before them, because the row's text
+                  content is what a reader hears and "1 missingrequirements" would be one word. The
+                  span is a block, so the space itself does not show. */}
+              {" "}
+              <span className="mt-1 block font-mono text-caption text-dim">
+                {coverage.missingSectionIds.join(", ")}
+              </span>
+            </>
           ) : null}
         </Row>
 
