@@ -90,7 +90,7 @@ export function ProjectRulesCard({
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <Shield className="size-4 text-primary" />
-            <span className="text-caption font-bold text-muted-foreground">
+            <span className="text-caption font-semibold text-muted-foreground">
               Rules
             </span>
           </div>
@@ -100,7 +100,7 @@ export function ProjectRulesCard({
             </span>
           )}
         </div>
-        <CardTitle className="text-title font-bold">
+        <CardTitle className="text-title font-semibold">
           Project Rules
         </CardTitle>
         <CardDescription className="text-ui text-muted-foreground mt-1">

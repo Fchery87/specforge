@@ -100,7 +100,7 @@ export default function CombinedQuestionsPage() {
     return (
       <main className="page-container py-20">
         <div className="text-center">
-          <h1 className="text-title font-bold">Project not found</h1>
+          <h1 className="text-title font-semibold">Project not found</h1>
         </div>
       </main>
     );

@@ -282,7 +282,7 @@ export default function LlmModelsPage() {
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-heading font-bold">LLM Configuration</h1>
+          <h1 className="text-heading font-semibold">LLM Configuration</h1>
           <p className="text-ink/70 mt-2">Manage global LLM models and system credentials for shared use.</p>
         </div>
       </div>

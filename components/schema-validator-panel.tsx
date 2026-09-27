@@ -357,7 +357,7 @@ export function SchemaValidatorPanel({
           <Badge
             variant="outline"
             className={cn(
-              "text-caption font-mono font-bold",
+              "text-caption font-mono font-semibold",
               validation.conformanceScore >= 80
                 ? "border-success/30 text-success dark:text-success bg-success/10"
                 : validation.conformanceScore >= 50

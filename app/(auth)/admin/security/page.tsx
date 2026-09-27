@@ -136,7 +136,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{auditLogs.length}</p>
+              <p className="text-heading font-semibold">{auditLogs.length}</p>
               <p className="text-caption text-muted-foreground mt-2">Logged actions</p>
             </CardContent>
           </Card>
@@ -148,7 +148,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">
+              <p className="text-heading font-semibold">
                 {auditLogs.filter((l) => l.targetType === 'user').length}
               </p>
               <p className="text-caption text-muted-foreground mt-2">User-related events</p>
@@ -162,7 +162,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">
+              <p className="text-heading font-semibold">
                 {auditLogs.filter((l) => l.targetType === 'project').length}
               </p>
               <p className="text-caption text-muted-foreground mt-2">Project-related events</p>
@@ -176,7 +176,7 @@ export default function SecurityPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">
+              <p className="text-heading font-semibold">
                 {auditLogs.filter((l) => l.targetType === 'system').length}
               </p>
               <p className="text-caption text-muted-foreground mt-2">Configuration changes</p>
@@ -340,7 +340,7 @@ export default function SecurityPage() {
       {/* Security Tips */}
       <section className="page-section page-container border-t border-line">
         <div className="mb-8">
-          <h2 className="text-title font-bold">
+          <h2 className="text-title font-semibold">
             Security Guidelines
           </h2>
         </div>

@@ -207,7 +207,7 @@ export default function SettingsPage() {
           {/* Feature Flags Tab */}
           <TabsContent value="features">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 Feature Flags
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -245,7 +245,7 @@ export default function SettingsPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold">{flag.name}</h3>
+                            <h3 className="font-semibold">{flag.name}</h3>
                             {flag.key === 'maintenance_mode' && flag.enabled && (
                               <Badge variant="destructive">Active</Badge>
                             )}
@@ -274,7 +274,7 @@ export default function SettingsPage() {
           {/* System Config Tab */}
           <TabsContent value="config">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 System Configuration
               </h2>
               <p className="text-muted-foreground mt-2">
@@ -287,7 +287,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Gauge className="size-5 text-primary" />
-                  <h3 className="font-bold">Rate Limits</h3>
+                  <h3 className="font-semibold">Rate Limits</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -316,7 +316,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Lock className="size-5 text-primary" />
-                  <h3 className="font-bold">Security</h3>
+                  <h3 className="font-semibold">Security</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -345,7 +345,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="size-5 text-primary" />
-                  <h3 className="font-bold">Generation</h3>
+                  <h3 className="font-semibold">Generation</h3>
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -375,7 +375,7 @@ export default function SettingsPage() {
           {/* Advanced Tab */}
           <TabsContent value="advanced">
             <div className="mb-8">
-              <h2 className="text-title font-bold">
+              <h2 className="text-title font-semibold">
                 Advanced Settings
               </h2>
               <p className="text-muted-foreground mt-2">

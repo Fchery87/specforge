@@ -103,10 +103,10 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
         <div className="flex flex-wrap items-center justify-between gap-3 p-3 border border-line/60 bg-raised/10 text-caption">
           <div className="flex items-center gap-4">
             <div>
-              <span className="font-bold text-primary">{frontierCount}</span> Ready on Frontier
+              <span className="font-semibold text-primary">{frontierCount}</span> Ready on Frontier
             </div>
             <div className="text-muted-foreground">
-              <span className="font-bold text-ink">{tracerCount}</span> Tracer Bullets
+              <span className="font-semibold text-ink">{tracerCount}</span> Tracer Bullets
             </div>
           </div>
           <div className="text-muted-foreground">
@@ -120,7 +120,7 @@ export function TicketBoard({ projectId, phaseId, artifactId }: TicketBoardProps
           const col = ticketList.filter((t) => t.status === status);
           return (
             <div key={status}>
-              <h3 className="text-ui font-bold text-muted-foreground mb-3">
+              <h3 className="text-ui font-semibold text-muted-foreground mb-3">
                 {label} <span className="text-caption font-normal">({col.length})</span>
               </h3>
               <div>

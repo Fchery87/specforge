@@ -57,7 +57,7 @@ export function QuestionRow({
   return (
     <div className="space-y-3">
       <div className="flex items-start gap-3">
-        <span className="flex-shrink-0 flex items-center justify-center size-8 border border-line bg-raised/30 text-ui font-bold">
+        <span className="flex-shrink-0 flex items-center justify-center size-8 border border-line bg-raised/30 text-ui font-semibold">
           {String(index + 1).padStart(2, "0")}
         </span>
         <div className="flex-1">

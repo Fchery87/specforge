@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
   Tabs,
   TabsContent,
@@ -211,21 +210,10 @@ function LlmConfigSection() {
     <div className="space-y-6">
       <Card variant="default">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Shield className="size-5 text-primary" />
-            <CardTitle>API Key Security</CardTitle>
-          </div>
+          <CardTitle>Model</CardTitle>
           <CardDescription>
-            Your credentials are encrypted using AES-256-GCM before storage and never exposed in plain text.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card variant="default">
-        <CardHeader>
-          <CardTitle>Provider & Model Settings</CardTitle>
-          <CardDescription>
-            Select your primary LLM provider and default model for specification generation.
+            The provider and model that generate your specs. Keys are encrypted with AES-256-GCM before
+            they are stored and are never shown in full.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -280,7 +268,7 @@ function LlmConfigSection() {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-ui">{p.name}</span>
+                          <span className="font-semibold text-ui">{p.name}</span>
                           {isPopular && (
                             <Badge variant="secondary" className="text-caption font-normal">
                               Popular
@@ -299,7 +287,7 @@ function LlmConfigSection() {
 
                       <div className="flex-shrink-0">
                         {isSelected ? (
-                          <div className="flex items-center gap-1 text-primary text-caption font-bold">
+                          <div className="flex items-center gap-1 text-primary text-caption font-semibold">
                             <Check className="size-4" />
                             <span>Active</span>
                           </div>
@@ -317,7 +305,7 @@ function LlmConfigSection() {
               <button
                 type="button"
                 onClick={() => setShowAllProviders(true)}
-                className="w-full py-2.5 text-caption font-bold text-muted-foreground hover:text-ink transition-colors border border-dashed border-line hover:border-primary/50"
+                className="w-full py-2.5 text-caption font-semibold text-muted-foreground hover:text-ink transition-colors border border-dashed border-line hover:border-primary/50"
               >
                 Show {remainingProviders.length} more providers
               </button>
@@ -343,7 +331,7 @@ function LlmConfigSection() {
                   <div className="flex items-start gap-2 p-3 bg-raised/30 rounded-sm border border-line">
                     <Info className="size-4 text-primary flex-shrink-0 mt-0.5" />
                     <div className="text-caption text-ink/80 space-y-1">
-                      <p className="font-bold text-ink">{modelInfo.displayName} Capabilities:</p>
+                      <p className="font-semibold text-ink">{modelInfo.displayName} Capabilities:</p>
                       <div className="flex flex-wrap gap-2">
                         <Badge variant="outline" className="text-caption">
                           Context: {modelInfo.formattedLimits.context} tokens
@@ -469,7 +457,7 @@ function LlmConfigSection() {
           <div className="p-4 bg-raised/20 border border-line space-y-3">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="useSystem" className="text-ui font-bold cursor-pointer">
+                <Label htmlFor="useSystem" className="text-ui font-semibold cursor-pointer">
                   Use System Credentials
                 </Label>
                 <p className="text-caption text-muted-foreground">
@@ -619,7 +607,7 @@ function WorkspacePreferencesSection() {
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between p-3 rounded-sm border border-line">
             <div className="space-y-0.5">
-              <Label className="text-ui font-bold">Personal Analytics Cards</Label>
+              <Label className="text-ui font-semibold">Personal Analytics Cards</Label>
               <p className="text-caption text-muted-foreground">
                 Display token usage statistics, estimated costs, and completion velocity.
               </p>
@@ -632,7 +620,7 @@ function WorkspacePreferencesSection() {
 
           <div className="flex items-center justify-between p-3 rounded-sm border border-line">
             <div className="space-y-0.5">
-              <Label className="text-ui font-bold">Real-Time Activity Feed</Label>
+              <Label className="text-ui font-semibold">Real-Time Activity Feed</Label>
               <p className="text-caption text-muted-foreground">
                 Show live task stream updates and project event logs on the dashboard.
               </p>
@@ -673,7 +661,7 @@ function WorkspacePreferencesSection() {
         <CardContent className="space-y-5">
           <div className="flex items-center justify-between p-3 rounded-sm border border-line">
             <div className="space-y-0.5">
-              <Label className="text-ui font-bold">Generation Complete Alerts</Label>
+              <Label className="text-ui font-semibold">Generation Complete Alerts</Label>
               <p className="text-caption text-muted-foreground">
                 Receive notifications when asynchronous specification artifacts finish generating.
               </p>
@@ -686,7 +674,7 @@ function WorkspacePreferencesSection() {
 
           <div className="flex items-center justify-between p-3 rounded-sm border border-line">
             <div className="space-y-0.5">
-              <Label className="text-ui font-bold">Drift Detection Alerts</Label>
+              <Label className="text-ui font-semibold">Drift Detection Alerts</Label>
               <p className="text-caption text-muted-foreground">
                 Notify when code changes diverge from approved specification contracts.
               </p>
@@ -699,7 +687,7 @@ function WorkspacePreferencesSection() {
 
           <div className="flex items-center justify-between p-3 rounded-sm border border-line">
             <div className="space-y-0.5">
-              <Label className="text-ui font-bold">Weekly Engineering Digest</Label>
+              <Label className="text-ui font-semibold">Weekly digest</Label>
               <p className="text-caption text-muted-foreground">
                 Summary of specification revisions and handoff metrics across active projects.
               </p>
@@ -743,24 +731,24 @@ function AccountProfileSection() {
       <CardContent className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="p-4 rounded-sm border border-line bg-raised/20">
-            <p className="text-caption font-bold text-muted-foreground mb-1">Full Name</p>
-            <p className="text-body font-bold">{user.fullName || user.firstName || "Forgemaster"}</p>
+            <p className="text-caption font-semibold text-muted-foreground mb-1">Full Name</p>
+            <p className="text-body font-medium">{user.fullName || user.firstName || "Not set"}</p>
           </div>
 
           <div className="p-4 rounded-sm border border-line bg-raised/20">
-            <p className="text-caption font-bold text-muted-foreground mb-1">Primary Email</p>
-            <p className="text-body font-bold truncate">{email}</p>
+            <p className="text-caption font-semibold text-muted-foreground mb-1">Primary Email</p>
+            <p className="text-body font-medium truncate">{email}</p>
           </div>
 
           <div className="p-4 rounded-sm border border-line bg-raised/20">
-            <p className="text-caption font-bold text-muted-foreground mb-1">Assigned Role</p>
-            <Badge variant={role === "admin" ? "default" : "secondary"} className="font-bold text-caption">
+            <p className="text-caption font-semibold text-muted-foreground mb-1">Assigned Role</p>
+            <Badge variant={role === "admin" ? "default" : "secondary"} className="font-semibold text-caption">
               {role}
             </Badge>
           </div>
 
           <div className="p-4 rounded-sm border border-line bg-raised/20">
-            <p className="text-caption font-bold text-muted-foreground mb-1">User Identifier</p>
+            <p className="text-caption font-semibold text-muted-foreground mb-1">User Identifier</p>
             <p className="text-caption font-mono text-muted-foreground truncate">{user.id}</p>
           </div>
         </div>
@@ -774,46 +762,38 @@ function AccountProfileSection() {
   );
 }
 
+const SETTINGS_TAB =
+  "-mb-px flex-none gap-2 rounded-none rounded-t-sm border-0 border-b-2 border-transparent bg-transparent px-3 py-2.5 text-ui text-muted-foreground shadow-none transition-colors hover:text-ink data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:text-ink data-[state=active]:shadow-none";
+
 export default function SettingsHubPage() {
   return (
-    <main className="page-container py-8 max-w-4xl mx-auto space-y-8">
-      <Breadcrumbs
-        items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Settings" },
-        ]}
-      />
-
-      <div className="space-y-2 border-b border-line pb-6">
-        <div className="flex items-center gap-2 text-caption font-bold text-primary">
-          <Settings className="size-4" />
-          <span>Configuration Hub</span>
-        </div>
-        <h1 className="text-heading font-bold">Settings & Preferences</h1>
-        <p className="text-ui text-muted-foreground">
-          Configure your AI providers, workspace display preferences, notifications, and account credentials.
+    <main className="page-container max-w-4xl space-y-8 py-10 md:py-14">
+      <div>
+        <h1 className="font-display text-heading font-semibold text-ink">Settings</h1>
+        <p className="mt-3 max-w-xl text-body text-muted-foreground">
+          The model that writes your specs, how the dashboard looks, which alerts you get, and your account.
         </p>
       </div>
 
       <Tabs defaultValue="ai" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-md border border-line p-1 bg-raised/30">
+        <TabsList className="flex h-auto w-full justify-start gap-1 rounded-none border-0 border-b border-line bg-transparent p-0">
           <TabsTrigger
             value="ai"
-            className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-caption sm:text-caption font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors"
+            className={SETTINGS_TAB}
           >
             <Settings className="size-3.5 shrink-0" />
             <span className="truncate">AI Models</span>
           </TabsTrigger>
           <TabsTrigger
             value="preferences"
-            className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-caption sm:text-caption font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors"
+            className={SETTINGS_TAB}
           >
             <Sliders className="size-3.5 shrink-0" />
             <span className="truncate">Workspace</span>
           </TabsTrigger>
           <TabsTrigger
             value="account"
-            className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-caption sm:text-caption font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors"
+            className={SETTINGS_TAB}
           >
             <UserIcon className="size-3.5 shrink-0" />
             <span className="truncate">Account</span>

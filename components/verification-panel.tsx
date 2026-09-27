@@ -113,7 +113,7 @@ export function VerificationPanel({ projectId, phaseId }: VerificationPanelProps
           {result && (
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-title font-bold tabular-nums">
+                <div className="text-title font-semibold tabular-nums">
                   {result.overallScore}
                   <span className="text-body font-normal text-muted-foreground">/100</span>
                 </div>

@@ -102,7 +102,7 @@ export default function NewProjectPage() {
             <CardContent className="space-y-8 pt-6">
               {/* Specification Mode Selector */}
               <div className="space-y-3">
-                <label className="text-ui font-bold text-muted-foreground">
+                <label className="text-ui font-semibold text-muted-foreground">
                   Specification Mode
                 </label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -139,7 +139,7 @@ export default function NewProjectPage() {
 
               {/* Title Input - Hero Style */}
               <div className="space-y-3">
-                <label className="text-ui font-bold text-muted-foreground">
+                <label className="text-ui font-semibold text-muted-foreground">
                   Project Title
                 </label>
                 <Input
@@ -160,7 +160,7 @@ export default function NewProjectPage() {
               {/* Description Textarea */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-ui font-bold text-muted-foreground">
+                  <label className="text-ui font-semibold text-muted-foreground">
                     Project Description
                   </label>
                   <PromptEnhanceButton
@@ -202,7 +202,7 @@ export default function NewProjectPage() {
                 >
                   <div className="flex items-center gap-2">
                     <BookTemplate className="size-4 text-muted-foreground" />
-                    <span className="text-ui font-bold text-muted-foreground">
+                    <span className="text-ui font-semibold text-muted-foreground">
                       Constitution Templates
                     </span>
                     {templates !== undefined && (

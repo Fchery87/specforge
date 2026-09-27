@@ -158,7 +158,7 @@ export function CombinedQuestions({
               <CardHeader className="p-6 pb-4 border-b border-line/40">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-title font-bold">
+                    <h2 className="text-title font-semibold">
                       {stage.label}
                     </h2>
                     <CardDescription className="text-ui text-muted-foreground mt-1">
@@ -171,7 +171,7 @@ export function CombinedQuestions({
                 {stagePhasesWithQuestions.map(({ phaseId, phaseLabel, questions }) => (
                   <div key={phaseId} className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-ui font-bold text-muted-foreground">
+                      <h3 className="text-ui font-semibold text-muted-foreground">
                         {phaseLabel}
                       </h3>
                       {onRequestSuggestions && (
@@ -260,7 +260,7 @@ export function CombinedQuestions({
             size="lg"
             onClick={handleSubmit}
             disabled={!canGenerate}
-            className="font-bold"
+            className="font-semibold"
           >
             {isGenerating ? (
               <>

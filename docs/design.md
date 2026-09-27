@@ -207,6 +207,6 @@ produced. The post-migration screenshots are in `design/screens/step-11/`.
 
 Linted rather than merely discouraged: glow shadows, text shadows, glass and `backdrop-filter` on
 content, noise and grain overlays, gradient decoration, arrow glyphs in link text, emoji, and the
-off-scale type, radius and tracking utilities. `uppercase` and font weight above 700 are reported by
-`inspect-type.mjs` against a rendered page, because both need the computed style rather than a
-source match.
+off-scale type, weight, radius and tracking utilities. Weights stop at 600, so `font-bold` and
+heavier fail the lint. `uppercase` and a computed weight above 700 are also reported by
+`inspect-type.mjs` against a rendered page, which catches a weight set outside a utility.

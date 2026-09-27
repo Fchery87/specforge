@@ -130,7 +130,7 @@ export default function UserManagementPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{users.length}</p>
+              <p className="text-heading font-semibold">{users.length}</p>
               <p className="text-caption text-muted-foreground mt-1">Registered accounts</p>
             </CardContent>
           </Card>
@@ -142,7 +142,7 @@ export default function UserManagementPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{stats.totalUsersWithConfig}</p>
+              <p className="text-heading font-semibold">{stats.totalUsersWithConfig}</p>
               <p className="text-caption text-muted-foreground mt-1">Active configurations</p>
             </CardContent>
           </Card>
@@ -154,7 +154,7 @@ export default function UserManagementPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{stats.totalProjects}</p>
+              <p className="text-heading font-semibold">{stats.totalProjects}</p>
               <p className="text-caption text-muted-foreground mt-1">Across all users</p>
             </CardContent>
           </Card>
@@ -166,7 +166,7 @@ export default function UserManagementPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-heading font-bold">{stats.totalArtifacts}</p>
+              <p className="text-heading font-semibold">{stats.totalArtifacts}</p>
               <p className="text-caption text-muted-foreground mt-1">Generated documents</p>
             </CardContent>
           </Card>
@@ -334,11 +334,11 @@ export default function UserManagementPage() {
                             <div className="space-y-3">
                               <div className="flex justify-between items-center p-3 bg-void border border-line rounded-lg">
                                 <span className="text-ui">Projects Created</span>
-                                <span className="font-bold">{user.projectCount}</span>
+                                <span className="font-semibold">{user.projectCount}</span>
                               </div>
                               <div className="flex justify-between items-center p-3 bg-void border border-line rounded-lg">
                                 <span className="text-ui">Artifacts Generated</span>
-                                <span className="font-bold">{user.artifactCount}</span>
+                                <span className="font-semibold">{user.artifactCount}</span>
                               </div>
                               <div className="flex justify-between items-center p-3 bg-void border border-line rounded-lg">
                                 <span className="text-ui">Last Active</span>
