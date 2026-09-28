@@ -13,6 +13,7 @@
 | 5. Magenta brand | Complete | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
 | 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
+| 8. Pull-request verification | Active: spec written, plan next | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -72,9 +73,8 @@ walkthrough note records the before and after counts.
 
 ## Later phases
 
-Each later phase gets its own spec when the phase before it exits. Phases 8 to 10 have no spec yet.
+Each later phase gets its own spec when the phase before it exits. Phases 9 and 10 have no spec yet.
 
-8. Pull-request verification. Check a selected pull request or commit range against requirement IDs, with findings graded by severity.
 9. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
 10. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`. Deferred by phase 6: the project sidebar puts every phase one click away, so this waits until readers show they still need it.
 
