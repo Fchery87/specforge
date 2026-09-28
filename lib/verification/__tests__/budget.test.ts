@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { budgetDiff, DIFF_BUDGET_CHARS, diffBudgetFor, SKIP_REASONS } from '../budget';
+import { budgetDiff, checkReplyTokens, DIFF_BUDGET_CHARS, diffBudgetFor, SKIP_REASONS } from '../budget';
 import { readPatch, splitUnifiedDiff, type DiffFile } from '../diff';
 
 const pasted = [
@@ -100,12 +100,21 @@ describe('budgetDiff', () => {
 
 describe('diffBudgetFor', () => {
   it('sizes the diff to the model: context less the reply and the rest of the prompt', () => {
-    expect(diffBudgetFor({ contextTokens: 1_000_000, maxOutputTokens: 32_000 }, 20_000)).toBe(2_656_000);
+    expect(diffBudgetFor({ contextTokens: 1_000_000, maxOutputTokens: 262_144 }, 20_000)).toBe(1_930_000);
     expect(diffBudgetFor({ contextTokens: 128_000, maxOutputTokens: 4_096 }, 20_000)).toBe(313_312);
   });
 
   it('falls back to the fixed budget when the context size is unknown, and never goes below zero', () => {
     expect(diffBudgetFor({ contextTokens: 0, maxOutputTokens: 4_096 }, 20_000)).toBe(DIFF_BUDGET_CHARS);
     expect(diffBudgetFor({ contextTokens: 8_000, maxOutputTokens: 8_000 }, 90_000)).toBe(0);
+  });
+});
+
+describe('checkReplyTokens', () => {
+  it('gives the reply a quarter of the context, at least 8,000 tokens, within what the model allows', () => {
+    expect(checkReplyTokens({ contextTokens: 262_144, maxOutputTokens: 262_144 })).toBe(65_536);
+    expect(checkReplyTokens({ contextTokens: 1_000_000, maxOutputTokens: 131_072 })).toBe(131_072);
+    expect(checkReplyTokens({ contextTokens: 16_000, maxOutputTokens: 16_000 })).toBe(8_000);
+    expect(checkReplyTokens({ contextTokens: 128_000, maxOutputTokens: 4_096 })).toBe(4_096);
   });
 });

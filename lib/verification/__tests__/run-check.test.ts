@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DIFF_BUDGET_CHARS, SKIP_REASONS } from '../budget';
 import type { DiffFile } from '../diff';
-import { runCheck, type CheckInput } from '../run-check';
+import { ReplyOutOfRoom, runCheck, UNUSABLE_REPLY, type CheckInput } from '../run-check';
 
 const invitations: DiffFile = {
   path: 'convex/invitations.ts',
@@ -127,6 +127,28 @@ describe('runCheck', () => {
     expect(prompts).toHaveLength(2);
     expect(prompts[1]).toContain('Your last reply was not the JSON object asked for.');
     expect(outcome.verdicts[0].verdict).toBe('violated');
+  });
+
+  it('says what to do when the model twice returns no usable reply', async () => {
+    let calls = 0;
+    await expect(
+      runCheck(input(), async () => {
+        calls += 1;
+        return 'Let me think about each requirement in turn. First, REQ-0003 says';
+      }),
+    ).rejects.toThrow(UNUSABLE_REPLY);
+    expect(calls).toBe(2);
+  });
+
+  it('stops without a retry when the model ran out of room, and says how to make the check smaller', async () => {
+    let calls = 0;
+    await expect(
+      runCheck(input(), async () => {
+        calls += 1;
+        throw new ReplyOutOfRoom();
+      }),
+    ).rejects.toThrow('Cite the requirements this pull request implements');
+    expect(calls).toBe(1);
   });
 
   it('does not call the model when no file can be read, and says so', async () => {
