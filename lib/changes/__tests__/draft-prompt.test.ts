@@ -35,7 +35,7 @@ describe('buildDraftChangePrompt', () => {
 
     expect(prompt).toContain('Bug: Invite link 404s');
     expect(prompt).toContain('Observed: A 404 page.\nExpected: The invite page.\nSteps to reproduce: Open an invite link.');
-    expect(prompt).toContain('Always "add" at least one acceptance criterion to the "stories" phase');
+    expect(prompt).toContain('Always "add" at least one edit with "kind": "acceptance_criterion" to the "stories" phase');
   });
 
   it('says so when no repository is connected', () => {
@@ -46,6 +46,17 @@ describe('buildDraftChangePrompt', () => {
     const prompt = buildDraftChangePrompt({ ...base, kind: 'feature', quickSpec: '## Architecture Decisions\n- Links are signed.' });
 
     expect(prompt).toContain('Quick spec written for this change:\n## Architecture Decisions\n- Links are signed.');
+  });
+
+  it("sends a bug fix's regression criterion to the first phase with a document when Tasks has none", () => {
+    const prompt = buildDraftChangePrompt({
+      ...base,
+      kind: 'bugfix',
+      phasesWithDocuments: ['prd'],
+      bug: { observed: 'A 404 page.', expected: 'The invite page.', reproduction: 'Open an invite link.' },
+    });
+
+    expect(prompt).toContain('"kind": "acceptance_criterion" to the "prd" phase');
   });
 });
 

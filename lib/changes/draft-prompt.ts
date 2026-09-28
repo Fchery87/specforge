@@ -55,13 +55,14 @@ export function buildDraftChangePrompt(input: DraftPromptInput): string {
         .join('\n')}`
     : 'No repository files are connected.';
 
+  const regressionPhase = regressionPhaseFor(input.phasesWithDocuments);
   const bugRules =
     input.kind === 'bugfix'
       ? `
 This is a bug fix. Decide whether the requirement is right and the code is wrong, or the requirement itself is wrong.
 - If the requirement is right, "reaffirm" it.
 - If it is wrong, "modify" it.
-- Always "add" at least one acceptance criterion to the "stories" phase that would have caught the bug, written as Given, When, Then.`
+- Always "add" at least one edit with "kind": "acceptance_criterion" to the "${regressionPhase}" phase that would have caught the bug, written as Given, When, Then.`
       : '';
 
   return `Draft the edits to this specification that the request needs.
@@ -90,5 +91,11 @@ Rules:
 - Cite a file ID as evidence only when the file supports the edit.${bugRules}`;
 }
 
-export const REGRESSION_REMINDER =
-  'Your previous draft added no acceptance criterion. Draft again, and add at least one acceptance criterion to the "stories" phase that would have caught this bug.';
+/** Where a bug fix's regression criterion goes: Tasks when it has a document, else the first phase that does. */
+export function regressionPhaseFor(phasesWithDocuments: readonly string[]): string {
+  return phasesWithDocuments.includes('stories') ? 'stories' : (phasesWithDocuments[0] ?? 'stories');
+}
+
+export function regressionReminder(phasesWithDocuments: readonly string[]): string {
+  return `Your previous draft added no acceptance criterion. Draft again, and add at least one edit with "kind": "acceptance_criterion" to the "${regressionPhaseFor(phasesWithDocuments)}" phase that would have caught this bug.`;
+}
