@@ -154,9 +154,11 @@ Nothing is deleted when this phase starts. One thing becomes a candidate and one
   2026-09-27: "Save to an existing project" becomes "Start a change from this", saved quick specs
   migrate into draft changes, and `saveQuickSpec`, `saveQuickSpecHandler`, the `phaseId: 'quick'`
   artifact slot, `app/project/[id]/quick/` and the project page's "Saved quick specs" link are
-  removed. `createProjectFromQuickSpec` stays, because a new project has no requirements for a
-  change to act on; it records the quick spec as a `user_note` evidence source through
-  `captureEvidenceSource` instead of the removed slot, so the project's generation can cite it.
+  removed, with the `quickSpec` artifact type. A change started from a quick spec carries its text
+  in `changes.quickSpec`, which drafting reads. `createProjectFromQuickSpec` stays, because a new
+  project has no requirements for a change to act on; it appends the quick spec to the project
+  description, which every phase's generation reads. (An evidence source was the first plan, but
+  sources keep only a short excerpt, so most of the spec would have been lost.)
 
 ## Verification
 

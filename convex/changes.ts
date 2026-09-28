@@ -43,6 +43,8 @@ function isBaselineClaim(claim: Doc<'claims'>): boolean {
   return claim.retiredAt === undefined && PHASE_ORDER.includes(claim.phaseId as PhaseId);
 }
 
+const MAX_QUICK_SPEC_CHARS = 100_000;
+
 function hasBugReport(bug: BugReport | undefined): bug is BugReport {
   return Boolean(bug?.observed.trim() && bug.expected.trim() && bug.reproduction.trim());
 }
@@ -55,9 +57,12 @@ export async function createChangeHandler(
     title: string;
     summary: string;
     bug?: BugReport;
+    quickSpec?: string;
   },
 ): Promise<Id<'changes'>> {
   const project = await requireProjectOwner(ctx, args.projectId);
+  const quickSpec = args.quickSpec?.trim();
+  if (quickSpec && quickSpec.length > MAX_QUICK_SPEC_CHARS) throw new Error('The quick spec is longer than 100 KB');
   const title = args.title.trim();
   const summary = args.summary.trim();
   if (!title || !summary) throw new Error('A change needs a title and a description');
@@ -91,6 +96,7 @@ export async function createChangeHandler(
           },
         }
       : {}),
+    ...(quickSpec ? { quickSpec } : {}),
     status: 'draft',
     createdAt: now,
     updatedAt: now,
@@ -330,6 +336,7 @@ export const createChange = mutation({
     title: v.string(),
     summary: v.string(),
     bug: v.optional(bugReportValidator),
+    quickSpec: v.optional(v.string()),
   },
   handler: createChangeHandler,
 });
@@ -402,6 +409,7 @@ export async function getDraftContextHandler(
     title: change.title,
     summary: change.summary,
     ...(change.bug ? { bug: change.bug } : {}),
+    ...(change.quickSpec ? { quickSpec: change.quickSpec } : {}),
     claims,
     phasesWithDocuments,
     evidence,

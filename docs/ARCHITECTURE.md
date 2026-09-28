@@ -198,7 +198,7 @@ app/
 ├── (auth)/
 │   ├── dashboard/page.tsx                  // Project list
 │   ├── dashboard/new/page.tsx              // Project creation intake
-│   ├── dashboard/quick/page.tsx            // Quick Spec generation and save
+│   ├── dashboard/quick/page.tsx            // Quick Spec; starts a project or a change from it
 │   ├── settings/
 │   │   ├── page.tsx                        // User account preferences
 │   │   └── llm-config/page.tsx             // User LLM API keys & model defaults
@@ -215,13 +215,13 @@ app/
 │       ├── activity/page.tsx               // Global activity log
 │       └── settings/page.tsx               // System-wide parameters
 ├── project/[id]/page.tsx                   // Project overview & phase graph
-├── project/[id]/quick/page.tsx             // Saved Quick Spec
+├── project/[id]/change/[changeId]/page.tsx // A change spec: its edits to the requirements
 └── project/[id]/phase/[phaseId]/page.tsx   // Interactive phase workflow
 ```
 
 - Uses App Router and React Server Components where possible.
 - Phase pages use Convex hooks for live updates of status and artifacts.
-- Saved Quick Specs use `/project/[id]/quick`; their `quick` artifact grouping key does not create a phase row.
+- A change spec lives in `changes` and `changeOps`, not in a phase. Applying one edits `claims` in place and marks touched phases stale; see `docs/specs/2026-09-27-change-specs.md`.
 - Next.js 16 development and production builds use Turbopack by default. Keep `next dev` and `next build`; do not select Webpack.
 
 ### 5.2 Constitution and evidence workflow

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -25,6 +24,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { MermaidAwareContent } from "@/components/ui/mermaid-aware-content";
 import { toast } from "sonner";
+import { readableError } from "@/lib/readable-error";
 
 export default function QuickSpecPage() {
   const router = useRouter();
@@ -34,14 +34,13 @@ export default function QuickSpecPage() {
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState("");
-  const [savedArtifactId, setSavedArtifactId] = useState<Id<"artifacts"> | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isStartingChange, setIsStartingChange] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
   const generateQuickSpec = useAction(generateQuickSpecAction);
   const projects = useQuery(api.projects.getProjects);
   const readiness = useQuery(api.userConfigs.getGenerationReadiness);
-  const saveQuickSpec = useMutation(api.artifacts.saveQuickSpec);
+  const createChange = useMutation(api.changes.createChange);
   const createProjectFromQuickSpec = useMutation(api.projects.createProjectFromQuickSpec);
 
   const modelReady = readiness?.ready ?? true;
@@ -57,7 +56,6 @@ export default function QuickSpecPage() {
         description: description.trim(),
       });
       setResult(res.content);
-      setSavedArtifactId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -81,23 +79,24 @@ export default function QuickSpecPage() {
     }
   }
 
-  async function handleSave() {
+  async function handleStartChange() {
     if (!result || !projectId) return;
-    setIsSaving(true);
+    setIsStartingChange(true);
     try {
-      const artifactId = await saveQuickSpec({
+      const changeId = await createChange({
         projectId: projectId as Id<"projects">,
+        kind: "feature",
         title: title.trim(),
-        content: result,
+        summary: description.trim(),
+        quickSpec: result,
       });
-      setSavedArtifactId(artifactId);
-      toast.success("Quick spec saved to the project");
+      router.push(`/project/${projectId}/change/${changeId}` as Route);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to save the quick spec");
-    } finally {
-      setIsSaving(false);
+      toast.error(readableError(err, "Unable to start a change"));
+      setIsStartingChange(false);
     }
   }
+
 
   return (
     <main className="page-container py-10 md:py-14">
@@ -162,15 +161,12 @@ export default function QuickSpecPage() {
 
               <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
                 <label htmlFor="quick-spec-project" className="text-ui text-muted-foreground">
-                  Or save it to
+                  Or start a change in
                 </label>
                 <div className="min-w-[12rem] flex-1">
                   <Select
                     value={projectId}
-                    onValueChange={(value) => {
-                      setProjectId(value);
-                      setSavedArtifactId(null);
-                    }}
+                    onValueChange={setProjectId}
                   >
                     <SelectTrigger id="quick-spec-project" className="w-full">
                       <SelectValue placeholder="An existing project" />
@@ -184,18 +180,10 @@ export default function QuickSpecPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleSave} disabled={!projectId || isSaving} variant="outline" className="shrink-0">
-                  {isSaving ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
-                  {savedArtifactId ? "Save new version" : "Save"}
+                <Button onClick={handleStartChange} disabled={!projectId || isStartingChange} variant="outline" className="shrink-0">
+                  {isStartingChange ? <Loader2 aria-hidden className="size-4 animate-spin" /> : null}
+                  Start change
                 </Button>
-                {savedArtifactId ? (
-                  <p className="basis-full text-ui text-muted-foreground">
-                    Saved.{" "}
-                    <Link className="text-ink underline underline-offset-4" href={`/project/${projectId}/quick` as Route}>
-                      Open the project&apos;s quick specs
-                    </Link>
-                  </p>
-                ) : null}
               </div>
 
               <div className="max-h-[40rem] overflow-y-auto px-5 py-5">

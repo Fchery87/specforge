@@ -3,11 +3,10 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { canAccessProject } from '../lib/authz';
-import { normalizeProjectInput } from '../lib/project-input';
+import { DESCRIPTION_MAX, normalizeProjectInput } from '../lib/project-input';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource } from './lib/evidence';
 import { PHASE_ORDER, MODE_POLICIES, type ProjectMode } from '../lib/workflow';
-import { saveQuickSpecHandler } from './artifacts';
 
 type ConstitutionTemplateSnapshot = Pick<
   Doc<'constitutionTemplates'>,
@@ -113,8 +112,8 @@ export async function createProjectHandler(
 }
 
 /**
- * Turns a Quick spec into a Lite project that holds it. One mutation, so a failed save cannot leave
- * an empty project behind.
+ * Turns a Quick spec into a Lite project. A new project has no requirements for a change to act on,
+ * so the quick spec goes into the project description, which every phase's generation reads.
  */
 export const createProjectFromQuickSpec = mutation({
   args: {
@@ -129,13 +128,24 @@ export async function createProjectFromQuickSpecHandler(
   ctx: MutationCtx,
   args: { title: string; description: string; content: string },
 ): Promise<Id<'projects'>> {
-  const projectId = await createProjectHandler(ctx, {
+  const content = args.content.trim();
+  if (!content) throw new Error('Title and content are required');
+  return createProjectHandler(ctx, {
     title: args.title,
-    description: args.description,
+    description: describeWithQuickSpec(args.description, content),
     mode: 'quick',
   });
-  await saveQuickSpecHandler(ctx, { projectId, title: args.title, content: args.content });
-  return projectId;
+}
+
+const QUICK_SPEC_HEADING = '\n\n## Quick spec\n\n';
+const TRUNCATED = '\n\n[Quick spec truncated to fit the project description.]';
+
+/** The description the reader typed, then the quick spec, cut to fit the description limit. */
+export function describeWithQuickSpec(description: string, quickSpec: string): string {
+  const lead = description.trim();
+  const room = DESCRIPTION_MAX - lead.length - QUICK_SPEC_HEADING.length;
+  if (quickSpec.length <= room) return `${lead}${QUICK_SPEC_HEADING}${quickSpec}`;
+  return `${lead}${QUICK_SPEC_HEADING}${quickSpec.slice(0, Math.max(0, room - TRUNCATED.length))}${TRUNCATED}`;
 }
 
 export const getProject = query({

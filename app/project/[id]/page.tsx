@@ -146,7 +146,6 @@ export default function ProjectPage() {
     return !status || status === "pending";
   });
 
-  const hasQuickSpec = (allArtifacts ?? []).some((artifact) => artifact.type === "quickSpec");
   const mode = (project.mode ?? "full") as ProjectMode;
   const nextActionItem = nextAction(phases ?? [], skippedPhases as readonly PhaseId[], mode);
   const currentPhase = currentPhaseFor(nextActionItem, phases ?? [], skippedPhases);
@@ -228,11 +227,6 @@ export default function ProjectPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {hasQuickSpec ? (
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/project/${params.id}/quick` as Route}>Saved quick specs</Link>
-                </Button>
-              ) : null}
               {hasPendingPhases ? (
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/project/${params.id}/questions` as Route}>

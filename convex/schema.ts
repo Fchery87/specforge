@@ -202,7 +202,6 @@ export default defineSchema({
       v.literal('techSpec'),
       v.literal('userStories'),
       v.literal('handoff'),
-      v.literal('quickSpec'),
     ),
     title: v.string(),
     content: v.string(),
@@ -495,6 +494,8 @@ export default defineSchema({
     title: v.string(),
     summary: v.string(),
     bug: v.optional(bugReportValidator),
+    // A one-page spec the change was started from, which drafting reads alongside the description.
+    quickSpec: v.optional(v.string()),
     status: v.union(v.literal('draft'), v.literal('applied'), v.literal('abandoned')),
     createdAt: v.number(),
     updatedAt: v.number(),
