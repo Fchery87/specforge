@@ -1,4 +1,4 @@
-import { buildDraftChangePrompt, REGRESSION_REMINDER, type DraftPromptInput } from './draft-prompt';
+import { buildDraftChangePrompt, regressionReminder, type DraftPromptInput } from './draft-prompt';
 import { parseDraft, type DraftOpInput } from './parse-draft';
 
 export interface DraftResult {
@@ -24,7 +24,7 @@ export async function runDraft(
   const prompt = buildDraftChangePrompt(input);
   let draft = parseDraft(await complete(prompt), context);
   if (draft.missingRegression) {
-    draft = parseDraft(await complete(`${prompt}\n\n${REGRESSION_REMINDER}`), context);
+    draft = parseDraft(await complete(`${prompt}\n\n${regressionReminder(input.phasesWithDocuments)}`), context);
   }
   const notes = draft.missingRegression
     ? [...draft.notes, 'The draft has no regression criterion. Add an acceptance criterion before applying.']
