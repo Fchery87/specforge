@@ -27,7 +27,10 @@ export interface ProjectNavProps {
   modeLabel: string;
   phases: PhaseStatusMap;
   skippedPhases?: readonly (PhaseId | string)[];
-  currentPhase: PhaseId | string;
+  /** The phase this page shows. Absent on a page that is not a phase, such as a change. */
+  currentPhase?: PhaseId | string;
+  /** What the phone button names when there is no current phase. */
+  currentLabel?: string;
   className?: string;
 }
 
@@ -137,8 +140,9 @@ function ProjectHeading({
  * phase and opens the same list as a drawer.
  */
 export function ProjectNav(props: ProjectNavProps) {
-  const { projectId, title, modeLabel, phases, skippedPhases = [], currentPhase, className } = props;
-  const { index, total } = outlinePosition(phases, skippedPhases, currentPhase);
+  const { projectId, title, modeLabel, phases, skippedPhases = [], currentPhase, currentLabel, className } = props;
+  const place = currentPhase ? outlinePosition(phases, skippedPhases, currentPhase) : null;
+  const here = currentPhase ? phaseLabel(currentPhase) : (currentLabel ?? "Phases");
 
   return (
     <>
@@ -157,18 +161,20 @@ export function ProjectNav(props: ProjectNavProps) {
         <DialogTrigger asChild>
           <button
             type="button"
-            aria-label={`${title}, ${phaseLabel(currentPhase)}, phase ${index} of ${total}. Show all phases`}
+            aria-label={`${title}, ${here}${place ? `, phase ${place.index} of ${place.total}` : ""}. Show all phases`}
             className="inline-flex max-w-full items-center gap-2.5 rounded-sm border border-line-strong bg-surface py-1.5 pr-3 pl-2 text-ui transition-transform active:scale-[0.97] motion-reduce:active:scale-100 focus-ring lg:hidden"
           >
-            <span aria-hidden className={cn("size-2.5 shrink-0 border-[1.5px]", CURRENT_MARK)} />
+            {place ? <span aria-hidden className={cn("size-2.5 shrink-0 border-[1.5px]", CURRENT_MARK)} /> : null}
             <span className="min-w-0 truncate">
               {title}
               <span className="text-dim"> / </span>
-              <span className="font-semibold">{phaseLabel(currentPhase)}</span>
+              <span className="font-semibold">{here}</span>
             </span>
-            <span className="shrink-0 font-mono text-caption text-dim">
-              {index} of {total}
-            </span>
+            {place ? (
+              <span className="shrink-0 font-mono text-caption text-dim">
+                {place.index} of {place.total}
+              </span>
+            ) : null}
           </button>
         </DialogTrigger>
         <DialogContent className="fixed top-0 bottom-0 left-0 h-full content-start w-[min(88vw,20rem)] max-w-none translate-x-0 translate-y-0 gap-0 overflow-y-auto rounded-none rounded-r-lg border-y-0 border-l-0 border-r border-line bg-surface px-3 py-5">

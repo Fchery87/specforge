@@ -5,6 +5,7 @@ import { ProjectCard } from "@/components/dashboard/project-card";
 import { NextActionPanel } from "@/components/next-action-panel";
 import { PhaseLedger } from "@/components/phase-ledger";
 import { ProjectNav } from "@/components/project-nav";
+import { ChangePreviews } from "./change-previews";
 import { StageStepper } from "@/components/stage-stepper";
 import { StageQualityReport } from "@/components/stage-report";
 import type { ParsedClaim } from "@/lib/claims";
@@ -273,6 +274,14 @@ export default function DesignPreviewPage() {
             phases={WORKSPACE_PHASES}
             currentPhase="domainModel"
           />
+        </div>
+      </section>
+
+      <section data-preview="changes" className="mt-16 border-t border-line pt-8">
+        <p className="text-caption text-dim">Changes</p>
+        <h2 className="mt-2 text-title font-medium text-ink">A change as edits to the requirements</h2>
+        <div className="mt-8">
+          <ChangePreviews />
         </div>
       </section>
 
