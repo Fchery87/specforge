@@ -1,4 +1,4 @@
-import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import { internalQuery, mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { v, type Infer } from 'convex/values';
@@ -474,68 +474,6 @@ export async function listAppliedChangesHandler(
 export const listAppliedChangesInternal = internalQuery({
   args: { projectId: v.id('projects') },
   handler: listAppliedChangesHandler,
-});
-
-/**
- * Moves each quick spec saved into a project's old `quick` slot into a draft change on that
- * project, then deletes the slot with its versions and claims. Run once with
- * `npx convex run changes:migrateSavedQuickSpecs`; a second run finds nothing to move.
- */
-export async function migrateSavedQuickSpecsHandler(ctx: MutationCtx): Promise<{ migrated: number }> {
-  const saved = (await ctx.db.query('artifacts').collect()).filter(
-    (artifact) => artifact.type === 'quickSpec' || artifact.phaseId === 'quick',
-  );
-  const now = Date.now();
-  for (const artifact of saved) {
-    const project = await ctx.db.get(artifact.projectId);
-    if (project) {
-      const changeNumber = project.nextChangeNumber ?? 1;
-      await ctx.db.insert('changes', {
-        projectId: artifact.projectId,
-        changeNumber,
-        kind: 'feature',
-        title: artifact.title.trim() || 'Saved quick spec',
-        summary: 'Started from a quick spec saved to this project before changes existed.',
-        quickSpec: artifact.content.slice(0, MAX_QUICK_SPEC_CHARS),
-        status: 'draft',
-        createdAt: artifact._creationTime,
-        updatedAt: now,
-      });
-      await ctx.db.patch(artifact.projectId, { nextChangeNumber: changeNumber + 1 });
-    }
-
-    const claims = await ctx.db
-      .query('claims')
-      .withIndex('by_artifact', (q) => q.eq('artifactId', artifact._id))
-      .collect();
-    for (const claim of claims) {
-      for (const table of ['evidenceLinks', 'evidenceReviews'] as const) {
-        const rows = await ctx.db
-          .query(table)
-          .withIndex('by_claim', (q) => q.eq('claimId', claim._id))
-          .collect();
-        for (const row of rows) await ctx.db.delete(row._id);
-      }
-      const revisions = await ctx.db
-        .query('claimRevisions')
-        .withIndex('by_claim', (q) => q.eq('claim', claim._id))
-        .collect();
-      for (const revision of revisions) await ctx.db.delete(revision._id);
-      await ctx.db.delete(claim._id);
-    }
-    const versions = await ctx.db
-      .query('artifactVersions')
-      .withIndex('by_artifact', (q) => q.eq('artifactId', artifact._id))
-      .collect();
-    for (const version of versions) await ctx.db.delete(version._id);
-    await ctx.db.delete(artifact._id);
-  }
-  return { migrated: saved.length };
-}
-
-export const migrateSavedQuickSpecs = internalMutation({
-  args: {},
-  handler: migrateSavedQuickSpecsHandler,
 });
 
 export const listChanges = query({

@@ -56,7 +56,6 @@ export const upsertArtifact = mutation({
       v.literal('techSpec'),
       v.literal('userStories'),
       v.literal('handoff'),
-      v.literal('quickSpec'),
     ),
     title: v.string(),
     content: v.string(),

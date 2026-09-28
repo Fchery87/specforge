@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MutationCtx } from '../_generated/server';
 import { createProjectFromQuickSpecHandler, describeWithQuickSpec } from '../projects';
-import { migrateSavedQuickSpecsHandler } from '../changes';
 import { DESCRIPTION_MAX } from '../../lib/project-input';
 
 type FakeRow = Record<string, unknown> & { _id: string };
@@ -113,31 +112,5 @@ describe('describeWithQuickSpec', () => {
     expect(description.length).toBeLessThanOrEqual(DESCRIPTION_MAX);
     expect(description.startsWith('A ledger.\n\n## Quick spec\n\nxxx')).toBe(true);
     expect(description.endsWith('[Quick spec truncated to fit the project description.]')).toBe(true);
-  });
-});
-
-describe('migrateSavedQuickSpecs', () => {
-  it('turns each saved quick spec into a draft change and deletes the old slot', async () => {
-    const ctx = makeCtx();
-    ctx.__tables.artifacts.set('a-quick', { _id: 'a-quick', _creationTime: 5, projectId: 'p1', phaseId: 'quick', type: 'quickSpec', title: 'Session refresh', content: '# Session refresh' });
-    ctx.__tables.artifacts.set('a-prd', { _id: 'a-prd', projectId: 'p1', phaseId: 'prd', type: 'prd', title: 'PRD', content: '# PRD' });
-    ctx.__tables.artifactVersions.set('v1', { _id: 'v1', artifactId: 'a-quick' });
-    ctx.__tables.claims.set('cq', { _id: 'cq', projectId: 'p1', phaseId: 'quick', artifactId: 'a-quick' });
-    ctx.__tables.claims.set('cp', { _id: 'cp', projectId: 'p1', phaseId: 'prd', artifactId: 'a-prd' });
-    ctx.__tables.evidenceLinks.set('lq', { _id: 'lq', claimId: 'cq' });
-
-    expect(await migrateSavedQuickSpecsHandler(asMutationCtx(ctx))).toEqual({ migrated: 1 });
-
-    expect([...ctx.__tables.changes.values()]).toEqual([
-      expect.objectContaining({
-        projectId: 'p1', changeNumber: 1, kind: 'feature', title: 'Session refresh',
-        quickSpec: '# Session refresh', status: 'draft', createdAt: 5,
-      }),
-    ]);
-    expect([...ctx.__tables.artifacts.keys()]).toEqual(['a-prd']);
-    expect([...ctx.__tables.claims.keys()]).toEqual(['cp']);
-    expect(ctx.__tables.artifactVersions.size).toBe(0);
-    expect(ctx.__tables.evidenceLinks.size).toBe(0);
-    expect(await migrateSavedQuickSpecsHandler(asMutationCtx(ctx))).toEqual({ migrated: 0 });
   });
 });
