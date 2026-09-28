@@ -31,6 +31,28 @@ export function formatLiveClaimsForPrompt(claims: readonly LiveClaim[] | undefin
     '',
     'These are the current, reviewed requirements. Where one differs from the project description or an earlier answer, the requirement wins: it records a decision made since, often through an applied change. Write it as it stands and do not report the difference as a conflict.',
     '',
-    'When a bullet you write states or rewords one of these requirements, begin it with that ID in bold, exactly as listed, for example "- **REQ-0012** ...". Keep the ID even if you change the wording. Put an ID at the start of a bullet only on the bullet that states that requirement; when you refer to a requirement anywhere else, write its ID inside the sentence. Write a new requirement without an ID. Never invent an ID or reuse one for a different requirement.',
+    'When a bullet you write states or rewords one of these requirements, begin it with that ID in bold, exactly as listed, for example "- **REQ-0012** ...". Keep the ID even if you change the wording. Put an ID at the start of a bullet only on the bullet that states that requirement; when you refer to a requirement anywhere else, write its ID inside the sentence. Write a new requirement under the label described below, without an ID. Never invent an ID or reuse one for a different requirement.',
+  ].join('\n');
+}
+
+/** What a phase's claims are called, and the label that opens one. The extractor reads these marks. */
+const STATEMENTS: Record<string, { noun: string; label: string }> = {
+  constitution: { noun: 'decision', label: 'Decision' },
+  stories: { noun: 'acceptance criterion', label: 'Acceptance criterion' },
+};
+const DEFAULT_STATEMENT = { noun: 'requirement', label: 'Requirement' };
+
+/**
+ * How to write a requirement so extraction can find it. Without a mark, the extractor guesses from
+ * wording, and priority lines, trace notes and remarks about the document itself became requirements
+ * with IDs of their own.
+ */
+export function formatRequirementMarksForPrompt(phaseId: string): string {
+  const { noun, label } = STATEMENTS[phaseId] ?? DEFAULT_STATEMENT;
+  return [
+    'Requirement format:',
+    `- Write each ${noun} this section states as its own bullet that opens with "**${label}:**" and holds one statement, for example "- **${label}:** ...". A ${noun} that already has an ID opens with the ID instead.`,
+    `- Priority, status, trace, rationale and notes about a ${noun} go in the bullets under it, never on the bullet that states it.`,
+    `- Use the label only for ${noun}s: never on a note, an open question, a metric, or a remark about this document.`,
   ].join('\n');
 }

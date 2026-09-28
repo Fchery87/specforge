@@ -54,10 +54,36 @@ Each project's description says invitations expire after one day.
 
 ## Open
 
-- **Claim noise.** `extractClaimCandidates` turns metadata bullets ("Priority", "Trace", "Status",
-  "Verification") into claims, and each regeneration adds more: 49 to 93 in run 1, 32 to 56 in run
-  3. A change can then target noise, as run 1 did with REQ-0023. The extraction heuristic predates
-  this phase; tightening it is its own change.
+- **Claim noise.** Fixed after the walkthrough; see below.
 - **Extraction yield varies.** The same description produced 48 claims in run 1 and 2 in run 2,
-  depending on how the model formatted the PRD.
+  depending on how the model formatted the PRD. Marked requirements (below) make yield depend on the
+  format the prompt asks for rather than on the model's wording.
 - **The pages were not seen in a signed-in browser.**
+
+## Claim noise, after the walkthrough
+
+`extractClaimCandidates` turned any bullet with a keyword such as "requirement" or "when" into a
+claim, so "Priority", "Trace", "Status" and "Verification" lines, remarks about the document ("No
+requirement states..."), and prose citing an ID ("**REQ-0024** measures...") all got IDs. The next
+prompt listed them as requirements, and the model re-anchored them, so each regeneration added more:
+49 to 93 in run 1, 32 to 56 in run 3. A change could then target noise, as run 1 did with REQ-0023.
+
+The fix makes requirements marked rather than guessed:
+
+- Every section prompt asks for each requirement as its own bullet opening with `**Requirement:**`
+  (`**Decision:**` in the constitution, `**Acceptance criterion:**` in stories) or with its existing
+  ID, with priority, status and trace in the bullets under it.
+- A document with any marked bullet is read by its marks alone. One with none, such as a document
+  written before this change, falls back to obligation wording without "requirement" and
+  "acceptance", which mostly describe the document itself.
+- In either mode, a bullet led by an annotation label (`**Priority:**`, `**Trace:**`, `**Team
+  owner.**`) is skipped, and an ID followed by a lower-case verb is a citation, not a claim.
+
+On the saved run 1 and run 3 PRDs with their IDs removed, the old extractor found 96 and 78 claims
+and the new one 34 and 21. A fresh project on dev ("Walkthrough: claim noise", deleted afterwards)
+generated a PRD of 268 bullets; the old extractor would have taken 65 of them, the new one took the
+15 marked requirements. Regenerating kept all 15 IDs, retired none, and added 8 requirements the
+second draft stated for the first time; none was a metadata line.
+
+A project whose registry already holds noise sheds it on the next regeneration of that document:
+reconciliation retires every live claim the new document no longer states.
