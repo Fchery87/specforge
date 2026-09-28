@@ -64,7 +64,6 @@ interface ExportOptionsPanelProps {
     title: string;
     description: string;
     createdAt: number;
-    zipStorageId?: string;
   };
   artifacts: {
     brief?: string;
