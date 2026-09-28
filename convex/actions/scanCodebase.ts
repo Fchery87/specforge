@@ -5,11 +5,8 @@ import type { ActionCtx } from '../_generated/server';
 import type { Id } from '../_generated/dataModel';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
-import { getRequiredEncryptionKey } from '../../lib/encryption-key';
-import { decrypt } from '../../lib/encryption';
 import { rateLimiter } from '../rateLimiter';
-
-const ENCRYPTION_KEY = getRequiredEncryptionKey();
+import { readGitHubToken } from './githubToken';
 
 interface GitHubTreeItem {
   path: string;
@@ -64,23 +61,11 @@ export const scanCodebase = action({
     // Rate limiting
     await rateLimiter.limit(ctx, 'scanCodebase', { key: identity.subject, throws: true });
 
-    // Get user's GitHub access token
-    const userConfig = await ctx.runQuery(api.userConfigs.getUserConfigRaw);
-    if (!userConfig?.githubAccessToken) {
+    const accessToken = await readGitHubToken(ctx);
+    if (!accessToken) {
       throw new Error(
         'GitHub access token not found. Please connect your GitHub account first.'
       );
-    }
-
-    // Decrypt the token
-    let accessToken: string;
-    try {
-      const encrypted = JSON.parse(
-        Buffer.from(userConfig.githubAccessToken).toString('utf8')
-      );
-      accessToken = decrypt(encrypted, ENCRYPTION_KEY);
-    } catch (error) {
-      throw new Error('Failed to decrypt GitHub access token');
     }
 
     try {

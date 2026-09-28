@@ -72,6 +72,20 @@ const RATE_LIMIT_CONFIG = {
     capacity: 8,
   },
   // Verification: 10 per minute per user
+  // Pull-request checks: each is one model call over a diff that can be large
+  checkPullRequest: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 5,
+    capacity: 8,
+  },
+  // Listing a repository's pull requests for the check picker
+  listPullRequests: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 30,
+    capacity: 40,
+  },
   verifyImplementation: {
     kind: "token bucket" as const,
     period: MINUTE,
