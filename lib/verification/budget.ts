@@ -5,15 +5,26 @@ import type { DiffFile } from './diff';
 export const DIFF_BUDGET_CHARS = 60_000;
 /** Code tokenizes more densely than prose; three characters a token errs toward fitting. */
 const CHARS_PER_TOKEN = 3;
-/** Room left for the reply: the verdicts and their quotes. */
-export const CHECK_REPLY_TOKENS = 8_000;
+/** The least room a reply gets: the verdicts and quotes themselves take a few thousand tokens. */
+const MIN_REPLY_TOKENS = 8_000;
+
+/**
+ * Room for the reply: a quarter of the context, at least 8,000 tokens, and no more than the model
+ * allows. Reasoning models spend this room thinking before they answer. With nothing cited, a
+ * reasoning model weighed 48 requirements for about 30,000 tokens and ran out before writing a
+ * verdict, at both 8,000 and 32,000 tokens of room.
+ */
+export function checkReplyTokens(model: { contextTokens: number; maxOutputTokens: number }): number {
+  const share = Number.isFinite(model.contextTokens) && model.contextTokens > 0 ? Math.floor(model.contextTokens / 4) : MIN_REPLY_TOKENS;
+  return Math.min(model.maxOutputTokens, Math.max(MIN_REPLY_TOKENS, share));
+}
 /** Headroom for file headers, fences and tokenizer differences between providers. */
 const CONTEXT_HEADROOM = 0.9;
 
 /**
  * How much diff a model can read in one check: its context, less the reply and the rest of the
  * prompt (instructions, pull request text and requirements). A model with a million-token context
- * reads a pull request of about 2.6 million characters whole; one whose size is unknown gets the
+ * reads a pull request of about 1.9 million characters whole; one whose size is unknown gets the
  * fixed fallback.
  */
 export function diffBudgetFor(
@@ -21,7 +32,7 @@ export function diffBudgetFor(
   otherPromptChars: number,
 ): number {
   if (!Number.isFinite(model.contextTokens) || model.contextTokens <= 0) return DIFF_BUDGET_CHARS;
-  const replyTokens = Math.min(CHECK_REPLY_TOKENS, model.maxOutputTokens);
+  const replyTokens = checkReplyTokens(model);
   const promptTokens = model.contextTokens * CONTEXT_HEADROOM - replyTokens;
   return Math.max(0, Math.floor(promptTokens * CHARS_PER_TOKEN) - otherPromptChars);
 }

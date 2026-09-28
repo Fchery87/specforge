@@ -17,10 +17,10 @@ import {
   type PullRequestSummary,
   type RepoAccess,
 } from '../../lib/github/pulls';
-import { CHECK_REPLY_TOKENS } from '../../lib/verification/budget';
+import { checkReplyTokens } from '../../lib/verification/budget';
 import { CHECK_SYSTEM_PROMPT } from '../../lib/verification/check-prompt';
 import { splitUnifiedDiff } from '../../lib/verification/diff';
-import { runCheck, type CheckInput } from '../../lib/verification/run-check';
+import { ReplyOutOfRoom, runCheck, type CheckInput } from '../../lib/verification/run-check';
 import type { CheckContext } from '../verification';
 
 const sourceArg = v.union(
@@ -85,10 +85,11 @@ export const checkPullRequest = action({
       outcome = await runCheck({ projectTitle: context.projectTitle, change, claims: context.claims, changes: context.changes, model }, async (prompt) => {
         const response = await client.complete(prompt, {
           model: model.id,
-          maxTokens: Math.min(CHECK_REPLY_TOKENS, model.maxOutputTokens),
+          maxTokens: checkReplyTokens(model),
           temperature: 0.1,
           systemPrompt: CHECK_SYSTEM_PROMPT,
         });
+        if (response.finishReason === 'length') throw new ReplyOutOfRoom();
         return response.content;
       });
     } catch (error) {

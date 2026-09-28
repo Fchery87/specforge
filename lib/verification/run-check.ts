@@ -14,6 +14,23 @@ import type { DiffFile } from './diff';
 import { parseCheck } from './parse-check';
 import { resolveScope, type ScopeChange, type ScopeClaim } from './scope';
 
+/**
+ * Thrown by `complete` when the model stopped at its output limit. Asking again with the same
+ * prompt runs out again, so the check stops and says how to make it smaller.
+ */
+export class ReplyOutOfRoom extends Error {
+  constructor() {
+    super(
+      'The model ran out of room before finishing the check. Cite the requirements this pull request implements (REQ- or CHG- IDs in its title, description or commits) so fewer are judged, or choose a model with a larger output limit in Settings.',
+    );
+    this.name = 'ReplyOutOfRoom';
+  }
+}
+
+/** Twice without a usable reply; a reasoning model that runs out of room before answering looks like this. */
+export const UNUSABLE_REPLY =
+  'The model did not return a check result, twice. Try again, or choose a different model in Settings. A reasoning model can run out of room before it answers on a large pull request.';
+
 export interface CheckInput {
   projectTitle: string;
   change: {
@@ -85,8 +102,14 @@ export async function runCheck(input: CheckInput, complete: (prompt: string) => 
     let parsed;
     try {
       parsed = parseCheck(await complete(prompt), context);
-    } catch {
-      parsed = parseCheck(await complete(`${prompt}\n\nYour last reply was not the JSON object asked for. Reply with only that object.`), context);
+    } catch (error) {
+      if (error instanceof ReplyOutOfRoom) throw error;
+      try {
+        parsed = parseCheck(await complete(`${prompt}\n\nYour last reply was not the JSON object asked for. Reply with only that object.`), context);
+      } catch (retryError) {
+        if (retryError instanceof ReplyOutOfRoom) throw retryError;
+        throw new Error(UNUSABLE_REPLY);
+      }
     }
     verdicts = parsed.verdicts;
     otherFindings = parsed.otherFindings;
