@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { budgetDiff, SKIP_REASONS } from '../budget';
+import { budgetDiff, DIFF_BUDGET_CHARS, diffBudgetFor, SKIP_REASONS } from '../budget';
 import { readPatch, splitUnifiedDiff, type DiffFile } from '../diff';
 
 const pasted = [
@@ -95,5 +95,17 @@ describe('budgetDiff', () => {
     expect(reviewed.map((item) => item.path)).toEqual(['a/small.ts', 'b/large.ts']);
     expect(reviewed.every((item, index) => item.patch === [small, large][index].patch)).toBe(true);
     expect(skipped).toEqual([{ path: 'c/huge.ts', reason: SKIP_REASONS.overBudget }]);
+  });
+});
+
+describe('diffBudgetFor', () => {
+  it('sizes the diff to the model: context less the reply and the rest of the prompt', () => {
+    expect(diffBudgetFor({ contextTokens: 1_000_000, maxOutputTokens: 32_000 }, 20_000)).toBe(2_656_000);
+    expect(diffBudgetFor({ contextTokens: 128_000, maxOutputTokens: 4_096 }, 20_000)).toBe(313_312);
+  });
+
+  it('falls back to the fixed budget when the context size is unknown, and never goes below zero', () => {
+    expect(diffBudgetFor({ contextTokens: 0, maxOutputTokens: 4_096 }, 20_000)).toBe(DIFF_BUDGET_CHARS);
+    expect(diffBudgetFor({ contextTokens: 8_000, maxOutputTokens: 8_000 }, 90_000)).toBe(0);
   });
 });

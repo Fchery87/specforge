@@ -1,8 +1,30 @@
 import type { SkippedFile } from './check';
 import type { DiffFile } from './diff';
 
-/** About 15,000 tokens of patch: room for the requirements and the reply in a mid-size context. */
+/** About 15,000 tokens of patch, for a model whose context size is not known. */
 export const DIFF_BUDGET_CHARS = 60_000;
+/** Code tokenizes more densely than prose; three characters a token errs toward fitting. */
+const CHARS_PER_TOKEN = 3;
+/** Room left for the reply: the verdicts and their quotes. */
+export const CHECK_REPLY_TOKENS = 8_000;
+/** Headroom for file headers, fences and tokenizer differences between providers. */
+const CONTEXT_HEADROOM = 0.9;
+
+/**
+ * How much diff a model can read in one check: its context, less the reply and the rest of the
+ * prompt (instructions, pull request text and requirements). A model with a million-token context
+ * reads a pull request of about 2.6 million characters whole; one whose size is unknown gets the
+ * fixed fallback.
+ */
+export function diffBudgetFor(
+  model: { contextTokens: number; maxOutputTokens: number },
+  otherPromptChars: number,
+): number {
+  if (!Number.isFinite(model.contextTokens) || model.contextTokens <= 0) return DIFF_BUDGET_CHARS;
+  const replyTokens = Math.min(CHECK_REPLY_TOKENS, model.maxOutputTokens);
+  const promptTokens = model.contextTokens * CONTEXT_HEADROOM - replyTokens;
+  return Math.max(0, Math.floor(promptTokens * CHARS_PER_TOKEN) - otherPromptChars);
+}
 
 const LOCKFILES = new Set([
   'package-lock.json',
