@@ -322,7 +322,9 @@ export async function applyChangeHandler(
     .withIndex('by_project', (q) => q.eq('projectId', change.projectId))
     .collect();
   for (const result of results) {
-    if (touchedPhases.has(result.phaseId)) await ctx.db.patch(result._id, { outdatedAt: now });
+    // A pull request check has no phase: it judged requirements from across the project.
+    const touched = result.phaseId === undefined ? touchedPhases.size > 0 : touchedPhases.has(result.phaseId);
+    if (touched) await ctx.db.patch(result._id, { outdatedAt: now });
   }
 
   await ctx.db.patch(change._id, { status: 'applied', appliedAt: now, updatedAt: now });

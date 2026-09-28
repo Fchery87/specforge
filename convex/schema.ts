@@ -88,6 +88,80 @@ export const bugReportValidator = v.object({
   reproduction: v.string(),
 });
 
+const severityValidator = v.union(v.literal('critical'), v.literal('major'), v.literal('minor'));
+
+/** Where a pull-request check read its diff from. Mirrors `CheckSource` in `lib/verification/check.ts`. */
+export const checkSourceValidator = v.union(
+  v.object({
+    kind: v.literal('pull_request'),
+    number: v.number(),
+    title: v.string(),
+    url: v.string(),
+    baseSha: v.string(),
+    headSha: v.string(),
+  }),
+  v.object({ kind: v.literal('range'), base: v.string(), head: v.string(), baseSha: v.string(), headSha: v.string() }),
+  v.object({ kind: v.literal('pasted') }),
+);
+
+/** One requirement's verdict. Mirrors `RequirementVerdict` in `lib/verification/check.ts`. */
+export const requirementVerdictValidator = v.object({
+  claimId: v.string(),
+  scope: v.union(v.literal('cited'), v.literal('change'), v.literal('inferred')),
+  verdict: v.union(v.literal('met'), v.literal('violated'), v.literal('incomplete'), v.literal('not_shown')),
+  severity: v.union(severityValidator, v.null()),
+  explanation: v.string(),
+  evidence: v.array(v.object({ path: v.string(), line: v.optional(v.number()), quote: v.string() })),
+});
+
+/**
+ * A verification result. Rows written before phase 8 carry a phase, `findings` and a score; a
+ * pull-request check is project-wide and carries `source`, `verdicts` and `coverage` instead, with
+ * `findings` empty and the score computed from the verdicts.
+ */
+export const verificationResultFields = {
+  projectId: v.id('projects'),
+  phaseId: v.optional(v.string()),
+  checkedAt: v.number(),
+  artifactVersion: v.optional(v.number()),
+  artifactVersionSet: v.optional(v.array(v.string())),
+  sourceRevisionSet: v.optional(v.array(v.string())),
+  diffDigest: v.optional(v.string()),
+  outdatedAt: v.optional(v.number()),
+  findings: v.array(v.object({
+    category: v.union(
+      v.literal('bug'),
+      v.literal('performance'),
+      v.literal('security'),
+      v.literal('clarity'),
+      v.literal('missing'),
+    ),
+    severity: severityValidator,
+    title: v.string(),
+    description: v.string(),
+    suggestion: v.string(),
+    specReference: v.optional(v.string()),
+    requirementId: v.optional(v.string()),
+    changedFilePath: v.optional(v.string()),
+  })),
+  overallScore: v.number(),
+  status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),
+  source: v.optional(checkSourceValidator),
+  verdicts: v.optional(v.array(requirementVerdictValidator)),
+  coverage: v.optional(v.object({
+    reviewedFiles: v.array(v.string()),
+    skippedFiles: v.array(v.object({ path: v.string(), reason: v.string() })),
+  })),
+  otherFindings: v.optional(v.array(v.object({
+    category: v.union(v.literal('bug'), v.literal('security'), v.literal('performance')),
+    title: v.string(),
+    description: v.string(),
+    path: v.optional(v.string()),
+  }))),
+  /** Citations that brought nothing in, and verdicts or quotes the parser dropped. */
+  notes: v.optional(v.array(v.string())),
+};
+
 export default defineSchema({
   projects: defineTable({
     userId: v.string(),
@@ -638,34 +712,7 @@ export default defineSchema({
     totalDirectories: v.number(),
   }).index('by_project', ['projectId']),
 
-  verificationResults: defineTable({
-    projectId: v.id('projects'),
-    phaseId: v.string(),
-    checkedAt: v.number(),
-    artifactVersion: v.optional(v.number()),
-    artifactVersionSet: v.optional(v.array(v.string())),
-    sourceRevisionSet: v.optional(v.array(v.string())),
-    diffDigest: v.optional(v.string()),
-    outdatedAt: v.optional(v.number()),
-    findings: v.array(v.object({
-      category: v.union(
-        v.literal('bug'),
-        v.literal('performance'),
-        v.literal('security'),
-        v.literal('clarity'),
-        v.literal('missing'),
-      ),
-      severity: v.union(v.literal('critical'), v.literal('major'), v.literal('minor')),
-      title: v.string(),
-      description: v.string(),
-      suggestion: v.string(),
-      specReference: v.optional(v.string()),
-      requirementId: v.optional(v.string()),
-      changedFilePath: v.optional(v.string()),
-    })),
-    overallScore: v.number(),
-    status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),
-  }).index('by_project', ['projectId']),
+  verificationResults: defineTable(verificationResultFields).index('by_project', ['projectId']),
 
   // Audit logs for security tracking
   auditLogs: defineTable({

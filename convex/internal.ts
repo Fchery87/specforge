@@ -6,7 +6,7 @@ import { renderPreviewHtml } from '../lib/markdown-render';
 import { getAffectedPhases } from '../lib/specification/dependency-graph';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource, markEvidenceImpact, reconcileArtifactClaims } from './lib/evidence';
-import { artifactSectionValidator, acceptanceCriteriaQualityValidator } from './schema';
+import { artifactSectionValidator, acceptanceCriteriaQualityValidator, verificationResultFields } from './schema';
 
 export function filterArtifactsByPhase<
   T extends { projectId: string; phaseId: string; _id?: string },
@@ -1311,48 +1311,11 @@ export const updateTicketDependenciesInternal = internalMutation({
 // VERIFICATION RESULTS (Task 20: Implementation Verification)
 // ============================================================================
 
+const { outdatedAt: _outdatedAt, ...newVerificationResultFields } = verificationResultFields;
+
 export const createVerificationResult = internalMutation({
-  args: {
-    projectId: v.id('projects'),
-    phaseId: v.string(),
-    checkedAt: v.number(),
-    findings: v.array(v.object({
-      category: v.union(
-        v.literal('bug'),
-        v.literal('performance'),
-        v.literal('security'),
-        v.literal('clarity'),
-        v.literal('missing'),
-      ),
-      severity: v.union(v.literal('critical'), v.literal('major'), v.literal('minor')),
-      title: v.string(),
-      description: v.string(),
-      suggestion: v.string(),
-      specReference: v.optional(v.string()),
-      requirementId: v.optional(v.string()),
-      changedFilePath: v.optional(v.string()),
-    })),
-    overallScore: v.number(),
-    status: v.union(v.literal('pass'), v.literal('fail'), v.literal('warning')),
-    artifactVersion: v.optional(v.number()),
-    artifactVersionSet: v.optional(v.array(v.string())),
-    sourceRevisionSet: v.optional(v.array(v.string())),
-    diffDigest: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert('verificationResults', {
-      projectId: args.projectId,
-      phaseId: args.phaseId,
-      checkedAt: args.checkedAt,
-      artifactVersion: args.artifactVersion,
-      artifactVersionSet: args.artifactVersionSet,
-      sourceRevisionSet: args.sourceRevisionSet,
-      diffDigest: args.diffDigest,
-      findings: args.findings,
-      overallScore: args.overallScore,
-      status: args.status,
-    });
-  },
+  args: newVerificationResultFields,
+  handler: async (ctx, args) => await ctx.db.insert('verificationResults', args),
 });
 
 export const getVerificationResultsByProject = internalQuery({
