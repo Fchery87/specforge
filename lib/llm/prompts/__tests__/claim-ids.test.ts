@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { formatLiveClaimsForPrompt } from '../claim-ids';
+import { formatLiveClaimsForPrompt, formatRequirementMarksForPrompt } from '../claim-ids';
+
+describe('formatRequirementMarksForPrompt', () => {
+  it('asks for each claim under the label its phase uses', () => {
+    expect(formatRequirementMarksForPrompt('prd')).toContain('opens with "**Requirement:**"');
+    expect(formatRequirementMarksForPrompt('constitution')).toContain('Write each decision this section states');
+    expect(formatRequirementMarksForPrompt('constitution')).toContain('opens with "**Decision:**"');
+    expect(formatRequirementMarksForPrompt('stories')).toContain('opens with "**Acceptance criterion:**"');
+  });
+
+  it('keeps priority, status and trace off the bullet that states the requirement', () => {
+    expect(formatRequirementMarksForPrompt('prd')).toContain(
+      '- Priority, status, trace, rationale and notes about a requirement go in the bullets under it, never on the bullet that states it.',
+    );
+  });
+});
 
 describe('formatLiveClaimsForPrompt', () => {
   it('says nothing when the phase has no live claims', () => {
@@ -21,7 +36,7 @@ describe('formatLiveClaimsForPrompt', () => {
         '',
         'These are the current, reviewed requirements. Where one differs from the project description or an earlier answer, the requirement wins: it records a decision made since, often through an applied change. Write it as it stands and do not report the difference as a conflict.',
         '',
-        'When a bullet you write states or rewords one of these requirements, begin it with that ID in bold, exactly as listed, for example "- **REQ-0012** ...". Keep the ID even if you change the wording. Put an ID at the start of a bullet only on the bullet that states that requirement; when you refer to a requirement anywhere else, write its ID inside the sentence. Write a new requirement without an ID. Never invent an ID or reuse one for a different requirement.',
+        'When a bullet you write states or rewords one of these requirements, begin it with that ID in bold, exactly as listed, for example "- **REQ-0012** ...". Keep the ID even if you change the wording. Put an ID at the start of a bullet only on the bullet that states that requirement; when you refer to a requirement anywhere else, write its ID inside the sentence. Write a new requirement under the label described below, without an ID. Never invent an ID or reuse one for a different requirement.',
       ].join('\n')
     );
   });

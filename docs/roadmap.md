@@ -65,9 +65,10 @@ wording changes, which [ADR 0003](adr/0003-requirement-identity-is-the-claim-id.
 the dev deployment, with the real model, is in `docs/evaluations/2026-09-27-change-specs-walkthrough.md`;
 it found and fixed two prompt defects, and the signed-in pages were checked through `/design`
 fixtures rather than a browser. The implementation plan is deleted, as the lifecycle requires of a
-finished plan. One follow-up is open and should come before phase 8: claim extraction turns metadata
-bullets ("Priority", "Trace", "Status") into requirements, and each regeneration adds more, so
-pull-request checks would be graded against noise.
+finished plan. The one follow-up it left, claim extraction turning metadata bullets ("Priority",
+"Trace", "Status") into requirements, is fixed: section prompts ask for each requirement under a
+`**Requirement:**` label or its ID, and extraction reads those marks and skips annotations. The
+walkthrough note records the before and after counts.
 
 ## Later phases
 

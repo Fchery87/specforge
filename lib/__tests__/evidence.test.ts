@@ -29,6 +29,45 @@ describe('evidence source helpers', () => {
     ]);
   });
 
+  it('reads a labelled document by its marks and skips the annotations around them', () => {
+    const markdown = [
+      '- **REQ-0036** **Requirement:** An entry created by a team owner carries that owner as its author.',
+      '  - **Priority:** Must · **Status:** Proposed (inference)',
+      '  - **Trace:** *Inference* — the project description states that "Every entry records who made it".',
+      '- **Requirement (new):** An invitation carries the moment at which it was issued.',
+      '- **(Must)** **Requirement:** An invitation is accepted at most once.',
+      '- **Scenario:** Given an invitation issued two days ago, when the invitee accepts it, then they join the team.',
+      '- **REQ-0024** measures the invitation lifetime as seven days and is marked Confirmed.',
+      '- **REQ-0023** **Priority:** Must · **Status:** Confirmed (rule)',
+      '- **Team owner.** Issues invitations for the team and must approve each one.',
+      '- **Target** — the value that counts as success, which the report must name.',
+      '- No requirement states whether a non-member can read a ledger, so when it is settled it will be added.',
+    ].join('\n');
+
+    expect(extractClaimCandidates(markdown, 'prd')).toEqual([
+      { text: 'An entry created by a team owner carries that owner as its author.', kind: 'requirement', claimId: 'REQ-0036' },
+      { text: 'An invitation carries the moment at which it was issued.', kind: 'requirement' },
+      { text: 'An invitation is accepted at most once.', kind: 'requirement' },
+      {
+        text: 'Given an invitation issued two days ago, when the invitee accepts it, then they join the team.',
+        kind: 'requirement',
+      },
+    ]);
+  });
+
+  it('falls back to obligation wording in a document that marks nothing, without counting talk about requirements', () => {
+    const markdown = [
+      '- A team owner must be able to revoke an invitation.',
+      '- Each requirement states one obligation.',
+      '- **Priority:** Must · **Status:** Confirmed',
+      '- **Invited person.** Identified solely by the email address the invitation must name.',
+    ].join('\n');
+
+    expect(extractClaimCandidates(markdown, 'prd')).toEqual([
+      { text: 'A team owner must be able to revoke an invitation.', kind: 'requirement' },
+    ]);
+  });
+
   it('accepts only evidence markers from the captured source allowlist', () => {
     const claims = extractClaimCandidates(
       '- The service must deny access to expired sessions. <!-- evidence-source: src-1 -->\n' +

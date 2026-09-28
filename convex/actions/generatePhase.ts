@@ -34,7 +34,11 @@ import { retryWithBackoff } from '../../lib/llm/retry';
 import { continueIfTruncated } from '../../lib/llm/continuation';
 import { rateLimiter } from '../rateLimiter';
 import { renderPreviewHtml } from '../../lib/markdown-render';
-import { formatLiveClaimsForPrompt, type LiveClaim } from '../../lib/llm/prompts/claim-ids';
+import {
+  formatLiveClaimsForPrompt,
+  formatRequirementMarksForPrompt,
+  type LiveClaim,
+} from '../../lib/llm/prompts/claim-ids';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import {
   CONSTITUTION_PROMPT,
@@ -662,6 +666,7 @@ Description: ${params.projectContext.description}`,
       ? `User Requirements & Clarifications:\n${formatQAForPrompt(deserializeQAPairs(params.projectContext.questions))}`
       : null,
     formatLiveClaimsForPrompt(params.projectContext.liveClaims),
+    formatRequirementMarksForPrompt(params.phaseId),
     QUALITY_RULES,
     OUTPUT_RULES,
   ];
