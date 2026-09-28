@@ -13,7 +13,7 @@
 | 5. Magenta brand | Complete | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
 | 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
-| 8. Pull-request verification | Active: spec written, plan next | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
+| 8. Pull-request verification | Active | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | [Implementation plan](plans/2026-09-27-pull-request-verification.md) |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
