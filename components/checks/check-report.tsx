@@ -89,7 +89,7 @@ function VerdictItem({
       </div>
       <p className="mt-2 max-w-2xl text-body text-ink">
         {requirement ? requirement.text : "This requirement is no longer in the project."}
-        {requirement?.retired ? <span className="ml-2 text-caption text-dim">Retired since</span> : null}
+        {requirement?.retired ? <span className="ml-2 text-caption text-dim">Retired since this check</span> : null}
       </p>
       <p className="mt-2 max-w-2xl text-ui text-muted-foreground">{verdict.explanation}</p>
       {verdict.evidence.length ? (

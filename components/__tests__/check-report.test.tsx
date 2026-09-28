@@ -84,6 +84,20 @@ describe("CheckReport", () => {
     expect(screen.queryByText(/REQ-0003 is still/)).not.toBeInTheDocument();
   });
 
+  it("marks a requirement retired after the check, since a check judges only live requirements", () => {
+    render(
+      <CheckReport
+        projectId="p1"
+        check={check}
+        requirements={{ ...requirements, "REQ-0003": { ...requirements["REQ-0003"], retired: true } }}
+        repositoryUrl={null}
+      />,
+    );
+
+    expect(screen.getByText("Retired since this check")).toBeInTheDocument();
+    expect(screen.queryByText(/REQ-0003 is still/)).not.toBeInTheDocument();
+  });
+
   it("lists the files it did not read, the other problems and the notes", () => {
     renderReport();
 
