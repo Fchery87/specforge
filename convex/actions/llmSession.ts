@@ -10,10 +10,13 @@ import {
 } from '../../lib/llm/registry';
 import { selectEnabledModels } from '../../lib/llm/model-select';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
+import type { LlmModel } from '../../lib/llm/types';
 
 export interface LlmSession {
   client: NonNullable<ReturnType<typeof createLlmClient>>;
   modelId: string;
+  /** The resolved model, for callers that size their prompt to its context. */
+  model: LlmModel;
 }
 
 /**
@@ -53,7 +56,7 @@ export async function openLlmSession(ctx: ActionCtx): Promise<LlmSession> {
 
   const client = createLlmClient(credentials, providerApiEndpoint);
   if (!client) throw new Error('Failed to initialize LLM client. Check your credentials in Settings.');
-  return { client, modelId: model.id };
+  return { client, modelId: model.id, model };
 }
 
 /** Replaces a provider's capacity error with one the reader can act on; rethrows anything else. */
