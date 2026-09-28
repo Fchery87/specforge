@@ -5,6 +5,7 @@ import {
   applyChangeHandler,
   createChangeHandler,
   getDraftContextHandler,
+  listAppliedChangesHandler,
   replaceChangeOpsHandler,
   type ChangeOpInput,
 } from '../changes';
@@ -250,7 +251,9 @@ describe('applyChange', () => {
     const result = await applyChangeHandler(asCtx(ctx), { changeId });
 
     expect(result).toEqual({ status: 'applied', addedClaimIds: ['REQ-0015'] });
-    expect([...ctx.__tables.claims.values()].find((claim) => claim.claimId === 'REQ-0015')).toMatchObject({
+    const added = [...ctx.__tables.claims.values()].find((claim) => claim.claimId === 'REQ-0015');
+    expect([...ctx.__tables.changeOps.values()].find((row) => row.order === 0)?.appliedClaim).toBe(added?._id);
+    expect(added).toMatchObject({
       projectId: 'p1', phaseId: 'stories', artifactId: 'stories-doc', kind: 'acceptance_criterion',
       text: 'Given an invite link, when it is opened, then the invite page loads.', decisionStatus: 'confirmed',
     });
@@ -370,3 +373,29 @@ describe('getDraftContext', () => {
     await expect(getDraftContextHandler(asCtx(ctx) as never, { changeId, userId: 'owner' })).rejects.toThrow('Only a draft change can be drafted');
   });
 });
+
+describe('listAppliedChanges', () => {
+  it('exports applied changes with each edit under its requirement ID, and skips drafts', async () => {
+    const ctx = makeCtx();
+    const applied = await createChangeHandler(asCtx(ctx), feature);
+    await replaceChangeOpsHandler(asCtx(ctx), {
+      changeId: applied,
+      ops: [
+        { reason: 'Regression test.', evidenceSourceIds: [], op: { type: 'add', phaseId: 'stories', kind: 'acceptance_criterion', text: 'Given a link, when opened, then the invite loads.' } },
+        { reason: 'Links too.', evidenceSourceIds: [], op: { type: 'modify', claim: 'c12' as never, baseText: 'Owners invite members by email.', text: 'Owners invite members by email or link.' } },
+      ],
+    });
+    await applyChangeHandler(asCtx(ctx), { changeId: applied });
+    await draft(ctx);
+
+    const exported = await listAppliedChangesHandler(asCtx(ctx) as never, { projectId: 'p1' as never });
+
+    expect(exported).toHaveLength(1);
+    expect(exported[0]).toMatchObject({ changeNumber: 1, kind: 'feature', title: 'Invite links' });
+    expect(exported[0]?.ops.map((op) => [op.op.type, op.claimId, op.phaseId])).toEqual([
+      ['add', 'REQ-0015', 'stories'],
+      ['modify', 'REQ-0012', 'prd'],
+    ]);
+  });
+});
+

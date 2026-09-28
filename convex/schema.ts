@@ -507,6 +507,8 @@ export default defineSchema({
     reason: v.string(),
     evidenceSourceIds: v.array(v.id('evidenceSources')),
     op: changeOpValidator,
+    // The claim an applied `add` created, so a change can name the requirement IDs it introduced.
+    appliedClaim: v.optional(v.id('claims')),
   }).index('by_change', ['changeId']),
 
   // Earlier wording of a claim, written when a change modifies it, so the ID keeps its history.
