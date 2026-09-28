@@ -48,6 +48,7 @@ function makeCtx(authUserId = 'owner'): FakeContext {
     verificationResults: new Map([
       ['vr-prd', { _id: 'vr-prd', projectId: 'p1', phaseId: 'prd' }],
       ['vr-specs', { _id: 'vr-specs', projectId: 'p1', phaseId: 'specs' }],
+      ['vr-project', { _id: 'vr-project', projectId: 'p1' }],
     ]),
   };
   let nextId = 0;
@@ -280,6 +281,15 @@ describe('applyChange', () => {
     expect(ctx.__tables.phases.get('ph-prd')?.isStale).toBe(true);
     expect(ctx.__tables.phases.get('ph-stories')?.isStale).toBeUndefined();
     expect(ctx.__tables.verificationResults.get('vr-specs')?.outdatedAt).toBeUndefined();
+  });
+
+  it('marks a project-wide pull request check outdated, since the requirements it judged have changed', async () => {
+    const ctx = makeCtx();
+    const changeId = await draftWith(ctx, [rewordEmail]);
+
+    await applyChangeHandler(asCtx(ctx), { changeId });
+
+    expect(ctx.__tables.verificationResults.get('vr-project')?.outdatedAt).toBeTypeOf('number');
   });
 
   it('applies nothing and names the operation when a requirement was reworded after the draft', async () => {
