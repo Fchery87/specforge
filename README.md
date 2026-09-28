@@ -29,7 +29,7 @@ SpecForge is a high-performance scaffold designed for building repo-native, spec
 - **Unambiguous Domain Glossary**. Domain modeling produces strict term glossaries, entity attributes, and relation rules.
 - **Optional Grilling Clarification Interview**. Clarification questions capped at 10 items maximum, accompanied by an optional interactive Stress-Test Plan modal to resolve design ambiguities.
 - **Evidence-Backed Requirements**. Generated bullet requirements receive stable project IDs, proposed answer or commit-pinned repository references, and an owner review state.
-- **Saved Quick Specs History**. Save short-form specs as versioned project artifacts without creating full workflow phases.
+- **Change specs**. Describe a feature change or a bug and get it as edits to the project's requirements: added, reworded, removed or reaffirmed, each under its requirement ID. Applied changes are exported as `changes/CHG-nnnn-<slug>.md`.
 - **Chained Worker Architecture**. Long-running LLM generations split into sequential background tasks, bypassing the 600s Convex timeout.
 - **Live Generation & Output Preservation**. Incremental persistence of artifact sections with real-time UI updates via Convex reactive queries and partial output retention on cancellation.
 - **Multi-LLM Intelligence**. Model registry supporting OpenAI, Anthropic, DeepSeek (including DeepSeek V4 Pro and DeepSeek Flash), Mistral, Z.AI, and Minimax with automatic token budgeting and provider endpoint verification.
@@ -133,7 +133,7 @@ specforge/
 │   ├── project/[id]/            # Project overview and workspace pages
 │   │   ├── page.tsx             # Project overview: one stepper, one next action
 │   │   ├── questions/           # Combined questions page for Lite projects
-│   │   ├── quick/               # Saved quick specs history
+│   │   ├── change/[changeId]/   # A change spec: review, edit and apply its edits
 │   │   └── phase/[phaseId]/     # Stage workspace: the reading surface and one next action
 │   └── layout.tsx               # Root layout with providers
 ├── components/                  # React components

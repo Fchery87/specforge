@@ -97,7 +97,7 @@ npm run test -- --run --testTimeout=20000
 - At artifact completion, supported requirement bullets receive stable `REQ-####` IDs. Generation may suggest source links only from the project's captured source allowlist. Suggestions start unconfirmed and the review panel can confirm or reject them.
 - A new answer or repository revision marks linked requirements and tickets for review, marks their phase stale, and marks verification results that used the old source revision as outdated.
 - Owners review and attach sources in the artifact page's **Requirements and evidence** panel. Project exports include a requirement traceability section.
-- Quick Specs can be saved from `/dashboard/quick` into a project. They use a `quickSpec` artifact grouped under phase ID `quick`; this does not create a row in `phases`.
+- A Quick Spec from `/dashboard/quick` can start a new Lite project, which takes the spec into its description, or a draft change in an existing project, which carries it in `changes.quickSpec` for drafting.
 - Constitution output distinguishes confirmed, observed, proposed, and unresolved decisions. Locked constraints contain only confirmed project-specific rules. See the [constitution authoring guide](Constitution%20Document.md).
 
 The local unit tests cover immutable answer revisions, source allowlist validation, change impact, and verification citation validation. A live walkthrough still requires a configured Convex dev deployment and GitHub OAuth credentials for repository scanning.
