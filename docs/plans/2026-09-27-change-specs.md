@@ -18,10 +18,10 @@ changes. Each task lands as its own commit, and the gates in `.keel/config.md` e
 | 5 | `applyChange`: check every `baseText`, then add, modify with a `claimRevisions` row, remove, and mark touched phases stale with `staleReason: "CHG-nnnn applied"`, in one mutation | Done | `e99fad7` | `changes.test.ts`: ID issued on add; ID, evidence links and revision kept on modify; `retiredAt` on remove; a stale `baseText` applies nothing and names the op |
 | 6 | Draft parser in `lib/changes/`: parse the model's ops, drop ops naming unknown or retired claims with a note, reject a bug fix with no added acceptance criterion | Done | `aaa726c` | `lib/changes/__tests__/parse-draft.test.ts` with literal inputs and expected ops |
 | 7 | `draftChange` action: live claims with IDs, the description, bug fields and repository evidence in; parsed ops out, saved to the draft | Done | `aaa726c` | `lib/changes/__tests__/run-draft.test.ts` drives the draft with a stubbed model: one pass, a retry for a missing regression criterion, and the note when the retry still has none; `getDraftContextHandler` tests pin the inputs. A live model call waits for task 13 |
-| 8 | Project page "Changes" section and the "New change" form (feature or bug; bug asks observed, expected, reproduction) | Done, unverified: SHA recorded after the squash merge | — | Component tests; `/design` fixture captured at 1440 and 390 in both themes |
-| 9 | Change page `/project/[id]/change/[changeId]`: ops as a diff, edit, delete and add ops, apply, and the conflict refresh | Done, unverified: SHA recorded after the squash merge | — | Component tests for each op's rendering and the conflict state; `/design` captures |
-| 10 | Phase page line when a change was applied after the document was generated, with the regenerate control | Done, unverified: SHA recorded after the squash merge | — | `stale-document-notice.test.tsx`; the phase page shows it when `isStale` is set and the phase has a document |
-| 11 | Export writes each applied change to `changes/CHG-nnnn-<slug>.md` | Not started | — | `generateProjectZip` test finds the file and its op lines |
+| 8 | Project page "Changes" section and the "New change" form (feature or bug; bug asks observed, expected, reproduction) | Done | `d288e1b` | Component tests; `/design` fixture captured at 1440 and 390 in both themes |
+| 9 | Change page `/project/[id]/change/[changeId]`: ops as a diff, edit, delete and add ops, apply, and the conflict refresh | Done | `d288e1b` | Component tests for each op's rendering and the conflict state; `/design` captures |
+| 10 | Phase page line when a change was applied after the document was generated, with the regenerate control | Done | `d288e1b` | `stale-document-notice.test.tsx`; the phase page shows it when `isStale` is set and the phase has a document |
+| 11 | Export writes each applied change to `changes/CHG-nnnn-<slug>.md` | Done, unverified: SHA recorded after the squash merge | — | `generateProjectZip` test finds the file and its op lines; `render-markdown.test.ts` pins the whole file; `listAppliedChanges` test resolves each edit's ID |
 | 12 | Quick spec: replace "Save to an existing project" with "Start a change from this"; migrate saved quick specs into draft changes; `createProjectFromQuickSpec` records the spec as a `user_note` evidence source; delete `saveQuickSpec`, `saveQuickSpecHandler`, the `phaseId: 'quick'` slot, `/project/[id]/quick` and the "Saved quick specs" link | Not started | — | Quick spec page test; `quick-spec-save.test.ts` rewritten for the evidence source; migration test on the fake context; row count of `quickSpec` artifacts on dev is zero after the migration runs |
 | 13 | Walkthrough on the dev deployment: draft and apply a bug fix, see the PRD marked out of date, regenerate, and see the modified requirement keep its ID | Not started | — | Screenshots and the claim IDs before and after, in `design/screens/changes/` |
 
@@ -52,5 +52,7 @@ actually ran. `Done, unverified` is honest and must say what is missing.
 - Tasks 8 and 9 were captured from `/design` fixtures (`app/design/change-previews.tsx`) into
   `design/screens/changes/`, because the pages read Convex behind sign-in. The live pages are part of
   task 13's walkthrough.
+- Task 11 found that the project zip was built once and reused forever, so it never held later
+  phases or changes. Downloads now rebuild it.
 - Prod has no data, so the task 12 migration only matters on dev and for any user data created
   before it ships.
