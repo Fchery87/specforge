@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseJsonReply } from '../llm/json-reply';
 
 export type ClaimKind = 'decision' | 'requirement' | 'acceptance_criterion';
 
@@ -55,25 +56,13 @@ const DEFAULT_KIND: Record<string, ClaimKind> = {
 };
 const CLAIM_KINDS: readonly ClaimKind[] = ['decision', 'requirement', 'acceptance_criterion'];
 
-/** The model's reply may wrap the JSON in prose or a code fence; take the outermost object. */
-function extractJson(reply: string): unknown {
-  const start = reply.indexOf('{');
-  const end = reply.lastIndexOf('}');
-  if (start === -1 || end <= start) throw new Error('The draft reply held no JSON object');
-  try {
-    return JSON.parse(reply.slice(start, end + 1));
-  } catch {
-    throw new Error('The draft reply was not valid JSON');
-  }
-}
-
 /**
  * Parses a drafted change at the boundary. Nothing the model says about a requirement is trusted:
  * a target must name a live claim by ID, its wording comes from the registry, and evidence must be
  * on the allowlist. Anything that fails is dropped with a note rather than guessed at.
  */
 export function parseDraft(reply: string, context: DraftContext): ParsedDraft {
-  const parsed = rawDraft.safeParse(extractJson(reply));
+  const parsed = rawDraft.safeParse(parseJsonReply(reply, 'draft'));
   if (!parsed.success) throw new Error('The draft reply had no "operations" list');
 
   const byClaimId = new Map(context.claims.map((claim) => [claim.claimId, claim]));
