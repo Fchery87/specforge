@@ -94,6 +94,7 @@ Never commit secrets, API keys, or tokens.
 - Plans: `docs/plans/YYYY-MM-DD-<slug>.md` describe active work, have a `**Status:**` line in the first five lines, and are deleted when complete. Existing plans marked `Historical archive record` remain linked from the roadmap's historical index.
 - ADRs: `docs/adr/NNNN-<slug>.md` record settled architectural decisions.
 - Keep plan status and roadmap phase status current. Verify a commit SHA before recording it.
+- Pull requests are squash-merged, so a branch commit's SHA does not survive the merge. Record a task's SHA as its squash commit on `main`, in the pull request after it lands, and mark the task `Done, unverified` until then.
 
 The pre-commit hook runs `.keel/validate-docs-lifecycle.mjs` to check the roadmap, plan links and status, and spec deletion inventories.
 <!-- keel:end -->
