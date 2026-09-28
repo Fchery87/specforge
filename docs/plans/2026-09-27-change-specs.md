@@ -22,7 +22,7 @@ changes. Each task lands as its own commit, and the gates in `.keel/config.md` e
 | 9 | Change page `/project/[id]/change/[changeId]`: ops as a diff, edit, delete and add ops, apply, and the conflict refresh | Done | `d288e1b` | Component tests for each op's rendering and the conflict state; `/design` captures |
 | 10 | Phase page line when a change was applied after the document was generated, with the regenerate control | Done | `d288e1b` | `stale-document-notice.test.tsx`; the phase page shows it when `isStale` is set and the phase has a document |
 | 11 | Export writes each applied change to `changes/CHG-nnnn-<slug>.md` | Done, unverified: SHA recorded after the squash merge | — | `generateProjectZip` test finds the file and its op lines; `render-markdown.test.ts` pins the whole file; `listAppliedChanges` test resolves each edit's ID |
-| 12 | Quick spec: replace "Save to an existing project" with "Start a change from this"; migrate saved quick specs into draft changes; `createProjectFromQuickSpec` records the spec as a `user_note` evidence source; delete `saveQuickSpec`, `saveQuickSpecHandler`, the `phaseId: 'quick'` slot, `/project/[id]/quick` and the "Saved quick specs" link | Not started | — | Quick spec page test; `quick-spec-save.test.ts` rewritten for the evidence source; migration test on the fake context; row count of `quickSpec` artifacts on dev is zero after the migration runs |
+| 12 | Quick spec: replace "Save to an existing project" with "Start a change from this"; migrate saved quick specs into draft changes; `createProjectFromQuickSpec` puts the spec in the project description; delete `saveQuickSpec`, `saveQuickSpecHandler`, the `phaseId: 'quick'` slot, `/project/[id]/quick` and the "Saved quick specs" link | Done, unverified: SHA recorded after the squash merge | — | Quick spec page test; `quick-spec-save.test.ts` rewritten for the evidence source; migration test on the fake context; row count of `quickSpec` artifacts on dev is zero after the migration runs |
 | 13 | Walkthrough on the dev deployment: draft and apply a bug fix, see the PRD marked out of date, regenerate, and see the modified requirement keep its ID | Not started | — | Screenshots and the claim IDs before and after, in `design/screens/changes/` |
 
 States: `Not started`, `In progress`, `Done, unverified`, `Done`.
@@ -54,5 +54,8 @@ actually ran. `Done, unverified` is honest and must say what is missing.
   task 13's walkthrough.
 - Task 11 found that the project zip was built once and reused forever, so it never held later
   phases or changes. Downloads now rebuild it.
+- Task 12's migration ran on dev with `npx convex run changes:migrateSavedQuickSpecs` and moved 0
+  quick specs (17 artifacts, none of type `quickSpec`). With production empty, the `quickSpec` type
+  and the migration were then removed; its test lived in the commit that added it.
 - Prod has no data, so the task 12 migration only matters on dev and for any user data created
   before it ships.
