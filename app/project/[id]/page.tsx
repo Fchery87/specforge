@@ -171,9 +171,8 @@ export default function ProjectPage() {
       description: startToast.description,
     });
     try {
-      if (!project?.zipStorageId) {
-        await generateZip({ projectId: params.id as Id<"projects"> });
-      }
+      // Always rebuild: a stored zip predates any phase regenerated or change applied since.
+      await generateZip({ projectId: params.id as Id<"projects"> });
 
       const zipUrl = await convex.query(api.projects.getProjectZipUrl, {
         projectId: params.id as Id<"projects">,
@@ -310,7 +309,6 @@ export default function ProjectPage() {
               title: project.title,
               description: project.description,
               createdAt: project.createdAt,
-              zipStorageId: project.zipStorageId,
             }}
             artifacts={{
               brief: allArtifacts?.find((a) => a.type === "brief")?.content,

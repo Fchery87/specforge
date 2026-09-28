@@ -45,4 +45,29 @@ describe('buildProjectZipEntries', () => {
     const cursorEntries = entries.filter((e) => e.path.startsWith('.cursor'));
     expect(cursorEntries).toHaveLength(0);
   });
+
+  it('writes each applied change to changes/ under its ID and title', () => {
+    const entries = buildProjectZipEntries({
+      project: { _id: 'p1', title: 'Ledger', description: 'Shared ledger', _creationTime: 1700000000000 },
+      artifacts: [],
+      claims: [],
+      changes: [
+        {
+          changeNumber: 3,
+          kind: 'bugfix',
+          title: 'Invite links show a 404!',
+          summary: 'Opening an invite link shows a 404.',
+          appliedAt: Date.UTC(2026, 8, 27),
+          ops: [
+            { reason: 'Catches the 404.', claimId: 'REQ-0015', phaseId: 'stories', op: { type: 'add', phaseId: 'stories', kind: 'acceptance_criterion', text: 'Given a link, when opened, then the invite loads.' } },
+          ],
+        },
+      ],
+    });
+
+    const change = entries.find((entry) => entry.path === 'changes/CHG-0003-invite-links-show-a-404.md');
+    expect(change?.content).toContain('### Added REQ-0015 (Tasks)');
+    expect(change?.content).toContain('Given a link, when opened, then the invite loads.');
+  });
 });
+

@@ -9,6 +9,8 @@ import { generateAgentsMd } from '../../lib/export/agents-formatter';
 import { createZip, sanitizeZipPathSegment } from '../../lib/zip';
 import { rateLimiter } from '../rateLimiter';
 import { formatClaimManifest, type ClaimManifestItem } from '../../lib/evidence';
+import { renderChangeMarkdown, type ExportedChange } from '../../lib/changes/render-markdown';
+import { formatChangeId } from '../../lib/changes/format';
 
 export interface ProjectZipInput {
   project: {
@@ -23,10 +25,11 @@ export interface ProjectZipInput {
     content: string;
   }>;
   claims?: ClaimManifestItem[];
+  changes?: ExportedChange[];
 }
 
 export function buildProjectZipEntries(input: ProjectZipInput): Array<{ path: string; content: string }> {
-  const { project, artifacts, claims } = input;
+  const { project, artifacts, claims, changes = [] } = input;
   const traceabilityManifest = formatClaimManifest(claims ?? []);
 
   const entries = artifacts.map((a) => ({
@@ -62,6 +65,11 @@ export function buildProjectZipEntries(input: ProjectZipInput): Array<{ path: st
     }
   } catch (e) {
     console.warn('Could not generate agent handoff files', e);
+  }
+
+  for (const change of changes) {
+    const slug = sanitizeZipPathSegment(change.title.toLowerCase()) || 'change';
+    entries.push({ path: `changes/${formatChangeId(change.changeNumber)}-${slug}.md`, content: renderChangeMarkdown(change) });
   }
 
   entries.push({
@@ -107,10 +115,15 @@ export const generateProjectZip = action({
       projectId: args.projectId,
     });
 
+    const changes = await ctx.runQuery(internalApi.changes.listAppliedChangesInternal, {
+      projectId: args.projectId,
+    });
+
     const entries = buildProjectZipEntries({
       project,
       artifacts,
       claims,
+      changes,
     });
 
     const zipBytes = await createZip(entries);

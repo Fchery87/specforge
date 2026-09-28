@@ -6,6 +6,7 @@ import { canAccessProject } from '../lib/authz';
 import { PHASE_ORDER, type PhaseId } from '../lib/workflow';
 import { bugReportValidator, changeOpValidator } from './schema';
 import { formatChangeId } from '../lib/changes/format';
+import type { ExportedChange } from '../lib/changes/render-markdown';
 
 export type ChangeOp = Infer<typeof changeOpValidator>;
 export type BugReport = Infer<typeof bugReportValidator>;
@@ -277,6 +278,7 @@ export async function applyChangeHandler(
         updatedAt: now,
       });
       await linkEvidence(ctx, change.projectId, claim, row.evidenceSourceIds, now);
+      await ctx.db.patch(row._id, { appliedClaim: claim });
       addedClaimIds.push(claimId);
       touchedPhases.add(op.phaseId);
       continue;
@@ -409,6 +411,61 @@ export async function getDraftContextHandler(
 export const getDraftContextInternal = internalQuery({
   args: { changeId: v.id('changes'), userId: v.string() },
   handler: getDraftContextHandler,
+});
+
+/**
+ * Every applied change with each edit's requirement ID resolved, for the export. An addition names
+ * the claim it created; the other edits name the claim they acted on, even if it is retired since.
+ */
+export async function listAppliedChangesHandler(
+  ctx: QueryCtx,
+  args: { projectId: Id<'projects'> },
+): Promise<ExportedChange[]> {
+  const changes = (
+    await ctx.db
+      .query('changes')
+      .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
+      .collect()
+  )
+    .filter((change) => change.status === 'applied')
+    .sort((a, b) => a.changeNumber - b.changeNumber);
+
+  return Promise.all(
+    changes.map(async (change) => {
+      const rows = (
+        await ctx.db
+          .query('changeOps')
+          .withIndex('by_change', (q) => q.eq('changeId', change._id))
+          .collect()
+      ).sort((a, b) => a.order - b.order);
+      const ops = await Promise.all(
+        rows.map(async (row) => {
+          const ref = row.op.type === 'add' ? row.appliedClaim : row.op.claim;
+          const claim = ref ? await ctx.db.get(ref) : null;
+          return {
+            reason: row.reason,
+            op: row.op,
+            claimId: claim?.claimId ?? null,
+            phaseId: row.op.type === 'add' ? row.op.phaseId : (claim?.phaseId ?? ''),
+          };
+        }),
+      );
+      return {
+        changeNumber: change.changeNumber,
+        kind: change.kind,
+        title: change.title,
+        summary: change.summary,
+        ...(change.bug ? { bug: change.bug } : {}),
+        appliedAt: change.appliedAt ?? change.updatedAt,
+        ops,
+      };
+    }),
+  );
+}
+
+export const listAppliedChangesInternal = internalQuery({
+  args: { projectId: v.id('projects') },
+  handler: listAppliedChangesHandler,
 });
 
 export const listChanges = query({
