@@ -30,6 +30,7 @@ SpecForge is a high-performance scaffold designed for building repo-native, spec
 - **Optional Grilling Clarification Interview**. Clarification questions capped at 10 items maximum, accompanied by an optional interactive Stress-Test Plan modal to resolve design ambiguities.
 - **Evidence-Backed Requirements**. Generated bullet requirements receive stable project IDs, proposed answer or commit-pinned repository references, and an owner review state.
 - **Change specs**. Describe a feature change or a bug and get it as edits to the project's requirements: added, reworded, removed or reaffirmed, each under its requirement ID. Applied changes are exported as `changes/CHG-nnnn-<slug>.md`.
+- **Pull-request checks**. Check a pull request, a commit range or a pasted diff against the requirements it touches. Each requirement gets a verdict (met, violated, incomplete or not shown) backed by lines quoted from the diff, graded by a fixed table; cite `REQ-` or `CHG-` IDs in the pull request to check exactly those.
 - **Chained Worker Architecture**. Long-running LLM generations split into sequential background tasks, bypassing the 600s Convex timeout.
 - **Live Generation & Output Preservation**. Incremental persistence of artifact sections with real-time UI updates via Convex reactive queries and partial output retention on cancellation.
 - **Multi-LLM Intelligence**. Model registry supporting OpenAI, Anthropic, DeepSeek (including DeepSeek V4 Pro and DeepSeek Flash), Mistral, Z.AI, and Minimax with automatic token budgeting and provider endpoint verification.
@@ -134,6 +135,7 @@ specforge/
 │   │   ├── page.tsx             # Project overview: one stepper, one next action
 │   │   ├── questions/           # Combined questions page for Lite projects
 │   │   ├── change/[changeId]/   # A change spec: review, edit and apply its edits
+│   │   ├── check/[checkId]/     # A pull-request check: verdicts, quoted lines, files not read
 │   │   └── phase/[phaseId]/     # Stage workspace: the reading surface and one next action
 │   └── layout.tsx               # Root layout with providers
 ├── components/                  # React components
