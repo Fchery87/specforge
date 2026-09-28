@@ -151,6 +151,18 @@ describe('runCheck', () => {
     expect(calls).toBe(1);
   });
 
+  it('keeps the out-of-room message when the retry is the reply that runs out', async () => {
+    let calls = 0;
+    await expect(
+      runCheck(input(), async () => {
+        calls += 1;
+        if (calls === 1) return 'Not JSON.';
+        throw new ReplyOutOfRoom();
+      }),
+    ).rejects.toThrow('Cite the requirements this pull request implements');
+    expect(calls).toBe(2);
+  });
+
   it('does not call the model when no file can be read, and says so', async () => {
     let calls = 0;
     const outcome = await runCheck(input({ files: [{ path: 'package-lock.json', status: 'modified', additions: 900, deletions: 800, patch: '@@ -1 +1 @@\n+x' }] }), async () => {

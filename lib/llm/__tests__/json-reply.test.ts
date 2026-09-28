@@ -11,6 +11,11 @@ describe('parseJsonReply', () => {
     expect(parseJsonReply(reply, 'check')).toEqual({ quote: String.raw`const PREFIX = /^\*\*(?<id>[A-Z]+-\d+)\*\*\s*/;`, path: 'lib/evidence.ts' });
   });
 
+  it('keeps a regex word boundary as written when the reply needed repair', () => {
+    const reply = String.raw`{"quote": "const OBLIGATION = /\b(must|shall)\b\s*/i;"}`;
+    expect(parseJsonReply(reply, 'check')).toEqual({ quote: String.raw`const OBLIGATION = /\b(must|shall)\b\s*/i;` });
+  });
+
   it('leaves valid escapes alone', () => {
     expect(parseJsonReply(String.raw`{"text": "line one\nline \"two\" \\ end"}`, 'check')).toEqual({ text: 'line one\nline "two" \\ end' });
   });

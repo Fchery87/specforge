@@ -106,7 +106,8 @@ export async function runCheck(input: CheckInput, complete: (prompt: string) => 
       if (error instanceof ReplyOutOfRoom) throw error;
       try {
         parsed = parseCheck(await complete(`${prompt}\n\nYour last reply was not the JSON object asked for. Reply with only that object.`), context);
-      } catch {
+      } catch (retryError) {
+        if (retryError instanceof ReplyOutOfRoom) throw retryError;
         throw new Error(UNUSABLE_REPLY);
       }
     }

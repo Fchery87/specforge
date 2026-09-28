@@ -1,5 +1,9 @@
-/** A backslash that does not start one of JSON's escapes, such as the `\s` of a quoted regex. */
-const STRAY_BACKSLASH = /\\(?!["\\/bfnrtu])/g;
+/**
+ * In a reply that already failed to parse, a backslash the model copied raw from a regex: one that
+ * does not start an escape a quote needs. `\b` and `\f` are valid JSON, but in quoted code they are
+ * a regex's word boundary and form feed far more often than a backspace, so they count as raw too.
+ */
+const STRAY_BACKSLASH = /\\(?!["\\/nrtu])/g;
 
 /**
  * The JSON object in a model's reply. The reply may wrap it in prose or a code fence, so the
