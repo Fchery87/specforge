@@ -18,6 +18,7 @@ let readiness: { ready: boolean } | undefined;
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "p1" }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
 vi.mock("@clerk/nextjs", () => ({
