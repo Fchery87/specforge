@@ -50,7 +50,20 @@ export default function ChangePage() {
   const [notes, setNotes] = useState<string[]>([]);
   const [conflicts, setConflicts] = useState<ChangeConflict[]>([]);
 
-  if (!project || !data || phases === undefined) {
+  if (project === null || (data && data.change.projectId !== projectId)) {
+    return (
+      <main className="page-container py-20">
+        <h1 className="font-display text-heading font-semibold text-ink">
+          {project === null ? "Project not found" : "This change belongs to another project"}
+        </h1>
+        <p className="mt-3 max-w-md text-body text-muted-foreground">
+          Open it from the project it was started in.
+        </p>
+      </main>
+    );
+  }
+
+  if (project === undefined || !data || phases === undefined) {
     return (
       <main className="page-container py-10">
         <Skeleton className="h-8 w-64" />

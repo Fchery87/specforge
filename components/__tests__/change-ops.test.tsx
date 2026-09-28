@@ -73,4 +73,17 @@ describe("ChangeOps", () => {
       ])
     );
   });
+
+  it("keeps an unsaved addition and its editor when the save fails", async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error("Operation 1 needs a reason"));
+    render(<ChangeOps ops={[]} editable phasesWithDocuments={["prd"]} onSave={onSave} />);
+
+    fireEvent.change(screen.getByLabelText("New requirement"), { target: { value: "Owners may share an invite link." } });
+    fireEvent.change(screen.getByLabelText("Why it is needed"), { target: { value: "Asked for links." } });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(screen.getByLabelText("New requirement")).toHaveValue("Owners may share an invite link.");
+  });
 });
+

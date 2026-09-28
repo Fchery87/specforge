@@ -6,6 +6,7 @@ import ChangePage from "../page";
 const applyChange = vi.fn();
 const draftChange = vi.fn();
 let change: Record<string, unknown>;
+let project: Record<string, unknown> | null;
 
 vi.mock("next/navigation", () => ({
   useParams: () => ({ id: "p1", changeId: "ch1" }),
@@ -20,7 +21,7 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), message: v
 vi.mock("convex/react", () => ({
   useQuery: (ref: FunctionReference<"query">) => {
     const name = getFunctionName(ref);
-    if (name === "projects:getProject") return { _id: "p1", title: "Ledger", mode: "full", skippedPhases: [] };
+    if (name === "projects:getProject") return project;
     if (name === "projects:getProjectPhases") return [{ phaseId: "prd", status: "ready" }];
     if (name === "artifacts:getAllProjectArtifacts") return [{ phaseId: "prd" }];
     if (name === "changes:getChange") {
@@ -43,8 +44,9 @@ vi.mock("convex/react", () => ({
 
 describe("ChangePage", () => {
   beforeEach(() => {
+    project = { _id: "p1", title: "Ledger", mode: "full", skippedPhases: [] };
     change = {
-      _id: "ch1", changeNumber: 3, kind: "bugfix", title: "Invite links 404", summary: "Opening a link shows a 404.",
+      _id: "ch1", projectId: "p1", changeNumber: 3, kind: "bugfix", title: "Invite links 404", summary: "Opening a link shows a 404.",
       bug: { observed: "A 404 page.", expected: "The invite page.", reproduction: "Open an invite link." }, status: "draft",
     };
     applyChange.mockReset();
@@ -93,4 +95,20 @@ describe("ChangePage", () => {
     expect(screen.queryByRole("button", { name: "Drop" })).not.toBeInTheDocument();
     expect(screen.getByText(/^Applied on/)).toBeInTheDocument();
   });
+
+  it("refuses a change opened under another project's address", () => {
+    change = { ...change, projectId: "p2" };
+    render(<ChangePage />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "This change belongs to another project" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Edits" })).not.toBeInTheDocument();
+  });
+
+  it("says so when the project is gone", () => {
+    project = null;
+    render(<ChangePage />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Project not found" })).toBeInTheDocument();
+  });
 });
+

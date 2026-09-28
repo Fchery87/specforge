@@ -70,7 +70,7 @@ function OpEditor({
   onCancel,
 }: {
   view: ChangeOpView;
-  onDone: (next: ChangeOpDraft) => Promise<void>;
+  onDone: (next: ChangeOpDraft) => Promise<boolean>;
   onCancel: () => void;
 }) {
   const hasText = view.op.type === "add" || view.op.type === "modify";
@@ -109,7 +109,7 @@ function AddRequirement({
   onAdd,
 }: {
   phases: readonly string[];
-  onAdd: (draft: ChangeOpDraft) => Promise<void>;
+  onAdd: (draft: ChangeOpDraft) => Promise<boolean>;
 }) {
   const [phaseId, setPhaseId] = useState(phases[0] ?? "");
   const [text, setText] = useState("");
@@ -123,9 +123,11 @@ function AddRequirement({
       onSubmit={async (event) => {
         event.preventDefault();
         if (!valid) return;
-        await onAdd({ reason, evidenceSourceIds: [], op: { type: "add", phaseId, kind: kindForPhase(phaseId), text } });
-        setText("");
-        setReason("");
+        const saved = await onAdd({ reason, evidenceSourceIds: [], op: { type: "add", phaseId, kind: kindForPhase(phaseId), text } });
+        if (saved) {
+          setText("");
+          setReason("");
+        }
       }}
     >
       <label className="text-label text-muted-foreground" htmlFor="add-phase">Add a requirement to</label>
@@ -174,9 +176,15 @@ export function ChangeOps({
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const drafts = ops.map(toDraft);
-  const save = async (next: ChangeOpDraft[]) => {
-    await onSave?.(next);
-    setEditing(null);
+  /** Resolves to whether the save went through; the caller reports a failure, so it is not rethrown. */
+  const save = async (next: ChangeOpDraft[]): Promise<boolean> => {
+    try {
+      await onSave?.(next);
+      setEditing(null);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   return (
