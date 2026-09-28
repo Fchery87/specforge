@@ -12,7 +12,7 @@
 | 4. Stage prompts and requirement quality | Complete | [Stage prompts and requirement quality](specs/2026-09-26-stage-prompts-and-requirement-quality.md) | - |
 | 5. Magenta brand | Complete | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
 | 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
-| 7. Change and bug-fix specs | Active: all tasks done, closing | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | [Implementation plan](plans/2026-09-27-change-specs.md) |
+| 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -55,6 +55,19 @@ Phases 5 and 6 reached `main` together in #40 at `8f63167`, after the phase 6 wo
 #38 and #39 into the brand branch. CI's test, design and e2e jobs passed on each of those pull
 requests and on #40. Deploying #40 needs a Convex deploy, for the new `createProjectFromQuickSpec`
 mutation.
+
+Phase 7 lets a reader describe a feature change or a bug and review it as edits to the project's
+requirements: added, reworded, removed or reaffirmed, each under its requirement ID, applied in one
+transaction and exported as `changes/CHG-nnnn-<slug>.md`. A requirement now keeps its ID when its
+wording changes, which [ADR 0003](adr/0003-requirement-identity-is-the-claim-id.md) records. It ran as
+#42 and #43 (spec and plan) and #44 to #51 (`9439b4a`, `69485ee`, `e99fad7`, `aaa726c`, `d288e1b`,
+`2dfaee4`, `959a359`, `004e9aa`). CI's test, design and e2e jobs passed on each. The walkthrough on
+the dev deployment, with the real model, is in `docs/evaluations/2026-09-27-change-specs-walkthrough.md`;
+it found and fixed two prompt defects, and the signed-in pages were checked through `/design`
+fixtures rather than a browser. The implementation plan is deleted, as the lifecycle requires of a
+finished plan. One follow-up is open and should come before phase 8: claim extraction turns metadata
+bullets ("Priority", "Trace", "Status") into requirements, and each regeneration adds more, so
+pull-request checks would be graded against noise.
 
 ## Later phases
 

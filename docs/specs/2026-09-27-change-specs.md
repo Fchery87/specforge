@@ -2,6 +2,7 @@
 
 **Date:** 2026-09-27
 **Roadmap:** Phase 7, [Change and bug-fix specs](../roadmap.md)
+**ADR:** [0003. A requirement's identity is its claim ID](../adr/0003-requirement-identity-is-the-claim-id.md)
 
 ## Problem
 
@@ -98,6 +99,13 @@ falling back to text. Generation prompts receive the live claims with their IDs 
 keep an ID on a requirement they reword. Without this, the first regeneration after an applied
 change would undo it.
 
+Amended after the walkthrough: the prompt also states that the listed requirements are current
+decisions that win over the project description, and that an ID opens only the bullet stating that
+requirement. Without the first rule, a regeneration trusted the unchanged description over a changed
+requirement and wrote a conflict note; without the second, it opened that note with the
+requirement's ID and moved the ID onto it. [ADR 0003](../adr/0003-requirement-identity-is-the-claim-id.md)
+records the decision.
+
 ### Flow
 
 1. **Start.** From the project page, "New change" opens a form: feature or bug, a title and a
@@ -108,7 +116,10 @@ change would undo it.
    the repository evidence when a repository is connected. The model's output is parsed at the
    boundary: every `modify`, `remove` and `reaffirm` must name a live claim of this project, and
    an op that does not is dropped with a note, never guessed at. A bug fix always gets at least one
-   added acceptance criterion: the regression test.
+   added acceptance criterion: the regression test. As built, the criterion goes to the Tasks phase
+   when it has a document and to the first phase with one otherwise; a draft without one is drafted
+   once more with a reminder, and if it still has none its edits are kept with a note, because
+   applying refuses a bug fix without a regression criterion.
 3. **Review.** The change page shows the ops as a diff against the current wording: added lines,
    struck-and-replaced wording for a modification, struck lines for a removal. The reader edits,
    deletes or adds ops, and each op keeps its reason and evidence.
@@ -122,7 +133,8 @@ change would undo it.
    `baseText` no longer matches, nothing applies and the page offers to refresh the draft.
 5. **Record.** An applied change is read-only. The project page lists changes, newest first, and
    the export pack includes each applied change as `changes/CHG-0001-<slug>.md`, so a coding agent
-   gets the delta alongside the full spec.
+   gets the delta alongside the full spec. As built, the pack is rebuilt on every download: it had
+   been built once and reused, so it never held a phase regenerated or a change applied later.
 
 ### Where it appears
 
