@@ -57,6 +57,13 @@ const RATE_LIMIT_CONFIG = {
     rate: 10,
     capacity: 15,
   },
+  // Change drafting: 10 per minute per user
+  draftChange: {
+    kind: "token bucket" as const,
+    period: MINUTE,
+    rate: 10,
+    capacity: 15,
+  },
   // Section plan generation: 5 per minute per user
   generateSectionPlan: {
     kind: "token bucket" as const,

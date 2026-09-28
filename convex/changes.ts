@@ -1,4 +1,4 @@
-import { mutation, query } from './_generated/server';
+import { internalQuery, mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 import { v, type Infer } from 'convex/values';
@@ -345,6 +345,70 @@ export const applyChange = mutation({
 export const abandonChange = mutation({
   args: { changeId: v.id('changes') },
   handler: abandonChangeHandler,
+});
+
+const MAX_DRAFT_EVIDENCE = 30;
+const MAX_EXCERPT_CHARS = 400;
+
+/**
+ * What the draft action needs: the change, the live requirements it may act on, the phases that
+ * have a document, and the latest revision of each repository file captured for the project.
+ */
+export async function getDraftContextHandler(
+  ctx: QueryCtx,
+  args: { changeId: Id<'changes'>; userId: string },
+) {
+  const change = await ctx.db.get(args.changeId);
+  if (!change) throw new Error('Change not found');
+  const project = await ctx.db.get(change.projectId);
+  if (!project || !canAccessProject(project.userId, args.userId)) throw new Error('Forbidden');
+  if (change.status !== 'draft') throw new Error('Only a draft change can be drafted');
+
+  const claims = (
+    await ctx.db
+      .query('claims')
+      .withIndex('by_project', (q) => q.eq('projectId', change.projectId))
+      .collect()
+  )
+    .filter(isBaselineClaim)
+    .sort((a, b) => a.claimId.localeCompare(b.claimId))
+    .map((claim) => ({ ref: String(claim._id), claimId: claim.claimId, phaseId: claim.phaseId, text: claim.text }));
+
+  const artifacts = await ctx.db
+    .query('artifacts')
+    .withIndex('by_project', (q) => q.eq('projectId', change.projectId))
+    .collect();
+  const phasesWithDocuments = PHASE_ORDER.filter((phaseId) => artifacts.some((artifact) => artifact.phaseId === phaseId));
+
+  const latest = new Map<string, Doc<'evidenceSources'>>();
+  const sources = await ctx.db
+    .query('evidenceSources')
+    .withIndex('by_project', (q) => q.eq('projectId', change.projectId))
+    .collect();
+  for (const source of sources) {
+    if (source.kind !== 'repository_file') continue;
+    const current = latest.get(source.sourceKey);
+    if (!current || source.revision > current.revision) latest.set(source.sourceKey, source);
+  }
+  const evidence = [...latest.values()]
+    .sort((a, b) => b.capturedAt - a.capturedAt)
+    .slice(0, MAX_DRAFT_EVIDENCE)
+    .map((source) => ({ id: String(source._id), locator: source.locator, excerpt: source.excerpt.slice(0, MAX_EXCERPT_CHARS) }));
+
+  return {
+    kind: change.kind,
+    title: change.title,
+    summary: change.summary,
+    ...(change.bug ? { bug: change.bug } : {}),
+    claims,
+    phasesWithDocuments,
+    evidence,
+  };
+}
+
+export const getDraftContextInternal = internalQuery({
+  args: { changeId: v.id('changes'), userId: v.string() },
+  handler: getDraftContextHandler,
 });
 
 export const listChanges = query({
