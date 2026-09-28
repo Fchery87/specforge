@@ -17,7 +17,6 @@ export const enhancePromptAction = api.actions.enhancePrompt.enhancePrompt;
 export const scanCodebaseAction = api.actions.scanCodebase.scanCodebase;
 export const generateQuickSpecAction = api.actions.generateQuickSpec.generateQuickSpec;
 export const draftChangeAction = api.actions.draftChange.draftChange;
-export const verifyImplementationAction = api.actions.verifyImplementation.verifyImplementation;
 export const checkPullRequestAction = api.actions.checkPullRequest.checkPullRequest;
 export const listPullRequestsAction = api.actions.checkPullRequest.listPullRequests;
 export const parseTicketsFromArtifactAction = api.actions.parseTickets.parseTicketsFromArtifact;

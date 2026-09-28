@@ -93,7 +93,7 @@ import { X, Plus, ChevronDown } from "lucide-react";
 - **Workflow**: `components/stage-stepper.tsx` (the map), `components/next-action-button.tsx` (the instruction), `components/add-section-menu.tsx` (re-enable a skipped phase)
 - **Workflow data**: `lib/workflow.ts` owns the phases, stages, mode policies, labels and `nextAction`
 - **Evidence Review**: `components/evidence-review-panel.tsx` (requirement status and source review)
-- **Verification**: `components/verification-panel.tsx` (diff findings with requirement references)
+- **Pull-request checks**: `components/checks/` (the project page section, the source form, and the report)
 - **Schema Validator**: `components/schema-validator-panel.tsx` (Monaco-style JSON/YAML validator)
 - **Stress-Test Interview**: `components/stress-test-modal.tsx` (Interactive grilling modal)
 - **Ticket Board**: `components/ticket-board.tsx`, `components/ticket-card.tsx` (Tracer bullets & blocking edges)

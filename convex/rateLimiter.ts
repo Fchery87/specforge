@@ -86,12 +86,6 @@ const RATE_LIMIT_CONFIG = {
     rate: 30,
     capacity: 40,
   },
-  verifyImplementation: {
-    kind: "token bucket" as const,
-    period: MINUTE,
-    rate: 10,
-    capacity: 15,
-  },
   // Codebase scanning: 5 per minute per user
   scanCodebase: {
     kind: "token bucket" as const,

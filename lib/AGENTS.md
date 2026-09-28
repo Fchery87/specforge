@@ -100,7 +100,7 @@ import { saveBatchAnswers, getBatchAnswerPrompt } from './batch-answers';
 - **LLM Registry**: `lib/llm/registry.ts` (all provider models)
 - **Evidence contracts**: `lib/evidence.ts` (source IDs and generation allowlists)
 - **Constitution contract**: `lib/llm/prompts/constitution.ts`, `lib/validation/constitution-schema.ts`
-- **Implementation verification**: `lib/verification/spec-checker.ts`
+- **Pull-request checks**: `lib/verification/run-check.ts` (the flow), `check.ts` (grading), `scope.ts`, `budget.ts`, `parse-check.ts`; GitHub reads in `lib/github/pulls.ts`
 - **GitHub OAuth validation**: `lib/github-oauth.ts`
 - **Model Metadata**: `lib/llm/providers/metadata.ts`
 - **Client factory**: `lib/llm/client-factory.ts`
