@@ -40,8 +40,8 @@ function makeCtx(authUserId: string | null = 'owner') {
       ['cb1', { _id: 'cb1', projectId: 'p1', repoOwner: 'Fchery87', repoName: 'ledger', repoUrl: 'https://github.com/Fchery87/ledger' }],
     ]),
     claims: new Map([
-      ['c3', { _id: 'c3', projectId: 'p1', claimId: 'REQ-0003', text: 'Valid for fourteen days.', decisionStatus: 'confirmed', reviewStatus: 'current', artifactId: 'prd-doc', artifactVersion: 4 }],
-      ['c4', { _id: 'c4', projectId: 'p1', claimId: 'REQ-0004', text: 'Expired invitations add no member.', decisionStatus: 'proposed', reviewStatus: 'needs_review', artifactId: 'prd-doc', artifactVersion: 4 }],
+      ['c3', { _id: 'c3', projectId: 'p1', phaseId: 'prd', claimId: 'REQ-0003', text: 'Valid for fourteen days.', decisionStatus: 'confirmed', reviewStatus: 'current', artifactId: 'prd-doc', artifactVersion: 4 }],
+      ['c4', { _id: 'c4', projectId: 'p1', phaseId: 'stories', claimId: 'REQ-0004', text: 'Expired invitations add no member.', decisionStatus: 'proposed', reviewStatus: 'needs_review', artifactId: 'prd-doc', artifactVersion: 4 }],
       ['c9', { _id: 'c9', projectId: 'p1', claimId: 'REQ-0009', text: 'Expires after one day.', decisionStatus: 'confirmed', reviewStatus: 'current', artifactId: 'prd-doc', retiredAt: 50 }],
     ]),
     changes: new Map([
@@ -146,8 +146,8 @@ describe('getCheck', () => {
 
     expect(result.check).toBe(PR_CHECK);
     expect(result.requirements).toEqual({
-      'REQ-0003': { text: 'Valid for fourteen days.', decisionStatus: 'confirmed', reviewStatus: 'current', retired: false },
-      'REQ-0004': { text: 'Expired invitations add no member.', decisionStatus: 'proposed', reviewStatus: 'needs_review', retired: false },
+      'REQ-0003': { text: 'Valid for fourteen days.', phaseId: 'prd', decisionStatus: 'confirmed', reviewStatus: 'current', retired: false },
+      'REQ-0004': { text: 'Expired invitations add no member.', phaseId: 'stories', decisionStatus: 'proposed', reviewStatus: 'needs_review', retired: false },
     });
     expect(result.repositoryUrl).toBe('https://github.com/Fchery87/ledger');
   });

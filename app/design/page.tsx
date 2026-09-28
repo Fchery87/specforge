@@ -6,6 +6,7 @@ import { NextActionPanel } from "@/components/next-action-panel";
 import { PhaseLedger } from "@/components/phase-ledger";
 import { ProjectNav } from "@/components/project-nav";
 import { ChangePreviews } from "./change-previews";
+import { CheckPreviews } from "./check-previews";
 import { StageStepper } from "@/components/stage-stepper";
 import { StageQualityReport } from "@/components/stage-report";
 import type { ParsedClaim } from "@/lib/claims";
@@ -282,6 +283,14 @@ export default function DesignPreviewPage() {
         <h2 className="mt-2 text-title font-medium text-ink">A change as edits to the requirements</h2>
         <div className="mt-8">
           <ChangePreviews />
+        </div>
+      </section>
+
+      <section data-preview="checks" className="mt-16 border-t border-line pt-8">
+        <p className="text-caption text-dim">Pull-request checks</p>
+        <h2 className="mt-2 text-title font-medium text-ink">A pull request against the requirements it touches</h2>
+        <div className="mt-8">
+          <CheckPreviews />
         </div>
       </section>
 

@@ -136,6 +136,7 @@ export const listChecks = query({
 
 export interface CheckedRequirement {
   text: string;
+  phaseId: string;
   decisionStatus: string;
   reviewStatus: 'current' | 'needs_review';
   retired: boolean;
@@ -161,6 +162,7 @@ export async function getCheckHandler(ctx: QueryCtx, args: { checkId: Id<'verifi
       if (!judged.has(claim.claimId)) continue;
       requirements[claim.claimId] = {
         text: claim.text,
+        phaseId: claim.phaseId,
         decisionStatus: claim.decisionStatus,
         reviewStatus: claim.reviewStatus,
         retired: claim.retiredAt !== undefined,
