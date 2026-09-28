@@ -31,6 +31,7 @@ import { VerificationPanel } from "@/components/verification-panel";
 import { EvidenceReviewPanel } from "@/components/evidence-review-panel";
 import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { ProjectNav } from "@/components/project-nav";
+import { StaleDocumentNotice } from "@/components/stale-document-notice";
 import { NextActionButton } from "@/components/next-action-button";
 import { AddSectionMenu } from "@/components/add-section-menu";
 import * as Tabs from "@radix-ui/react-tabs";
@@ -352,6 +353,7 @@ export default function PhasePage() {
   const outlineGroup =
     PROJECT_OUTLINE.find((group) => group.phaseIds.includes(phaseId as PhaseId))?.label ?? "";
   const artifactCount = phase.artifacts?.length ?? 0;
+  const staleness = "isStale" in phase && phase.isStale ? { reason: phase.staleReason } : null;
   const questionCount = phase.questions?.length ?? 0;
   const activeView =
     view ?? (artifactCount > 0 || isGenerating || showStreamingPreview ? "document" : "questions");
@@ -404,6 +406,19 @@ export default function PhasePage() {
                   </div>
                 )}
               </div>
+            </section>
+          ) : null}
+
+          {staleness && artifactCount > 0 ? (
+            <section className="pb-6">
+              <StaleDocumentNotice
+                reason={staleness.reason}
+                disabled={isGenerating || readiness?.ready === false}
+                onRegenerate={() => {
+                  setView("questions");
+                  handleInitiateGenerate();
+                }}
+              />
             </section>
           ) : null}
 

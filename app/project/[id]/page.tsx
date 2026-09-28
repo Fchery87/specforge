@@ -22,6 +22,7 @@ import { ProjectRulesCard } from "@/components/project-rules-card";
 import { ExportOptionsPanel } from "@/components/export-options";
 import { Sparkles, Loader2, Download } from "lucide-react";
 import { CodebaseConnector } from "@/components/codebase-connector";
+import { ProjectChanges } from "@/components/changes/project-changes";
 import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import {
@@ -274,6 +275,10 @@ export default function ProjectPage() {
             skippedPhases={skippedPhases}
             currentPhase={currentPhase}
           />
+        </div>
+
+        <div className="mt-8">
+          <ProjectChanges projectId={project._id} />
         </div>
 
         <div className="mt-8">

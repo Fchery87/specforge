@@ -69,6 +69,15 @@ describe("ProjectNav", () => {
   });
 });
 
+describe("ProjectNav outside a phase", () => {
+  it("marks no phase and names the page on the phone button", () => {
+    render(<ProjectNav projectId="p1" title="Ledger" modeLabel="Full" phases={phases} currentLabel="CHG-0003" />);
+
+    expect(screen.getByRole("navigation", { name: "Project" }).querySelector('[aria-current="page"]')).toBeNull();
+    expect(screen.getByRole("button", { name: "Ledger, CHG-0003. Show all phases" })).toBeInTheDocument();
+  });
+});
+
 describe("outlinePosition", () => {
   it("counts only phases the reader can open", () => {
     expect(outlinePosition(phases, [], "prd")).toEqual({ index: 3, total: 8 });
