@@ -14,6 +14,7 @@
 | 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
 | 8. Pull-request verification | Complete | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
+| 9. Agent connection over MCP | Active: spec written, plan next | [Agent connection over MCP](specs/2026-09-28-agent-connection.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -87,9 +88,8 @@ phase 1's walkthrough.
 
 ## Later phases
 
-Each later phase gets its own spec when the phase before it exits. Phases 9 and 10 have no spec yet.
+Each later phase gets its own spec when the phase before it exits. Phase 10 has no spec yet.
 
-9. Agent connection over MCP. Let coding agents read project rules and tasks and report task status.
 10. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`. Deferred by phase 6: the project sidebar puts every phase one click away, so this waits until readers show they still need it.
 
 ## Historical plan index
