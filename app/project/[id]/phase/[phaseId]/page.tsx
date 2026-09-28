@@ -27,7 +27,6 @@ import { toast } from "sonner";
 import { getPhaseProgressMessage, getToastMessage } from "@/lib/notifications";
 import { TicketBoard } from "@/components/ticket-board";
 import { GenerationActivityStream } from "@/components/generation-activity-stream";
-import { VerificationPanel } from "@/components/verification-panel";
 import { EvidenceReviewPanel } from "@/components/evidence-review-panel";
 import { GenerationReadinessBanner } from "@/components/generation-readiness-banner";
 import { ProjectNav } from "@/components/project-nav";
@@ -632,20 +631,6 @@ export default function PhasePage() {
             </section>
           )}
 
-          {/* Verification Panel for specs and stories phases */}
-          {(phaseId === 'specs' || phaseId === 'stories') && (
-            <section className="page-section border-t border-line">
-              <h2 className="mb-6 text-title font-medium text-ink">
-                Implementation verification
-              </h2>
-              <div className="max-w-2xl">
-                <VerificationPanel
-                  projectId={projectId}
-                  phaseId={phaseId}
-                />
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </main>
