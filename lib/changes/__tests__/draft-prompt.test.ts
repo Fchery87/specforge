@@ -41,4 +41,11 @@ describe('buildDraftChangePrompt', () => {
   it('says so when no repository is connected', () => {
     expect(buildDraftChangePrompt({ ...base, kind: 'feature', evidence: [] })).toContain('No repository files are connected.');
   });
+
+  it('includes the quick spec a change was started from', () => {
+    const prompt = buildDraftChangePrompt({ ...base, kind: 'feature', quickSpec: '## Architecture Decisions\n- Links are signed.' });
+
+    expect(prompt).toContain('Quick spec written for this change:\n## Architecture Decisions\n- Links are signed.');
+  });
 });
+

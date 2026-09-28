@@ -6,6 +6,8 @@ export interface DraftPromptInput {
   title: string;
   summary: string;
   bug?: { observed: string; expected: string; reproduction: string };
+  /** A one-page spec the change was started from. */
+  quickSpec?: string;
   claims: readonly BaselineClaim[];
   phasesWithDocuments: readonly string[];
   evidence: ReadonlyArray<{ id: string; locator: string; excerpt: string }>;
@@ -15,6 +17,7 @@ export const DRAFT_SYSTEM_PROMPT =
   'You draft change specs: the smallest set of edits to an existing specification that achieves a requested change. You reply with JSON only.';
 
 const MAX_CLAIMS = 200;
+const MAX_QUICK_SPEC_CHARS = 8_000;
 
 /**
  * The model sees every live requirement under its ID, grouped by phase, and answers with edits that
@@ -42,6 +45,10 @@ export function buildDraftChangePrompt(input: DraftPromptInput): string {
         ].join('\n')
       : [`Change: ${input.title}`, input.summary].join('\n');
 
+  const quickSpec = input.quickSpec
+    ? `\n\nQuick spec written for this change:\n${input.quickSpec.slice(0, MAX_QUICK_SPEC_CHARS)}${input.quickSpec.length > MAX_QUICK_SPEC_CHARS ? '\n[truncated]' : ''}`
+    : '';
+
   const evidence = input.evidence.length
     ? `Repository files you may cite by ID:\n${input.evidence
         .map((source) => `- [${source.id}] ${source.locator}: ${source.excerpt}`)
@@ -63,7 +70,7 @@ Current requirements, by phase:
 ${requirements}
 
 Request:
-${request}
+${request}${quickSpec}
 
 ${evidence}
 

@@ -6,7 +6,7 @@ import QuickSpecPage from "../page";
 const push = vi.fn();
 const generateQuickSpec = vi.fn();
 const createProjectFromQuickSpec = vi.fn();
-const saveQuickSpec = vi.fn();
+const createChange = vi.fn();
 let readiness: { ready: boolean } | undefined;
 
 vi.mock("next/navigation", () => ({
@@ -22,7 +22,7 @@ vi.mock("convex/react", () => ({
     return undefined;
   },
   useMutation: (ref: FunctionReference<"mutation">) =>
-    getFunctionName(ref) === "projects:createProjectFromQuickSpec" ? createProjectFromQuickSpec : saveQuickSpec,
+    getFunctionName(ref) === "projects:createProjectFromQuickSpec" ? createProjectFromQuickSpec : createChange,
 }));
 
 vi.mock("@/components/ui/mermaid-aware-content", () => ({
@@ -67,4 +67,14 @@ describe("QuickSpecPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Connect a model to generate specs");
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
   });
+
+  it("offers to start a change in an existing project once a project is chosen", async () => {
+    render(<QuickSpecPage />);
+    fillIn();
+    fireEvent.click(screen.getByRole("button", { name: "Generate spec" }));
+
+    expect(await screen.findByRole("button", { name: "Start change" })).toBeDisabled();
+    expect(screen.getByText("Or start a change in")).toBeInTheDocument();
+  });
 });
+

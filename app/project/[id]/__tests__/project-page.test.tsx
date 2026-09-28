@@ -83,18 +83,6 @@ describe("ProjectPage", () => {
     expect(screen.getByRole("region", { name: "Repository" })).toHaveTextContent("p1");
   });
 
-  it("links saved quick specs only when the project has one", () => {
-    phases = [];
-    artifacts = [];
-    const { unmount } = render(<ProjectPage />);
-    expect(screen.queryByRole("link", { name: "Saved quick specs" })).not.toBeInTheDocument();
-    unmount();
-
-    artifacts = [{ type: "quickSpec", content: "# Spec" }];
-    render(<ProjectPage />);
-    expect(screen.getByRole("link", { name: "Saved quick specs" })).toHaveAttribute("href", "/project/p1/quick");
-  });
-
   it("warns before generation when no model is connected", () => {
     phases = [];
     readiness = { ready: false };
