@@ -82,6 +82,12 @@ A check's `status` is derived, never generated:
 The stored `verificationResults` row gains optional `source`, `verdicts`, `coverage` and
 `otherFindings` fields. Older rows keep their `findings`, and the history reads both shapes.
 
+As built, the row also gains `notes` (citations that brought nothing in, and verdicts or quotes the
+parser dropped), and `phaseId` became optional, since a pull-request check covers the whole project.
+Applying a change marks a check without a phase outdated whenever it touches any phase; a
+regeneration reaches it through `artifactVersionSet`. The table's fields are defined once, as
+`verificationResultFields` in `convex/schema.ts`.
+
 ### Flow
 
 1. **Source.** The project page gains a "Check a pull request" section beside Changes. With a
@@ -100,6 +106,12 @@ The stored `verificationResults` row gains optional `source`, `verdicts`, `cover
 3. **Budget.** Files are ordered by the size of their change. Lockfiles, generated files and
    binaries are skipped with a reason. Files are added until the diff budget is reached, and every
    file beyond it is listed in `skippedFiles`. No file is cut partway.
+
+   As built, the budget follows the model rather than being one fixed size. The reply gets a quarter
+   of the model's context, at least 8,000 tokens and no more than the model's output limit
+   (`checkReplyTokens`). The diff gets 90% of the context, less that reply room and the rest of the
+   prompt, at three characters a token (`diffBudgetFor`). A million-token model reads about 1.9
+   million characters of diff. A model whose context size is unknown gets 60,000 characters.
 4. **Grading.** The prompt holds the requirements in scope under their IDs, the reviewed diff, and
    the rule that every `violated` or `incomplete` verdict quotes the diff lines it rests on. The reply
    is parsed at the boundary, as `parseDraft` does for changes:
@@ -107,6 +119,14 @@ The stored `verificationResults` row gains optional `source`, `verdicts`, `cover
    - a quote that does not appear in the reviewed diff is dropped, and a verdict left with no evidence
      becomes `not_shown`;
    - an in-scope requirement the reply omits becomes `not_shown`.
+
+   As built, `met` also needs a quote, and a quote made only of trivial lines such as `}` supports
+   nothing. When nothing is cited, one call offers the model every live requirement and keeps only
+   the verdicts it gives, each `inferred`; a separate call to choose the scope would double the cost
+   and wait with no better guess. A reply that is not usable JSON is asked for once more. A reply
+   that stopped at its output limit is not, because the same prompt runs out again; the check ends
+   with a message to cite requirement IDs or choose a model with more room. A regex quoted with its
+   backslashes undoubled is repaired before parsing.
 5. **Severity** comes from a table in code, from the verdict and the requirement's decision status:
 
    | Verdict | Confirmed requirement | Proposed, observed or unresolved |
@@ -144,7 +164,9 @@ The stored `verificationResults` row gains optional `source`, `verdicts`, `cover
   - `extractRelevantSpecs`, which includes every document whole. The prompt now carries requirements by ID.
   - `normalizeStatus` and the `overallScore`/`status` fields of the reply format.
   - The fixed 8,000 and 10,000 character slices.
-  - `parseGitDiff` stays, for the paste path.
+  - `parseGitDiff`, which the spec first kept for the paste path. It cut each file at 5,000
+    characters, which breaks the rule that no file is cut partway, so `splitUnifiedDiff` in
+    `lib/verification/diff.ts` replaced it and the whole of `spec-checker.ts` was deleted.
 - `components/verification-panel.tsx`, and its placement on the specs and stories phase pages in
   `app/project/[id]/phase/[phaseId]/page.tsx`. It is replaced by the project-level check section and
   check page.
@@ -188,3 +210,7 @@ The stored `verificationResults` row gains optional `source`, `verdicts`, `cover
   that says so.
 - **The stored OAuth token lacks access to an organisation's repository.** The GitHub error is shown
   as "SpecForge can't read this repository", with the reconnect link, rather than as an empty list.
+- **A reasoning model spends its reply room thinking.** In the walkthrough a reasoning model weighed
+  48 uncited requirements for about 30,000 tokens and stopped before answering, at both 8,000 and
+  32,000 tokens of room. The reply room now follows the model, and a check that still runs out says
+  so. An uncited check on such a model took about three minutes; citing IDs narrows it.

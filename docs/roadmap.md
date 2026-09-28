@@ -13,7 +13,7 @@
 | 5. Magenta brand | Complete | [Magenta brand](specs/2026-09-27-magenta-brand.md) | - |
 | 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
-| 8. Pull-request verification | Active | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | [Implementation plan](plans/2026-09-27-pull-request-verification.md) |
+| 8. Pull-request verification | Complete | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -70,6 +70,20 @@ finished plan. The one follow-up it left, claim extraction turning metadata bull
 "Trace", "Status") into requirements, is fixed: section prompts ask for each requirement under a
 `**Requirement:**` label or its ID, and extraction reads those marks and skips annotations. The
 walkthrough note records the before and after counts.
+
+Phase 8 checks a pull request, a commit range or a pasted diff against the requirements it touches.
+A check scopes itself from the `REQ-` and `CHG-` IDs the pull request cites, or infers the scope and
+says so. It gives each requirement a verdict backed by lines quoted from the diff, and grades by a
+fixed table rather than by the model, which [ADR 0004](adr/0004-a-check-grade-is-computed-from-quoted-evidence.md)
+records. The diff it reads and the room it leaves the reply follow the model's context size. It ran
+as #54 and #55 (spec and plan) and #56 to #61 (`8a41ba7`, `fa9240b`, `eb403e2`, `44ddf9b`,
+`2dc44bd`, `6d6c0bd`), and CI's test, design and e2e jobs passed on each. The walkthrough on the dev
+deployment with a reasoning model is in `docs/evaluations/2026-09-28-pull-request-verification-walkthrough.md`:
+on a real change from this repository the check gave true verdicts and caught a planted bug, and it
+found three defects that were fixed. The implementation plan is deleted, as the lifecycle requires
+of a finished plan. One follow-up is open: the pull request picker and cited scope have not run
+against GitHub, because no GitHub OAuth app is registered for the deployments; the same gap blocks
+phase 1's walkthrough.
 
 ## Later phases
 

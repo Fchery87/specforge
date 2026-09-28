@@ -14,7 +14,7 @@ SpecForge transforms a project title and description into a complete, structured
 Brief → PRD → Specs/Architecture → Stories → Artifacts → Handoff + ZIP Export
 ```
 
-Quick Specs can also be generated separately and saved into an existing project. Project artifacts can carry requirement IDs and reviewed evidence links through tickets, exports, and pasted-diff verification.
+Quick Specs can also be generated separately and saved into an existing project. Project artifacts can carry requirement IDs and reviewed evidence links through tickets, exports, and pull-request checks.
 
 ### Core guarantees
 
@@ -56,7 +56,7 @@ Quick Specs can also be generated separately and saved into an existing project.
 - **Evidence sources and revisions** record answer, repository-file, and user-note snapshots with stable IDs, content digests, and bounded excerpts. Repository sources are pinned to a commit and path.
 - **Claims and evidence links** connect requirement statements to artifact versions and project sources. Decision status and review status are separate; model-suggested links are not owner-confirmed.
 - **Tickets** can carry requirement IDs into implementation work.
-- **Verification results** preserve the artifact/source revisions and diff digest used for an advisory check.
+- **Verification results** preserve the artifact/source revisions and diff digest used for a check. A pull-request check also stores its source, one verdict per requirement with quoted diff lines, and the files it did not read; see `docs/adr/0004-a-check-grade-is-computed-from-quoted-evidence.md`.
 - **Generation tasks, credentials, and project scans** support background generation, encrypted user keys, and repository context.
 
 The schema evolves frequently. Do not copy an old schema snapshot into new code; inspect `convex/schema.ts` and generated Convex types for exact fields and indexes.
@@ -216,12 +216,14 @@ app/
 │       └── settings/page.tsx               // System-wide parameters
 ├── project/[id]/page.tsx                   // Project overview & phase graph
 ├── project/[id]/change/[changeId]/page.tsx // A change spec: its edits to the requirements
+├── project/[id]/check/[checkId]/page.tsx  // A pull-request check: verdicts by requirement
 └── project/[id]/phase/[phaseId]/page.tsx   // Interactive phase workflow
 ```
 
 - Uses App Router and React Server Components where possible.
 - Phase pages use Convex hooks for live updates of status and artifacts.
 - A change spec lives in `changes` and `changeOps`, not in a phase. Applying one edits `claims` in place and marks touched phases stale; see `docs/specs/2026-09-27-change-specs.md`.
+- A pull-request check lives in `verificationResults` without a phase. `lib/verification/run-check.ts` scopes it from cited IDs, sizes the diff to the model, and grades by table; `lib/github/pulls.ts` reads GitHub; see `docs/specs/2026-09-27-pull-request-verification.md`.
 - Next.js 16 development and production builds use Turbopack by default. Keep `next dev` and `next build`; do not select Webpack.
 
 ### 5.2 Constitution and evidence workflow
