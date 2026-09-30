@@ -18,13 +18,12 @@ import { toast } from "sonner";
 import { GenerationControls } from "@/components/generation-controls";
 import { QuestionRow } from "@/components/question-row";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { feedsLabel, type AnswerOrigin } from "@/lib/specification/question-model";
+import { feedsLabel, isModelWritten, type AnswerOrigin } from "@/lib/specification/question-model";
 
 type Question = {
   id: string;
   text: string;
   answer?: string;
-  aiGenerated: boolean;
   required?: boolean;
   suggestions?: string[];
   selectedSuggestionIndex?: number;
@@ -65,7 +64,7 @@ export function QuestionsPanel({
   const generateAllQuestionAnswers = useAction(generateAllQuestionAnswersAction);
 
   const [localAnswers, setLocalAnswers] = useState<Record<string, string>>({});
-  const [localAiGenerated, setLocalAiGenerated] = useState<Record<string, boolean>>({});
+  const [localOrigins, setLocalOrigins] = useState<Record<string, AnswerOrigin | undefined>>({});
   const [localSelectedSuggestions, setLocalSelectedSuggestions] = useState<Record<string, number | undefined>>({});
   const [stagedSuggestions, setStagedSuggestions] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -75,7 +74,6 @@ export function QuestionsPanel({
   const [questionSuggestions, setQuestionSuggestions] = useState<Record<string, string[]>>({});
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isStressTestOpen, setIsStressTestOpen] = useState(false);
-  const [keptIds, setKeptIds] = useState<Set<string>>(() => new Set());
   const [isBatchStarting, setIsBatchStarting] = useState(false);
   const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -84,7 +82,7 @@ export function QuestionsPanel({
 
   // Track pending saves
   const pendingSaveRef = useRef<Record<string, string>>({});
-  const pendingAiGeneratedRef = useRef<Record<string, boolean>>({});
+  const pendingOriginRef = useRef<Record<string, AnswerOrigin>>({});
   const pendingSuggestionIndexRef = useRef<Record<string, number | undefined>>({});
   const batchAnswers = useMemo(() => collectBatchAnswers(questions), [questions]);
   const batchTask = useQuery(
@@ -98,19 +96,19 @@ export function QuestionsPanel({
   // Initialize local answers from questions
   useEffect(() => {
     const initial: Record<string, string> = {};
-    const initialAi: Record<string, boolean> = {};
+    const initialOrigins: Record<string, AnswerOrigin | undefined> = {};
     const initialSuggestions: Record<string, string[]> = {};
     const initialSelectedSuggestions: Record<string, number | undefined> = {};
     questions.forEach(q => {
       if (q.answer) initial[q.id] = q.answer;
-      if (q.aiGenerated !== undefined) initialAi[q.id] = q.aiGenerated;
+      if (q.answerOrigin !== undefined) initialOrigins[q.id] = q.answerOrigin;
       if (q.suggestions?.length) initialSuggestions[q.id] = q.suggestions;
       if (q.selectedSuggestionIndex !== undefined) {
         initialSelectedSuggestions[q.id] = q.selectedSuggestionIndex;
       }
     });
     setLocalAnswers(initial);
-    setLocalAiGenerated(initialAi);
+    setLocalOrigins(initialOrigins);
     setQuestionSuggestions(initialSuggestions);
     setLocalSelectedSuggestions(initialSelectedSuggestions);
   }, [questions]);
@@ -152,9 +150,8 @@ export function QuestionsPanel({
   const handleSaveAnswer = useCallback(async (
     questionId: string,
     value: string,
-    aiGenerated?: boolean,
+    answerOrigin: AnswerOrigin,
     selectedSuggestionIndex?: number,
-    answerOrigin?: AnswerOrigin,
   ) => {
     setSavingId(questionId);
     try {
@@ -163,7 +160,6 @@ export function QuestionsPanel({
         phaseId,
         questionId,
         answer: value,
-        aiGenerated,
         answerOrigin,
         selectedSuggestionIndex,
       });
@@ -179,7 +175,7 @@ export function QuestionsPanel({
   // Handle answer change with local state and debounced save
   const handleAnswerChange = useCallback((questionId: string, value: string) => {
     setLocalAnswers(prev => ({ ...prev, [questionId]: value }));
-    setLocalAiGenerated(prev => ({ ...prev, [questionId]: false }));
+    setLocalOrigins(prev => ({ ...prev, [questionId]: "user" }));
     setLocalSelectedSuggestions(prev => {
       const currentIndex = prev[questionId];
       const suggestions = questionSuggestions[questionId] ?? questions.find(q => q.id === questionId)?.suggestions;
@@ -189,7 +185,7 @@ export function QuestionsPanel({
       return prev;
     });
     pendingSaveRef.current[questionId] = value;
-    pendingAiGeneratedRef.current[questionId] = false;
+    pendingOriginRef.current[questionId] = "user";
     pendingSuggestionIndexRef.current[questionId] = undefined;
   }, [questionSuggestions, questions]);
 
@@ -201,11 +197,11 @@ export function QuestionsPanel({
         handleSaveAnswer(
           id,
           value,
-          pendingAiGeneratedRef.current[id],
+          pendingOriginRef.current[id] ?? "user",
           pendingSuggestionIndexRef.current[id],
         );
         delete pendingSaveRef.current[id];
-        delete pendingAiGeneratedRef.current[id];
+        delete pendingOriginRef.current[id];
         delete pendingSuggestionIndexRef.current[id];
       }
     });
@@ -279,7 +275,7 @@ export function QuestionsPanel({
 
   const handleSuggestionSelect = useCallback((questionId: string, suggestion: string, index: number) => {
     setLocalAnswers(prev => ({ ...prev, [questionId]: suggestion }));
-    setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
+    setLocalOrigins(prev => ({ ...prev, [questionId]: "accepted" }));
     setLocalSelectedSuggestions(prev => ({ ...prev, [questionId]: index }));
     setStagedSuggestions(prev => {
       const next = { ...prev };
@@ -287,7 +283,7 @@ export function QuestionsPanel({
       return next;
     });
     pendingSaveRef.current[questionId] = suggestion;
-    pendingAiGeneratedRef.current[questionId] = true;
+    pendingOriginRef.current[questionId] = "accepted";
     pendingSuggestionIndexRef.current[questionId] = index;
   }, []);
 
@@ -296,7 +292,7 @@ export function QuestionsPanel({
     if (!staged) return;
 
     setLocalAnswers(prev => ({ ...prev, [questionId]: staged }));
-    setLocalAiGenerated(prev => ({ ...prev, [questionId]: true }));
+    setLocalOrigins(prev => ({ ...prev, [questionId]: "accepted" }));
     setStagedSuggestions(prev => {
       const next = { ...prev };
       delete next[questionId];
@@ -310,14 +306,14 @@ export function QuestionsPanel({
       setLocalSelectedSuggestions(prev => ({ ...prev, [questionId]: selectedIdx }));
     }
 
-    await handleSaveAnswer(questionId, staged, true, selectedIdx);
+    await handleSaveAnswer(questionId, staged, "accepted", selectedIdx);
   }, [stagedSuggestions, questionSuggestions, questions, handleSaveAnswer]);
 
   const handleKeepAssumed = useCallback(async (questionId: string) => {
     const answer = localAnswers[questionId];
     if (!answer?.trim()) return;
-    setKeptIds(prev => new Set(prev).add(questionId));
-    await handleSaveAnswer(questionId, answer, true, localSelectedSuggestions[questionId], "accepted");
+    setLocalOrigins(prev => ({ ...prev, [questionId]: "accepted" }));
+    await handleSaveAnswer(questionId, answer, "accepted", localSelectedSuggestions[questionId]);
   }, [localAnswers, localSelectedSuggestions, handleSaveAnswer]);
 
   const handleDismissStaged = useCallback((questionId: string) => {
@@ -375,11 +371,9 @@ export function QuestionsPanel({
   }
 
   const getAnswerForQuestion = (q: Question) => localAnswers[q.id] ?? q.answer ?? "";
-  // An answer stays assumed until the user keeps it or edits it. An edit clears the local AI flag.
-  const isAssumed = (q: Question) =>
-    q.answerOrigin === "drafted" && !keptIds.has(q.id) && (localAiGenerated[q.id] ?? true);
-  const getAiGeneratedForQuestion = (q: Question) =>
-    localAiGenerated[q.id] ?? q.aiGenerated ?? false;
+  // Who wrote the answer as the user sees it now: an edit or a Keep in this session outranks what is stored.
+  const originOf = (q: Question) => localOrigins[q.id] ?? q.answerOrigin;
+  const isAssumed = (q: Question) => originOf(q) === "drafted";
 
   return (
     <Card variant="static">
@@ -469,7 +463,7 @@ export function QuestionsPanel({
                 isSaving={savingId === question.id}
                 isSaved={savedId === question.id}
                 isAiGenerating={aiGeneratingId === question.id}
-                aiGenerated={getAiGeneratedForQuestion(question)}
+                modelWritten={isModelWritten(originOf(question))}
                 suggestions={questionSuggestions[question.id] ?? question.suggestions ?? []}
                 selectedSuggestionIndex={localSelectedSuggestions[question.id] ?? question.selectedSuggestionIndex}
                 stagedAnswer={stagedSuggestions[question.id] ?? null}

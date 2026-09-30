@@ -26,10 +26,10 @@ describe('backfillQuestions', () => {
       'brief-grill-r1-q1': 'q_new4',
     });
     expect(result.questions).toEqual([
-      { id: 'q_new1', text: 'Who?', answer: 'Agencies', aiGenerated: false, required: true, source: 'phase', feeds: [], answerOrigin: 'user' },
-      { id: 'q_new2', text: 'Goal?', answer: 'Trace', aiGenerated: true, source: 'phase', feeds: [], answerOrigin: 'accepted' },
-      { id: 'q_new3', text: 'Unanswered?', aiGenerated: true, source: 'phase', feeds: [] },
-      { id: 'q_new4', text: 'Retries?', answer: 'Backoff', aiGenerated: false, source: 'grill', feeds: [], answerOrigin: 'user' },
+      { id: 'q_new1', text: 'Who?', answer: 'Agencies', required: true, source: 'phase', feeds: [], answerOrigin: 'user' },
+      { id: 'q_new2', text: 'Goal?', answer: 'Trace', required: false, source: 'phase', feeds: [], answerOrigin: 'accepted' },
+      { id: 'q_new3', text: 'Unanswered?', required: false, source: 'phase', feeds: [] },
+      { id: 'q_new4', text: 'Retries?', answer: 'Backoff', required: false, source: 'grill', feeds: [], answerOrigin: 'user' },
     ]);
   });
 
@@ -42,12 +42,47 @@ describe('backfillQuestions', () => {
     expect(second.questions).toEqual(first.questions);
   });
 
-  it('leaves a question that already has a source exactly as it is, and migrates only the old ones', () => {
-    const current = { id: 'q_keep', text: 'Kept', aiGenerated: false, source: 'phase' as const, feeds: ['x'] };
+  it('leaves a question already in the current shape exactly as it is, and migrates only the old ones', () => {
+    const current = { id: 'q_keep', text: 'Kept', required: false, source: 'phase' as const, feeds: ['x'] };
     const result = backfillQuestions([current, stored[0]], sequence());
 
     expect(result.questions[0]).toBe(current);
     expect(result.idMap).toEqual({ 'brief-q1': 'q_new1' });
+  });
+
+  it('keeps the id of a question an earlier pass already migrated, and only strips the legacy flag', () => {
+    const earlier = {
+      id: 'q_stay',
+      text: 'Goal?',
+      answer: 'Trace',
+      aiGenerated: true,
+      required: false,
+      source: 'phase' as const,
+      feeds: [],
+      answerOrigin: 'drafted' as const,
+    };
+    const result = backfillQuestions([earlier], sequence());
+
+    expect(result.idMap).toEqual({});
+    expect(result.migrated).toBe(1);
+    expect(result.questions[0]).toEqual({
+      id: 'q_stay',
+      text: 'Goal?',
+      answer: 'Trace',
+      required: false,
+      source: 'phase',
+      feeds: [],
+      answerOrigin: 'drafted',
+    });
+    expect('aiGenerated' in result.questions[0]).toBe(false);
+  });
+
+  it('defaults a missing required flag to false', () => {
+    const result = backfillQuestions(
+      [{ id: 'q_a', text: 'A', aiGenerated: false, source: 'phase' as const, feeds: [] }],
+      sequence(),
+    );
+    expect(result.questions[0].required).toBe(false);
   });
 });
 

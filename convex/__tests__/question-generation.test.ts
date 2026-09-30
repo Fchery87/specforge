@@ -72,7 +72,6 @@ const answered = (id: string, text: string, answer: string, phaseId = 'brief') =
   id,
   text,
   answer,
-  aiGenerated: false,
   required: true,
   source: 'phase',
   feeds: [],
@@ -125,7 +124,7 @@ describe('generateQuestionsHandler', () => {
       'What is your expected timeline or deadline for launch?',
     ]);
     for (const question of written[0].questions) {
-      expect(question).toMatchObject({ source: 'phase', feeds: [], aiGenerated: false });
+      expect(question).toMatchObject({ source: 'phase', feeds: [] });
       expect(question.id).toMatch(/^q_/);
     }
   });
@@ -145,7 +144,7 @@ describe('generateQuestionsHandler', () => {
     session.open.mockResolvedValueOnce({ client: { complete }, modelId: 'm', model: { provider: 'test' } });
     const existing = answered('q_keep', 'Who is it for?', 'Agencies');
     const { ctx, written } = fakeCtx({
-      phases: { brief: { questions: [existing, { id: 'q_old', text: 'Old?', aiGenerated: true }] } },
+      phases: { brief: { questions: [existing, { id: 'q_old', text: 'Old?' }] } },
       claims: {},
     });
 

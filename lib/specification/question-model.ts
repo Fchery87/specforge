@@ -45,8 +45,6 @@ export interface PhaseQuestion {
   id: string;
   text: string;
   answer?: string;
-  /** Legacy. Whether the model wrote the question or the answer, depending on when it was set. */
-  aiGenerated: boolean;
   required?: boolean;
   suggestions?: string[];
   selectedSuggestionIndex?: number;
@@ -72,9 +70,9 @@ export function sanitizeFeeds(feeds: unknown, phaseId: string): string[] {
   return kept;
 }
 
-/** Whether a question came from Stress-Test, including ones stored before `source` existed. */
-export function isGrillQuestion(question: Pick<PhaseQuestion, 'id' | 'source'>): boolean {
-  return question.source === 'grill' || question.id.includes('-grill-');
+/** Whether a question came from Stress-Test. */
+export function isGrillQuestion(question: Pick<PhaseQuestion, 'source'>): boolean {
+  return question.source === 'grill';
 }
 
 /**

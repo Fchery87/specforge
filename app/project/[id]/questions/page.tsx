@@ -63,7 +63,6 @@ export default function CombinedQuestionsPage() {
               phaseId: item.phaseId,
               questionId: item.questionId,
               answer: item.answer,
-              aiGenerated: item.aiGenerated,
               answerOrigin: item.answerOrigin,
             })
           )

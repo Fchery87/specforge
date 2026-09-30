@@ -6,7 +6,6 @@ describe('Question with suggestions schema', () => {
     const question: QuestionWithSuggestions = {
       id: 'q1',
       text: 'What architecture pattern?',
-      aiGenerated: false,
       required: true,
       suggestions: ['Monolith', 'Microservices', 'Serverless', 'Modular Monolith'],
     };
@@ -18,7 +17,6 @@ describe('Question with suggestions schema', () => {
     const question: QuestionWithSuggestions = {
       id: 'q2',
       text: 'What is your timeline?',
-      aiGenerated: false,
     };
     expect(question.suggestions).toBeUndefined();
     expect(question.selectedSuggestionIndex).toBeUndefined();

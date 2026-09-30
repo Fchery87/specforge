@@ -10,7 +10,6 @@ import { answerOriginValidator, phaseQuestionValidator } from './lib/question_va
 import {
   answerSourceKey,
   evidenceOriginFor,
-  originFromLegacyFlag,
   isGrillQuestion,
   type AnswerOrigin,
 } from '../lib/specification/question-model';
@@ -284,8 +283,7 @@ export const saveAnswer = mutation({
     phaseId: v.string(),
     questionId: v.string(),
     answer: v.string(),
-    aiGenerated: v.optional(v.boolean()),
-    answerOrigin: v.optional(answerOriginValidator),
+    answerOrigin: answerOriginValidator,
     selectedSuggestionIndex: v.optional(v.number()),
   },
   handler: async (ctx: MutationCtx, args) => {
@@ -304,14 +302,13 @@ export const saveAnswer = mutation({
     if (!phase) throw new Error('Phase not found');
 
     const now = Date.now();
-    const answerOrigin = args.answerOrigin ?? originFromLegacyFlag(args.aiGenerated) ?? 'user';
+    const answerOrigin = args.answerOrigin;
     const updatedQuestions = applyAnswerUpdate(
       phase.questions,
       args.questionId,
       args.answer,
-      args.aiGenerated ?? answerOrigin !== 'user',
-      args.selectedSuggestionIndex,
       answerOrigin,
+      args.selectedSuggestionIndex,
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
@@ -338,7 +335,6 @@ export function mergeGrillAnswersIntoQuestions<
     id: string;
     text: string;
     answer?: string;
-    aiGenerated: boolean;
     required?: boolean;
     suggestions?: string[];
     selectedSuggestionIndex?: number;
@@ -365,14 +361,12 @@ export function mergeGrillAnswersIntoQuestions<
     const answerOrigin: AnswerOrigin = accepted ? 'accepted' : 'user';
     if (existing) {
       existing.answer = item.answer;
-      existing.aiGenerated = accepted;
       existing.answerOrigin = answerOrigin;
     } else {
       questionMap.set(item.questionId, {
         id: item.questionId,
         text: item.questionText,
         answer: item.answer,
-        aiGenerated: accepted,
         required: false,
         suggestions: item.options,
         source: 'grill',
@@ -457,7 +451,7 @@ export function computeUpdatedGrillSession(
  */
 export function withStoredGrillCount<S extends { totalQuestionsAsked: number; isComplete: boolean }>(
   session: S,
-  storedQuestions: Array<{ id: string; source?: 'phase' | 'grill' }>,
+  storedQuestions: Array<{ source?: 'phase' | 'grill' }>,
 ): S {
   const totalQuestionsAsked = storedQuestions.filter(isGrillQuestion).length;
   return { ...session, totalQuestionsAsked, isComplete: totalQuestionsAsked >= 10 };
@@ -573,7 +567,6 @@ export const resetGrillSession = mutation({
 export function applyAnswerUpdate<
   T extends {
     id: string;
-    aiGenerated?: boolean;
     answer?: string;
     selectedSuggestionIndex?: number;
     answerOrigin?: AnswerOrigin;
@@ -582,18 +575,15 @@ export function applyAnswerUpdate<
   questions: T[],
   questionId: string,
   answer: string,
-  aiGenerated?: boolean,
+  answerOrigin: AnswerOrigin,
   selectedSuggestionIndex?: number,
-  answerOrigin?: AnswerOrigin,
 ): T[] {
-  const origin = answerOrigin ?? originFromLegacyFlag(aiGenerated);
   return questions.map((q) =>
     q.id === questionId
       ? {
           ...q,
           answer,
-          ...(aiGenerated !== undefined ? { aiGenerated } : {}),
-          ...(origin !== undefined ? { answerOrigin: origin } : {}),
+          answerOrigin,
           ...(selectedSuggestionIndex !== undefined
             ? { selectedSuggestionIndex }
             : {}),

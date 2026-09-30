@@ -90,13 +90,12 @@ describe("mergeRegeneratedQuestions", () => {
     id,
     text,
     answer,
-    aiGenerated: false,
     required: true,
     source: "phase" as const,
     feeds: [],
     answerOrigin: "user" as const,
   });
-  const unanswered = (id: string, text: string) => ({ id, text, aiGenerated: true });
+  const unanswered = (id: string, text: string) => ({ id, text });
   const range = { min: 3, max: 5 };
 
   it("keeps answered questions unchanged and replaces the unanswered ones", () => {
@@ -123,7 +122,7 @@ describe("mergeRegeneratedQuestions", () => {
       "New 2",
       "New 3",
     ]);
-    expect(merged.slice(2).every((q) => q.id.startsWith("q_") && q.aiGenerated)).toBe(true);
+    expect(merged.slice(2).every((q) => q.id.startsWith("q_") && q.source === "phase")).toBe(true);
     expect(merged.map((q) => q.id)).not.toContain("q_b");
   });
 
@@ -136,7 +135,6 @@ describe("mergeRegeneratedQuestions", () => {
     );
 
     expect(merged.map((q) => q.text)).toEqual(["Model question", "Fallback 1", "Fallback 2"]);
-    expect(merged.map((q) => q.aiGenerated)).toEqual([true, false, false]);
   });
 
   it("never swaps the model's questions for fallback ones when it met the minimum", () => {

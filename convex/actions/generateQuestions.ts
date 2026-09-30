@@ -228,7 +228,6 @@ export function mergeRegeneratedQuestions(
     added.push({
       id: newQuestionId(),
       text: candidate.text,
-      aiGenerated: true,
       required: candidate.required ?? false,
       suggestions: Array.isArray(candidate.suggestions)
         ? candidate.suggestions.filter((s): s is string => typeof s === 'string')
@@ -245,7 +244,6 @@ export function mergeRegeneratedQuestions(
     added.push({
       id: newQuestionId(),
       text: base.text,
-      aiGenerated: false,
       required: base.required ?? false,
       source: 'phase',
       feeds: [],
@@ -757,7 +755,6 @@ export interface GeneratedGrillQuestion {
   suggestions?: string[];
   feeds: string[];
   grillRound: number;
-  aiGenerated: boolean;
   required: boolean;
 }
 
@@ -906,7 +903,6 @@ export const generateGrillRound = action({
       suggestions: q.suggestions,
       feeds: q.feeds ?? [],
       grillRound: currentRound,
-      aiGenerated: true,
       required: false,
     }));
 

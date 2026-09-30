@@ -15,7 +15,6 @@ export interface QuestionData {
   text: string;
   answer?: string;
   required?: boolean;
-  aiGenerated?: boolean;
   suggestions?: string[];
   feeds?: string[];
   answerOrigin?: AnswerOrigin;
@@ -41,8 +40,7 @@ export interface CombinedAnswerItem {
   phaseId: string;
   questionId: string;
   answer: string;
-  aiGenerated?: boolean;
-  answerOrigin?: AnswerOrigin;
+  answerOrigin: AnswerOrigin;
 }
 
 export interface CombinedQuestionsProps {
@@ -84,7 +82,7 @@ export function CombinedQuestions({
       phase.questions?.forEach((q) => {
         if (q.answer !== undefined && q.answer !== "") {
           initialAnswers[q.id] = q.answer;
-          initialOrigins[q.id] = q.answerOrigin ?? (q.aiGenerated ? "accepted" : "user");
+          initialOrigins[q.id] = q.answerOrigin ?? "user";
         } else if (q.suggestions && q.suggestions.length > 0) {
           // Pre-fill first suggestion if no answer exists
           initialAnswers[q.id] = q.suggestions[0];
@@ -134,7 +132,6 @@ export function CombinedQuestions({
       phaseId,
       questionId: question.id,
       answer: answers[question.id] ?? "",
-      aiGenerated: (origins[question.id] ?? "user") !== "user",
       answerOrigin: origins[question.id] ?? "user",
     }));
     await onGenerateEverything(items);

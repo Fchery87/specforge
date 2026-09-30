@@ -193,7 +193,6 @@ interface Question {
   id: string;
   text: string;
   answer?: string;
-  aiGenerated: boolean;
   required?: boolean;
 }
 
@@ -982,7 +981,6 @@ Provide a clear, specific, and actionable answer. Include concrete details (e.g.
               phaseId,
               questionId: question.id,
               answer: answerText,
-              aiGenerated: true,
               answerOrigin: 'drafted',
             });
             success = true;

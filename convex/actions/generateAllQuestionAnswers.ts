@@ -24,7 +24,6 @@ interface Question {
   id: string;
   text: string;
   answer?: string;
-  aiGenerated: boolean;
   required?: boolean;
 }
 

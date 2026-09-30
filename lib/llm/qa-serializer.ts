@@ -1,6 +1,5 @@
 import {
   answersForSection,
-  originFromLegacyFlag,
   sectionIdOfPlanEntry,
   type AnswerOrigin,
   type PhaseQuestion,
@@ -107,7 +106,7 @@ export function qaPairFromQuestion(question: PhaseQuestion, upstreamPhaseId?: st
   const pair: QAPair = {
     question: upstreamPhaseId ? `[${upstreamPhaseId}] ${question.text}` : question.text,
     answer: question.answer ?? '',
-    origin: question.answerOrigin ?? originFromLegacyFlag(question.aiGenerated) ?? 'user',
+    origin: question.answerOrigin ?? 'user',
   };
   if (upstreamPhaseId) pair.phaseId = upstreamPhaseId;
   else if (question.feeds?.length) pair.feeds = question.feeds;

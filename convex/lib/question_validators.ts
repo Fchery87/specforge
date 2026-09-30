@@ -16,7 +16,8 @@ export const phaseQuestionValidator = v.object({
   id: v.string(),
   text: v.string(),
   answer: v.optional(v.string()),
-  aiGenerated: v.boolean(),
+  // Legacy. Optional until the backfill has stripped it from every stored question, then removed.
+  aiGenerated: v.optional(v.boolean()),
   required: v.optional(v.boolean()),
   // AI-generated selectable suggestion options
   suggestions: v.optional(v.array(v.string())),

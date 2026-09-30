@@ -40,9 +40,9 @@ describe('formatQuestionContext', () => {
     {
       phaseId: 'brief',
       questions: [
-        { id: 'q_1', text: 'Who is it for?', answer: 'Agencies', aiGenerated: false, answerOrigin: 'user' as const },
-        { id: 'q_2', text: 'Unanswered?', aiGenerated: false },
-        { id: 'q_3', text: 'Retention?', answer: 'One year', aiGenerated: true, answerOrigin: 'drafted' as const },
+        { id: 'q_1', text: 'Who is it for?', answer: 'Agencies', answerOrigin: 'user' as const },
+        { id: 'q_2', text: 'Unanswered?' },
+        { id: 'q_3', text: 'Retention?', answer: 'One year', answerOrigin: 'drafted' as const },
       ],
       claims: [],
     },

@@ -29,78 +29,56 @@ describe("buildConstitutionTemplateSnapshot", () => {
 });
 
 describe("applyAnswerUpdate", () => {
-  it("updates answer and aiGenerated when provided", () => {
-    const questions = [
-      { id: "q1", text: "Q1", aiGenerated: false },
-      { id: "q2", text: "Q2", aiGenerated: true },
-    ];
+  const questions = [
+    { id: "q1", text: "Q1" },
+    { id: "q2", text: "Q2", answer: "Old", answerOrigin: "drafted" },
+  ];
 
-    const result = applyAnswerUpdate(questions as any, "q1", "A1", true);
-    expect(result[0].answer).toBe("A1");
-    expect(result[0].aiGenerated).toBe(true);
+  it("stores the answer and who wrote it, and leaves other questions alone", () => {
+    const result = applyAnswerUpdate(questions as any, "q1", "A1", "user");
+    expect(result[0]).toMatchObject({ id: "q1", answer: "A1", answerOrigin: "user" });
+    expect(result[1]).toEqual(questions[1]);
   });
 
-  it("updates answer without changing aiGenerated when undefined", () => {
-    const questions = [
-      { id: "q1", text: "Q1", aiGenerated: false },
-    ];
+  it("records a model-written answer the user chose as accepted, and an unreviewed one as drafted", () => {
+    expect(applyAnswerUpdate(questions as any, "q1", "A", "accepted")[0].answerOrigin).toBe("accepted");
+    expect(applyAnswerUpdate(questions as any, "q1", "A", "drafted")[0].answerOrigin).toBe("drafted");
+  });
 
-    const result = applyAnswerUpdate(questions as any, "q1", "A1", undefined);
-    expect(result[0].answer).toBe("A1");
-    expect(result[0].aiGenerated).toBe(false);
+  it("replaces a drafted origin when the user writes the answer", () => {
+    expect(applyAnswerUpdate(questions as any, "q2", "New", "user")[1]).toMatchObject({
+      answer: "New",
+      answerOrigin: "user",
+    });
   });
 
   it("updates selectedSuggestionIndex when provided", () => {
-    const questions = [
-      { id: "q1", text: "Q1", aiGenerated: false, suggestions: ["Opt 1", "Opt 2"] },
-    ];
-
-    const result = applyAnswerUpdate(questions as any, "q1", "Opt 2", true, 1);
-    expect(result[0].answer).toBe("Opt 2");
-    expect(result[0].aiGenerated).toBe(true);
-    expect(result[0].selectedSuggestionIndex).toBe(1);
+    const withOptions = [{ id: "q1", text: "Q1", suggestions: ["Opt 1", "Opt 2"] }];
+    const result = applyAnswerUpdate(withOptions as any, "q1", "Opt 2", "accepted", 1);
+    expect(result[0]).toMatchObject({ answer: "Opt 2", answerOrigin: "accepted", selectedSuggestionIndex: 1 });
   });
 });
 
-describe("answer origin", () => {
-  const questions = [{ id: "q1", text: "Q1", aiGenerated: false }];
-
-  it("stores who wrote the answer beside the answer", () => {
-    expect(applyAnswerUpdate(questions as any, "q1", "A", false)[0].answerOrigin).toBe("user");
-    expect(applyAnswerUpdate(questions as any, "q1", "A", true)[0].answerOrigin).toBe("accepted");
-    expect(
-      applyAnswerUpdate(questions as any, "q1", "A", true, undefined, "drafted")[0].answerOrigin,
-    ).toBe("drafted");
-  });
-
-  it("leaves the origin unset when the caller states none", () => {
-    expect(applyAnswerUpdate(questions as any, "q1", "A")[0].answerOrigin).toBeUndefined();
-  });
-
+describe("grill answers", () => {
   it("marks a Stress-Test answer accepted or typed, and a new one as a grill question", async () => {
     const { mergeGrillAnswersIntoQuestions } = await import("../projects");
     const merged = mergeGrillAnswersIntoQuestions(
-      [{ id: "q1", text: "Q1", aiGenerated: false }] as any,
+      [{ id: "q1", text: "Q1" }] as any,
       [
         { questionId: "q1", questionText: "Q1", answer: "A", acceptedRecommendation: true },
-        { questionId: "q_new", questionText: "New", answer: "B" },
+        { questionId: "q_new", questionText: "New", answer: "B", feeds: ["deep-modules"] },
       ],
     );
     expect(merged[0].answerOrigin).toBe("accepted");
-    expect(merged[0].aiGenerated).toBe(true);
-    expect(merged[1]).toMatchObject({ id: "q_new", source: "grill", feeds: [], answerOrigin: "user" });
+    expect(merged[1]).toMatchObject({ id: "q_new", source: "grill", feeds: ["deep-modules"], answerOrigin: "user" });
   });
 });
 
 describe("withStoredGrillCount", () => {
-  it("counts the Stress-Test questions that are stored, including ones stored before source existed", async () => {
+  it("counts the Stress-Test questions that are stored", async () => {
     const { withStoredGrillCount } = await import("../projects");
     const session = { totalQuestionsAsked: 6, currentRound: 2, isComplete: false, rounds: [] };
-    const stored = [
-      { id: "q_a" },
-      { id: "q_g1", source: "grill" as const },
-      { id: "specs-grill-r1-q1" },
-    ];
+    const stored = [{}, { source: "phase" as const }, { source: "grill" as const }, { source: "grill" as const }];
     expect(withStoredGrillCount(session, stored)).toEqual({
       totalQuestionsAsked: 2,
       currentRound: 2,
@@ -111,7 +89,7 @@ describe("withStoredGrillCount", () => {
 
   it("completes the session at ten stored questions", async () => {
     const { withStoredGrillCount } = await import("../projects");
-    const stored = Array.from({ length: 10 }, (_, i) => ({ id: `q_${i}`, source: "grill" as const }));
+    const stored = Array.from({ length: 10 }, () => ({ source: "grill" as const }));
     expect(withStoredGrillCount({ totalQuestionsAsked: 0, isComplete: false }, stored).isComplete).toBe(true);
   });
 });
@@ -130,7 +108,7 @@ describe("grillSession helpers", () => {
   it("mergeGrillAnswersIntoQuestions updates existing and appends new", async () => {
     const { mergeGrillAnswersIntoQuestions } = await import("../projects");
     const existing = [
-      { id: "q1", text: "Q1", answer: "Old A1", aiGenerated: false },
+      { id: "q1", text: "Q1", answer: "Old A1" },
     ];
     const answers = [
       {
@@ -150,7 +128,7 @@ describe("grillSession helpers", () => {
     const merged = mergeGrillAnswersIntoQuestions(existing as any, answers);
     expect(merged.length).toBe(2);
     expect(merged[0].answer).toBe("New A1");
-    expect(merged[0].aiGenerated).toBe(false);
+    expect(merged[0].answerOrigin).toBe("user");
     expect(merged[1].id).toBe("grill-q2");
     expect(merged[1].answer).toBe("A2");
   });

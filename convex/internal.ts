@@ -11,11 +11,7 @@ import {
   grillSessionValidator,
   phaseQuestionValidator,
 } from './lib/question_validators';
-import {
-  answerSourceKey,
-  evidenceOriginFor,
-  originFromLegacyFlag,
-} from '../lib/specification/question-model';
+import { answerSourceKey, evidenceOriginFor } from '../lib/specification/question-model';
 import { artifactSectionValidator, acceptanceCriteriaQualityValidator, verificationResultFields } from './schema';
 
 export function filterArtifactsByPhase<
@@ -787,11 +783,10 @@ export const saveAnswerInternal = internalMutation({
     phaseId: v.string(),
     questionId: v.string(),
     answer: v.string(),
-    aiGenerated: v.optional(v.boolean()),
-    answerOrigin: v.optional(answerOriginValidator),
+    answerOrigin: answerOriginValidator,
   },
   handler: async (ctx, args) => {
-    const answerOrigin = args.answerOrigin ?? originFromLegacyFlag(args.aiGenerated) ?? 'user';
+    const answerOrigin = args.answerOrigin;
     const phase = await ctx.db
       .query('phases')
       .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
@@ -807,7 +802,6 @@ export const saveAnswerInternal = internalMutation({
         ? {
             ...q,
             answer: args.answer,
-            aiGenerated: args.aiGenerated ?? answerOrigin !== 'user',
             answerOrigin,
           }
         : q,

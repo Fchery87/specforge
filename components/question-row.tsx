@@ -10,7 +10,6 @@ interface QuestionRowProps {
     id: string;
     text: string;
     answer?: string;
-    aiGenerated?: boolean;
     required?: boolean;
     suggestions?: string[];
     selectedSuggestionIndex?: number;
@@ -20,7 +19,8 @@ interface QuestionRowProps {
   isSaving: boolean;
   isSaved: boolean;
   isAiGenerating: boolean;
-  aiGenerated: boolean;
+  /** The assistant wrote the answer, however far the user has reviewed it. */
+  modelWritten: boolean;
   suggestions: string[];
   selectedSuggestionIndex?: number;
   stagedAnswer?: string | null;
@@ -45,7 +45,7 @@ export function QuestionRow({
   isSaving,
   isSaved,
   isAiGenerating,
-  aiGenerated,
+  modelWritten,
   suggestions,
   selectedSuggestionIndex,
   stagedAnswer,
@@ -76,7 +76,7 @@ export function QuestionRow({
           {feedsLabel && (
             <p className="text-caption text-muted-foreground mt-1">{feedsLabel}</p>
           )}
-          {aiGenerated && (
+          {modelWritten && (
             <span className="inline-flex items-center text-caption text-muted-foreground mt-1">
               <Sparkles className="size-3 mr-1" /> AI suggested
             </span>

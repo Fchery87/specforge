@@ -32,7 +32,6 @@ vi.mock("@/lib/batch-answers", () => ({ collectBatchAnswers: () => [] }));
 const baseQuestion = {
   id: "q1",
   text: "What architecture pattern?",
-  aiGenerated: false,
   required: false,
 };
 
@@ -168,7 +167,6 @@ describe("QuestionsPanel feeds and assumed answers", () => {
     id: "q_drafted",
     text: "What is the retention period?",
     answer: "One year",
-    aiGenerated: true,
     answerOrigin: "drafted" as const,
     feeds: ["problem-and-objectives"],
   };
@@ -199,7 +197,6 @@ describe("QuestionsPanel feeds and assumed answers", () => {
       expect.objectContaining({
         questionId: "q_drafted",
         answer: "One year",
-        aiGenerated: true,
         answerOrigin: "accepted",
       }),
     );
@@ -221,7 +218,7 @@ describe("QuestionsPanel feeds and assumed answers", () => {
       <QuestionsPanel
         projectId="proj1"
         phaseId="brief"
-        questions={[{ ...drafted, answerOrigin: "user" as const, aiGenerated: false }]}
+        questions={[{ ...drafted, answerOrigin: "user" as const }]}
       />
     );
     expect(screen.queryByText(/Assumed\./)).not.toBeInTheDocument();

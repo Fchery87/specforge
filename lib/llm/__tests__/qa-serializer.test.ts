@@ -102,11 +102,11 @@ describe('origin, feeds and phase', () => {
 });
 
 describe('qaPairFromQuestion', () => {
-  const base = { id: 'q_1', text: 'Who is it for?', answer: 'Agencies', aiGenerated: false };
+  const base = { id: 'q_1', text: 'Who is it for?', answer: 'Agencies' };
 
-  test('prefers the stored origin, then the legacy flag, then user', () => {
+  test('reads the stored origin, and user when none is stored', () => {
     expect(qaPairFromQuestion({ ...base, answerOrigin: 'drafted' }).origin).toBe('drafted');
-    expect(qaPairFromQuestion({ ...base, aiGenerated: true }).origin).toBe('accepted');
+    expect(qaPairFromQuestion({ ...base, answerOrigin: 'accepted' }).origin).toBe('accepted');
     expect(qaPairFromQuestion(base).origin).toBe('user');
   });
 

@@ -2,8 +2,12 @@ import { internalAction, internalMutation } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { internal } from './_generated/api';
 import { v } from 'convex/values';
-import { backfillQuestions, remapSessionIds } from '../lib/specification/question-backfill';
-import { answerSourceKey, type PhaseQuestion } from '../lib/specification/question-model';
+import {
+  backfillQuestions,
+  remapSessionIds,
+  type StoredQuestion,
+} from '../lib/specification/question-backfill';
+import { answerSourceKey } from '../lib/specification/question-model';
 
 export interface BackfillCounts {
   phases: number;
@@ -28,7 +32,7 @@ export async function backfillPageHandler(
   const counts: BackfillCounts = { ...EMPTY_COUNTS };
 
   for (const phase of page.page) {
-    const { questions, idMap, migrated } = backfillQuestions(phase.questions as PhaseQuestion[]);
+    const { questions, idMap, migrated } = backfillQuestions(phase.questions as StoredQuestion[]);
     if (migrated === 0) continue;
 
     for (const [oldId, newId] of Object.entries(idMap)) {

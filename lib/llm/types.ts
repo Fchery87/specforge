@@ -204,7 +204,6 @@ export interface QuestionWithSuggestions {
   id: string;
   text: string;
   answer?: string;
-  aiGenerated: boolean;
   required?: boolean;
   suggestions?: string[];
   selectedSuggestionIndex?: number;

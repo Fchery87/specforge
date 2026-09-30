@@ -226,10 +226,10 @@ describe("CombinedQuestions", () => {
     await userEvent.click(screen.getByRole("button", { name: "Generate all phases" }));
 
     expect(onGenerate).toHaveBeenCalledWith([
-      { phaseId: "brief", questionId: "q-prefilled", answer: "Suggested", aiGenerated: true, answerOrigin: "drafted" },
-      { phaseId: "brief", questionId: "q-kept", answer: "Another", aiGenerated: true, answerOrigin: "accepted" },
-      { phaseId: "brief", questionId: "q-typed", answer: "My answer", aiGenerated: false, answerOrigin: "user" },
-      { phaseId: "brief", questionId: "q-stored", answer: "Earlier draft", aiGenerated: true, answerOrigin: "drafted" },
+      { phaseId: "brief", questionId: "q-prefilled", answer: "Suggested", answerOrigin: "drafted" },
+      { phaseId: "brief", questionId: "q-kept", answer: "Another", answerOrigin: "accepted" },
+      { phaseId: "brief", questionId: "q-typed", answer: "My answer", answerOrigin: "user" },
+      { phaseId: "brief", questionId: "q-stored", answer: "Earlier draft", answerOrigin: "drafted" },
     ]);
   });
 });
