@@ -15,7 +15,7 @@
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
 | 8. Pull-request verification | Complete | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
 | 9. Agent connection over MCP | On hold: spec written, no plan or code until resumed | [Agent connection over MCP](specs/2026-09-28-agent-connection.md) | - |
-| 10. Clarifying questions | Active: spec written, no plan yet | [Clarifying questions](specs/2026-09-29-clarifying-questions.md) | - |
+| 10. Clarifying questions | Active: plan written, no task started | [Clarifying questions](specs/2026-09-29-clarifying-questions.md) | [Implementation plan](plans/2026-09-29-clarifying-questions.md) |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
