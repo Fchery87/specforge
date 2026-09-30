@@ -4,11 +4,11 @@ import { WORKFLOW_STAGES, type StageId } from '../../workflow';
  * The stage prompts.
  *
  * A stage states what its documents must accomplish and how they fail. The per-section instructions
- * in `getSectionInstructions` say what a section covers; these say what makes the document usable,
+ * in `lib/specification/phase-sections.ts` say what a section covers; these say what makes the document usable,
  * and they are the constant across every section inside the stage.
  *
  * Each prompt is written as purpose plus failure modes rather than as a section list, because the
- * section list already exists in `lib/llm/section-plans.ts` and a second copy would drift from it.
+ * section list already exists in `lib/specification/phase-sections.ts` and a second copy would drift from it.
  *
  * `constitution` and `handoff` are not stages. The constitution has its own prompt, and the handoff
  * is an export rather than a document under review, so neither has an entry here.

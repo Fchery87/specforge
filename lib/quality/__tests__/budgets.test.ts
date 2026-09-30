@@ -13,7 +13,8 @@ import {
   wordsForTokens,
 } from '../budgets';
 import { estimateTokenCount } from '../../llm/chunking';
-import { calculateTotalTokens, getSectionPlansForPhase } from '../../llm/section-plans';
+import { calculateTotalTokens } from '../../llm/section-plans';
+import { sectionsFor } from '../../specification/phase-sections';
 import { WORKFLOW_STAGES } from '../../workflow';
 
 describe('the words-per-token ratio', () => {
@@ -81,7 +82,7 @@ describe('sectionBudget', () => {
 
 describe('phaseBudget', () => {
   it('sums the phase plan and reports how many sections it covers', () => {
-    const plans = getSectionPlansForPhase('prd');
+    const plans = sectionsFor('prd');
     const budget = phaseBudget('prd');
 
     expect(budget.sections).toBe(plans.length);
@@ -100,7 +101,7 @@ describe('stageBudget', () => {
     // independent statement of "the sum of its sections" rather than a copy of the implementation.
     const design = WORKFLOW_STAGES.find((stage) => stage.id === 'design');
     const plans = (design?.phaseIds ?? []).flatMap((phaseId) =>
-      getSectionPlansForPhase(phaseId)
+      sectionsFor(phaseId)
     );
     const tokens = calculateTotalTokens(plans);
 
@@ -114,7 +115,7 @@ describe('stageBudget', () => {
   it('covers every phase its stage groups', () => {
     const design = WORKFLOW_STAGES.find((stage) => stage.id === 'design');
     const expectedSections = (design?.phaseIds ?? []).reduce(
-      (total, phaseId) => total + getSectionPlansForPhase(phaseId).length,
+      (total, phaseId) => total + sectionsFor(phaseId).length,
       0
     );
 

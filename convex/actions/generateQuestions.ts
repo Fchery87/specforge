@@ -19,6 +19,8 @@ import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
 import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
+import { PHASE_PURPOSE, sectionIdsFor } from '../../lib/specification/phase-sections';
+import type { PhaseId } from '../../lib/workflow';
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -131,41 +133,6 @@ const PHASE_QUESTION_RANGE: Record<string, { min: number; max: number }> = {
   handoff: { min: 3, max: 5 },
 };
 
-const PHASE_CONTEXT: Record<string, { description: string; sections: string[] }> = {
-  constitution: {
-    description: 'Project Constitution — immutable standards and constraints governing the entire project',
-    sections: ['locked-constraints', 'architecture-decisions', 'tech-stack', 'quality-and-standards'],
-  },
-  brief: {
-    description: 'Project Brief — high-level overview, problem statement, goals, and target audience',
-    sections: ['problem-and-objectives', 'features-and-requirements', 'target-audience'],
-  },
-  prd: {
-    description: 'Product Requirements Document — detailed requirements, user personas, and success metrics',
-    sections: ['executive-summary', 'problem-statement', 'goals-and-objectives', 'user-personas', 'requirements', 'success-metrics'],
-  },
-  domainModel: {
-    description: 'Domain Model — core entities, relationships, state transitions, and invariants',
-    sections: ['entity-definitions', 'entity-relationships', 'state-transitions'],
-  },
-  specs: {
-    description: 'Technical Specifications — architecture, data models, API design, security, and deployment',
-    sections: ['architecture-overview', 'data-models', 'api-design', 'component-architecture', 'security-considerations', 'deployment-strategy'],
-  },
-  stories: {
-    description: 'User Stories & Tasks — epics, user stories with acceptance criteria, and technical tasks',
-    sections: ['epic-overview', 'user-stories', 'technical-tasks', 'acceptance-criteria'],
-  },
-  artifacts: {
-    description: 'Technical Artifacts — API documentation, database schemas, environment config, deployment scripts',
-    sections: ['api-documentation', 'database-schema', 'environment-config', 'deployment-scripts'],
-  },
-  handoff: {
-    description: 'Project Handoff — summary, setup guide, implementation guide, and next steps',
-    sections: ['project-summary', 'setup-guide', 'implementation-guide', 'next-steps'],
-  },
-};
-
 export function buildQuestionPrompt(params: {
   title: string;
   description: string;
@@ -174,9 +141,8 @@ export function buildQuestionPrompt(params: {
   upstreamContext?: string;
   codebaseContext?: string;
 }): string {
-  const phaseCtx = PHASE_CONTEXT[params.phaseId];
-  const phaseDesc = phaseCtx?.description ?? params.phaseId;
-  const sectionsList = phaseCtx?.sections?.join(', ') ?? '';
+  const phaseDesc = PHASE_PURPOSE[params.phaseId as PhaseId] ?? params.phaseId;
+  const sectionsList = sectionIdsFor(params.phaseId).join(', ');
 
   const upstreamBlock = params.upstreamContext
     ? `Existing Project Decisions & Prior Phase Answers:\n${params.upstreamContext}\n\n`
@@ -637,9 +603,8 @@ export function buildGrillRoundPrompt(params: {
   upstreamAnswers?: string;
   priorGrillHistory?: Array<{ question: string; answer: string }>;
 }): string {
-  const phaseCtx = PHASE_CONTEXT[params.phaseId];
-  const phaseDesc = phaseCtx?.description ?? params.phaseId;
-  const sectionsList = phaseCtx?.sections?.join(', ') ?? '';
+  const phaseDesc = PHASE_PURPOSE[params.phaseId as PhaseId] ?? params.phaseId;
+  const sectionsList = sectionIdsFor(params.phaseId).join(', ');
 
   const priorHistoryText =
     params.priorGrillHistory && params.priorGrillHistory.length > 0

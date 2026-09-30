@@ -3,7 +3,8 @@ import type { QueryCtx, MutationCtx } from './_generated/server';
 import type { Id } from './_generated/dataModel';
 import { v } from 'convex/values';
 import { WORKFLOW_STAGES } from '../lib/workflow';
-import { getSectionPlansForPhase, type SectionPlanConfig } from '../lib/llm/section-plans';
+import type { SectionPlanConfig } from '../lib/llm/section-plans';
+import { sectionsFor } from '../lib/specification/phase-sections';
 import {
   buildStageReport,
   stageQualityFlagFor,
@@ -121,7 +122,7 @@ async function loadStageInputs(
   const artifactIds: Id<'artifacts'>[] = [];
 
   for (const phaseId of stage.phaseIds) {
-    sectionPlan.push(...getSectionPlansForPhase(phaseId));
+    sectionPlan.push(...sectionsFor(phaseId));
 
     const artifact = await ctx.db
       .query('artifacts')

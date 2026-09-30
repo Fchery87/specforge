@@ -1,57 +1,5 @@
 import type { LlmModel, SectionPlan } from './types';
 
-export function getSectionPlan(
-  artifactType: string,
-  phaseId?: string,
-): string[] {
-  // NOTE: Reduced section counts to 3 max to fit within Convex action timeout
-  // Reasoning models (GLM-4.7, etc.) need significant time per section
-  // Generating more sections can be done in subsequent iterations
-  switch (artifactType) {
-    case 'constitution':
-      return [
-        'locked-constraints',
-        'architecture-decisions',
-        'tech-stack',
-        'quality-and-standards',
-      ];
-    case 'brief':
-      return [
-        'executive-summary',
-        'problem-and-objectives',
-        'features-and-requirements',
-      ];
-    case 'prd':
-      return ['executive-summary', 'requirements', 'success-metrics'];
-    case 'domainModel':
-      return [
-        'domain-glossary',
-        'entity-definitions',
-        'entity-relationships',
-        'state-transitions',
-      ];
-    case 'spec':
-    case 'specs':
-      return [
-        'architecture-overview',
-        'deep-modules',
-        'test-seams',
-        'data-models-and-api',
-        'deployment-and-security',
-      ];
-    case 'stories':
-      return ['epic-overview', 'user-stories', 'technical-tasks'];
-    case 'artifacts':
-      return ['documentation', 'configuration', 'deployment-guide'];
-    case 'handoff':
-      return ['project-summary', 'setup-guide', 'next-steps'];
-    case 'doc':
-      return ['introduction', 'main-content', 'conclusion'];
-    default:
-      return ['content'];
-  }
-}
-
 export function planSections(
   model: LlmModel,
   sectionNames: string[],

@@ -16,7 +16,7 @@ import { ArtifactsHeader } from "@/components/artifacts-header";
 import { StreamingArtifactPreview } from "@/components/streaming-artifact-preview";
 import { ExportOptionsPanel } from "@/components/export-options";
 import { SectionPlanPreview, SectionPlanPreviewSkeleton } from "@/components/section-plan-preview";
-import { getSectionPlansForPhase } from "@/lib/llm/section-plans";
+import { sectionsFor } from "@/lib/specification/phase-sections";
 import type { SectionPlanConfig, UserSectionPreference } from "@/lib/llm/types";
 import type { GeneratedSectionPlan } from "@/lib/section-plan-parser";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ export default function PhasePage() {
   // Which half of the phase is in view. Unset means "follow the phase": the document once there is
   // something to read, the questions before that.
   const [view, setView] = useState<"document" | "questions" | null>(null);
-  const staticSectionPlans = getSectionPlansForPhase(phaseId);
+  const staticSectionPlans = sectionsFor(phaseId);
   // AI-generated section plans (Task 16)
   const generateSectionPlanFn = useAction(generateSectionPlanAction);
   const [aiSectionPlans, setAiSectionPlans] = useState<SectionPlanConfig[] | null>(null);

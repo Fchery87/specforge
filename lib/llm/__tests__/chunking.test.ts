@@ -1,12 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { expandSectionsForBudget, getSectionPlan } from "../chunking";
+import { expandSectionsForBudget } from "../chunking";
 
-describe("getSectionPlan", () => {
-  it("keeps prd sections within timeout budget", () => {
-    const sections = getSectionPlan("prd", "prd");
-    expect(sections.length).toBeLessThanOrEqual(3);
-  });
-
+describe("expandSectionsForBudget", () => {
   it("expands a single section when budget is too small", () => {
     const expanded = expandSectionsForBudget({
       sectionNames: ["architecture-overview"],

@@ -338,8 +338,8 @@ export const PHASE_SECTIONS: Record<PhaseId, readonly PhaseSection[]> = {
 };
 
 /** A phase's sections, or none for an id that is not a phase. */
-export function sectionsFor(phaseId: string): readonly PhaseSection[] {
-  return PHASE_SECTIONS[phaseId as PhaseId] ?? [];
+export function sectionsFor(phaseId: string): PhaseSection[] {
+  return [...(PHASE_SECTIONS[phaseId as PhaseId] ?? [])];
 }
 
 export function sectionIdsFor(phaseId: string): readonly string[] {

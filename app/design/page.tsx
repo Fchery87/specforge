@@ -10,7 +10,7 @@ import { CheckPreviews } from "./check-previews";
 import { StageStepper } from "@/components/stage-stepper";
 import { StageQualityReport } from "@/components/stage-report";
 import type { ParsedClaim } from "@/lib/claims";
-import { getSectionPlansForPhase } from "@/lib/llm/section-plans";
+import { sectionsFor } from "@/lib/specification/phase-sections";
 import { sectionMarksFor } from "@/lib/markdown-render";
 import { buildStageReport } from "@/lib/quality/stage-report";
 import { classifyCriterion } from "@/lib/validation/acceptance-criteria";
@@ -140,21 +140,15 @@ const PREVIEW_HEADINGS = [
   "",
   "Atlas keeps requirements and the evidence behind them in one document.",
   "",
-  "- **C-014** [confirmed; reviewed]: An editor may archive a project. — Evidence: lib/authz.ts (4f2a91c, supports)",
-  "",
-  "## 2. Problem Statement",
+  "## 2. Success Metrics",
   "",
   "Requirements written before their evidence is captured drift away from the answers that produced",
   "them, and a reader cannot tell which clauses are safe to build from.",
   "",
   pad(PAD_SENTENCE, 85),
-  "",
-  "## 3. Goals and Objectives",
-  "",
-  "Atlas should be fast and easy to use, and the team should feel confident in the output.",
 ].join("\n");
 
-const PREVIEW_PLAN = getSectionPlansForPhase(PREVIEW_PHASE);
+const PREVIEW_PLAN = sectionsFor(PREVIEW_PHASE);
 
 const PREVIEW_REPORT = buildStageReport({
   documents: [{ phaseId: PREVIEW_PHASE, markdown: PREVIEW_HEADINGS }],

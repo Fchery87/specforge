@@ -13,7 +13,6 @@ import { estimateTokenCount } from '../lib/llm/chunking';
 import {
   generateSectionContentStreaming,
   generateSectionContentRealtime,
-  getSectionInstructions,
   generateConstitution,
   generateSectionWithCritique,
   fetchConstitutionForProject,
@@ -23,6 +22,7 @@ import {
   sanitizeGeneratedContent,
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
+import { sectionInstructionsFor } from '../lib/specification/phase-sections';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
 import { deserializeQAPairs, type QAPair } from '../lib/llm/qa-serializer';
 import { PHASE_DEPENDENCIES } from '../lib/specification/dependency-graph';
@@ -326,7 +326,7 @@ export const generatePhaseWorker = internalAction({
     const customInstructions = sectionPref?.customInstructions;
 
     // Build section instructions with custom instructions if provided
-    let sectionInstructions = getSectionInstructions(phaseId, section.name);
+    let sectionInstructions = sectionInstructionsFor(phaseId, section.name);
     if (customInstructions) {
       sectionInstructions = `${sectionInstructions}\n\n## CUSTOM INSTRUCTIONS\n${customInstructions}`;
     }
