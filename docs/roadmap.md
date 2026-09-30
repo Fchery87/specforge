@@ -1,6 +1,6 @@
 # SpecForge Roadmap
 
-**Updated:** September 27, 2026
+**Updated:** September 29, 2026
 
 ## Current phase
 
@@ -14,7 +14,7 @@
 | 6. Workflow and navigation | Complete | [Workflow and navigation](specs/2026-09-27-workflow-navigation.md) | - |
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
 | 8. Pull-request verification | Complete | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
-| 9. Agent connection over MCP | Active: spec written, plan next | [Agent connection over MCP](specs/2026-09-28-agent-connection.md) | - |
+| 9. Agent connection over MCP | On hold: spec written, no plan or code until resumed | [Agent connection over MCP](specs/2026-09-28-agent-connection.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
