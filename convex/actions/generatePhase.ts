@@ -75,6 +75,7 @@ import {
 import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
 import { sectionIdsFor } from '../../lib/specification/phase-sections';
+import { descriptionForPhase } from '../../lib/specification/question-context';
 
 interface Question {
   id: string;
@@ -221,12 +222,7 @@ export const generatePhase = action({
       }
     }
 
-    const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
-    const phaseDescription = isEarlyPhase
-      ? project.description
-      : (project.description.length > 3000
-          ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
-          : project.description);
+    const phaseDescription = descriptionForPhase(project.description, args.phaseId);
 
     const artifactType = getArtifactTypeForPhase(args.phaseId);
     const sectionNames = [...sectionIdsFor(args.phaseId)];

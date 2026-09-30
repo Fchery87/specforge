@@ -4,21 +4,13 @@ import { action } from '../_generated/server';
 import type { ActionCtx } from '../_generated/server';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
-import type { Doc } from '../_generated/dataModel';
-import { selectEnabledModels } from '../../lib/llm/model-select';
-import {
-  resolveCredentials,
-  resolveModelForCredentials,
-  getFirstEnabledModelForProvider,
-} from '../../lib/llm/registry';
-import type { SystemCredential } from '../../lib/llm/registry';
-import { createLlmClient } from '../../lib/llm/client-factory';
+import type { Doc, Id } from '../_generated/dataModel';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff } from '../../lib/llm/retry';
+import { openLlmSession } from './llmSession';
+import { loadQuestionContext } from '../lib/question_context';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
-import { fetchModelDirectory } from '../../lib/llm/model-directory';
-import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
 import { PHASE_PURPOSE, sectionIdsFor, sectionsFor } from '../../lib/specification/phase-sections';
 import type { PhaseId } from '../../lib/workflow';
 import {
@@ -292,217 +284,114 @@ function parseQuestionsResponse(
   return [];
 }
 
-export const generateQuestions = action({
-  args: { projectId: v.id('projects'), phaseId: v.string() },
-  handler: async (ctx: ActionCtx, args) => {
-    const project = await ctx.runQuery(
-      internalApi.internal.getProjectInternal,
-      {
-        projectId: args.projectId,
-      },
-    );
-    if (!project) throw new Error('Project not found');
+export async function generateQuestionsHandler(
+  ctx: ActionCtx,
+  args: { projectId: Id<'projects'>; phaseId: string },
+) {
+  const project = await ctx.runQuery(
+    internalApi.internal.getProjectInternal,
+    {
+      projectId: args.projectId,
+    },
+  );
+  if (!project) throw new Error('Project not found');
 
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject)
-      throw new Error('Forbidden');
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity || project.userId !== identity.subject)
+    throw new Error('Forbidden');
 
-    const userId = identity.tokenIdentifier;
-    await rateLimiter.limit(ctx, 'generateQuestions', {
-      key: userId,
-      throws: true,
+  const userId = identity.tokenIdentifier;
+  await rateLimiter.limit(ctx, 'generateQuestions', {
+    key: userId,
+    throws: true,
+  });
+
+  const range = PHASE_QUESTION_RANGE[args.phaseId] || { min: 5, max: 8 };
+  const baseQuestions =
+    PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS['brief'];
+
+  const existingPhase = await ctx.runQuery(
+    internalApi.internal.getPhaseInternal,
+    { projectId: args.projectId, phaseId: args.phaseId },
+  );
+  const existingQuestions: PhaseQuestion[] = existingPhase?.questions ?? [];
+  const answeredTexts = existingQuestions
+    .filter((q) => q.answer?.trim())
+    .map((q) => q.text);
+
+  let aiQuestions: CandidateQuestion[] = [];
+  let provider = 'unknown';
+  try {
+    const session = await openLlmSession(ctx);
+    provider = session.model.provider;
+    const context = await loadQuestionContext(ctx, project, args.phaseId);
+
+    const prompt = buildQuestionPrompt({
+      title: project.title,
+      description: context.description,
+      phaseId: args.phaseId,
+      range,
+      upstreamContext: context.upstream || undefined,
+      codebaseContext: context.codebase,
+      alreadyAsked: answeredTexts,
     });
 
-    const range = PHASE_QUESTION_RANGE[args.phaseId] || { min: 5, max: 8 };
-    const baseQuestions =
-      PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS['brief'];
-
-    const existingPhase = await ctx.runQuery(
-      internalApi.internal.getPhaseInternal,
-      { projectId: args.projectId, phaseId: args.phaseId },
+    const startedAt = Date.now();
+    const response = await retryWithBackoff(
+      () =>
+        session.client.complete(prompt, {
+          model: session.modelId,
+          maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+          temperature: 0.4,
+        }),
+      { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
     );
-    const existingQuestions: PhaseQuestion[] = existingPhase?.questions ?? [];
-    const answeredTexts = existingQuestions
-      .filter((q) => q.answer?.trim())
-      .map((q) => q.text);
-
-    let aiQuestions: CandidateQuestion[] = [];
-    let credentials: ReturnType<typeof resolveCredentials> = null;
-    try {
-      // Resolve credentials for AI question generation
-      const userConfig = await ctx.runAction(
-        internalApi.userConfigActions.getUserConfigInternal,
-        {},
-      );
-
-      let systemCredentialsMap: Record<string, SystemCredential>;
-      try {
-        systemCredentialsMap = await ctx.runAction(
-          internalApi.internalActions.getAllDecryptedSystemCredentials,
-          {},
-        );
-      } catch {
-        systemCredentialsMap = {};
-      }
-
-      const enabledModelsFromDb = await ctx.runQuery(
-        internalApi.llmModels.listEnabledModelsInternal,
-      );
-      const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
-
-      credentials = resolveCredentials(
-        userConfig,
-        new Map(Object.entries(systemCredentialsMap || {})),
-        enabledModels,
-      );
-
-      const model = resolveModelForCredentials(
-        credentials,
-        enabledModelsFromDb || [],
-        enabledModels,
-      );
-
-      // Fetch provider API endpoint from models.dev
-      let providerApiEndpoint: string | null = null;
-      const providerId = credentials?.provider;
-      if (providerId) {
-        try {
-          const providers = await fetchModelDirectory();
-          const provider = providers.find((p) => p.id === providerId);
-          providerApiEndpoint = provider?.api || null;
-        } catch (err) {
-          console.warn(
-            `[generateQuestions] Failed to fetch provider API endpoint: ${err}`,
-          );
-        }
-      }
-
-      const llmClient = createLlmClient(credentials, providerApiEndpoint);
-      if (!llmClient) {
-        console.warn('[generateQuestions] No LLM client — credentials missing or invalid. Falling back to base questions.');
-      }
-      if (llmClient) {
-        // Gather upstream answers from dependent phases
-        const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
-        const upstreamAnswersList: string[] = [];
-
-        if (project.constitutionTemplate?.lockedConstraints) {
-          const constraints = project.constitutionTemplate.lockedConstraints;
-          const constraintParts: string[] = [];
-          if (constraints.architecture) constraintParts.push(`Architecture: ${constraints.architecture}`);
-          if (constraints.stateManagement) constraintParts.push(`State Management: ${constraints.stateManagement}`);
-          if (constraints.apiDesign) constraintParts.push(`API Design: ${constraints.apiDesign}`);
-          if (constraints.securityProtocols?.length) {
-            constraintParts.push(`Security Protocols: ${constraints.securityProtocols.join(', ')}`);
-          }
-          if (constraintParts.length > 0) {
-            upstreamAnswersList.push(`[Constitution Constraints]\n${constraintParts.join('\n')}`);
-          }
-        }
-
-        for (const upstreamPhaseId of upstreamPhaseIds) {
-          const upstreamPhase = await ctx.runQuery(
-            internalApi.internal.getPhaseInternal,
-            { projectId: args.projectId, phaseId: upstreamPhaseId },
-          );
-          if (upstreamPhase?.questions) {
-            const answered = upstreamPhase.questions
-              .filter((q: { answer?: string }) => q.answer?.trim())
-              .map((q: { text: string; answer?: string }) => `Q: [${upstreamPhaseId}] ${q.text}\nA: ${q.answer}`);
-            if (answered.length > 0) {
-              upstreamAnswersList.push(answered.join('\n\n'));
-            }
-          }
-        }
-        const upstreamContext = upstreamAnswersList.join('\n\n');
-
-        let codebaseContext: string | undefined;
-        try {
-          const codebase = await ctx.runQuery(
-            internalApi.internal.getCodebaseInternal,
-            { projectId: args.projectId },
-          );
-          if (codebase) {
-            const keyFilePaths = (codebase.keyFiles || []).map((f: { path: string }) => f.path).slice(0, 10);
-            codebaseContext = `Repository: ${codebase.repoOwner}/${codebase.repoName} (${codebase.defaultBranch})\nKey Files: ${keyFilePaths.join(', ')}`;
-          }
-        } catch {
-          // Codebase lookup is optional
-        }
-
-        const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
-        const projectDescription = isEarlyPhase
-          ? project.description
-          : (project.description.length > 3000
-              ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
-              : project.description);
-
-        const prompt = buildQuestionPrompt({
-          title: project.title,
-          description: projectDescription,
-          phaseId: args.phaseId,
-          range,
-          upstreamContext: upstreamContext || undefined,
-          codebaseContext,
-          alreadyAsked: answeredTexts,
-        });
-
-        const telemetryProvider = credentials?.provider ?? model.provider;
-        const telemetryModel = model.id;
-        const startedAt = Date.now();
-        const response = await retryWithBackoff(
-          () =>
-            llmClient.complete(prompt, {
-              model: model.id,
-              maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
-              temperature: 0.4,
-            }),
-          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
-        );
-        const durationMs = Date.now() - startedAt;
-        logTelemetry('info', {
-          provider: telemetryProvider,
-          model: telemetryModel,
-          durationMs,
-          success: true,
-          tokens: {
-            prompt: response.usage.promptTokens,
-            completion: response.usage.completionTokens,
-            total: response.usage.totalTokens,
-          },
-        });
-        aiQuestions = normalizeQuestions(
-          parseQuestionsResponse(response.content),
-          args.phaseId,
-          range,
-        );
-      }
-    } catch (err) {
-      console.error('[generateQuestions] AI question generation failed:', err);
-      logTelemetry('warn', {
-        provider: credentials?.provider ?? 'unknown',
-        model: 'unknown',
-        success: false,
-        error: `generateQuestions failed: ${err instanceof Error ? err.message : String(err)}`,
-      });
-      aiQuestions = [];
-    }
-
-    const questions = mergeRegeneratedQuestions(
-      existingQuestions,
-      aiQuestions,
-      baseQuestions,
+    logTelemetry('info', {
+      provider,
+      model: session.modelId,
+      durationMs: Date.now() - startedAt,
+      success: true,
+      tokens: {
+        prompt: response.usage.promptTokens,
+        completion: response.usage.completionTokens,
+        total: response.usage.totalTokens,
+      },
+    });
+    aiQuestions = normalizeQuestions(
+      parseQuestionsResponse(response.content),
+      args.phaseId,
       range,
     );
-
-    await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {
-      projectId: args.projectId,
-      phaseId: args.phaseId,
-      questions,
+  } catch (err) {
+    console.error('[generateQuestions] AI question generation failed:', err);
+    logTelemetry('warn', {
+      provider,
+      model: 'unknown',
+      success: false,
+      error: `generateQuestions failed: ${err instanceof Error ? err.message : String(err)}`,
     });
+    aiQuestions = [];
+  }
 
-    return { questions };
-  },
+  const questions = mergeRegeneratedQuestions(
+    existingQuestions,
+    aiQuestions,
+    baseQuestions,
+    range,
+  );
+
+  await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {
+    projectId: args.projectId,
+    phaseId: args.phaseId,
+    questions,
+  });
+
+  return { questions };
+}
+
+export const generateQuestions = action({
+  args: { projectId: v.id('projects'), phaseId: v.string() },
+  handler: generateQuestionsHandler,
 });
 
 export interface GrillQuestionItem {
@@ -933,154 +822,68 @@ export const generateGrillRound = action({
       [];
 
     let rawAiQuestions: GrillQuestionItem[] = [];
-    let credentials: ReturnType<typeof resolveCredentials> = null;
+    let provider = 'unknown';
 
     try {
-      const userConfig = await ctx.runAction(
-        internalApi.userConfigActions.getUserConfigInternal,
-        {},
+      const session = await openLlmSession(ctx);
+      provider = session.model.provider;
+      const context = await loadQuestionContext(ctx, project, args.phaseId);
+
+      const currentPhaseAnswers = (phase?.questions || [])
+        .filter((q: { answer?: string }) => q.answer?.trim())
+        .map((q: { text: string; answer?: string }) => `Q: ${q.text}\nA: ${q.answer}`)
+        .join('\n\n');
+      const upstreamAnswers = [context.upstream, currentPhaseAnswers]
+        .filter((block) => block.length > 0)
+        .join('\n\n');
+
+      const priorGrillHistory = grillSession?.rounds
+        ? grillSession.rounds
+            .flatMap((r) => r.questions)
+            .map((q) => ({
+              question: q.text,
+              answer: q.userAnswer || q.recommendedAnswer || '',
+            }))
+            .filter((entry) => entry.answer.length > 0)
+        : [];
+
+      const prompt = buildGrillRoundPrompt({
+        title: project.title,
+        description: context.description,
+        phaseId: args.phaseId,
+        count: countToAsk,
+        upstreamAnswers: upstreamAnswers || undefined,
+        priorGrillHistory,
+      });
+
+      const startedAt = Date.now();
+      const response = await retryWithBackoff(
+        () =>
+          session.client.complete(prompt, {
+            model: session.modelId,
+            maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+            temperature: 0.3,
+          }),
+        { retries: 2, minDelayMs: 500, maxDelayMs: 3000 },
       );
 
-      let systemCredentialsMap: Record<string, SystemCredential>;
-      try {
-        systemCredentialsMap = await ctx.runAction(
-          internalApi.internalActions.getAllDecryptedSystemCredentials,
-          {},
-        );
-      } catch {
-        systemCredentialsMap = {};
-      }
+      logTelemetry('info', {
+        provider,
+        model: session.modelId,
+        durationMs: Date.now() - startedAt,
+        success: true,
+        tokens: {
+          prompt: response.usage.promptTokens,
+          completion: response.usage.completionTokens,
+          total: response.usage.totalTokens,
+        },
+      });
 
-      const enabledModelsFromDb = await ctx.runQuery(
-        internalApi.llmModels.listEnabledModelsInternal,
-      );
-      const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
-
-      credentials = resolveCredentials(
-        userConfig,
-        new Map(Object.entries(systemCredentialsMap || {})),
-        enabledModels,
-      );
-
-      const model = resolveModelForCredentials(
-        credentials,
-        enabledModelsFromDb || [],
-        enabledModels,
-      );
-
-      let providerApiEndpoint: string | null = null;
-      const providerId = credentials?.provider;
-      if (providerId) {
-        try {
-          const providers = await fetchModelDirectory();
-          const provider = providers.find((p) => p.id === providerId);
-          providerApiEndpoint = provider?.api || null;
-        } catch (err) {
-          console.warn(
-            `[generateGrillRound] Failed to fetch provider API endpoint: ${err}`,
-          );
-        }
-      }
-
-      const llmClient = createLlmClient(credentials, providerApiEndpoint);
-      if (llmClient) {
-        const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
-        const upstreamAnswersList: string[] = [];
-
-        if (project.constitutionTemplate?.lockedConstraints) {
-          const constraints = project.constitutionTemplate.lockedConstraints;
-          const constraintParts: string[] = [];
-          if (constraints.architecture) constraintParts.push(`Architecture: ${constraints.architecture}`);
-          if (constraints.stateManagement) constraintParts.push(`State Management: ${constraints.stateManagement}`);
-          if (constraints.apiDesign) constraintParts.push(`API Design: ${constraints.apiDesign}`);
-          if (constraints.securityProtocols?.length) {
-            constraintParts.push(`Security Protocols: ${constraints.securityProtocols.join(', ')}`);
-          }
-          if (constraintParts.length > 0) {
-            upstreamAnswersList.push(`[Constitution Constraints]\n${constraintParts.join('\n')}`);
-          }
-        }
-
-        for (const upstreamPhaseId of upstreamPhaseIds) {
-          const upstreamPhase = await ctx.runQuery(
-            internalApi.internal.getPhaseInternal,
-            { projectId: args.projectId, phaseId: upstreamPhaseId },
-          );
-          if (upstreamPhase?.questions) {
-            const answered = upstreamPhase.questions
-              .filter((q: { answer?: string }) => q.answer?.trim())
-              .map((q: { text: string; answer?: string }) => `Q: [${upstreamPhaseId}] ${q.text}\nA: ${q.answer}`);
-            if (answered.length > 0) {
-              upstreamAnswersList.push(answered.join('\n\n'));
-            }
-          }
-        }
-
-        const currentPhaseAnswers = (phase?.questions || [])
-          .filter((q: { answer?: string }) => q.answer?.trim())
-          .map((q: { text: string; answer?: string }) => `Q: ${q.text}\nA: ${q.answer}`);
-        if (currentPhaseAnswers.length > 0) {
-          upstreamAnswersList.push(currentPhaseAnswers.join('\n\n'));
-        }
-
-        const upstreamAnswers = upstreamAnswersList.join('\n\n');
-
-        const priorGrillHistory = grillSession?.rounds
-          ? grillSession.rounds
-              .flatMap((r) => r.questions)
-              .map((q) => ({
-                question: q.text,
-                answer: q.userAnswer || q.recommendedAnswer || '',
-              }))
-              .filter((entry) => entry.answer.length > 0)
-          : [];
-
-        const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
-        const projectDescription = isEarlyPhase
-          ? project.description
-          : (project.description.length > 3000
-              ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
-              : project.description);
-
-        const prompt = buildGrillRoundPrompt({
-          title: project.title,
-          description: projectDescription,
-          phaseId: args.phaseId,
-          count: countToAsk,
-          upstreamAnswers: upstreamAnswers || undefined,
-          priorGrillHistory,
-        });
-
-        const startedAt = Date.now();
-        const response = await retryWithBackoff(
-          () =>
-            llmClient.complete(prompt, {
-              model: model.id,
-              maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
-              temperature: 0.3,
-            }),
-          { retries: 2, minDelayMs: 500, maxDelayMs: 3000 },
-        );
-        const durationMs = Date.now() - startedAt;
-
-        logTelemetry('info', {
-          provider: credentials?.provider ?? model.provider,
-          model: model.id,
-          durationMs,
-          success: true,
-          tokens: {
-            prompt: response.usage.promptTokens,
-            completion: response.usage.completionTokens,
-            total: response.usage.totalTokens,
-          },
-        });
-
-        rawAiQuestions = parseGrillQuestionsResponse(response.content);
-      }
+      rawAiQuestions = parseGrillQuestionsResponse(response.content);
     } catch (err) {
       console.error('[generateGrillRound] AI grilling round generation failed:', err);
       logTelemetry('warn', {
-        provider: credentials?.provider ?? 'unknown',
+        provider,
         model: 'unknown',
         success: false,
         error: `generateGrillRound failed: ${err instanceof Error ? err.message : String(err)}`,

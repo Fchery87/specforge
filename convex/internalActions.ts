@@ -22,6 +22,7 @@ import {
   sanitizeGeneratedContent,
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
+import { loadQuestionContext } from './lib/question_context';
 import { sectionInstructionsFor } from '../lib/specification/phase-sections';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
 import { answersToAddressForSection } from '../lib/llm/qa-serializer';
@@ -933,6 +934,7 @@ export const generateQuestionsWorker = internalAction({
     try {
       let currentStep = task.currentStep;
       const accumulatedSessionAnswers: string[] = [];
+      const questionContext = await loadQuestionContext(ctx, project, phaseId);
 
       for (let i = currentStep; i < task.totalSteps; i++) {
         const question = plan[i] as { id: string; text: string };
@@ -962,7 +964,7 @@ export const generateQuestionsWorker = internalAction({
 Project Title: ${projectContext.title}
 Project Description: ${projectContext.description}
 
-${allPrevious ? `Previously answered questions in this session:\n${allPrevious}\n\n` : ''}Question: ${question.text}
+${questionContext.upstream ? `Decisions already made in earlier phases. Stay consistent with them:\n${questionContext.upstream}\n\n` : ''}${allPrevious ? `Previously answered questions in this session:\n${allPrevious}\n\n` : ''}Question: ${question.text}
 
 Provide a clear, specific, and actionable answer. Include concrete details (e.g., specific technologies, patterns, metrics) rather than generic guidance. Maintain consistency with any previous answers above. Keep the answer concise (2-4 sentences).`;
 
