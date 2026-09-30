@@ -19,9 +19,14 @@ import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
 import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
-import { PHASE_PURPOSE, sectionIdsFor } from '../../lib/specification/phase-sections';
+import { PHASE_PURPOSE, sectionIdsFor, sectionsFor } from '../../lib/specification/phase-sections';
 import type { PhaseId } from '../../lib/workflow';
-import { newQuestionId } from '../../lib/specification/question-model';
+import {
+  isGrillQuestion,
+  newQuestionId,
+  sanitizeFeeds,
+  type PhaseQuestion,
+} from '../../lib/specification/question-model';
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -141,9 +146,16 @@ export function buildQuestionPrompt(params: {
   range: { min: number; max: number };
   upstreamContext?: string;
   codebaseContext?: string;
+  /** Questions already asked and answered, which the new ones must not repeat. */
+  alreadyAsked?: string[];
 }): string {
   const phaseDesc = PHASE_PURPOSE[params.phaseId as PhaseId] ?? params.phaseId;
-  const sectionsList = sectionIdsFor(params.phaseId).join(', ');
+  const sections = sectionsFor(params.phaseId);
+  const sectionsBlock = sections.length
+    ? `Sections this phase will generate. Every question must inform at least one of them:\n` +
+      sections.map((section) => `- ${section.id}: ${section.description}`).join('\n') +
+      '\n\n'
+    : '';
 
   const upstreamBlock = params.upstreamContext
     ? `Existing Project Decisions & Prior Phase Answers:\n${params.upstreamContext}\n\n`
@@ -153,44 +165,102 @@ export function buildQuestionPrompt(params: {
     ? `Repository & Codebase Context:\n${params.codebaseContext}\n\n`
     : '';
 
+  const askedBlock = params.alreadyAsked?.length
+    ? `Questions already asked and answered for this phase. Do not repeat or rephrase them:\n${params.alreadyAsked.map((text) => `- ${text}`).join('\n')}\n\n`
+    : '';
+
   return (
     `Generate ${params.range.min}-${params.range.max} specific, high-value questions for the "${params.phaseId}" phase.\n\n` +
-    `Phase Purpose: ${phaseDesc}\n` +
-    (sectionsList ? `Sections this phase will generate: ${sectionsList}\n\n` : '\n') +
+    `Phase Purpose: ${phaseDesc}\n\n` +
+    sectionsBlock +
     `Project Title: ${params.title}\n` +
     `Project Description: ${params.description}\n\n` +
     upstreamBlock +
     codebaseBlock +
+    askedBlock +
     `Ask questions whose answers will directly inform the content of the sections listed above. ` +
     `Focus on decisions, constraints, and preferences that the user must clarify before generating each section.\n` +
     `CRITICAL: Do NOT ask questions that have already been definitively answered or decided in the existing project decisions or codebase context above.\n\n` +
-    `For each question, also provide 3-5 selectable suggestion options that represent common answers.\n\n` +
+    `For each question, name the sections it informs in "feeds", using section ids exactly as written above. ` +
+    `Also provide 3-5 selectable suggestion options that represent common answers.\n\n` +
     `Return JSON only in this shape:\n` +
-    `{"questions":[{"text":"...","required":true,"suggestions":["Option A","Option B","Option C"]}]}`
+    `{"questions":[{"text":"...","required":true,"feeds":["section-id"],"suggestions":["Option A","Option B","Option C"]}]}`
   );
 }
 
-export function normalizeQuestions(
-  questions: Array<{ text: string; required?: boolean; suggestions?: string[] }>,
-  phaseId: string,
-  range: { min: number; max: number },
-): Array<{ text: string; required?: boolean; suggestions?: string[] }> {
-  const filtered = questions.filter((q) => q.text?.trim().length);
-  return filtered.slice(0, range.max);
+export interface CandidateQuestion {
+  text: string;
+  required?: boolean;
+  suggestions?: string[];
+  feeds?: string[];
 }
 
-export function selectQuestions(
-  aiQuestions: Array<{ text: string; required?: boolean; suggestions?: string[] }>,
-  baseQuestions: Array<{ text: string; required?: boolean }>,
+export function normalizeQuestions(
+  questions: CandidateQuestion[],
+  phaseId: string,
   range: { min: number; max: number },
-): {
-  questions: Array<{ text: string; required?: boolean; suggestions?: string[] }>;
-  aiGenerated: boolean;
-} {
-  if (aiQuestions.length >= range.min) {
-    return { questions: aiQuestions.slice(0, range.max), aiGenerated: true };
+): CandidateQuestion[] {
+  return questions
+    .filter((q) => q.text?.trim().length)
+    .slice(0, range.max)
+    .map((q) => ({ ...q, feeds: sanitizeFeeds(q.feeds, phaseId) }));
+}
+
+function normalizedText(text: string): string {
+  return text.trim().toLowerCase();
+}
+
+/**
+ * The phase's questions after a regenerate: every answered question stays as it is, and the model's
+ * questions replace only the unanswered ones.
+ *
+ * The generic fallback questions fill a shortfall below the phase minimum and never displace a
+ * question the model wrote. A question already present, answered or not, is not added twice.
+ */
+export function mergeRegeneratedQuestions(
+  existing: PhaseQuestion[],
+  fromModel: CandidateQuestion[],
+  fallback: Array<{ text: string; required?: boolean }>,
+  range: { min: number; max: number },
+): PhaseQuestion[] {
+  const kept = existing.filter((q) => q.answer?.trim());
+  const keptPhaseCount = kept.filter((q) => !isGrillQuestion(q)).length;
+  const taken = new Set(kept.map((q) => normalizedText(q.text)));
+  const room = () => Math.max(0, range.max - keptPhaseCount - added.length);
+  const added: PhaseQuestion[] = [];
+
+  for (const candidate of fromModel) {
+    if (room() === 0) break;
+    if (taken.has(normalizedText(candidate.text))) continue;
+    taken.add(normalizedText(candidate.text));
+    added.push({
+      id: newQuestionId(),
+      text: candidate.text,
+      aiGenerated: true,
+      required: candidate.required ?? false,
+      suggestions: Array.isArray(candidate.suggestions)
+        ? candidate.suggestions.filter((s): s is string => typeof s === 'string')
+        : undefined,
+      source: 'phase',
+      feeds: candidate.feeds ?? [],
+    });
   }
-  return { questions: baseQuestions.slice(0, range.max), aiGenerated: false };
+
+  for (const base of fallback) {
+    if (keptPhaseCount + added.length >= range.min || room() === 0) break;
+    if (taken.has(normalizedText(base.text))) continue;
+    taken.add(normalizedText(base.text));
+    added.push({
+      id: newQuestionId(),
+      text: base.text,
+      aiGenerated: false,
+      required: base.required ?? false,
+      source: 'phase',
+      feeds: [],
+    });
+  }
+
+  return [...kept, ...added];
 }
 
 function parseQuestionsResponse(
@@ -247,8 +317,16 @@ export const generateQuestions = action({
     const baseQuestions =
       PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS['brief'];
 
-    let aiQuestions: Array<{ text: string; required?: boolean }> = [];
-    let aiGenerated = false;
+    const existingPhase = await ctx.runQuery(
+      internalApi.internal.getPhaseInternal,
+      { projectId: args.projectId, phaseId: args.phaseId },
+    );
+    const existingQuestions: PhaseQuestion[] = existingPhase?.questions ?? [];
+    const answeredTexts = existingQuestions
+      .filter((q) => q.answer?.trim())
+      .map((q) => q.text);
+
+    let aiQuestions: CandidateQuestion[] = [];
     let credentials: ReturnType<typeof resolveCredentials> = null;
     try {
       // Resolve credentials for AI question generation
@@ -366,6 +444,7 @@ export const generateQuestions = action({
           range,
           upstreamContext: upstreamContext || undefined,
           codebaseContext,
+          alreadyAsked: answeredTexts,
         });
 
         const telemetryProvider = credentials?.provider ?? model.provider;
@@ -409,19 +488,12 @@ export const generateQuestions = action({
       aiQuestions = [];
     }
 
-    const selection = selectQuestions(aiQuestions, baseQuestions, range);
-    aiGenerated = selection.aiGenerated;
-
-    const questions = selection.questions.map((q, idx) => ({
-      id: newQuestionId(),
-      text: q.text,
-      answer: undefined as string | undefined,
-      aiGenerated,
-      required: q.required ?? false,
-      suggestions: Array.isArray(q.suggestions) ? q.suggestions.filter((s): s is string => typeof s === 'string') : undefined,
-      source: 'phase' as const,
-      feeds: [] as string[],
-    }));
+    const questions = mergeRegeneratedQuestions(
+      existingQuestions,
+      aiQuestions,
+      baseQuestions,
+      range,
+    );
 
     await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {
       projectId: args.projectId,

@@ -1,3 +1,5 @@
+import { sectionIdsFor } from './phase-sections';
+
 /**
  * Who wrote an answer, which decides how generation treats it.
  *
@@ -36,4 +38,41 @@ export function newQuestionId(): string {
       ? crypto.randomUUID().replace(/-/g, '').slice(0, 16)
       : Math.random().toString(36).slice(2, 12).padEnd(10, '0');
   return `q_${random}`;
+}
+
+/** A clarifying question as stored on a phase. */
+export interface PhaseQuestion {
+  id: string;
+  text: string;
+  answer?: string;
+  /** Legacy. Whether the model wrote the question or the answer, depending on when it was set. */
+  aiGenerated: boolean;
+  required?: boolean;
+  suggestions?: string[];
+  selectedSuggestionIndex?: number;
+  source?: QuestionSource;
+  /** Section ids of the phase this question informs. Empty or absent means the whole phase. */
+  feeds?: string[];
+  answerOrigin?: AnswerOrigin;
+}
+
+/**
+ * The section ids a model named that the phase really has, without repeats.
+ *
+ * A name the model invented is dropped instead of trusted, because a question that feeds a section
+ * which is never generated would feed nothing.
+ */
+export function sanitizeFeeds(feeds: unknown, phaseId: string): string[] {
+  if (!Array.isArray(feeds)) return [];
+  const known = new Set(sectionIdsFor(phaseId));
+  const kept: string[] = [];
+  for (const feed of feeds) {
+    if (typeof feed === 'string' && known.has(feed) && !kept.includes(feed)) kept.push(feed);
+  }
+  return kept;
+}
+
+/** Whether a question came from Stress-Test, including ones stored before `source` existed. */
+export function isGrillQuestion(question: Pick<PhaseQuestion, 'id' | 'source'>): boolean {
+  return question.source === 'grill' || question.id.includes('-grill-');
 }

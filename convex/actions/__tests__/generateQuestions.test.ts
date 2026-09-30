@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   buildQuestionPrompt,
+  mergeRegeneratedQuestions,
   normalizeQuestions,
-  selectQuestions,
 } from "../generateQuestions";
 
 describe("generateQuestions helpers", () => {
@@ -41,13 +41,130 @@ describe("generateQuestions helpers", () => {
     expect(result.every((q) => q.text.trim().length > 0)).toBe(true);
   });
 
-  it("selectQuestions falls back when ai questions below min", () => {
-    const base = [{ text: "B1" }, { text: "B2" }];
-    const ai = [{ text: "A1" }];
+  it("buildQuestionPrompt names exactly the phase's registry sections and asks for feeds", () => {
+    const prompt = buildQuestionPrompt({
+      title: "SpecForge",
+      description: "Project description",
+      phaseId: "brief",
+      range: { min: 5, max: 8 },
+    });
 
-    const result = selectQuestions(ai, base, { min: 2, max: 5 });
-    expect(result.questions).toEqual(base);
-    expect(result.aiGenerated).toBe(false);
+    for (const id of ["executive-summary", "problem-and-objectives", "features-and-requirements"]) {
+      expect(prompt).toContain(`- ${id}:`);
+    }
+    expect(prompt).not.toContain("target-audience");
+    expect(prompt).toContain('"feeds":["section-id"]');
+  });
+
+  it("buildQuestionPrompt lists questions already answered so they are not repeated", () => {
+    const prompt = buildQuestionPrompt({
+      title: "SpecForge",
+      description: "Project description",
+      phaseId: "brief",
+      range: { min: 5, max: 8 },
+      alreadyAsked: ["Who is it for?"],
+    });
+
+    expect(prompt).toContain("Do not repeat or rephrase them:\n- Who is it for?");
+  });
+
+  it("normalizeQuestions drops a section id the phase does not have", () => {
+    const brief = normalizeQuestions(
+      [{ text: "Who is it for?", feeds: ["target-audience"] }],
+      "brief",
+      { min: 1, max: 5 },
+    );
+    expect(brief[0].feeds).toEqual([]);
+
+    const specs = normalizeQuestions(
+      [{ text: "Where are the seams?", feeds: ["deep-modules", "nope", "deep-modules"] }],
+      "specs",
+      { min: 1, max: 5 },
+    );
+    expect(specs[0].feeds).toEqual(["deep-modules"]);
+  });
+});
+
+describe("mergeRegeneratedQuestions", () => {
+  const answered = (id: string, text: string, answer: string) => ({
+    id,
+    text,
+    answer,
+    aiGenerated: false,
+    required: true,
+    source: "phase" as const,
+    feeds: [],
+    answerOrigin: "user" as const,
+  });
+  const unanswered = (id: string, text: string) => ({ id, text, aiGenerated: true });
+  const range = { min: 3, max: 5 };
+
+  it("keeps answered questions unchanged and replaces the unanswered ones", () => {
+    const existing = [
+      answered("q_a", "Who is it for?", "Agencies"),
+      unanswered("q_b", "Old question 1"),
+      answered("q_c", "What is the goal?", "Traceable specs"),
+      unanswered("q_d", "Old question 2"),
+      unanswered("q_e", "Old question 3"),
+    ];
+
+    const merged = mergeRegeneratedQuestions(
+      existing as any,
+      [{ text: "New 1" }, { text: "New 2" }, { text: "New 3" }, { text: "New 4" }],
+      [{ text: "Fallback 1" }],
+      range,
+    );
+
+    expect(merged.slice(0, 2)).toEqual([existing[0], existing[2]]);
+    expect(merged.map((q) => q.text)).toEqual([
+      "Who is it for?",
+      "What is the goal?",
+      "New 1",
+      "New 2",
+      "New 3",
+    ]);
+    expect(merged.slice(2).every((q) => q.id.startsWith("q_") && q.aiGenerated)).toBe(true);
+    expect(merged.map((q) => q.id)).not.toContain("q_b");
+  });
+
+  it("fills only the shortfall from the fallback and keeps the model's question first", () => {
+    const merged = mergeRegeneratedQuestions(
+      [],
+      [{ text: "Model question" }],
+      [{ text: "Fallback 1" }, { text: "Fallback 2" }, { text: "Fallback 3" }],
+      range,
+    );
+
+    expect(merged.map((q) => q.text)).toEqual(["Model question", "Fallback 1", "Fallback 2"]);
+    expect(merged.map((q) => q.aiGenerated)).toEqual([true, false, false]);
+  });
+
+  it("never swaps the model's questions for fallback ones when it met the minimum", () => {
+    const merged = mergeRegeneratedQuestions(
+      [],
+      [{ text: "M1" }, { text: "M2" }, { text: "M3" }],
+      [{ text: "Fallback 1" }],
+      range,
+    );
+    expect(merged.map((q) => q.text)).toEqual(["M1", "M2", "M3"]);
+  });
+
+  it("does not add a question twice, and keeps answered Stress-Test questions beyond the range", () => {
+    const grill = { ...answered("q_g", "Grill question", "Answer"), source: "grill" as const };
+    const merged = mergeRegeneratedQuestions(
+      [answered("q_a", "Who is it for?", "Agencies"), grill] as any,
+      [{ text: "who is it for?" }, { text: "M1" }, { text: "M2" }],
+      [],
+      range,
+    );
+
+    expect(merged.map((q) => q.text)).toEqual(["Who is it for?", "Grill question", "M1", "M2"]);
+  });
+
+  it("keeps every answered question when the range is already full", () => {
+    const existing = Array.from({ length: 6 }, (_, i) => answered(`q_${i}`, `Q${i}`, "A"));
+    const merged = mergeRegeneratedQuestions(existing as any, [{ text: "New" }], [], range);
+    expect(merged).toEqual(existing);
   });
 });
 
