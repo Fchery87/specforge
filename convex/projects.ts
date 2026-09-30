@@ -451,7 +451,7 @@ export function computeUpdatedGrillSession(
  */
 export function withStoredGrillCount<S extends { totalQuestionsAsked: number; isComplete: boolean }>(
   session: S,
-  storedQuestions: Array<{ source?: 'phase' | 'grill' }>,
+  storedQuestions: Array<{ source: 'phase' | 'grill' }>,
 ): S {
   const totalQuestionsAsked = storedQuestions.filter(isGrillQuestion).length;
   return { ...session, totalQuestionsAsked, isComplete: totalQuestionsAsked >= 10 };

@@ -61,7 +61,7 @@ import {
   qaPairFromQuestion,
   type QAPair,
 } from '../../lib/llm/qa-serializer';
-import type { AnswerOrigin } from '../../lib/specification/question-model';
+import type { PhaseQuestion } from '../../lib/specification/question-model';
 import {
   getStructuredOutputMode,
   applyStructuredOutput,
@@ -77,15 +77,6 @@ import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
 import { sectionIdsFor } from '../../lib/specification/phase-sections';
 import { descriptionForPhase } from '../../lib/specification/question-context';
 
-interface Question {
-  id: string;
-  text: string;
-  answer?: string;
-  required?: boolean;
-  feeds?: string[];
-  answerOrigin?: AnswerOrigin;
-}
-
 export interface ProjectGenerationContext {
   title: string;
   description: string;
@@ -95,7 +86,7 @@ export interface ProjectGenerationContext {
   liveClaims?: LiveClaim[];
 }
 
-export function hasMissingRequiredAnswers(questions: Question[]): boolean {
+export function hasMissingRequiredAnswers(questions: PhaseQuestion[]): boolean {
   return questions.some((q) => q.required && !q.answer?.trim());
 }
 
@@ -142,7 +133,7 @@ export const generatePhase = action({
     if (!phaseData) throw new Error('Phase not found');
 
     const questions = phaseData.questions || [];
-    const answeredQuestions = questions.filter((q: Question) => q.answer);
+    const answeredQuestions = questions.filter((q: PhaseQuestion) => q.answer);
 
     // Collect upstream phase questions for cross-phase context
     const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
@@ -155,15 +146,15 @@ export const generatePhase = action({
       );
       if (upstreamPhase?.questions) {
         const upstreamAnswered = upstreamPhase.questions
-          .filter((q: Question) => q.answer)
-          .map((q: Question) => qaPairFromQuestion(q, upstreamPhaseId));
+          .filter((q: PhaseQuestion) => q.answer)
+          .map((q: PhaseQuestion) => qaPairFromQuestion(q, upstreamPhaseId));
         upstreamQAPairs.push(...upstreamAnswered);
       }
     }
 
     // Combine: current phase questions + upstream phase questions
     const allQAPairs: QAPair[] = [
-      ...answeredQuestions.map((q: Question) => qaPairFromQuestion(q)),
+      ...answeredQuestions.map((q: PhaseQuestion) => qaPairFromQuestion(q)),
       ...upstreamQAPairs,
     ];
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { backfillQuestions, remapSessionIds } from '../question-backfill';
+import { backfillQuestions, originFromLegacyFlag, remapSessionIds } from '../question-backfill';
 import { answerSourceKey } from '../question-model';
 
 const sequence = () => {
@@ -83,6 +83,14 @@ describe('backfillQuestions', () => {
       sequence(),
     );
     expect(result.questions[0].required).toBe(false);
+  });
+});
+
+describe('originFromLegacyFlag', () => {
+  it('reads the legacy flag as accepted, which keeps the prompt as it is today', () => {
+    expect(originFromLegacyFlag(true)).toBe('accepted');
+    expect(originFromLegacyFlag(false)).toBe('user');
+    expect(originFromLegacyFlag(undefined)).toBeUndefined();
   });
 });
 
