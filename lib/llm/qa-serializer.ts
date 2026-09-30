@@ -114,7 +114,7 @@ export function qaPairFromQuestion(question: PhaseQuestion, upstreamPhaseId?: st
 }
 
 const ASSUMED_HEADING =
-  'Assumed by the assistant, not reviewed by the user. Treat each as a default the document may state, and mark every requirement that depends on one as an assumption:';
+  'Assumed by the assistant, not reviewed by the user. Treat each as a default the document may state. Under a requirement that depends on one, add a line beginning "Assumption:" that says what is assumed, so a reviewer knows what to check. Never write an Assumption line that names nothing:';
 
 /**
  * Formats Q&A pairs for prompt injection, separating what the user decided from what the assistant

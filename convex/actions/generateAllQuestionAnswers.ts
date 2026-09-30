@@ -17,6 +17,7 @@ import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff, sleep } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
+import { replyTokensFor } from '../../lib/llm/reply-tokens';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
 
@@ -197,7 +198,7 @@ async function generateAnswer(params: {
       () =>
         llmClient.complete(params.prompt, {
           model: params.model.id,
-          maxTokens: Math.min(params.model.maxOutputTokens || 2000, 2000),
+          maxTokens: replyTokensFor(params.model),
           temperature: 0.7,
         }),
       { retries: 3, minDelayMs: 500, maxDelayMs: 4000 }

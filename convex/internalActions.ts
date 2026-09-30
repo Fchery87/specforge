@@ -23,6 +23,8 @@ import {
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
 import { loadQuestionContext } from './lib/question_context';
+import { hasReviewedAnswer, type PhaseQuestion } from '../lib/specification/question-model';
+import { replyTokensFor } from '../lib/llm/reply-tokens';
 import { sectionInstructionsFor } from '../lib/specification/phase-sections';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
 import { answersToAddressForSection } from '../lib/llm/qa-serializer';
@@ -937,6 +939,21 @@ export const generateQuestionsWorker = internalAction({
 
       for (let i = currentStep; i < task.totalSteps; i++) {
         const question = plan[i] as { id: string; text: string };
+
+        // An answer a person typed or kept is not the batch's to overwrite.
+        const stored = (
+          await ctx.runQuery(internal.internal.getPhaseInternal, { projectId, phaseId })
+        )?.questions?.find((q: PhaseQuestion) => q.id === question.id);
+        if (stored && hasReviewedAnswer(stored)) {
+          currentStep = i + 1;
+          await ctx.runMutation(internal.internal.updateGenerationTask, {
+            taskId: args.taskId,
+            currentStep,
+            status: currentStep < task.totalSteps ? 'in_progress' : 'completed',
+          });
+          continue;
+        }
+
         let attempts = 0;
         let success = false;
         let lastError;
@@ -969,7 +986,7 @@ Provide a clear, specific, and actionable answer. Include concrete details (e.g.
 
             const response = await llmClient.complete(prompt, {
               model: model.id,
-              maxTokens: Math.min(model.maxOutputTokens || 2000, 2000),
+              maxTokens: replyTokensFor(model),
               temperature: 0.5,
             });
 

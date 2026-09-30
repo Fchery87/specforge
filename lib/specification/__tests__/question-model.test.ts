@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   answersForSection,
+  hasReviewedAnswer,
   feedsLabel,
   evidenceOriginFor,
   isModelWritten,
@@ -69,5 +70,15 @@ describe('feedsLabel', () => {
     expect(feedsLabel('specs', [])).toBe('Feeds the whole document');
     expect(feedsLabel('specs', undefined)).toBe('Feeds the whole document');
     expect(feedsLabel('specs', ['retired-section'])).toBe('Feeds retired-section');
+  });
+});
+
+describe('hasReviewedAnswer', () => {
+  it('is true for an answer the user typed or kept, false for a drafted or empty one', () => {
+    expect(hasReviewedAnswer({ answer: 'Typed', answerOrigin: 'user' })).toBe(true);
+    expect(hasReviewedAnswer({ answer: 'Kept', answerOrigin: 'accepted' })).toBe(true);
+    expect(hasReviewedAnswer({ answer: 'Guess', answerOrigin: 'drafted' })).toBe(false);
+    expect(hasReviewedAnswer({ answer: '   ', answerOrigin: 'user' })).toBe(false);
+    expect(hasReviewedAnswer({ answerOrigin: 'user' })).toBe(false);
   });
 });
