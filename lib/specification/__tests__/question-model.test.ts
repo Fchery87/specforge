@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   answersForSection,
+  feedsLabel,
   evidenceOriginFor,
   isModelWritten,
   newQuestionId,
@@ -63,5 +64,17 @@ describe('sanitizeFeeds', () => {
     expect(sanitizeFeeds(['deep-modules', 'nope', 'deep-modules', 3], 'specs')).toEqual(['deep-modules']);
     expect(sanitizeFeeds('deep-modules', 'specs')).toEqual([]);
     expect(sanitizeFeeds(['deep-modules'], 'no-such-phase')).toEqual([]);
+  });
+});
+
+describe('feedsLabel', () => {
+  it('names the sections a question feeds by title', () => {
+    expect(feedsLabel('specs', ['deep-modules', 'test-seams'])).toBe('Feeds Deep Module Interfaces, Explicit Test Seams');
+  });
+
+  it('says the whole document when a question names no section, and keeps an unknown id readable', () => {
+    expect(feedsLabel('specs', [])).toBe('Feeds the whole document');
+    expect(feedsLabel('specs', undefined)).toBe('Feeds the whole document');
+    expect(feedsLabel('specs', ['retired-section'])).toBe('Feeds retired-section');
   });
 });

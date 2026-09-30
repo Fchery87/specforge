@@ -1,4 +1,4 @@
-import { sectionIdsFor } from './phase-sections';
+import { sectionIdsFor, sectionsFor } from './phase-sections';
 
 /**
  * Who wrote an answer, which decides how generation treats it.
@@ -98,4 +98,15 @@ export function answersForSection<T extends { answer?: string; feeds?: readonly 
       Boolean(question.answer?.trim()) &&
       (!question.feeds?.length || question.feeds.includes(sectionId)),
   );
+}
+
+/**
+ * The line under a question that says what it is for: the titles of the sections it feeds, or that
+ * it feeds the whole document when it names none.
+ */
+export function feedsLabel(phaseId: string, feeds: readonly string[] | undefined): string {
+  if (!feeds?.length) return 'Feeds the whole document';
+  const titles = sectionsFor(phaseId);
+  const named = feeds.map((id) => titles.find((section) => section.id === id)?.title ?? id);
+  return `Feeds ${named.join(', ')}`;
 }

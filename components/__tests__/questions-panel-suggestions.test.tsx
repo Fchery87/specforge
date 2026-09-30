@@ -161,3 +161,69 @@ describe("QuestionsPanel suggestion chips", () => {
     expect((textarea as HTMLTextAreaElement).value).toBe("");
   });
 });
+
+describe("QuestionsPanel feeds and assumed answers", () => {
+  const drafted = {
+    ...baseQuestion,
+    id: "q_drafted",
+    text: "What is the retention period?",
+    answer: "One year",
+    aiGenerated: true,
+    answerOrigin: "drafted" as const,
+    feeds: ["problem-and-objectives"],
+  };
+
+  test("names the sections a question feeds under it", () => {
+    render(
+      <QuestionsPanel
+        projectId="proj1"
+        phaseId="brief"
+        questions={[drafted, { ...baseQuestion, id: "q_open", text: "Any limits?", feeds: [] }]}
+      />
+    );
+    expect(screen.getByText("Feeds Problem & Objectives")).toBeInTheDocument();
+    expect(screen.getByText("Feeds the whole document")).toBeInTheDocument();
+  });
+
+  test("marks a drafted answer as assumed, and Keep saves it as accepted", async () => {
+    mockSaveAnswer.mockClear();
+    render(<QuestionsPanel projectId="proj1" phaseId="brief" questions={[drafted]} />);
+
+    expect(screen.getByText(/Assumed\. The assistant wrote this/)).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Keep/i }));
+    });
+
+    expect(screen.queryByText(/Assumed\. The assistant wrote this/)).not.toBeInTheDocument();
+    expect(mockSaveAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionId: "q_drafted",
+        answer: "One year",
+        aiGenerated: true,
+        answerOrigin: "accepted",
+      }),
+    );
+  });
+
+  test("editing a drafted answer clears the assumed marker", async () => {
+    render(<QuestionsPanel projectId="proj1" phaseId="brief" questions={[drafted]} />);
+
+    const textarea = screen.getByPlaceholderText("Enter your answer...");
+    await act(async () => {
+      fireEvent.change(textarea, { target: { value: "Two years" } });
+    });
+
+    expect(screen.queryByText(/Assumed\. The assistant wrote this/)).not.toBeInTheDocument();
+  });
+
+  test("shows no assumed marker on an answer the user gave", () => {
+    render(
+      <QuestionsPanel
+        projectId="proj1"
+        phaseId="brief"
+        questions={[{ ...drafted, answerOrigin: "user" as const, aiGenerated: false }]}
+      />
+    );
+    expect(screen.queryByText(/Assumed\./)).not.toBeInTheDocument();
+  });
+});

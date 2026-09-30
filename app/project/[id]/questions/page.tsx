@@ -64,6 +64,7 @@ export default function CombinedQuestionsPage() {
               questionId: item.questionId,
               answer: item.answer,
               aiGenerated: item.aiGenerated,
+              answerOrigin: item.answerOrigin,
             })
           )
         );

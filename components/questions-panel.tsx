@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { GenerationControls } from "@/components/generation-controls";
 import { QuestionRow } from "@/components/question-row";
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import { feedsLabel, type AnswerOrigin } from "@/lib/specification/question-model";
 
 type Question = {
   id: string;
@@ -27,6 +28,8 @@ type Question = {
   required?: boolean;
   suggestions?: string[];
   selectedSuggestionIndex?: number;
+  feeds?: string[];
+  answerOrigin?: AnswerOrigin;
 };
 
 interface QuestionsPanelProps {
@@ -72,6 +75,7 @@ export function QuestionsPanel({
   const [questionSuggestions, setQuestionSuggestions] = useState<Record<string, string[]>>({});
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isStressTestOpen, setIsStressTestOpen] = useState(false);
+  const [keptIds, setKeptIds] = useState<Set<string>>(() => new Set());
   const [isBatchStarting, setIsBatchStarting] = useState(false);
   const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -150,6 +154,7 @@ export function QuestionsPanel({
     value: string,
     aiGenerated?: boolean,
     selectedSuggestionIndex?: number,
+    answerOrigin?: AnswerOrigin,
   ) => {
     setSavingId(questionId);
     try {
@@ -159,6 +164,7 @@ export function QuestionsPanel({
         questionId,
         answer: value,
         aiGenerated,
+        answerOrigin,
         selectedSuggestionIndex,
       });
       setSavedId(questionId);
@@ -307,6 +313,13 @@ export function QuestionsPanel({
     await handleSaveAnswer(questionId, staged, true, selectedIdx);
   }, [stagedSuggestions, questionSuggestions, questions, handleSaveAnswer]);
 
+  const handleKeepAssumed = useCallback(async (questionId: string) => {
+    const answer = localAnswers[questionId];
+    if (!answer?.trim()) return;
+    setKeptIds(prev => new Set(prev).add(questionId));
+    await handleSaveAnswer(questionId, answer, true, localSelectedSuggestions[questionId], "accepted");
+  }, [localAnswers, localSelectedSuggestions, handleSaveAnswer]);
+
   const handleDismissStaged = useCallback((questionId: string) => {
     setStagedSuggestions(prev => {
       const next = { ...prev };
@@ -362,6 +375,9 @@ export function QuestionsPanel({
   }
 
   const getAnswerForQuestion = (q: Question) => localAnswers[q.id] ?? q.answer ?? "";
+  // An answer stays assumed until the user keeps it or edits it. An edit clears the local AI flag.
+  const isAssumed = (q: Question) =>
+    q.answerOrigin === "drafted" && !keptIds.has(q.id) && (localAiGenerated[q.id] ?? true);
   const getAiGeneratedForQuestion = (q: Question) =>
     localAiGenerated[q.id] ?? q.aiGenerated ?? false;
 
@@ -457,6 +473,8 @@ export function QuestionsPanel({
                 suggestions={questionSuggestions[question.id] ?? question.suggestions ?? []}
                 selectedSuggestionIndex={localSelectedSuggestions[question.id] ?? question.selectedSuggestionIndex}
                 stagedAnswer={stagedSuggestions[question.id] ?? null}
+                feedsLabel={feedsLabel(phaseId, question.feeds)}
+                assumed={isAssumed(question)}
                 isPhaseGenerating={isGenerating}
                 maxLength={2000}
                 onAnswerChange={handleAnswerChange}
@@ -464,6 +482,7 @@ export function QuestionsPanel({
                 onSuggestionSelect={handleSuggestionSelect}
                 onAcceptStaged={handleAcceptStaged}
                 onDismissStaged={handleDismissStaged}
+                onKeepAssumed={handleKeepAssumed}
               />
             ))}
           </div>
