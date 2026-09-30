@@ -92,6 +92,30 @@ describe("answer origin", () => {
   });
 });
 
+describe("withStoredGrillCount", () => {
+  it("counts the Stress-Test questions that are stored, including ones stored before source existed", async () => {
+    const { withStoredGrillCount } = await import("../projects");
+    const session = { totalQuestionsAsked: 6, currentRound: 2, isComplete: false, rounds: [] };
+    const stored = [
+      { id: "q_a" },
+      { id: "q_g1", source: "grill" as const },
+      { id: "specs-grill-r1-q1" },
+    ];
+    expect(withStoredGrillCount(session, stored)).toEqual({
+      totalQuestionsAsked: 2,
+      currentRound: 2,
+      isComplete: false,
+      rounds: [],
+    });
+  });
+
+  it("completes the session at ten stored questions", async () => {
+    const { withStoredGrillCount } = await import("../projects");
+    const stored = Array.from({ length: 10 }, (_, i) => ({ id: `q_${i}`, source: "grill" as const }));
+    expect(withStoredGrillCount({ totalQuestionsAsked: 0, isComplete: false }, stored).isComplete).toBe(true);
+  });
+});
+
 describe("getNextUpdatedAt", () => {
   it("returns now when now is newer than current", () => {
     expect(getNextUpdatedAt(1000, 2000)).toBe(2000);

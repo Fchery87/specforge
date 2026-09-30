@@ -398,6 +398,7 @@ export interface GrillQuestionItem {
   text: string;
   recommendedAnswer?: string;
   suggestions?: string[];
+  feeds?: string[];
 }
 
 export const GRILL_FALLBACK_QUESTIONS: Record<string, GrillQuestionItem[]> = {
@@ -594,11 +595,15 @@ export function buildGrillRoundPrompt(params: {
     `GOAL:\n` +
     `Ask exactly ${params.count} challenging, architectural questions that pressure-test assumptions, failure modes, data invariants, and ambiguous boundaries for this phase.\n` +
     `Do NOT ask generic or repetitive questions. Build on prior answers if any exist.\n\n` +
-    `CRITICAL REQUIREMENT:\n` +
-    `For EVERY question, you MUST provide a concrete, opinionated "recommendedAnswer" adhering to 2026 production-grade standards (e.g., deep interfaces, explicit test seams, idempotent mutations, tracer bullets, exponential backoff, ubiquitous language) so the user can accept it with one click.\n` +
-    `Also provide 2-3 selectable alternative suggestions.\n\n` +
-    `Return JSON ONLY in this format:\n` +
-    `{"questions": [{"text": "...", "recommendedAnswer": "...", "suggestions": ["Option A", "Option B", "Option C"]}]}`
+    `RECOMMENDATIONS:\n` +
+    `Give every question a concrete "recommendedAnswer" the user could accept with one click. Base it on this project's own rules, requirements and earlier answers above, and on what its description says it needs. ` +
+    `Do not import a fixed house style. If nothing in the project supports a recommendation, omit "recommendedAnswer" and give 2-4 distinct options in "suggestions" so the user chooses.\n` +
+    `Also provide 2-3 selectable alternative suggestions when you recommend an answer.\n` +
+    (sectionsList
+      ? `Name the sections each question informs in "feeds", using these ids exactly as written: ${sectionsList}.\n`
+      : '') +
+    `\nReturn JSON ONLY in this format:\n` +
+    `{"questions": [{"text": "...", "recommendedAnswer": "...", "feeds": ["section-id"], "suggestions": ["Option A", "Option B", "Option C"]}]}`
   );
 }
 
@@ -644,10 +649,14 @@ function mapToGrillItem(rawItem: unknown): GrillQuestionItem | null {
   if (!text) return null;
   const recommendedAnswer = extractGrillRecommendation(obj);
   const suggestions = extractGrillSuggestions(obj);
+  const feeds = Array.isArray(obj.feeds)
+    ? obj.feeds.filter((feed): feed is string => typeof feed === 'string')
+    : undefined;
   return {
     text,
     recommendedAnswer,
     suggestions,
+    feeds,
   };
 }
 
@@ -710,10 +719,18 @@ export function parseGrillQuestionsResponse(raw: string): GrillQuestionItem[] {
   return [];
 }
 
+/**
+ * The questions to ask this round: the model's, then fallback questions to reach `count`.
+ *
+ * A question keeps exactly the recommendation the model gave it. None is invented from an option or
+ * borrowed from another question, because a recommendation the user can accept with one click has to
+ * be one the project supports.
+ */
 export function normalizeGrillQuestions(
   questions: GrillQuestionItem[],
   fallback: GrillQuestionItem[],
   count: number,
+  phaseId: string,
 ): GrillQuestionItem[] {
   const valid = questions.filter((q) => q.text?.trim().length > 0);
   const merged = [...valid];
@@ -724,27 +741,12 @@ export function normalizeGrillQuestions(
     }
   }
 
-  return merged.slice(0, count).map((item, idx) => {
-    const fallbackItem = fallback[idx % (fallback.length || 1)];
-    let rec = item.recommendedAnswer?.trim();
-    if (!rec && item.suggestions && item.suggestions.length > 0) {
-      rec = item.suggestions[0];
-    }
-    if (!rec) {
-      rec = fallbackItem?.recommendedAnswer || "Standard production practice";
-    }
-
-    let suggestions = item.suggestions;
-    if (!suggestions || suggestions.length === 0) {
-      suggestions = fallbackItem?.suggestions || [rec];
-    }
-
-    return {
-      text: item.text.trim(),
-      recommendedAnswer: rec,
-      suggestions,
-    };
-  });
+  return merged.slice(0, count).map((item) => ({
+    text: item.text.trim(),
+    recommendedAnswer: item.recommendedAnswer?.trim() || undefined,
+    suggestions: item.suggestions?.length ? item.suggestions : undefined,
+    feeds: sanitizeFeeds(item.feeds, phaseId),
+  }));
 }
 
 export interface GeneratedGrillQuestion {
@@ -753,6 +755,7 @@ export interface GeneratedGrillQuestion {
   answer?: string;
   recommendedAnswer?: string;
   suggestions?: string[];
+  feeds: string[];
   grillRound: number;
   aiGenerated: boolean;
   required: boolean;
@@ -816,10 +819,7 @@ export const generateGrillRound = action({
     }
 
     const countToAsk = Math.min(remaining, 3);
-    const fallbackList =
-      GRILL_FALLBACK_QUESTIONS[args.phaseId] ||
-      GRILL_FALLBACK_QUESTIONS['specs'] ||
-      [];
+    const fallbackList = GRILL_FALLBACK_QUESTIONS[args.phaseId] ?? [];
 
     let rawAiQuestions: GrillQuestionItem[] = [];
     let provider = 'unknown';
@@ -895,6 +895,7 @@ export const generateGrillRound = action({
       rawAiQuestions,
       fallbackList,
       countToAsk,
+      args.phaseId,
     );
 
     const questions = normalized.map((q, idx) => ({
@@ -903,6 +904,7 @@ export const generateGrillRound = action({
       answer: undefined as string | undefined,
       recommendedAnswer: q.recommendedAnswer,
       suggestions: q.suggestions,
+      feeds: q.feeds ?? [],
       grillRound: currentRound,
       aiGenerated: true,
       required: false,

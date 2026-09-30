@@ -232,18 +232,73 @@ describe("grill-me helpers", () => {
     expect(parsed[0].suggestions?.length).toBe(3);
   });
 
-  it("normalizeGrillQuestions guarantees recommendedAnswer and suggestions", async () => {
+  it("normalizeGrillQuestions never invents a recommendation for the model's question", async () => {
     const { normalizeGrillQuestions, GRILL_FALLBACK_QUESTIONS } = await import(
       "../generateQuestions"
     );
-    // Question with missing recommendedAnswer and missing suggestions
-    const ai = [{ text: "Bare Question" }];
     const fallback = GRILL_FALLBACK_QUESTIONS.specs;
 
-    const normalized = normalizeGrillQuestions(ai, fallback, 2);
-    expect(normalized.length).toBe(2);
-    expect(normalized[0].text).toBe("Bare Question");
-    expect(normalized[0].recommendedAnswer).toBeTruthy();
-    expect(normalized[0].suggestions && normalized[0].suggestions.length > 0).toBe(true);
+    const normalized = normalizeGrillQuestions(
+      [
+        { text: "Bare Question" },
+        { text: "Options only", suggestions: ["Option A", "Option B"] },
+      ],
+      fallback,
+      2,
+      "specs",
+    );
+
+    expect(normalized).toEqual([
+      { text: "Bare Question", recommendedAnswer: undefined, suggestions: undefined, feeds: [] },
+      {
+        text: "Options only",
+        recommendedAnswer: undefined,
+        suggestions: ["Option A", "Option B"],
+        feeds: [],
+      },
+    ]);
+  });
+
+  it("normalizeGrillQuestions keeps a fallback question's own recommendation and drops unknown feeds", async () => {
+    const { normalizeGrillQuestions, GRILL_FALLBACK_QUESTIONS } = await import(
+      "../generateQuestions"
+    );
+    const fallback = GRILL_FALLBACK_QUESTIONS.specs;
+
+    const normalized = normalizeGrillQuestions(
+      [{ text: "Where are the seams?", recommendedAnswer: " Inject I/O. ", feeds: ["test-seams", "nope"] }],
+      fallback,
+      2,
+      "specs",
+    );
+
+    expect(normalized[0]).toMatchObject({ recommendedAnswer: "Inject I/O.", feeds: ["test-seams"] });
+    expect(normalized[1].text).toBe(fallback[0].text);
+    expect(normalized[1].recommendedAnswer).toBe(fallback[0].recommendedAnswer);
+  });
+
+  it("a phase with no fallback list gets no fallback questions", async () => {
+    const { normalizeGrillQuestions, GRILL_FALLBACK_QUESTIONS } = await import(
+      "../generateQuestions"
+    );
+    expect(GRILL_FALLBACK_QUESTIONS["made-up-phase"]).toBeUndefined();
+    expect(normalizeGrillQuestions([], GRILL_FALLBACK_QUESTIONS["made-up-phase"] ?? [], 3, "made-up-phase")).toEqual([]);
+  });
+
+  it("buildGrillRoundPrompt asks for project-based recommendations and feeds, not a house style", async () => {
+    const { buildGrillRoundPrompt } = await import("../generateQuestions");
+    const prompt = buildGrillRoundPrompt({
+      title: "SpecForge",
+      description: "AI specification system",
+      phaseId: "specs",
+      count: 3,
+    });
+
+    expect(prompt).not.toContain("2026");
+    expect(prompt).not.toContain("tracer bullets");
+    expect(prompt).toContain("Base it on this project's own rules");
+    expect(prompt).toContain("omit \"recommendedAnswer\"");
+    expect(prompt).toContain("architecture-overview, deep-modules, test-seams, data-models-and-api, deployment-and-security");
+    expect(prompt).toContain('"feeds": ["section-id"]');
   });
 });

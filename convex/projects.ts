@@ -10,6 +10,7 @@ import { answerOriginValidator, phaseQuestionValidator } from './lib/question_va
 import {
   evidenceOriginFor,
   originFromLegacyFlag,
+  isGrillQuestion,
   type AnswerOrigin,
 } from '../lib/specification/question-model';
 import { PHASE_ORDER, MODE_POLICIES, type ProjectMode } from '../lib/workflow';
@@ -351,6 +352,7 @@ export function mergeGrillAnswersIntoQuestions<
     questionText: string;
     answer: string;
     acceptedRecommendation?: boolean;
+    feeds?: string[];
     options?: string[];
   }>,
 ): T[] {
@@ -373,7 +375,7 @@ export function mergeGrillAnswersIntoQuestions<
         required: false,
         suggestions: item.options,
         source: 'grill',
-        feeds: [],
+        feeds: item.feeds ?? [],
         answerOrigin,
       } as unknown as T);
     }
@@ -448,6 +450,18 @@ export function computeUpdatedGrillSession(
   };
 }
 
+/**
+ * The session with its count read from the questions actually stored, so the badge cannot disagree
+ * with what is kept.
+ */
+export function withStoredGrillCount<S extends { totalQuestionsAsked: number; isComplete: boolean }>(
+  session: S,
+  storedQuestions: Array<{ id: string; source?: 'phase' | 'grill' }>,
+): S {
+  const totalQuestionsAsked = storedQuestions.filter(isGrillQuestion).length;
+  return { ...session, totalQuestionsAsked, isComplete: totalQuestionsAsked >= 10 };
+}
+
 export const saveGrillAnswers = mutation({
   args: {
     projectId: v.id('projects'),
@@ -459,6 +473,7 @@ export const saveGrillAnswers = mutation({
         answer: v.string(),
         recommendedAnswer: v.optional(v.string()),
         acceptedRecommendation: v.optional(v.boolean()),
+        feeds: v.optional(v.array(v.string())),
         options: v.optional(v.array(v.string())),
         category: v.optional(v.string()),
         round: v.number(),
@@ -486,9 +501,9 @@ export const saveGrillAnswers = mutation({
       args.answers,
     );
 
-    const updatedSession = computeUpdatedGrillSession(
-      phase.grillSession,
-      args.answers,
+    const updatedSession = withStoredGrillCount(
+      computeUpdatedGrillSession(phase.grillSession, args.answers),
+      updatedQuestions,
     );
 
     const now = Date.now();
@@ -540,7 +555,7 @@ export const resetGrillSession = mutation({
     if (!phase) throw new Error('Phase not found');
 
     const nonGrillQuestions = (phase.questions || []).filter(
-      (q) => q.source !== 'grill' && !q.id.includes('-grill-'),
+      (q) => !isGrillQuestion(q),
     );
 
     await ctx.db.patch(phase._id, {
