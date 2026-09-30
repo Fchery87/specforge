@@ -110,3 +110,11 @@ export function feedsLabel(phaseId: string, feeds: readonly string[] | undefined
   const named = feeds.map((id) => titles.find((section) => section.id === id)?.title ?? id);
   return `Feeds ${named.join(', ')}`;
 }
+
+/**
+ * The evidence source an answer is filed under. The one definition: the answer writers file under it
+ * and the backfill re-keys by it, so the two cannot disagree about what a question's history is.
+ */
+export function answerSourceKey(phaseId: string, questionId: string): string {
+  return `answer:${phaseId}:${questionId}`;
+}

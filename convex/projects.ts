@@ -8,6 +8,7 @@ import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource } from './lib/evidence';
 import { answerOriginValidator, phaseQuestionValidator } from './lib/question_validators';
 import {
+  answerSourceKey,
   evidenceOriginFor,
   originFromLegacyFlag,
   isGrillQuestion,
@@ -317,7 +318,7 @@ export const saveAnswer = mutation({
     if (args.answer.trim()) {
       await captureEvidenceSource(ctx, {
         projectId: args.projectId,
-        sourceKey: `answer:${args.phaseId}:${args.questionId}`,
+        sourceKey: answerSourceKey(args.phaseId, args.questionId),
         kind: 'answer',
         locator: `${args.phaseId}/${args.questionId}`,
         revisionLabel: `Answer in ${args.phaseId}`,
@@ -515,7 +516,7 @@ export const saveGrillAnswers = mutation({
       if (!answer.answer.trim()) continue;
       await captureEvidenceSource(ctx, {
         projectId: args.projectId,
-        sourceKey: `answer:${args.phaseId}:${answer.questionId}`,
+        sourceKey: answerSourceKey(args.phaseId, answer.questionId),
         kind: 'answer',
         locator: `${args.phaseId}/${answer.questionId}`,
         revisionLabel: `Grilling answer in ${args.phaseId}`,

@@ -11,7 +11,11 @@ import {
   grillSessionValidator,
   phaseQuestionValidator,
 } from './lib/question_validators';
-import { evidenceOriginFor, originFromLegacyFlag } from '../lib/specification/question-model';
+import {
+  answerSourceKey,
+  evidenceOriginFor,
+  originFromLegacyFlag,
+} from '../lib/specification/question-model';
 import { artifactSectionValidator, acceptanceCriteriaQualityValidator, verificationResultFields } from './schema';
 
 export function filterArtifactsByPhase<
@@ -813,7 +817,7 @@ export const saveAnswerInternal = internalMutation({
     if (args.answer.trim()) {
       await captureEvidenceSource(ctx, {
         projectId: args.projectId,
-        sourceKey: `answer:${args.phaseId}:${args.questionId}`,
+        sourceKey: answerSourceKey(args.phaseId, args.questionId),
         kind: 'answer',
         locator: `${args.phaseId}/${args.questionId}`,
         revisionLabel: `Answer in ${args.phaseId}`,
