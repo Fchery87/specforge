@@ -15,6 +15,7 @@
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
 | 8. Pull-request verification | Complete | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
 | 9. Agent connection over MCP | On hold: spec written, no plan or code until resumed | [Agent connection over MCP](specs/2026-09-28-agent-connection.md) | - |
+| 10. Clarifying questions | Active: spec written, no plan yet | [Clarifying questions](specs/2026-09-29-clarifying-questions.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -86,11 +87,17 @@ of a finished plan. One follow-up is open: the pull request picker and cited sco
 against GitHub, because no GitHub OAuth app is registered for the deployments; the same gap blocks
 phase 1's walkthrough.
 
+Phase 10 makes the answers to each phase's clarifying questions reach the sections they are about.
+A phase's sections were defined in five tables that had drifted apart, so the question prompt named
+sections that are never generated and answers reached a section by keyword. The spec replaces the
+five tables with one registry, has each question name the sections it feeds, keeps answers across
+Regenerate under stable IDs, and separates what the user decided from what the model assumed.
+
 ## Later phases
 
-Each later phase gets its own spec when the phase before it exits. Phase 10 has no spec yet.
+Each later phase gets its own spec when the phase before it exits. Phase 11 has no spec yet.
 
-10. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`. Deferred by phase 6: the project sidebar puts every phase one click away, so this waits until readers show they still need it.
+11. Jump-to palette. One keyboard entry point for clauses, phases and claims, as shown in `design/prototypes/brand-directions.html`. Deferred by phase 6: the project sidebar puts every phase one click away, so this waits until readers show they still need it.
 
 ## Historical plan index
 
