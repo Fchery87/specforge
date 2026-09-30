@@ -58,7 +58,10 @@ import {
   serializeQAPairs,
   formatQAForPrompt,
   deserializeQAPairs,
+  qaPairFromQuestion,
+  type QAPair,
 } from '../../lib/llm/qa-serializer';
+import type { AnswerOrigin } from '../../lib/specification/question-model';
 import {
   getStructuredOutputMode,
   applyStructuredOutput,
@@ -79,6 +82,8 @@ interface Question {
   answer?: string;
   aiGenerated: boolean;
   required?: boolean;
+  feeds?: string[];
+  answerOrigin?: AnswerOrigin;
 }
 
 export interface ProjectGenerationContext {
@@ -141,7 +146,7 @@ export const generatePhase = action({
 
     // Collect upstream phase questions for cross-phase context
     const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
-    const upstreamQAPairs: Array<{ question: string; answer: string }> = [];
+    const upstreamQAPairs: QAPair[] = [];
 
     for (const upstreamPhaseId of upstreamPhaseIds) {
       const upstreamPhase = await ctx.runQuery(
@@ -151,20 +156,14 @@ export const generatePhase = action({
       if (upstreamPhase?.questions) {
         const upstreamAnswered = upstreamPhase.questions
           .filter((q: Question) => q.answer)
-          .map((q: Question) => ({
-            question: `[${upstreamPhaseId}] ${q.text}`,
-            answer: q.answer || '',
-          }));
+          .map((q: Question) => qaPairFromQuestion(q, upstreamPhaseId));
         upstreamQAPairs.push(...upstreamAnswered);
       }
     }
 
     // Combine: current phase questions + upstream phase questions
-    const allQAPairs = [
-      ...answeredQuestions.map((q: Question) => ({
-        question: q.text,
-        answer: q.answer || '',
-      })),
+    const allQAPairs: QAPair[] = [
+      ...answeredQuestions.map((q: Question) => qaPairFromQuestion(q)),
       ...upstreamQAPairs,
     ];
 

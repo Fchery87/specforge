@@ -6,6 +6,7 @@ import {
   sanitizeGeneratedContent,
   buildSectionPrompts,
 } from '../generatePhase';
+import { serializeQAPairs } from '../../../lib/llm/qa-serializer';
 import { sectionInstructionsFor } from '../../../lib/specification/phase-sections';
 import {
   DESIGN_PROMPT,
@@ -191,6 +192,34 @@ describe('buildSectionPrompts and technical contracts', () => {
 
     expect(systemPrompt).toContain('- **REQ-0012** A team owner invites members by email.');
     expect(systemPrompt).toContain('Keep the ID even if you change the wording.');
+  });
+
+  it('separates what the user decided from what the assistant assumed', () => {
+    const { systemPrompt } = buildSectionPrompts({
+      projectContext: {
+        title: 'Ledger',
+        description: 'A shared ledger',
+        questions: serializeQAPairs([
+          { question: 'Who signs in?', answer: 'Team owners', origin: 'user' },
+          { question: 'Which database?', answer: 'Postgres', origin: 'accepted' },
+          { question: 'What is the retention period?', answer: 'One year', origin: 'drafted' },
+        ]),
+      },
+      sectionName: 'requirements',
+      sectionQuestions: [],
+      previousSections: [],
+      phaseId: 'prd',
+    });
+
+    const decided = systemPrompt.indexOf('Decided by the user:');
+    const assumed = systemPrompt.indexOf('Assumed by the assistant, not reviewed by the user.');
+    expect(decided).toBeGreaterThan(-1);
+    expect(assumed).toBeGreaterThan(decided);
+    const decidedBlock = systemPrompt.slice(decided, assumed);
+    expect(decidedBlock).toContain('Q: Who signs in?\nA: Team owners');
+    expect(decidedBlock).toContain('Q: Which database?\nA: Postgres');
+    expect(decidedBlock).not.toContain('retention');
+    expect(systemPrompt.slice(assumed)).toContain('Q: What is the retention period?\nA: One year');
   });
 
   it('leaves the ID rule out when the phase has no requirements yet', () => {

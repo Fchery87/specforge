@@ -76,3 +76,26 @@ export function sanitizeFeeds(feeds: unknown, phaseId: string): string[] {
 export function isGrillQuestion(question: Pick<PhaseQuestion, 'id' | 'source'>): boolean {
   return question.source === 'grill' || question.id.includes('-grill-');
 }
+
+/**
+ * The id of the section a plan entry belongs to. A section split for a small output budget is named
+ * `<id>-part-<n>`, and its answers are the parent section's.
+ */
+export function sectionIdOfPlanEntry(name: string): string {
+  return name.replace(/-part-\d+$/, '');
+}
+
+/**
+ * The answered questions that inform one section: those that name it, and those that name no section
+ * and so inform the whole phase. A question aimed at another section is left out.
+ */
+export function answersForSection<T extends { answer?: string; feeds?: readonly string[] }>(
+  questions: readonly T[],
+  sectionId: string,
+): T[] {
+  return questions.filter(
+    (question) =>
+      Boolean(question.answer?.trim()) &&
+      (!question.feeds?.length || question.feeds.includes(sectionId)),
+  );
+}

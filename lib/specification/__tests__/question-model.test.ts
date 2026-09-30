@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  answersForSection,
   evidenceOriginFor,
   isModelWritten,
   newQuestionId,
   originFromLegacyFlag,
+  sanitizeFeeds,
+  sectionIdOfPlanEntry,
 } from '../question-model';
 
 describe('answer origin', () => {
@@ -32,5 +35,33 @@ describe('newQuestionId', () => {
     const ids = Array.from({ length: 200 }, () => newQuestionId());
     expect(new Set(ids).size).toBe(200);
     for (const id of ids) expect(id).toMatch(/^q_[a-z0-9]{10,16}$/);
+  });
+});
+
+describe('answersForSection', () => {
+  it('returns the answered questions aimed at the section and those aimed at none', () => {
+    const questions = [
+      { id: 'a', answer: 'x', feeds: ['deep-modules'] },
+      { id: 'b', answer: 'x', feeds: ['test-seams'] },
+      { id: 'c', answer: 'x', feeds: [] },
+      { id: 'd', feeds: ['deep-modules'] },
+      { id: 'e', answer: '  ', feeds: ['deep-modules'] },
+    ];
+    expect(answersForSection(questions, 'deep-modules').map((q) => q.id)).toEqual(['a', 'c']);
+  });
+});
+
+describe('sectionIdOfPlanEntry', () => {
+  it('strips the part suffix of a split section and nothing else', () => {
+    expect(sectionIdOfPlanEntry('test-seams-part-2')).toBe('test-seams');
+    expect(sectionIdOfPlanEntry('deep-modules')).toBe('deep-modules');
+  });
+});
+
+describe('sanitizeFeeds', () => {
+  it('keeps real section ids once each and drops the rest', () => {
+    expect(sanitizeFeeds(['deep-modules', 'nope', 'deep-modules', 3], 'specs')).toEqual(['deep-modules']);
+    expect(sanitizeFeeds('deep-modules', 'specs')).toEqual([]);
+    expect(sanitizeFeeds(['deep-modules'], 'no-such-phase')).toEqual([]);
   });
 });
