@@ -21,6 +21,7 @@ import { fetchModelDirectory } from '../../lib/llm/model-directory';
 import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
 import { PHASE_PURPOSE, sectionIdsFor } from '../../lib/specification/phase-sections';
 import type { PhaseId } from '../../lib/workflow';
+import { newQuestionId } from '../../lib/specification/question-model';
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -412,12 +413,14 @@ export const generateQuestions = action({
     aiGenerated = selection.aiGenerated;
 
     const questions = selection.questions.map((q, idx) => ({
-      id: `${args.phaseId}-q${idx + 1}`,
+      id: newQuestionId(),
       text: q.text,
       answer: undefined as string | undefined,
       aiGenerated,
       required: q.required ?? false,
       suggestions: Array.isArray(q.suggestions) ? q.suggestions.filter((s): s is string => typeof s === 'string') : undefined,
+      source: 'phase' as const,
+      feeds: [] as string[],
     }));
 
     await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {
@@ -955,8 +958,9 @@ export const generateGrillRound = action({
               .flatMap((r) => r.questions)
               .map((q) => ({
                 question: q.text,
-                answer: q.userAnswer || q.recommendedAnswer,
+                answer: q.userAnswer || q.recommendedAnswer || '',
               }))
+              .filter((entry) => entry.answer.length > 0)
           : [];
 
         const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
@@ -1019,7 +1023,7 @@ export const generateGrillRound = action({
     );
 
     const questions = normalized.map((q, idx) => ({
-      id: `${args.phaseId}-grill-r${currentRound}-q${idx + 1}`,
+      id: newQuestionId(),
       text: q.text,
       answer: undefined as string | undefined,
       recommendedAnswer: q.recommendedAnswer,

@@ -62,6 +62,36 @@ describe("applyAnswerUpdate", () => {
   });
 });
 
+describe("answer origin", () => {
+  const questions = [{ id: "q1", text: "Q1", aiGenerated: false }];
+
+  it("stores who wrote the answer beside the answer", () => {
+    expect(applyAnswerUpdate(questions as any, "q1", "A", false)[0].answerOrigin).toBe("user");
+    expect(applyAnswerUpdate(questions as any, "q1", "A", true)[0].answerOrigin).toBe("accepted");
+    expect(
+      applyAnswerUpdate(questions as any, "q1", "A", true, undefined, "drafted")[0].answerOrigin,
+    ).toBe("drafted");
+  });
+
+  it("leaves the origin unset when the caller states none", () => {
+    expect(applyAnswerUpdate(questions as any, "q1", "A")[0].answerOrigin).toBeUndefined();
+  });
+
+  it("marks a Stress-Test answer accepted or typed, and a new one as a grill question", async () => {
+    const { mergeGrillAnswersIntoQuestions } = await import("../projects");
+    const merged = mergeGrillAnswersIntoQuestions(
+      [{ id: "q1", text: "Q1", aiGenerated: false }] as any,
+      [
+        { questionId: "q1", questionText: "Q1", answer: "A", acceptedRecommendation: true },
+        { questionId: "q_new", questionText: "New", answer: "B" },
+      ],
+    );
+    expect(merged[0].answerOrigin).toBe("accepted");
+    expect(merged[0].aiGenerated).toBe(true);
+    expect(merged[1]).toMatchObject({ id: "q_new", source: "grill", feeds: [], answerOrigin: "user" });
+  });
+});
+
 describe("getNextUpdatedAt", () => {
   it("returns now when now is newer than current", () => {
     expect(getNextUpdatedAt(1000, 2000)).toBe(2000);

@@ -983,6 +983,7 @@ Provide a clear, specific, and actionable answer. Include concrete details (e.g.
               questionId: question.id,
               answer: answerText,
               aiGenerated: true,
+              answerOrigin: 'drafted',
             });
             success = true;
           } catch (err) {

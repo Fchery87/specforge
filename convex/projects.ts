@@ -6,6 +6,12 @@ import { canAccessProject } from '../lib/authz';
 import { DESCRIPTION_MAX, normalizeProjectInput } from '../lib/project-input';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource } from './lib/evidence';
+import { answerOriginValidator, phaseQuestionValidator } from './lib/question_validators';
+import {
+  evidenceOriginFor,
+  originFromLegacyFlag,
+  type AnswerOrigin,
+} from '../lib/specification/question-model';
 import { PHASE_ORDER, MODE_POLICIES, type ProjectMode } from '../lib/workflow';
 
 type ConstitutionTemplateSnapshot = Pick<
@@ -277,6 +283,7 @@ export const saveAnswer = mutation({
     questionId: v.string(),
     answer: v.string(),
     aiGenerated: v.optional(v.boolean()),
+    answerOrigin: v.optional(answerOriginValidator),
     selectedSuggestionIndex: v.optional(v.number()),
   },
   handler: async (ctx: MutationCtx, args) => {
@@ -295,12 +302,14 @@ export const saveAnswer = mutation({
     if (!phase) throw new Error('Phase not found');
 
     const now = Date.now();
+    const answerOrigin = args.answerOrigin ?? originFromLegacyFlag(args.aiGenerated) ?? 'user';
     const updatedQuestions = applyAnswerUpdate(
       phase.questions,
       args.questionId,
       args.answer,
-      args.aiGenerated,
+      args.aiGenerated ?? answerOrigin !== 'user',
       args.selectedSuggestionIndex,
+      answerOrigin,
     );
 
     await ctx.db.patch(phase._id, { questions: updatedQuestions });
@@ -313,7 +322,7 @@ export const saveAnswer = mutation({
         revisionLabel: `Answer in ${args.phaseId}`,
         content: args.answer,
         capturedBy: identity.subject,
-        origin: args.aiGenerated ? 'assistant' : 'user',
+        origin: evidenceOriginFor(answerOrigin),
       });
     }
     await ctx.db.patch(args.projectId, {
@@ -331,6 +340,9 @@ export function mergeGrillAnswersIntoQuestions<
     required?: boolean;
     suggestions?: string[];
     selectedSuggestionIndex?: number;
+    source?: 'phase' | 'grill';
+    feeds?: string[];
+    answerOrigin?: AnswerOrigin;
   },
 >(
   currentQuestions: T[],
@@ -338,6 +350,7 @@ export function mergeGrillAnswersIntoQuestions<
     questionId: string;
     questionText: string;
     answer: string;
+    acceptedRecommendation?: boolean;
     options?: string[];
   }>,
 ): T[] {
@@ -345,18 +358,24 @@ export function mergeGrillAnswersIntoQuestions<
 
   for (const item of answers) {
     const existing = questionMap.get(item.questionId);
+    const accepted = item.acceptedRecommendation === true;
+    const answerOrigin: AnswerOrigin = accepted ? 'accepted' : 'user';
     if (existing) {
       existing.answer = item.answer;
-      existing.aiGenerated = false;
+      existing.aiGenerated = accepted;
+      existing.answerOrigin = answerOrigin;
     } else {
       questionMap.set(item.questionId, {
         id: item.questionId,
         text: item.questionText,
         answer: item.answer,
-        aiGenerated: false,
+        aiGenerated: accepted,
         required: false,
         suggestions: item.options,
-      } as T);
+        source: 'grill',
+        feeds: [],
+        answerOrigin,
+      } as unknown as T);
     }
   }
 
@@ -374,7 +393,7 @@ export function computeUpdatedGrillSession(
           questions: Array<{
             id: string;
             text: string;
-            recommendedAnswer: string;
+            recommendedAnswer?: string;
             options?: string[];
             category?: string;
             userAnswer?: string;
@@ -387,7 +406,7 @@ export function computeUpdatedGrillSession(
     questionId: string;
     questionText: string;
     answer: string;
-    recommendedAnswer: string;
+    recommendedAnswer?: string;
     acceptedRecommendation?: boolean;
     options?: string[];
     category?: string;
@@ -438,7 +457,7 @@ export const saveGrillAnswers = mutation({
         questionId: v.string(),
         questionText: v.string(),
         answer: v.string(),
-        recommendedAnswer: v.string(),
+        recommendedAnswer: v.optional(v.string()),
         acceptedRecommendation: v.optional(v.boolean()),
         options: v.optional(v.array(v.string())),
         category: v.optional(v.string()),
@@ -521,7 +540,7 @@ export const resetGrillSession = mutation({
     if (!phase) throw new Error('Phase not found');
 
     const nonGrillQuestions = (phase.questions || []).filter(
-      (q) => !q.id.includes('-grill-'),
+      (q) => q.source !== 'grill' && !q.id.includes('-grill-'),
     );
 
     await ctx.db.patch(phase._id, {
@@ -541,6 +560,7 @@ export function applyAnswerUpdate<
     aiGenerated?: boolean;
     answer?: string;
     selectedSuggestionIndex?: number;
+    answerOrigin?: AnswerOrigin;
   },
 >(
   questions: T[],
@@ -548,13 +568,16 @@ export function applyAnswerUpdate<
   answer: string,
   aiGenerated?: boolean,
   selectedSuggestionIndex?: number,
+  answerOrigin?: AnswerOrigin,
 ): T[] {
+  const origin = answerOrigin ?? originFromLegacyFlag(aiGenerated);
   return questions.map((q) =>
     q.id === questionId
       ? {
           ...q,
           answer,
           ...(aiGenerated !== undefined ? { aiGenerated } : {}),
+          ...(origin !== undefined ? { answerOrigin: origin } : {}),
           ...(selectedSuggestionIndex !== undefined
             ? { selectedSuggestionIndex }
             : {}),
@@ -707,17 +730,7 @@ export const updatePhaseQuestions = mutation({
   args: {
     projectId: v.id('projects'),
     phaseId: v.string(),
-    questions: v.array(
-      v.object({
-        id: v.string(),
-        text: v.string(),
-        answer: v.optional(v.string()),
-        aiGenerated: v.boolean(),
-        required: v.optional(v.boolean()),
-        suggestions: v.optional(v.array(v.string())),
-        selectedSuggestionIndex: v.optional(v.number()),
-      }),
-    ),
+    questions: v.array(phaseQuestionValidator),
   },
   handler: async (ctx: MutationCtx, args) => {
     const project = await ctx.db.get(args.projectId);
