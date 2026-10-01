@@ -1,4 +1,6 @@
-import { sectionIdsFor, sectionsFor } from './phase-sections';
+import { sectionIdOfPlanEntry, sectionIdsFor, sectionsFor } from './phase-sections';
+
+export { sectionIdOfPlanEntry };
 
 /**
  * Who wrote an answer, which decides how generation treats it.
@@ -64,14 +66,6 @@ export function sanitizeFeeds(feeds: unknown, phaseId: string): string[] {
 /** Whether a question came from Stress-Test. */
 export function isGrillQuestion(question: Pick<PhaseQuestion, 'source'>): boolean {
   return question.source === 'grill';
-}
-
-/**
- * The id of the section a plan entry belongs to. A section split for a small output budget is named
- * `<id>-part-<n>`, and its answers are the parent section's.
- */
-export function sectionIdOfPlanEntry(name: string): string {
-  return name.replace(/-part-\d+$/, '');
 }
 
 /**

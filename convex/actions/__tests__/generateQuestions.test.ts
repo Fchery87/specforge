@@ -147,6 +147,16 @@ describe("mergeRegeneratedQuestions", () => {
     expect(merged.map((q) => q.text)).toEqual(["M1", "M2", "M3"]);
   });
 
+  it("stores required as a real boolean, whatever the model wrote", () => {
+    const merged = mergeRegeneratedQuestions(
+      [],
+      [{ text: "A", required: "true" as unknown as boolean }, { text: "B", required: true }, { text: "C" }],
+      [],
+      { min: 1, max: 5 },
+    );
+    expect(merged.map((q) => q.required)).toEqual([false, true, false]);
+  });
+
   it("does not add a question twice, and keeps answered Stress-Test questions beyond the range", () => {
     const grill = { ...answered("q_g", "Grill question", "Answer"), source: "grill" as const };
     const merged = mergeRegeneratedQuestions(

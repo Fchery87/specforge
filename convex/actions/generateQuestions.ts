@@ -228,7 +228,7 @@ export function mergeRegeneratedQuestions(
     added.push({
       id: newQuestionId(),
       text: candidate.text,
-      required: candidate.required ?? false,
+      required: candidate.required === true,
       suggestions: Array.isArray(candidate.suggestions)
         ? candidate.suggestions.filter((s): s is string => typeof s === 'string')
         : undefined,
