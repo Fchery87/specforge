@@ -1,23 +1,13 @@
 import type { SkippedFile } from './check';
 import type { DiffFile } from './diff';
+import { replyTokensFor } from '../llm/reply-tokens';
 
 /** About 15,000 tokens of patch, for a model whose context size is not known. */
 export const DIFF_BUDGET_CHARS = 60_000;
 /** Code tokenizes more densely than prose; three characters a token errs toward fitting. */
 const CHARS_PER_TOKEN = 3;
-/** The least room a reply gets: the verdicts and quotes themselves take a few thousand tokens. */
-const MIN_REPLY_TOKENS = 8_000;
-
-/**
- * Room for the reply: a quarter of the context, at least 8,000 tokens, and no more than the model
- * allows. Reasoning models spend this room thinking before they answer. With nothing cited, a
- * reasoning model weighed 48 requirements for about 30,000 tokens and ran out before writing a
- * verdict, at both 8,000 and 32,000 tokens of room.
- */
-export function checkReplyTokens(model: { contextTokens: number; maxOutputTokens: number }): number {
-  const share = Number.isFinite(model.contextTokens) && model.contextTokens > 0 ? Math.floor(model.contextTokens / 4) : MIN_REPLY_TOKENS;
-  return Math.min(model.maxOutputTokens, Math.max(MIN_REPLY_TOKENS, share));
-}
+/** Room for a check's reply. The rule is shared with every other call that reads a model's JSON reply. */
+export const checkReplyTokens = replyTokensFor;
 /** Headroom for file headers, fences and tokenizer differences between providers. */
 const CONTEXT_HEADROOM = 0.9;
 

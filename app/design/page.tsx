@@ -7,6 +7,7 @@ import { PhaseLedger } from "@/components/phase-ledger";
 import { ProjectNav } from "@/components/project-nav";
 import { ChangePreviews } from "./change-previews";
 import { CheckPreviews } from "./check-previews";
+import { QuestionPreviews } from "./question-previews";
 import { StageStepper } from "@/components/stage-stepper";
 import { StageQualityReport } from "@/components/stage-report";
 import type { ParsedClaim } from "@/lib/claims";
@@ -285,6 +286,14 @@ export default function DesignPreviewPage() {
         <h2 className="mt-2 text-title font-medium text-ink">A pull request against the requirements it touches</h2>
         <div className="mt-8">
           <CheckPreviews />
+        </div>
+      </section>
+
+      <section data-preview="questions" className="mt-16 border-t border-line pt-8">
+        <p className="text-caption text-dim">Questions &amp; Clarifications</p>
+        <h2 className="mt-2 text-title font-medium text-ink">What each question feeds, and what is assumed</h2>
+        <div className="mt-8 max-w-3xl">
+          <QuestionPreviews />
         </div>
       </section>
 

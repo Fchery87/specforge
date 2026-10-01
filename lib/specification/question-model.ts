@@ -19,6 +19,14 @@ export function evidenceOriginFor(origin: AnswerOrigin): 'user' | 'assistant' {
   return origin === 'user' ? 'user' : 'assistant';
 }
 
+/**
+ * Whether a person stands behind the answer: they typed it or kept what the model wrote. Batch
+ * drafting leaves these alone. A drafted answer nobody has reviewed is fair to redraft.
+ */
+export function hasReviewedAnswer(question: Pick<PhaseQuestion, 'answer' | 'answerOrigin'>): boolean {
+  return Boolean(question.answer?.trim()) && question.answerOrigin !== 'drafted';
+}
+
 /** Whether the model wrote the answer, however far the user has since reviewed it. */
 export function isModelWritten(origin: AnswerOrigin | undefined): boolean {
   return origin === 'accepted' || origin === 'drafted';

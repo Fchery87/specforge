@@ -141,7 +141,11 @@ describe('generateQuestionsHandler', () => {
       }),
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     }));
-    session.open.mockResolvedValueOnce({ client: { complete }, modelId: 'm', model: { provider: 'test' } });
+    session.open.mockResolvedValueOnce({
+      client: { complete },
+      modelId: 'm',
+      model: { provider: 'test', contextTokens: 200_000, maxOutputTokens: 64_000 },
+    });
     const existing = answered('q_keep', 'Who is it for?', 'Agencies');
     const { ctx, written } = fakeCtx({
       phases: { brief: { questions: [existing, { id: 'q_old', text: 'Old?' }] } },
@@ -159,7 +163,9 @@ describe('generateQuestionsHandler', () => {
       ['What defines success?', ['executive-summary']],
       ['Any compliance limits?', []],
     ]);
-    const prompt = (complete.mock.calls[0] as unknown as [string])[0];
+    const [prompt, options] = complete.mock.calls[0] as unknown as [string, { maxTokens: number }];
     expect(prompt).toContain('- Who is it for?');
+    // A reasoning model thinks inside this budget, so it has to leave room for the JSON after.
+    expect(options.maxTokens).toBe(50_000);
   });
 });

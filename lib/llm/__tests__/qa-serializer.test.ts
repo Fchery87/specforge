@@ -128,7 +128,7 @@ describe('formatQAForPrompt', () => {
     expect(text).toBe(
       'Decided by the user:\n' +
         'Q: Typed?\nA: Yes\n\nQ: Chosen?\nA: Chip\n\nQ: Old?\nA: Legacy\n\n' +
-        'Assumed by the assistant, not reviewed by the user. Treat each as a default the document may state, and mark every requirement that depends on one as an assumption:\n' +
+        'Assumed by the assistant, not reviewed by the user. Treat each as a default the document may state. Under a requirement that depends on one, add a line beginning "Assumption:" that says what is assumed, so a reviewer knows what to check. Never write an Assumption line that names nothing:\n' +
         'Q: Drafted?\nA: Guess',
     );
   });

@@ -5,7 +5,7 @@ import type { ActionCtx } from '../_generated/server';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
 import type { Doc, Id } from '../_generated/dataModel';
-import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
+import { replyTokensFor } from '../../lib/llm/reply-tokens';
 import { retryWithBackoff } from '../../lib/llm/retry';
 import { openLlmSession } from './llmSession';
 import { loadQuestionContext } from '../lib/question_context';
@@ -339,7 +339,7 @@ export async function generateQuestionsHandler(
       () =>
         session.client.complete(prompt, {
           model: session.modelId,
-          maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+          maxTokens: replyTokensFor(session.model),
           temperature: 0.4,
         }),
       { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
@@ -858,7 +858,7 @@ export const generateGrillRound = action({
         () =>
           session.client.complete(prompt, {
             model: session.modelId,
-            maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+            maxTokens: replyTokensFor(session.model),
             temperature: 0.3,
           }),
         { retries: 2, minDelayMs: 500, maxDelayMs: 3000 },
