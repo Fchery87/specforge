@@ -337,6 +337,14 @@ export const PHASE_SECTIONS: Record<PhaseId, readonly PhaseSection[]> = {
   ]),
 };
 
+/**
+ * The id of the section a plan entry belongs to. A section split for a small output budget is named
+ * `<id>-part-<n>`, and it is the parent section's instructions and answers that apply.
+ */
+export function sectionIdOfPlanEntry(name: string): string {
+  return name.replace(/-part-\d+$/, '');
+}
+
 /** A phase's sections, or none for an id that is not a phase. */
 export function sectionsFor(phaseId: string): PhaseSection[] {
   return [...(PHASE_SECTIONS[phaseId as PhaseId] ?? [])];
@@ -348,8 +356,9 @@ export function sectionIdsFor(phaseId: string): readonly string[] {
 
 /** What one section must cover, for the generation prompt. */
 export function sectionInstructionsFor(phaseId: string, sectionId: string): string {
+  const id = sectionIdOfPlanEntry(sectionId);
   return (
-    sectionsFor(phaseId).find((section) => section.id === sectionId)?.instructions ??
+    sectionsFor(phaseId).find((section) => section.id === id)?.instructions ??
     `Generate comprehensive content for the ${sectionId} section.`
   );
 }
