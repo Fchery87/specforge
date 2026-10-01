@@ -286,3 +286,37 @@ behaviour for existing projects rather than relabelling decisions the user may h
   generated. Budgets computed from sections that were never produced will change. This is a
   correction. Whether any report stores a budget and compares against it later has not been checked;
   if one does, it will show a one-time difference.
+
+## What changed in the build
+
+The approach held. Five things differ from the text above, and three changes were added.
+
+- **The batch answerer does not use `openLlmSession`.** "Let AI answer all" runs in a scheduled
+  function, which has no signed-in identity, so it resolves credentials from the task as before. It
+  does read the same question context.
+- **The context loader formats requirements itself** instead of `formatLiveClaimsForPrompt`, whose
+  wording is written for generation ("keep the ID, begin the bullet with it").
+- **Section routing and the keyword map.** `answersToAddressForSection` points only the phase's own
+  questions at a section. Upstream pairs are context in the system prompt and are not repeated as
+  points to address. A section split for budget (`x-part-2`) uses its parent's answers and
+  instructions.
+- **The migration also strips `aiGenerated` and defaults `required`**, in the same pass, which
+  needed a widen step first. [ADR 0005](../adr/0005-a-stored-shape-tightens-in-three-deploys.md)
+  records the order.
+- **Backfilled AI answers are `accepted`.** On dev that was 96 of 108 answers, so most existing
+  answers keep reading as decisions.
+
+Added after the dev walkthrough
+(`docs/evaluations/2026-09-29-clarifying-questions-walkthrough.md`):
+
+- **Every question call sizes its reply from the model** (`replyTokensFor`). A fixed 2,000 tokens
+  gave a reasoning model no room to write the JSON, so every project silently got the generic
+  questions.
+- **The batch answerer leaves an answer a person typed or kept alone** and still redrafts an
+  unreviewed one.
+- **The assumption instruction asks for a line that says what is assumed.** The first wording
+  produced 37 generic lines in 50. The second produced 12 specific ones.
+
+The spec's first risk came true for the three-section phases: the model tags questions generously,
+so a Brief section still receives most answers. It was not fixed.
+

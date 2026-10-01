@@ -15,7 +15,7 @@
 | 7. Change and bug-fix specs | Complete | [Change and bug-fix specs](specs/2026-09-27-change-specs.md) | - |
 | 8. Pull-request verification | Complete | [Pull-request verification](specs/2026-09-27-pull-request-verification.md) | - |
 | 9. Agent connection over MCP | On hold: spec written, no plan or code until resumed | [Agent connection over MCP](specs/2026-09-28-agent-connection.md) | - |
-| 10. Clarifying questions | Active: built and verified on dev; production backfill pending | [Clarifying questions](specs/2026-09-29-clarifying-questions.md) | [Implementation plan](plans/2026-09-29-clarifying-questions.md) |
+| 10. Clarifying questions | Complete | [Clarifying questions](specs/2026-09-29-clarifying-questions.md) | - |
 
 The local implementation and repository gates are complete for phases 2, 3 and 4. The remaining rollout
 check on phase 1 needs a configured Convex development deployment and GitHub OAuth credentials.
@@ -89,9 +89,18 @@ phase 1's walkthrough.
 
 Phase 10 makes the answers to each phase's clarifying questions reach the sections they are about.
 A phase's sections were defined in five tables that had drifted apart, so the question prompt named
-sections that are never generated and answers reached a section by keyword. The spec replaces the
-five tables with one registry, has each question name the sections it feeds, keeps answers across
-Regenerate under stable IDs, and separates what the user decided from what the model assumed.
+sections that are never generated and answers reached a section by keyword. There is now one
+registry, each question names the sections it feeds, Regenerate keeps answered questions under
+stable IDs, and the prompt separates what the user decided from what the assistant assumed. It ran
+as #64 (spec and plan) and #65, #66 and #67 (`f769339`, `18f891a`, `8e07d75`), and CI's test,
+design and e2e jobs passed on each. The stored question changed shape in three deploys, which
+[ADR 0005](adr/0005-a-stored-shape-tightens-in-three-deploys.md) records. The walkthrough on the dev
+deployment with a real model, in `docs/evaluations/2026-09-29-clarifying-questions-walkthrough.md`,
+found and fixed three defects. Production Convex has no data, so its backfill reported zero on both
+runs. The implementation plan is deleted, as the lifecycle requires of a finished plan. Two
+follow-ups are open: the model tags Brief and Project Rules questions generously, so those
+sections still receive most answers, and whether the requirement-quality report should count an
+assumed requirement as weaker has not been checked.
 
 ## Later phases
 
