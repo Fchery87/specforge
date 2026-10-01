@@ -67,6 +67,7 @@ describe('lookups', () => {
 
   it('returns a section instruction, and a generic one for an unknown section', () => {
     expect(sectionInstructionsFor('brief', 'problem-and-objectives')).toMatch(/problem this project solves/);
+    expect(sectionInstructionsFor('specs', 'test-seams-part-2')).toBe(sectionInstructionsFor('specs', 'test-seams'));
     expect(sectionInstructionsFor('brief', 'made-up')).toBe(
       'Generate comprehensive content for the made-up section.',
     );
