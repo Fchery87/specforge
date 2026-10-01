@@ -8,7 +8,6 @@ import { v } from 'convex/values';
 import {
   FALLBACK_MODELS,
   expandSectionsForBudget,
-  getSectionPlan,
   planSections,
   mergeSectionContent,
   estimateTokenCount,
@@ -26,7 +25,6 @@ import type {
   LlmModel,
   LlmProvider,
 } from '../../lib/llm/types';
-import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
 import type { SystemCredential } from '../../lib/llm/registry';
 import { createLlmClient } from '../../lib/llm/client-factory';
@@ -60,7 +58,10 @@ import {
   serializeQAPairs,
   formatQAForPrompt,
   deserializeQAPairs,
+  qaPairFromQuestion,
+  type QAPair,
 } from '../../lib/llm/qa-serializer';
+import type { AnswerOrigin } from '../../lib/specification/question-model';
 import {
   getStructuredOutputMode,
   applyStructuredOutput,
@@ -71,14 +72,18 @@ import {
   validateSemantics,
   hasBlockingErrors,
 } from '../../lib/validation/semantic-validator';
+import { getArtifactTypeForPhase } from '../../lib/llm/artifact-types';
 import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
+import { sectionIdsFor } from '../../lib/specification/phase-sections';
+import { descriptionForPhase } from '../../lib/specification/question-context';
 
 interface Question {
   id: string;
   text: string;
   answer?: string;
-  aiGenerated: boolean;
   required?: boolean;
+  feeds?: string[];
+  answerOrigin?: AnswerOrigin;
 }
 
 export interface ProjectGenerationContext {
@@ -141,7 +146,7 @@ export const generatePhase = action({
 
     // Collect upstream phase questions for cross-phase context
     const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
-    const upstreamQAPairs: Array<{ question: string; answer: string }> = [];
+    const upstreamQAPairs: QAPair[] = [];
 
     for (const upstreamPhaseId of upstreamPhaseIds) {
       const upstreamPhase = await ctx.runQuery(
@@ -151,20 +156,14 @@ export const generatePhase = action({
       if (upstreamPhase?.questions) {
         const upstreamAnswered = upstreamPhase.questions
           .filter((q: Question) => q.answer)
-          .map((q: Question) => ({
-            question: `[${upstreamPhaseId}] ${q.text}`,
-            answer: q.answer || '',
-          }));
+          .map((q: Question) => qaPairFromQuestion(q, upstreamPhaseId));
         upstreamQAPairs.push(...upstreamAnswered);
       }
     }
 
     // Combine: current phase questions + upstream phase questions
-    const allQAPairs = [
-      ...answeredQuestions.map((q: Question) => ({
-        question: q.text,
-        answer: q.answer || '',
-      })),
+    const allQAPairs: QAPair[] = [
+      ...answeredQuestions.map((q: Question) => qaPairFromQuestion(q)),
       ...upstreamQAPairs,
     ];
 
@@ -222,15 +221,10 @@ export const generatePhase = action({
       }
     }
 
-    const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
-    const phaseDescription = isEarlyPhase
-      ? project.description
-      : (project.description.length > 3000
-          ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
-          : project.description);
+    const phaseDescription = descriptionForPhase(project.description, args.phaseId);
 
     const artifactType = getArtifactTypeForPhase(args.phaseId);
-    const sectionNames = getSectionPlan(artifactType, args.phaseId);
+    const sectionNames = [...sectionIdsFor(args.phaseId)];
     const questionsText = serializeQAPairs(allQAPairs);
     const estimatedTokens = estimateTokenCount(
       `${project.title}\n${phaseDescription}\n${questionsText}`,
@@ -398,19 +392,6 @@ export const resumePhase = action({
   },
 });
 
-interface GenerateSectionsParams {
-  ctx: ActionCtx;
-  projectId: Id<'projects'>;
-  projectContext: ProjectGenerationContext;
-  sectionPlan: SectionPlan[];
-  model: LlmModel;
-  questions: Question[];
-  phaseId: string;
-  llmClient: ReturnType<typeof createLlmClient>;
-  providerInfo: string;
-  constitution: string | null;
-}
-
 export function planSectionsForPhase(params: {
   sectionNames: string[];
   estimatedTokens: number;
@@ -426,102 +407,6 @@ export function planSectionsForPhase(params: {
     maxTokensPerSection,
   });
   return planSections(params.model, expandedNames, 0.8);
-}
-
-async function generateSectionsWithSelfCritique(
-  params: GenerateSectionsParams,
-): Promise<{
-  sections: Array<{ name: string; content: string; critique?: CritiqueResult }>;
-  continuedSections: number;
-}> {
-  const {
-    sectionPlan,
-    projectContext,
-    model,
-    questions,
-    phaseId,
-    llmClient,
-    providerInfo,
-    constitution,
-  } = params;
-
-  const sections: Array<{
-    name: string;
-    content: string;
-    critique?: CritiqueResult;
-  }> = [];
-  let continuedSections = 0;
-
-  // Get critique configuration (enabled via feature flag)
-  const critiqueConfig = getCritiqueConfig();
-  const enableSelfCritique = critiqueConfig.enabled;
-
-  for (let i = 0; i < sectionPlan.length; i++) {
-    const section = sectionPlan[i];
-    const previousSections = sections.slice(Math.max(0, i - 1), i);
-    const sectionQuestions = extractRelevantQuestions(questions, section.name);
-
-    let finalContent: string;
-    let critiqueResult: CritiqueResult | undefined;
-
-    if (enableSelfCritique) {
-      // Use the new critique-enabled generation flow
-      const response = await generateSectionWithCritique({
-        projectContext,
-        sectionName: section.name,
-        sectionInstructions: getSectionInstructions(phaseId, section.name),
-        sectionQuestions,
-        previousSections,
-        model,
-        maxTokens: section.maxTokens,
-        llmClient,
-        providerInfo,
-        phaseId,
-        constitution,
-        config: critiqueConfig,
-      });
-
-      finalContent = response.content;
-      critiqueResult = response.critique;
-
-      if (response.continued) {
-        continuedSections += 1;
-      }
-
-      console.log(
-        `[generateSectionsWithSelfCritique] Section "${section.name}" - Score: ${critiqueResult?.score ?? 'N/A'}, Refined: ${response.refined}`,
-      );
-    } else {
-      // Use standard generation without critique
-      const response = await generateSectionContent({
-        projectContext,
-        sectionName: section.name,
-        sectionInstructions: getSectionInstructions(phaseId, section.name),
-        sectionQuestions,
-        previousSections,
-        model,
-        maxTokens: section.maxTokens,
-        llmClient,
-        providerInfo,
-        phaseId,
-        constitution,
-      });
-
-      finalContent = response.content;
-
-      if (response.continued) {
-        continuedSections += 1;
-      }
-    }
-
-    sections.push({
-      name: section.name,
-      content: stripLeadingHeading(finalContent),
-      critique: critiqueResult,
-    });
-  }
-
-  return { sections, continuedSections };
 }
 
 export async function generateSectionContent(params: {
@@ -922,178 +807,8 @@ export function sanitizeGeneratedContent(content: string): string {
   return cleaned.trim();
 }
 
-export function extractRelevantQuestions(
-  questions: Question[],
-  sectionName: string,
-): string[] {
-  const keywords: Record<string, string[]> = {
-    // Constitution
-    'locked-constraints': [
-      'constraint',
-      'security',
-      'invariant',
-      'rule',
-      'protocol',
-      'strict',
-    ],
-    'architecture-decisions': [
-      'architecture',
-      'state',
-      'api',
-      'pattern',
-      'decision',
-      'system',
-    ],
-    'tech-stack': [
-      'tech',
-      'stack',
-      'framework',
-      'database',
-      'language',
-      'tool',
-    ],
-    'quality-and-standards': [
-      'quality',
-      'standard',
-      'accessibility',
-      'performance',
-      'test',
-      'wcag',
-    ],
-
-    // Brief
-    'executive-summary': ['goal', 'problem', 'success'],
-    'problem-and-objectives': ['goal', 'problem', 'objective'],
-    'features-and-requirements': ['feature', 'requirement', 'constraint'],
-
-    // PRD
-    'problem-statement': ['problem', 'challenge', 'pain'],
-    'goals-and-objectives': ['goal', 'objective', 'success'],
-    'user-personas': ['user', 'persona', 'audience'],
-    requirements: ['requirement', 'feature', 'constraint'],
-    'success-metrics': ['metric', 'kpi', 'success'],
-
-    // Domain Model
-    'entity-definitions': ['entity', 'data', 'model', 'attribute', 'domain'],
-    'entity-relationships': ['relationship', 'owner', 'relation', 'connection'],
-    'state-transitions': ['state', 'transition', 'lifecycle', 'status'],
-
-    // Specs
-    'architecture-overview': ['architecture', 'cloud', 'infrastructure'],
-    'data-models-and-api': ['data', 'database', 'schema', 'api'],
-    'deployment-and-security': ['deployment', 'security', 'auth'],
-
-    // Stories
-    'user-stories': ['user', 'persona', 'feature'],
-    'technical-tasks': ['task', 'dependency', 'implementation'],
-
-    // Artifacts & Handoff
-    documentation: ['documentation', 'api', 'schema'],
-    configuration: ['configuration', 'environment', 'setup'],
-    'deployment-guide': ['deployment', 'release', 'infrastructure'],
-    'project-summary': ['summary', 'architecture', 'structure'],
-    'setup-guide': ['setup', 'environment', 'install'],
-    'next-steps': ['next', 'roadmap', 'follow-up'],
-  };
-
-  const relevantKeywords = keywords[sectionName] || [];
-
-  return questions
-    .filter(
-      (q) =>
-        q.answer &&
-        relevantKeywords.some((kw) => q.text.toLowerCase().includes(kw)),
-    )
-    .map((q) => `${q.text}: ${q.answer}`);
-}
-
 export function stripLeadingHeading(content: string): string {
   return content.replace(/^#{1,6}\s+.*\n+/, '').trim();
-}
-
-export function getSectionInstructions(
-  phaseId: string,
-  sectionName: string,
-): string {
-  const instructions: Record<string, string> = {
-    // Constitution sections
-    'locked-constraints':
-      'Define immutable truths including state invariants, domain rules, and non-negotiable security protocols.',
-    'architecture-decisions':
-      'Outline high-level architecture patterns, state management approaches, and API design principles.',
-    'tech-stack':
-      'Specify frameworks, runtimes, databases, ORMs, and styling approaches with strict version constraints.',
-    'quality-and-standards':
-      'Set non-negotiable requirements for accessibility (WCAG), performance, security, and test coverage.',
-
-    // Brief sections
-    'problem-and-objectives':
-      'Clearly articulate the problem this project solves and define specific, measurable goals with success criteria.',
-    'features-and-requirements':
-      'Outline the core features, functionality required, and any technical constraints or compliance requirements.',
-
-    // PRD sections
-    'executive-summary':
-      'Provide a concise overview of the project goals, target users, and key deliverables.',
-    'problem-statement':
-      'Clearly articulate the problem space, current challenges, pain points, and why this project is necessary.',
-    'goals-and-objectives':
-      'Define specific, measurable, achievable, relevant, and time-bound (SMART) goals and success criteria.',
-    'user-personas':
-      'Describe the target user personas, their characteristics, goals, pain points, and how they will interact with the product.',
-    requirements:
-      'List all functional and non-functional requirements, organized by priority and category.',
-    'success-metrics':
-      'Define key performance indicators (KPIs), metrics for success, and how they will be measured and tracked.',
-
-    // Domain Model sections
-    'domain-glossary':
-      'Define canonical domain terms, precise business meanings, forbidden conflicting synonyms, and domain invariants.',
-    'entity-definitions':
-      'Define core domain entities, their purpose, attributes, and invariants.',
-    'entity-relationships':
-      'Describe cardinality and ownership relationships between entities. Include a valid Mermaid erDiagram code block showing all core entities, attributes, primary/foreign keys, and exact relationship cardinalities (e.g. ||--o{, ||--||).',
-    'state-transitions':
-      'Map entity lifecycle states, transitions, and governing business guards. Include a valid Mermaid stateDiagram-v2 code block detailing valid states, triggering events, transitions, and guard conditions.',
-
-    // Specs sections
-    'architecture-overview':
-      'Describe the high-level system architecture, design patterns, and technology choices. Include a valid Mermaid C4Context or flowchart LR architecture diagram illustrating components, client boundaries, services, databases, and third-party integrations.',
-    'deep-modules':
-      'Define deep modules with narrow, simple interfaces that conceal complex internal logic (Ousterhout). Specify inputs, outputs, error catalogs, and hidden complexity.',
-    'test-seams':
-      'Identify key architectural seams (Feathers) where behavior varies and automated tests attach without modifying caller code. Provide explicit code snippets or interface contracts illustrating the seam boundaries.',
-    'data-models-and-api':
-      'Define core data structures and APIs with machine-readable precision. Provide complete database schema definitions (e.g. Prisma schema, Drizzle schema, or SQL DDL) with primary keys, foreign keys, and indexes. Provide formal OpenAPI 3.1 YAML contracts including request/response bodies, standard error envelopes, and HTTP status codes.',
-    'deployment-and-security':
-      'Describe deployment strategy, infrastructure, authentication, authorization, and security requirements.',
-
-    // Stories sections
-    'epic-overview':
-      'Provide an overview of the main epics and how they relate to project goals.',
-    'user-stories':
-      'List user stories as vertical tracer bullets (schema + API + UI + tests) with explicit **Blocked by:** dependencies, **Slice Type:** (tracer_bullet or wide_refactor), and **Files to touch:**.',
-    'technical-tasks':
-      'Break down user stories into technical implementation tasks with dependencies and topological ordering.',
-
-    // Artifacts sections
-    documentation:
-      'Generate API documentation and database schema documentation.',
-    configuration: 'Provide configuration files and infrastructure setup.',
-    'deployment-guide': 'Create step-by-step deployment instructions.',
-
-    // Handoff sections
-    'project-summary':
-      'Summarize the project structure, key files, and architecture.',
-    'setup-guide':
-      'Provide environment setup and development guide instructions.',
-    'next-steps': 'List recommended next steps and priorities for development.',
-  };
-
-  return (
-    instructions[sectionName] ||
-    `Generate comprehensive content for the ${sectionName} section.`
-  );
 }
 
 function formatSectionName(name: string): string {

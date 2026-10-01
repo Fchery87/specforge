@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { SectionQuality, StageReport } from "@/lib/quality/stage-report";
 import { buildStageReport } from "@/lib/quality/stage-report";
-import { getSectionPlansForPhase, PRD_SECTIONS } from "@/lib/llm/section-plans";
+import { sectionsFor } from "@/lib/specification/phase-sections";
+import { PRD_SECTIONS } from "@/lib/quality/__tests__/prd-plan-fixture";
 
 /**
  * The query is mocked rather than the report, because what this file tests is which stage the preview
@@ -187,7 +188,7 @@ describe("ArtifactPreview", () => {
         { phaseId: "prd", markdown: prdDocument },
       ],
       claims: [],
-      sectionPlan: [...getSectionPlansForPhase("brief"), ...PRD_SECTIONS],
+      sectionPlan: [...sectionsFor("brief"), ...PRD_SECTIONS],
     });
 
     mockUseQuery.mockReturnValue({ report, artifactVersionIds: [] });

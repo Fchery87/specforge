@@ -1,5 +1,6 @@
 import { WORKFLOW_STAGES, type StageId } from '../workflow';
-import { getSectionPlansForPhase, type SectionPlanConfig } from '../llm/section-plans';
+import type { SectionPlanConfig } from '../llm/section-plans';
+import { sectionsFor } from '../specification/phase-sections';
 import { estimateTokenCount } from '../llm/chunking';
 
 /**
@@ -97,7 +98,7 @@ export function sectionBudget(
  * `calculateTotalTokens` reports in the plan preview, which a user comparing the two would expect.
  */
 export function phaseBudget(phaseId: string): StageBudget {
-  const plans = getSectionPlansForPhase(phaseId);
+  const plans = sectionsFor(phaseId);
   const tokens = plans.reduce((total, plan) => total + plan.estimatedTokens, 0);
   return { tokens, words: wordsForTokens(tokens), sections: plans.length };
 }

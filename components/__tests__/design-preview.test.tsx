@@ -40,8 +40,8 @@ describe("design preview", () => {
     // A numbered heading anchors as the slug of its whole text, so these ids prove the mark reached
     // the heading the reader sees rather than a title slug the document has no heading for.
     expect(marks).toEqual([
-      { heading: "2-problem-statement", word: "over budget" },
-      { heading: "3-goals-and-objectives", word: "empty" },
+      { heading: "1-executive-summary", word: "empty" },
+      { heading: "2-success-metrics", word: "over budget" },
     ]);
   });
 

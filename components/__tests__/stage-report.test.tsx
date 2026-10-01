@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { StageQualityReport } from "../stage-report";
 import { parseClaimManifest } from "@/lib/claims";
-import { PRD_SECTIONS } from "@/lib/llm/section-plans";
+import { PRD_SECTIONS } from "@/lib/quality/__tests__/prd-plan-fixture";
 import { buildStageReport } from "@/lib/quality/stage-report";
 
 /**

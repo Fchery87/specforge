@@ -33,7 +33,7 @@ import { toast } from "sonner";
 export interface GrillRoundQuestion {
   id: string;
   text: string;
-  recommendedAnswer: string;
+  recommendedAnswer?: string;
   options?: string[];
   category?: string;
   userAnswer?: string;
@@ -66,8 +66,8 @@ interface LocalGrillQuestion {
   text: string;
   recommendedAnswer?: string;
   suggestions?: string[];
+  feeds: string[];
   answer: string;
-  userConfirmed: boolean;
   round: number;
 }
 
@@ -109,6 +109,7 @@ export function StressTestModal({
           text: string;
           recommendedAnswer?: string;
           suggestions?: string[];
+          feeds?: string[];
         }>;
         currentRound: number;
         reachedLimit: boolean;
@@ -123,19 +124,16 @@ export function StressTestModal({
       setCurrentRound(typedResult.currentRound);
       setReachedLimit(typedResult.reachedLimit);
 
+      // A question with no recommendation starts blank: nothing is pre-filled the user has not seen the basis for.
       const mapped: LocalGrillQuestion[] = typedResult.questions.map((q) => {
-        const rec =
-          q.recommendedAnswer?.trim() ||
-          (q.suggestions && q.suggestions.length > 0
-            ? q.suggestions[0]
-            : "Standard 2026 production-grade architecture practice");
+        const recommendation = q.recommendedAnswer?.trim() || undefined;
         return {
           id: q.id,
           text: q.text,
-          recommendedAnswer: rec,
-          suggestions: q.suggestions && q.suggestions.length > 0 ? q.suggestions : [rec],
-          answer: rec,
-          userConfirmed: true,
+          recommendedAnswer: recommendation,
+          suggestions: q.suggestions && q.suggestions.length > 0 ? q.suggestions : undefined,
+          feeds: q.feeds ?? [],
+          answer: recommendation ?? "",
           round: typedResult.currentRound,
         };
       });
@@ -159,7 +157,7 @@ export function StressTestModal({
 
   const handleUpdateAnswer = (id: string, text: string) => {
     setCurrentQuestions((prev) =>
-      prev.map((q) => (q.id === id ? { ...q, answer: text, userConfirmed: true } : q))
+      prev.map((q) => (q.id === id ? { ...q, answer: text } : q))
     );
   };
 
@@ -167,11 +165,7 @@ export function StressTestModal({
     setCurrentQuestions((prev) =>
       prev.map((q) => {
         if (q.id === id && q.recommendedAnswer) {
-          return {
-            ...q,
-            answer: q.recommendedAnswer,
-            userConfirmed: true,
-          };
+          return { ...q, answer: q.recommendedAnswer };
         }
         return q;
       })
@@ -188,15 +182,25 @@ export function StressTestModal({
     setIsSaving(true);
     setErrorMessage(null);
     try {
-      const payload = currentQuestions.map((q) => ({
-        questionId: q.id,
-        questionText: q.text,
-        answer: q.answer.trim() || q.recommendedAnswer || "Accepted default recommendation",
-        recommendedAnswer: q.recommendedAnswer || "Standard production practice",
-        acceptedRecommendation: q.userConfirmed,
-        options: q.suggestions,
-        round: q.round,
-      }));
+      // Only what the user answered is saved. A question left blank stays unanswered.
+      const payload = currentQuestions
+        .filter((q) => q.answer.trim().length > 0)
+        .map((q) => ({
+          questionId: q.id,
+          questionText: q.text,
+          answer: q.answer.trim(),
+          recommendedAnswer: q.recommendedAnswer,
+          acceptedRecommendation:
+            q.recommendedAnswer !== undefined && q.answer.trim() === q.recommendedAnswer.trim(),
+          feeds: q.feeds,
+          options: q.suggestions,
+          round: q.round,
+        }));
+
+      if (payload.length === 0) {
+        setErrorMessage("Answer at least one question before saving.");
+        return;
+      }
 
       await saveGrillAnswers({
         projectId: projectId as Id<"projects">,
@@ -269,8 +273,8 @@ export function StressTestModal({
           </div>
           <DialogDescription className="text-ui">
             Principal architect grilling interview. Pressure-tests edge cases, failure
-            modes, and data invariants in short rounds. Each question includes an
-            opinionated 2026 standard recommendation.
+            modes, and data invariants in short rounds. A question carries a
+            recommendation only when the project supports one.
           </DialogDescription>
         </DialogHeader>
 
@@ -354,7 +358,7 @@ export function StressTestModal({
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-caption font-semibold text-warning dark:text-warning flex items-center gap-1.5">
                           <Sparkles className="size-3.5 shrink-0" />
-                          Recommended 2026 Standard
+                          Recommended
                           {q.answer.trim() === q.recommendedAnswer.trim() && (
                             <Badge
                               variant="outline"

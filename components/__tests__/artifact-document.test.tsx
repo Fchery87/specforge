@@ -3,7 +3,8 @@ import { describe, test, expect, vi } from "vitest";
 import { ArtifactDocument } from "../artifact-document";
 import { sectionMarksFor } from "@/lib/markdown-render";
 import { buildStageReport } from "@/lib/quality/stage-report";
-import { PRD_SECTIONS, type SectionPlanConfig } from "@/lib/llm/section-plans";
+import type { SectionPlanConfig } from "@/lib/llm/section-plans";
+import { PRD_SECTIONS } from "@/lib/quality/__tests__/prd-plan-fixture";
 
 vi.mock("@/components/ui/mermaid-diagram", () => ({
   MermaidDiagram: ({ chart, className }: { chart: string; className?: string }) => (

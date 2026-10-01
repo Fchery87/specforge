@@ -92,7 +92,7 @@ describe("CombinedQuestions", () => {
     expect(generateBtn).toBeEnabled();
   });
 
-  it("asserts that a suggested answer shows the label Suggestion until the user edits it", async () => {
+  it("shows a pre-filled suggestion as Assumed until the user edits it", async () => {
     const skippedPhases = ["domainModel", "artifacts"];
 
     render(
@@ -104,8 +104,8 @@ describe("CombinedQuestions", () => {
       />
     );
 
-    // Brief has suggestions, so it pre-fills the first suggestion and shows "Suggestion"
-    expect(screen.getByText("Suggestion")).toBeInTheDocument();
+    // Brief has suggestions, so it pre-fills the first suggestion and shows "Assumed"
+    expect(screen.getByText("Assumed")).toBeInTheDocument();
 
     // Find the textarea for brief question
     const briefInput = screen.getByRole("textbox", { name: /What problem does this project solve/i });
@@ -114,11 +114,11 @@ describe("CombinedQuestions", () => {
     // Edit the suggested answer
     await userEvent.type(briefInput, " Extra context.");
 
-    // "Suggestion" badge should disappear
-    expect(screen.queryByText("Suggestion")).not.toBeInTheDocument();
+    // "Assumed" badge should disappear
+    expect(screen.queryByText("Assumed")).not.toBeInTheDocument();
   });
 
-  it("removes Suggestion label when user accepts the suggestion", async () => {
+  it("removes the Assumed label when the user keeps the answer", async () => {
     const skippedPhases = ["domainModel", "artifacts"];
 
     render(
@@ -130,11 +130,11 @@ describe("CombinedQuestions", () => {
       />
     );
 
-    expect(screen.getByText("Suggestion")).toBeInTheDocument();
-    const acceptBtn = screen.getByRole("button", { name: /accept/i });
-    await userEvent.click(acceptBtn);
+    expect(screen.getByText("Assumed")).toBeInTheDocument();
+    const keepBtn = screen.getByRole("button", { name: /keep/i });
+    await userEvent.click(keepBtn);
 
-    expect(screen.queryByText("Suggestion")).not.toBeInTheDocument();
+    expect(screen.queryByText("Assumed")).not.toBeInTheDocument();
   });
 
   it("calls onGenerateEverything when enabled and clicked", async () => {
@@ -181,5 +181,55 @@ describe("CombinedQuestions", () => {
 
     expect(screen.getByRole("button", { name: "Generate all phases" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+  });
+
+  it("names the sections a question feeds under the question", () => {
+    render(
+      <CombinedQuestions
+        projectId="p1"
+        phases={[
+          {
+            phaseId: "brief",
+            questions: [
+              { id: "q1", text: "Who is it for?", answer: "Agencies", feeds: ["problem-and-objectives", "executive-summary"] },
+              { id: "q2", text: "Any limits?", answer: "None", feeds: [] },
+            ],
+          },
+        ]}
+        skippedPhases={[]}
+      />
+    );
+
+    expect(screen.getByText("Feeds Problem & Objectives, Executive Summary")).toBeInTheDocument();
+    expect(screen.getByText("Feeds the whole document")).toBeInTheDocument();
+  });
+
+  it("submits who wrote each answer: a pre-filled suggestion is drafted, a kept one accepted, a typed one user", async () => {
+    const onGenerate = vi.fn().mockResolvedValue(undefined);
+    const phases: PhaseQuestionsData[] = [
+      {
+        phaseId: "brief",
+        questions: [
+          { id: "q-prefilled", text: "Prefilled?", suggestions: ["Suggested"] },
+          { id: "q-kept", text: "Kept?", suggestions: ["Another"] },
+          { id: "q-typed", text: "Typed?" },
+          { id: "q-stored", text: "Stored draft?", answer: "Earlier draft", answerOrigin: "drafted" },
+        ],
+      },
+    ];
+
+    render(<CombinedQuestions projectId="p1" phases={phases} skippedPhases={[]} onGenerateEverything={onGenerate} />);
+
+    const keepButtons = screen.getAllByRole("button", { name: /keep/i });
+    await userEvent.click(keepButtons[1]);
+    await userEvent.type(screen.getByRole("textbox", { name: /Typed\?/ }), "My answer");
+    await userEvent.click(screen.getByRole("button", { name: "Generate all phases" }));
+
+    expect(onGenerate).toHaveBeenCalledWith([
+      { phaseId: "brief", questionId: "q-prefilled", answer: "Suggested", answerOrigin: "drafted" },
+      { phaseId: "brief", questionId: "q-kept", answer: "Another", answerOrigin: "accepted" },
+      { phaseId: "brief", questionId: "q-typed", answer: "My answer", answerOrigin: "user" },
+      { phaseId: "brief", questionId: "q-stored", answer: "Earlier draft", answerOrigin: "drafted" },
+    ]);
   });
 });

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { buildStageReport, countWords, stageQualityFlagFor, type StageDocument } from '../stage-report';
 import { parseClaimManifest, type ParsedClaim } from '../../claims';
 import { mergeSectionContent } from '../../llm/chunking';
-import { getSectionPlansForPhase, PRD_SECTIONS } from '../../llm/section-plans';
+import { sectionsFor } from '../../specification/phase-sections';
+import { PRD_SECTIONS } from './prd-plan-fixture';
 
 /** A claim bullet in the shape `formatClaimManifest` writes, so the real parser reads it. */
 function claimLine(claimId: string, decision: string, review: string, evidence = true): string {
@@ -266,7 +267,7 @@ describe('buildStageReport coverage of a section with sub-headings', () => {
     // The invariant that matters: the report must be able to see every section the product produces,
     // or coverage reads zero for everything and no test would notice.
     for (const phaseId of ['constitution', 'brief', 'prd', 'domainModel', 'specs', 'stories', 'artifacts', 'handoff']) {
-      const phasePlan = getSectionPlansForPhase(phaseId);
+      const phasePlan = sectionsFor(phaseId);
       if (phasePlan.length === 0) continue;
 
       const markdown = documentFrom(phasePlan.map((entry) => ({ name: entry.id, content: 'x' })));
@@ -316,7 +317,7 @@ describe('buildStageReport matching inside one phase document', () => {
     const report = buildStageReport({
       documents: [doc('brief', briefDocument), doc('prd', prdDocument)],
       claims: [],
-      sectionPlan: [...getSectionPlansForPhase('brief'), ...PRD_SECTIONS],
+      sectionPlan: [...sectionsFor('brief'), ...PRD_SECTIONS],
     });
 
     const problem = report.sections.find((entry) => entry.id === 'problem-statement');
@@ -375,7 +376,7 @@ describe('buildStageReport matching inside one phase document', () => {
     const report = buildStageReport({
       documents: [doc('prd', prdDocument)],
       claims: [],
-      sectionPlan: [...getSectionPlansForPhase('brief'), ...PRD_SECTIONS],
+      sectionPlan: [...sectionsFor('brief'), ...PRD_SECTIONS],
     });
 
     const briefSections = report.sections.filter((entry) => entry.phaseId === 'brief');
@@ -429,7 +430,7 @@ describe('buildStageReport length', () => {
   });
 
   it('sums the whole plan, so a stage budget is not one phase of it', () => {
-    const prd = getSectionPlansForPhase('prd');
+    const prd = sectionsFor('prd');
     const tokens = prd.reduce((total, entry) => total + entry.estimatedTokens, 0);
 
     const report = buildStageReport({ documents: [], claims: [], sectionPlan: prd });

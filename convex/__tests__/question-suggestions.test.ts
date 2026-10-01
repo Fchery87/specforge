@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { parseSuggestionsResponse } from '../actions/generateQuestionAnswer';
-import { buildQuestionPrompt, normalizeQuestions, selectQuestions } from '../actions/generateQuestions';
+import { buildQuestionPrompt, normalizeQuestions } from '../actions/generateQuestions';
 
 describe('parseSuggestionsResponse', () => {
   test('parses valid JSON response with suggestedAnswer and suggestions', () => {
@@ -80,24 +80,6 @@ describe('buildQuestionPrompt (generateQuestions)', () => {
     expect(prompt).toContain('Database: PostgreSQL with Drizzle');
     expect(prompt).toContain('Repository: acme/myapp (main)');
     expect(prompt).toContain('Do NOT ask questions that have already been definitively answered');
-  });
-});
-
-describe('selectQuestions', () => {
-  test('uses AI questions when count meets minimum', () => {
-    const ai = Array.from({ length: 5 }, (_, i) => ({ text: `AI Q${i}` }));
-    const base = [{ text: 'Base Q1' }];
-    const result = selectQuestions(ai, base, { min: 3, max: 8 });
-    expect(result.aiGenerated).toBe(true);
-    expect(result.questions[0].text).toBe('AI Q0');
-  });
-
-  test('falls back to base questions when AI count is below minimum', () => {
-    const ai = [{ text: 'Only one AI Q' }];
-    const base = Array.from({ length: 5 }, (_, i) => ({ text: `Base Q${i}` }));
-    const result = selectQuestions(ai, base, { min: 3, max: 8 });
-    expect(result.aiGenerated).toBe(false);
-    expect(result.questions[0].text).toBe('Base Q0');
   });
 });
 

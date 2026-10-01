@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
+import { grillSessionValidator, phaseQuestionValidator } from './lib/question_validators';
 
 /**
  * One artifact section, as stored.
@@ -210,18 +211,7 @@ export default defineSchema({
       v.literal('ready'),
       v.literal('error'),
     ),
-    questions: v.array(
-      v.object({
-        id: v.string(),
-        text: v.string(),
-        answer: v.optional(v.string()),
-        aiGenerated: v.boolean(),
-        required: v.optional(v.boolean()),
-        // AI-generated selectable suggestion options
-        suggestions: v.optional(v.array(v.string())),
-        selectedSuggestionIndex: v.optional(v.number()),
-      }),
-    ),
+    questions: v.array(phaseQuestionValidator),
     // Staleness tracking for dependency graph
     isStale: v.optional(v.boolean()),
     staleReason: v.optional(v.string()),
@@ -238,29 +228,7 @@ export default defineSchema({
       }),
     ),
     // Grilling session state (Phase discovery / stress testing)
-    grillSession: v.optional(
-      v.object({
-        totalQuestionsAsked: v.number(),
-        currentRound: v.number(),
-        isComplete: v.boolean(),
-        rounds: v.array(
-          v.object({
-            roundNumber: v.number(),
-            questions: v.array(
-              v.object({
-                id: v.string(),
-                text: v.string(),
-                recommendedAnswer: v.string(),
-                options: v.optional(v.array(v.string())),
-                category: v.optional(v.string()),
-                userAnswer: v.optional(v.string()),
-                acceptedRecommendation: v.optional(v.boolean()),
-              }),
-            ),
-          }),
-        ),
-      }),
-    ),
+    grillSession: v.optional(grillSessionValidator),
   }).index('by_project', ['projectId']),
 
   artifacts: defineTable({

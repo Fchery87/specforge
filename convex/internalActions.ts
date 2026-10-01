@@ -13,7 +13,6 @@ import { estimateTokenCount } from '../lib/llm/chunking';
 import {
   generateSectionContentStreaming,
   generateSectionContentRealtime,
-  getSectionInstructions,
   generateConstitution,
   generateSectionWithCritique,
   fetchConstitutionForProject,
@@ -23,8 +22,10 @@ import {
   sanitizeGeneratedContent,
 } from './actions/generatePhase';
 import { CONSTITUTION_PROMPT } from '../lib/llm/prompts/constitution';
+import { loadQuestionContext } from './lib/question_context';
+import { sectionInstructionsFor } from '../lib/specification/phase-sections';
 import { ConstitutionSchema } from '../lib/validation/constitution-schema';
-import { deserializeQAPairs, type QAPair } from '../lib/llm/qa-serializer';
+import { answersToAddressForSection } from '../lib/llm/qa-serializer';
 import { PHASE_DEPENDENCIES } from '../lib/specification/dependency-graph';
 
 /**
@@ -192,7 +193,6 @@ interface Question {
   id: string;
   text: string;
   answer?: string;
-  aiGenerated: boolean;
   required?: boolean;
 }
 
@@ -326,7 +326,7 @@ export const generatePhaseWorker = internalAction({
     const customInstructions = sectionPref?.customInstructions;
 
     // Build section instructions with custom instructions if provided
-    let sectionInstructions = getSectionInstructions(phaseId, section.name);
+    let sectionInstructions = sectionInstructionsFor(phaseId, section.name);
     if (customInstructions) {
       sectionInstructions = `${sectionInstructions}\n\n## CUSTOM INSTRUCTIONS\n${customInstructions}`;
     }
@@ -456,10 +456,9 @@ export const generatePhaseWorker = internalAction({
 
       if (critiqueEnabled) {
         // Extract relevant questions for this section from project context
-        const sectionQuestions = extractRelevantQuestionsForSection(
+        const sectionQuestions = answersToAddressForSection(
           projectContext.questions,
           section.name,
-          phaseId,
         );
 
         // Use critique-enabled generation (non-streaming for critique)
@@ -508,10 +507,9 @@ export const generatePhaseWorker = internalAction({
       } else {
         // Use standard streaming generation (no critique)
         // Extract relevant questions for this section from project context
-        const sectionQuestions = extractRelevantQuestionsForSection(
+        const sectionQuestions = answersToAddressForSection(
           projectContext.questions,
           section.name,
-          phaseId,
         );
 
         const supportsRealtime =
@@ -935,6 +933,7 @@ export const generateQuestionsWorker = internalAction({
     try {
       let currentStep = task.currentStep;
       const accumulatedSessionAnswers: string[] = [];
+      const questionContext = await loadQuestionContext(ctx, project, phaseId);
 
       for (let i = currentStep; i < task.totalSteps; i++) {
         const question = plan[i] as { id: string; text: string };
@@ -964,7 +963,7 @@ export const generateQuestionsWorker = internalAction({
 Project Title: ${projectContext.title}
 Project Description: ${projectContext.description}
 
-${allPrevious ? `Previously answered questions in this session:\n${allPrevious}\n\n` : ''}Question: ${question.text}
+${questionContext.upstream ? `Decisions already made in earlier phases. Stay consistent with them:\n${questionContext.upstream}\n\n` : ''}${allPrevious ? `Previously answered questions in this session:\n${allPrevious}\n\n` : ''}Question: ${question.text}
 
 Provide a clear, specific, and actionable answer. Include concrete details (e.g., specific technologies, patterns, metrics) rather than generic guidance. Maintain consistency with any previous answers above. Keep the answer concise (2-4 sentences).`;
 
@@ -982,7 +981,7 @@ Provide a clear, specific, and actionable answer. Include concrete details (e.g.
               phaseId,
               questionId: question.id,
               answer: answerText,
-              aiGenerated: true,
+              answerOrigin: 'drafted',
             });
             success = true;
           } catch (err) {
@@ -1022,451 +1021,6 @@ Provide a clear, specific, and actionable answer. Include concrete details (e.g.
   },
 });
 
-// ============================================================================
-// HELPER FUNCTIONS - Data Flow Integration
-// ============================================================================
-
-/**
- * Extracts relevant questions for a specific section based on keywords.
- * This ensures user answers flow into the correct artifact sections.
- *
- * @param questionsText - The concatenated questions and answers text from projectContext
- * @param sectionName - The name of the section being generated
- * @param phaseId - The current phase ID
- * @returns Array of relevant question/answer strings
- */
-function extractRelevantQuestionsForSection(
-  questionsText: string,
-  sectionName: string,
-  phaseId: string,
-): string[] {
-  if (!questionsText || questionsText.trim().length === 0) {
-    return [];
-  }
-
-  // Parse the questions text into individual Q&A pairs
-  const qaPairs = deserializeQAPairs(questionsText);
-
-  // Define keywords for each section type
-  const sectionKeywords: Record<string, string[]> = {
-    // Constitution sections
-    'locked-constraints': [
-      'constraint',
-      'security',
-      'invariant',
-      'rule',
-      'protocol',
-      'strict',
-      'immutable',
-      'non-negotiable',
-      'must never',
-      'forbidden',
-    ],
-    'architecture-decisions': [
-      'architecture',
-      'state',
-      'api',
-      'pattern',
-      'decision',
-      'system',
-      'design',
-      'structure',
-      'framework',
-      'approach',
-    ],
-    'tech-stack': [
-      'tech',
-      'stack',
-      'framework',
-      'database',
-      'language',
-      'tool',
-      'library',
-      'runtime',
-      'version',
-      'dependency',
-      'npm',
-      'package',
-    ],
-    'quality-and-standards': [
-      'quality',
-      'standard',
-      'accessibility',
-      'performance',
-      'test',
-      'wcag',
-      'coverage',
-      'metric',
-      'compliance',
-      'audit',
-    ],
-
-    // Brief sections
-    'problem-and-objectives': [
-      'goal',
-      'problem',
-      'objective',
-      'solve',
-      'purpose',
-      'aim',
-      'target',
-      'outcome',
-      'deliverable',
-    ],
-    'features-and-requirements': [
-      'feature',
-      'requirement',
-      'constraint',
-      'functionality',
-      'capability',
-      'specification',
-      'scope',
-      'include',
-      'support',
-    ],
-    'target-audience': [
-      'user',
-      'audience',
-      'customer',
-      'stakeholder',
-      'persona',
-      'target',
-      'demographic',
-      'market',
-      'segment',
-    ],
-
-    // PRD sections
-    'executive-summary': [
-      'summary',
-      'overview',
-      'brief',
-      'high-level',
-      'executive',
-      'elevator',
-    ],
-    'problem-statement': [
-      'problem',
-      'challenge',
-      'pain',
-      'issue',
-      'difficulty',
-      'frustration',
-      'current state',
-      'as-is',
-    ],
-    'goals-and-objectives': [
-      'goal',
-      'objective',
-      'success',
-      'kpi',
-      'metric',
-      'achieve',
-      'measurable',
-      'smart',
-      'outcome',
-    ],
-    'user-personas': [
-      'persona',
-      'user type',
-      'role',
-      'archetype',
-      'user story',
-    ],
-    requirements: [
-      'requirement',
-      'functional',
-      'non-functional',
-      'must',
-      'should',
-      'shall',
-      'needs to',
-      'expected to',
-    ],
-    'success-metrics': [
-      'metric',
-      'kpi',
-      'measure',
-      'track',
-      'analytics',
-      'indicator',
-      'success criteria',
-      'measurement',
-    ],
-
-    // Domain Model sections
-    'entity-definitions': [
-      'entity',
-      'model',
-      'domain',
-      'object',
-      'class',
-      'type',
-      'data structure',
-      'schema',
-      'attribute',
-      'field',
-      'property',
-    ],
-    'entity-relationships': [
-      'relationship',
-      'relation',
-      'association',
-      'connection',
-      'link',
-      'reference',
-      'foreign key',
-      'cardinality',
-      'one-to',
-      'many-to',
-    ],
-    'state-transitions': [
-      'state',
-      'transition',
-      'lifecycle',
-      'status',
-      'workflow',
-      'stage',
-      'process',
-      'flow',
-      'change',
-      'event',
-      'trigger',
-    ],
-
-    // Specs sections
-    'architecture-overview': [
-      'architecture',
-      'system design',
-      'high-level',
-      'component',
-      'module',
-      'layer',
-      'tier',
-      'service',
-      'microservice',
-      'monolith',
-    ],
-    'data-models': [
-      'data model',
-      'schema',
-      'database',
-      'entity',
-      'table',
-      'collection',
-      'field',
-      'column',
-      'type',
-      'orm',
-      'prisma',
-    ],
-    'api-design': [
-      'api',
-      'endpoint',
-      'rest',
-      'graphql',
-      'rpc',
-      'request',
-      'response',
-      'method',
-      'route',
-      'url',
-      'path',
-      'resource',
-    ],
-    'component-architecture': [
-      'component',
-      'ui',
-      'view',
-      'screen',
-      'page',
-      'widget',
-      'element',
-      'composition',
-      'hierarchy',
-      'tree',
-      'parent',
-      'child',
-    ],
-    'security-considerations': [
-      'security',
-      'auth',
-      'authentication',
-      'authorization',
-      'permission',
-      'role',
-      'encrypt',
-      'protect',
-      'vulnerability',
-      'owasp',
-      'secure',
-    ],
-    'deployment-strategy': [
-      'deploy',
-      'deployment',
-      'infrastructure',
-      'hosting',
-      'platform',
-      'vercel',
-      'aws',
-      'cloud',
-      'pipeline',
-      'ci/cd',
-      'production',
-    ],
-
-    // Stories sections
-    'epic-overview': [
-      'epic',
-      'theme',
-      'initiative',
-      'program',
-      'major feature',
-    ],
-    'user-stories': [
-      'story',
-      'as a',
-      'i want',
-      'so that',
-      'acceptance',
-      'criteria',
-      'given',
-      'when',
-      'then',
-    ],
-    'technical-tasks': [
-      'task',
-      'implementation',
-      'development',
-      'coding',
-      'build',
-      'create',
-      'implement',
-      'develop',
-      'program',
-      'write',
-    ],
-    'acceptance-criteria': [
-      'acceptance',
-      'criteria',
-      'given',
-      'when',
-      'then',
-      'scenario',
-      'test case',
-      'validation',
-      'verify',
-    ],
-
-    // Artifacts sections
-    'api-documentation': [
-      'documentation',
-      'api doc',
-      'swagger',
-      'openapi',
-      'reference',
-    ],
-    'database-schema': [
-      'schema',
-      'database',
-      'erd',
-      'diagram',
-      'migration',
-      'ddl',
-    ],
-    'environment-config': [
-      'environment',
-      'config',
-      'variable',
-      'env',
-      'setting',
-      'configuration',
-      '.env',
-      'secret',
-      'credential',
-    ],
-    'deployment-scripts': [
-      'script',
-      'deploy',
-      'automation',
-      'pipeline',
-      'github actions',
-      'dockerfile',
-      'kubernetes',
-      'k8s',
-      'helm',
-    ],
-
-    // Handoff sections
-    'project-summary': [
-      'summary',
-      'overview',
-      'introduction',
-      'getting started',
-      'about',
-    ],
-    'setup-guide': [
-      'setup',
-      'install',
-      'configure',
-      'getting started',
-      'prerequisite',
-      'requirement',
-      'dependency',
-      'npm install',
-      'clone',
-    ],
-    'implementation-guide': [
-      'implementation',
-      'guide',
-      'how to',
-      'tutorial',
-      'step by step',
-      'instructions',
-      'procedure',
-      'process',
-    ],
-    'next-steps': [
-      'next',
-      'roadmap',
-      'future',
-      'upcoming',
-      'planned',
-      'backlog',
-      'milestone',
-      'phase',
-      'iteration',
-    ],
-  };
-
-  const keywords = sectionKeywords[sectionName] || [];
-  if (keywords.length === 0) {
-    // If no specific keywords, return all questions for this phase
-    return qaPairs.map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`);
-  }
-
-  // Score and filter questions based on keyword relevance
-  const scoredQuestions = qaPairs.map((qa) => {
-    const text = `${qa.question} ${qa.answer}`.toLowerCase();
-    const score = keywords.reduce((acc, keyword) => {
-      return acc + (text.includes(keyword.toLowerCase()) ? 1 : 0);
-    }, 0);
-    return { ...qa, score };
-  });
-
-  // Return questions with at least one keyword match, sorted by relevance
-  const relevantQuestions = scoredQuestions
-    .filter((qa) => qa.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`);
-
-  // If no matches, return all questions (don't lose data)
-  if (relevantQuestions.length === 0) {
-    return qaPairs.map((qa) => `Q: ${qa.question}\nA: ${qa.answer}`);
-  }
-
-  return relevantQuestions;
-}
 
 // ============================================================================
 // CODEBASE CONTEXT (Task 19: Codebase Awareness)

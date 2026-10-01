@@ -6,6 +6,12 @@ import { renderPreviewHtml } from '../lib/markdown-render';
 import { getAffectedPhases } from '../lib/specification/dependency-graph';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource, markEvidenceImpact, reconcileArtifactClaims } from './lib/evidence';
+import {
+  answerOriginValidator,
+  grillSessionValidator,
+  phaseQuestionValidator,
+} from './lib/question_validators';
+import { answerSourceKey, evidenceOriginFor } from '../lib/specification/question-model';
 import { artifactSectionValidator, acceptanceCriteriaQualityValidator, verificationResultFields } from './schema';
 
 export function filterArtifactsByPhase<
@@ -258,40 +264,8 @@ export const updatePhaseQuestionsInternal = internalMutation({
   args: {
     projectId: v.id('projects'),
     phaseId: v.string(),
-    questions: v.array(
-      v.object({
-        id: v.string(),
-        text: v.string(),
-        answer: v.optional(v.string()),
-        aiGenerated: v.boolean(),
-        required: v.optional(v.boolean()),
-        suggestions: v.optional(v.array(v.string())),
-        selectedSuggestionIndex: v.optional(v.number()),
-      }),
-    ),
-    grillSession: v.optional(
-      v.object({
-        totalQuestionsAsked: v.number(),
-        currentRound: v.number(),
-        isComplete: v.boolean(),
-        rounds: v.array(
-          v.object({
-            roundNumber: v.number(),
-            questions: v.array(
-              v.object({
-                id: v.string(),
-                text: v.string(),
-                recommendedAnswer: v.string(),
-                options: v.optional(v.array(v.string())),
-                category: v.optional(v.string()),
-                userAnswer: v.optional(v.string()),
-                acceptedRecommendation: v.optional(v.boolean()),
-              }),
-            ),
-          }),
-        ),
-      }),
-    ),
+    questions: v.array(phaseQuestionValidator),
+    grillSession: v.optional(grillSessionValidator),
   },
   handler: async (ctx, args) => {
     const phase = await ctx.db
@@ -809,9 +783,10 @@ export const saveAnswerInternal = internalMutation({
     phaseId: v.string(),
     questionId: v.string(),
     answer: v.string(),
-    aiGenerated: v.optional(v.boolean()),
+    answerOrigin: answerOriginValidator,
   },
   handler: async (ctx, args) => {
+    const answerOrigin = args.answerOrigin;
     const phase = await ctx.db
       .query('phases')
       .withIndex('by_project', (q) => q.eq('projectId', args.projectId))
@@ -827,9 +802,7 @@ export const saveAnswerInternal = internalMutation({
         ? {
             ...q,
             answer: args.answer,
-            ...(args.aiGenerated !== undefined
-              ? { aiGenerated: args.aiGenerated }
-              : {}),
+            answerOrigin,
           }
         : q,
     );
@@ -838,13 +811,13 @@ export const saveAnswerInternal = internalMutation({
     if (args.answer.trim()) {
       await captureEvidenceSource(ctx, {
         projectId: args.projectId,
-        sourceKey: `answer:${args.phaseId}:${args.questionId}`,
+        sourceKey: answerSourceKey(args.phaseId, args.questionId),
         kind: 'answer',
         locator: `${args.phaseId}/${args.questionId}`,
         revisionLabel: `Answer in ${args.phaseId}`,
         content: args.answer,
         capturedBy: project?.userId ?? 'system',
-        origin: args.aiGenerated ? 'assistant' : 'user',
+        origin: evidenceOriginFor(answerOrigin),
       });
     }
     if (project) {

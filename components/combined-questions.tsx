@@ -8,14 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { WORKFLOW_STAGES } from "@/lib/workflow";
 import { ConnectModelNote } from "@/components/generation-readiness-banner";
+import { feedsLabel, type AnswerOrigin } from "@/lib/specification/question-model";
 
 export interface QuestionData {
   id: string;
   text: string;
   answer?: string;
   required?: boolean;
-  aiGenerated?: boolean;
   suggestions?: string[];
+  feeds?: string[];
+  answerOrigin?: AnswerOrigin;
 }
 
 export interface PhaseQuestionsData {
@@ -38,7 +40,7 @@ export interface CombinedAnswerItem {
   phaseId: string;
   questionId: string;
   answer: string;
-  aiGenerated?: boolean;
+  answerOrigin: AnswerOrigin;
 }
 
 export interface CombinedQuestionsProps {
@@ -66,12 +68,13 @@ export function CombinedQuestions({
   className,
 }: CombinedQuestionsProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [isSuggestion, setIsSuggestion] = useState<Record<string, boolean>>({});
+  // Who wrote each answer. A suggestion the page pre-fills is `drafted` until the user keeps or edits it.
+  const [origins, setOrigins] = useState<Record<string, AnswerOrigin>>({});
 
   // Initialize answers and suggestions from phase questions
   useEffect(() => {
     const initialAnswers: Record<string, string> = {};
-    const initialSuggestions: Record<string, boolean> = {};
+    const initialOrigins: Record<string, AnswerOrigin> = {};
 
     phases.forEach((phase) => {
       if (skippedPhases.includes(phase.phaseId)) return;
@@ -79,29 +82,29 @@ export function CombinedQuestions({
       phase.questions?.forEach((q) => {
         if (q.answer !== undefined && q.answer !== "") {
           initialAnswers[q.id] = q.answer;
-          initialSuggestions[q.id] = Boolean(q.aiGenerated);
+          initialOrigins[q.id] = q.answerOrigin ?? "user";
         } else if (q.suggestions && q.suggestions.length > 0) {
           // Pre-fill first suggestion if no answer exists
           initialAnswers[q.id] = q.suggestions[0];
-          initialSuggestions[q.id] = true;
+          initialOrigins[q.id] = "drafted";
         } else {
           initialAnswers[q.id] = "";
-          initialSuggestions[q.id] = false;
+          initialOrigins[q.id] = "user";
         }
       });
     });
 
     setAnswers((prev) => ({ ...initialAnswers, ...prev }));
-    setIsSuggestion((prev) => ({ ...initialSuggestions, ...prev }));
+    setOrigins((prev) => ({ ...initialOrigins, ...prev }));
   }, [phases, skippedPhases]);
 
   function handleAnswerChange(questionId: string, val: string) {
     setAnswers((prev) => ({ ...prev, [questionId]: val }));
-    setIsSuggestion((prev) => ({ ...prev, [questionId]: false }));
+    setOrigins((prev) => ({ ...prev, [questionId]: "user" }));
   }
 
-  function handleAcceptSuggestion(questionId: string) {
-    setIsSuggestion((prev) => ({ ...prev, [questionId]: false }));
+  function handleKeepAssumed(questionId: string) {
+    setOrigins((prev) => ({ ...prev, [questionId]: "accepted" }));
   }
 
   // Calculate if any required question in enabled phases is empty
@@ -129,7 +132,7 @@ export function CombinedQuestions({
       phaseId,
       questionId: question.id,
       answer: answers[question.id] ?? "",
-      aiGenerated: isSuggestion[question.id],
+      answerOrigin: origins[question.id] ?? "user",
     }));
     await onGenerateEverything(items);
   }
@@ -189,7 +192,7 @@ export function CombinedQuestions({
                     <div className="space-y-6">
                       {questions.map((q, idx) => {
                         const currentAnswer = answers[q.id] ?? "";
-                        const showingSuggestion = isSuggestion[q.id] ?? false;
+                        const assumed = (origins[q.id] ?? "user") === "drafted";
 
                         return (
                           <div key={q.id} className="space-y-2">
@@ -205,23 +208,26 @@ export function CombinedQuestions({
                                 {q.required && (
                                   <span className="text-destructive ml-1">*</span>
                                 )}
+                                <span className="block text-caption font-normal text-muted-foreground mt-0.5">
+                                  {feedsLabel(phaseId, q.feeds)}
+                                </span>
                               </label>
-                              {showingSuggestion && (
+                              {assumed && (
                                 <div className="flex items-center gap-2 shrink-0">
                                   <Badge
                                     variant="outline"
                                     className="bg-warning/10 text-warning border-warning/30"
                                   >
-                                    Suggestion
+                                    Assumed
                                   </Badge>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleAcceptSuggestion(q.id)}
+                                    onClick={() => handleKeepAssumed(q.id)}
                                     className="h-6 px-2 text-caption"
                                   >
                                     <Check className="size-3 mr-1" />
-                                    Accept
+                                    Keep
                                   </Button>
                                 </div>
                               )}

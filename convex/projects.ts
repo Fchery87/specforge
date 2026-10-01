@@ -6,6 +6,13 @@ import { canAccessProject } from '../lib/authz';
 import { DESCRIPTION_MAX, normalizeProjectInput } from '../lib/project-input';
 import { mapPhaseToArtifactType } from './lib/phase_utils';
 import { captureEvidenceSource } from './lib/evidence';
+import { answerOriginValidator, phaseQuestionValidator } from './lib/question_validators';
+import {
+  answerSourceKey,
+  evidenceOriginFor,
+  isGrillQuestion,
+  type AnswerOrigin,
+} from '../lib/specification/question-model';
 import { PHASE_ORDER, MODE_POLICIES, type ProjectMode } from '../lib/workflow';
 
 type ConstitutionTemplateSnapshot = Pick<
@@ -276,7 +283,7 @@ export const saveAnswer = mutation({
     phaseId: v.string(),
     questionId: v.string(),
     answer: v.string(),
-    aiGenerated: v.optional(v.boolean()),
+    answerOrigin: answerOriginValidator,
     selectedSuggestionIndex: v.optional(v.number()),
   },
   handler: async (ctx: MutationCtx, args) => {
@@ -295,11 +302,12 @@ export const saveAnswer = mutation({
     if (!phase) throw new Error('Phase not found');
 
     const now = Date.now();
+    const answerOrigin = args.answerOrigin;
     const updatedQuestions = applyAnswerUpdate(
       phase.questions,
       args.questionId,
       args.answer,
-      args.aiGenerated,
+      answerOrigin,
       args.selectedSuggestionIndex,
     );
 
@@ -307,13 +315,13 @@ export const saveAnswer = mutation({
     if (args.answer.trim()) {
       await captureEvidenceSource(ctx, {
         projectId: args.projectId,
-        sourceKey: `answer:${args.phaseId}:${args.questionId}`,
+        sourceKey: answerSourceKey(args.phaseId, args.questionId),
         kind: 'answer',
         locator: `${args.phaseId}/${args.questionId}`,
         revisionLabel: `Answer in ${args.phaseId}`,
         content: args.answer,
         capturedBy: identity.subject,
-        origin: args.aiGenerated ? 'assistant' : 'user',
+        origin: evidenceOriginFor(answerOrigin),
       });
     }
     await ctx.db.patch(args.projectId, {
@@ -327,10 +335,12 @@ export function mergeGrillAnswersIntoQuestions<
     id: string;
     text: string;
     answer?: string;
-    aiGenerated: boolean;
     required?: boolean;
     suggestions?: string[];
     selectedSuggestionIndex?: number;
+    source?: 'phase' | 'grill';
+    feeds?: string[];
+    answerOrigin?: AnswerOrigin;
   },
 >(
   currentQuestions: T[],
@@ -338,6 +348,8 @@ export function mergeGrillAnswersIntoQuestions<
     questionId: string;
     questionText: string;
     answer: string;
+    acceptedRecommendation?: boolean;
+    feeds?: string[];
     options?: string[];
   }>,
 ): T[] {
@@ -345,18 +357,22 @@ export function mergeGrillAnswersIntoQuestions<
 
   for (const item of answers) {
     const existing = questionMap.get(item.questionId);
+    const accepted = item.acceptedRecommendation === true;
+    const answerOrigin: AnswerOrigin = accepted ? 'accepted' : 'user';
     if (existing) {
       existing.answer = item.answer;
-      existing.aiGenerated = false;
+      existing.answerOrigin = answerOrigin;
     } else {
       questionMap.set(item.questionId, {
         id: item.questionId,
         text: item.questionText,
         answer: item.answer,
-        aiGenerated: false,
         required: false,
         suggestions: item.options,
-      } as T);
+        source: 'grill',
+        feeds: item.feeds ?? [],
+        answerOrigin,
+      } as unknown as T);
     }
   }
 
@@ -374,7 +390,7 @@ export function computeUpdatedGrillSession(
           questions: Array<{
             id: string;
             text: string;
-            recommendedAnswer: string;
+            recommendedAnswer?: string;
             options?: string[];
             category?: string;
             userAnswer?: string;
@@ -387,7 +403,7 @@ export function computeUpdatedGrillSession(
     questionId: string;
     questionText: string;
     answer: string;
-    recommendedAnswer: string;
+    recommendedAnswer?: string;
     acceptedRecommendation?: boolean;
     options?: string[];
     category?: string;
@@ -429,6 +445,18 @@ export function computeUpdatedGrillSession(
   };
 }
 
+/**
+ * The session with its count read from the questions actually stored, so the badge cannot disagree
+ * with what is kept.
+ */
+export function withStoredGrillCount<S extends { totalQuestionsAsked: number; isComplete: boolean }>(
+  session: S,
+  storedQuestions: Array<{ source?: 'phase' | 'grill' }>,
+): S {
+  const totalQuestionsAsked = storedQuestions.filter(isGrillQuestion).length;
+  return { ...session, totalQuestionsAsked, isComplete: totalQuestionsAsked >= 10 };
+}
+
 export const saveGrillAnswers = mutation({
   args: {
     projectId: v.id('projects'),
@@ -438,8 +466,9 @@ export const saveGrillAnswers = mutation({
         questionId: v.string(),
         questionText: v.string(),
         answer: v.string(),
-        recommendedAnswer: v.string(),
+        recommendedAnswer: v.optional(v.string()),
         acceptedRecommendation: v.optional(v.boolean()),
+        feeds: v.optional(v.array(v.string())),
         options: v.optional(v.array(v.string())),
         category: v.optional(v.string()),
         round: v.number(),
@@ -467,9 +496,9 @@ export const saveGrillAnswers = mutation({
       args.answers,
     );
 
-    const updatedSession = computeUpdatedGrillSession(
-      phase.grillSession,
-      args.answers,
+    const updatedSession = withStoredGrillCount(
+      computeUpdatedGrillSession(phase.grillSession, args.answers),
+      updatedQuestions,
     );
 
     const now = Date.now();
@@ -481,7 +510,7 @@ export const saveGrillAnswers = mutation({
       if (!answer.answer.trim()) continue;
       await captureEvidenceSource(ctx, {
         projectId: args.projectId,
-        sourceKey: `answer:${args.phaseId}:${answer.questionId}`,
+        sourceKey: answerSourceKey(args.phaseId, answer.questionId),
         kind: 'answer',
         locator: `${args.phaseId}/${answer.questionId}`,
         revisionLabel: `Grilling answer in ${args.phaseId}`,
@@ -521,7 +550,7 @@ export const resetGrillSession = mutation({
     if (!phase) throw new Error('Phase not found');
 
     const nonGrillQuestions = (phase.questions || []).filter(
-      (q) => !q.id.includes('-grill-'),
+      (q) => !isGrillQuestion(q),
     );
 
     await ctx.db.patch(phase._id, {
@@ -538,15 +567,15 @@ export const resetGrillSession = mutation({
 export function applyAnswerUpdate<
   T extends {
     id: string;
-    aiGenerated?: boolean;
     answer?: string;
     selectedSuggestionIndex?: number;
+    answerOrigin?: AnswerOrigin;
   },
 >(
   questions: T[],
   questionId: string,
   answer: string,
-  aiGenerated?: boolean,
+  answerOrigin: AnswerOrigin,
   selectedSuggestionIndex?: number,
 ): T[] {
   return questions.map((q) =>
@@ -554,7 +583,7 @@ export function applyAnswerUpdate<
       ? {
           ...q,
           answer,
-          ...(aiGenerated !== undefined ? { aiGenerated } : {}),
+          answerOrigin,
           ...(selectedSuggestionIndex !== undefined
             ? { selectedSuggestionIndex }
             : {}),
@@ -707,17 +736,7 @@ export const updatePhaseQuestions = mutation({
   args: {
     projectId: v.id('projects'),
     phaseId: v.string(),
-    questions: v.array(
-      v.object({
-        id: v.string(),
-        text: v.string(),
-        answer: v.optional(v.string()),
-        aiGenerated: v.boolean(),
-        required: v.optional(v.boolean()),
-        suggestions: v.optional(v.array(v.string())),
-        selectedSuggestionIndex: v.optional(v.number()),
-      }),
-    ),
+    questions: v.array(phaseQuestionValidator),
   },
   handler: async (ctx: MutationCtx, args) => {
     const project = await ctx.db.get(args.projectId);

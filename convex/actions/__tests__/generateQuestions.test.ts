@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   buildQuestionPrompt,
+  mergeRegeneratedQuestions,
   normalizeQuestions,
-  selectQuestions,
 } from "../generateQuestions";
 
 describe("generateQuestions helpers", () => {
@@ -41,13 +41,138 @@ describe("generateQuestions helpers", () => {
     expect(result.every((q) => q.text.trim().length > 0)).toBe(true);
   });
 
-  it("selectQuestions falls back when ai questions below min", () => {
-    const base = [{ text: "B1" }, { text: "B2" }];
-    const ai = [{ text: "A1" }];
+  it("buildQuestionPrompt names exactly the phase's registry sections and asks for feeds", () => {
+    const prompt = buildQuestionPrompt({
+      title: "SpecForge",
+      description: "Project description",
+      phaseId: "brief",
+      range: { min: 5, max: 8 },
+    });
 
-    const result = selectQuestions(ai, base, { min: 2, max: 5 });
-    expect(result.questions).toEqual(base);
-    expect(result.aiGenerated).toBe(false);
+    for (const id of ["executive-summary", "problem-and-objectives", "features-and-requirements"]) {
+      expect(prompt).toContain(`- ${id}:`);
+    }
+    expect(prompt).not.toContain("target-audience");
+    expect(prompt).toContain('"feeds":["section-id"]');
+  });
+
+  it("buildQuestionPrompt lists questions already answered so they are not repeated", () => {
+    const prompt = buildQuestionPrompt({
+      title: "SpecForge",
+      description: "Project description",
+      phaseId: "brief",
+      range: { min: 5, max: 8 },
+      alreadyAsked: ["Who is it for?"],
+    });
+
+    expect(prompt).toContain("Do not repeat or rephrase them:\n- Who is it for?");
+  });
+
+  it("normalizeQuestions drops a section id the phase does not have", () => {
+    const brief = normalizeQuestions(
+      [{ text: "Who is it for?", feeds: ["target-audience"] }],
+      "brief",
+      { min: 1, max: 5 },
+    );
+    expect(brief[0].feeds).toEqual([]);
+
+    const specs = normalizeQuestions(
+      [{ text: "Where are the seams?", feeds: ["deep-modules", "nope", "deep-modules"] }],
+      "specs",
+      { min: 1, max: 5 },
+    );
+    expect(specs[0].feeds).toEqual(["deep-modules"]);
+  });
+});
+
+describe("mergeRegeneratedQuestions", () => {
+  const answered = (id: string, text: string, answer: string) => ({
+    id,
+    text,
+    answer,
+    required: true,
+    source: "phase" as const,
+    feeds: [],
+    answerOrigin: "user" as const,
+  });
+  const unanswered = (id: string, text: string) => ({ id, text });
+  const range = { min: 3, max: 5 };
+
+  it("keeps answered questions unchanged and replaces the unanswered ones", () => {
+    const existing = [
+      answered("q_a", "Who is it for?", "Agencies"),
+      unanswered("q_b", "Old question 1"),
+      answered("q_c", "What is the goal?", "Traceable specs"),
+      unanswered("q_d", "Old question 2"),
+      unanswered("q_e", "Old question 3"),
+    ];
+
+    const merged = mergeRegeneratedQuestions(
+      existing as any,
+      [{ text: "New 1" }, { text: "New 2" }, { text: "New 3" }, { text: "New 4" }],
+      [{ text: "Fallback 1" }],
+      range,
+    );
+
+    expect(merged.slice(0, 2)).toEqual([existing[0], existing[2]]);
+    expect(merged.map((q) => q.text)).toEqual([
+      "Who is it for?",
+      "What is the goal?",
+      "New 1",
+      "New 2",
+      "New 3",
+    ]);
+    expect(merged.slice(2).every((q) => q.id.startsWith("q_") && q.source === "phase")).toBe(true);
+    expect(merged.map((q) => q.id)).not.toContain("q_b");
+  });
+
+  it("fills only the shortfall from the fallback and keeps the model's question first", () => {
+    const merged = mergeRegeneratedQuestions(
+      [],
+      [{ text: "Model question" }],
+      [{ text: "Fallback 1" }, { text: "Fallback 2" }, { text: "Fallback 3" }],
+      range,
+    );
+
+    expect(merged.map((q) => q.text)).toEqual(["Model question", "Fallback 1", "Fallback 2"]);
+  });
+
+  it("never swaps the model's questions for fallback ones when it met the minimum", () => {
+    const merged = mergeRegeneratedQuestions(
+      [],
+      [{ text: "M1" }, { text: "M2" }, { text: "M3" }],
+      [{ text: "Fallback 1" }],
+      range,
+    );
+    expect(merged.map((q) => q.text)).toEqual(["M1", "M2", "M3"]);
+  });
+
+  it("stores required as a real boolean, whatever the model wrote", () => {
+    const merged = mergeRegeneratedQuestions(
+      [],
+      [{ text: "A", required: "true" as unknown as boolean }, { text: "B", required: true }, { text: "C" }],
+      [],
+      { min: 1, max: 5 },
+    );
+    expect(merged.map((q) => q.required)).toEqual([false, true, false]);
+  });
+
+  it("does not add a question twice, and keeps answered Stress-Test questions beyond the range", () => {
+    const grill = { ...answered("q_g", "Grill question", "Answer"), source: "grill" as const };
+    const merged = mergeRegeneratedQuestions(
+      [answered("q_a", "Who is it for?", "Agencies"), grill] as any,
+      [{ text: "who is it for?" }, { text: "M1" }, { text: "M2" }],
+      [],
+      range,
+    );
+
+    expect(merged.map((q) => q.text)).toEqual(["Who is it for?", "Grill question", "M1", "M2"]);
+  });
+
+  it("keeps every answered question when the range is already full", () => {
+    const existing = Array.from({ length: 6 }, (_, i) => answered(`q_${i}`, `Q${i}`, "A"));
+    const merged = mergeRegeneratedQuestions(existing as any, [{ text: "New" }], [], range);
+    expect(merged).toEqual(existing);
   });
 });
 
@@ -115,18 +240,73 @@ describe("grill-me helpers", () => {
     expect(parsed[0].suggestions?.length).toBe(3);
   });
 
-  it("normalizeGrillQuestions guarantees recommendedAnswer and suggestions", async () => {
+  it("normalizeGrillQuestions never invents a recommendation for the model's question", async () => {
     const { normalizeGrillQuestions, GRILL_FALLBACK_QUESTIONS } = await import(
       "../generateQuestions"
     );
-    // Question with missing recommendedAnswer and missing suggestions
-    const ai = [{ text: "Bare Question" }];
     const fallback = GRILL_FALLBACK_QUESTIONS.specs;
 
-    const normalized = normalizeGrillQuestions(ai, fallback, 2);
-    expect(normalized.length).toBe(2);
-    expect(normalized[0].text).toBe("Bare Question");
-    expect(normalized[0].recommendedAnswer).toBeTruthy();
-    expect(normalized[0].suggestions && normalized[0].suggestions.length > 0).toBe(true);
+    const normalized = normalizeGrillQuestions(
+      [
+        { text: "Bare Question" },
+        { text: "Options only", suggestions: ["Option A", "Option B"] },
+      ],
+      fallback,
+      2,
+      "specs",
+    );
+
+    expect(normalized).toEqual([
+      { text: "Bare Question", recommendedAnswer: undefined, suggestions: undefined, feeds: [] },
+      {
+        text: "Options only",
+        recommendedAnswer: undefined,
+        suggestions: ["Option A", "Option B"],
+        feeds: [],
+      },
+    ]);
+  });
+
+  it("normalizeGrillQuestions keeps a fallback question's own recommendation and drops unknown feeds", async () => {
+    const { normalizeGrillQuestions, GRILL_FALLBACK_QUESTIONS } = await import(
+      "../generateQuestions"
+    );
+    const fallback = GRILL_FALLBACK_QUESTIONS.specs;
+
+    const normalized = normalizeGrillQuestions(
+      [{ text: "Where are the seams?", recommendedAnswer: " Inject I/O. ", feeds: ["test-seams", "nope"] }],
+      fallback,
+      2,
+      "specs",
+    );
+
+    expect(normalized[0]).toMatchObject({ recommendedAnswer: "Inject I/O.", feeds: ["test-seams"] });
+    expect(normalized[1].text).toBe(fallback[0].text);
+    expect(normalized[1].recommendedAnswer).toBe(fallback[0].recommendedAnswer);
+  });
+
+  it("a phase with no fallback list gets no fallback questions", async () => {
+    const { normalizeGrillQuestions, GRILL_FALLBACK_QUESTIONS } = await import(
+      "../generateQuestions"
+    );
+    expect(GRILL_FALLBACK_QUESTIONS["made-up-phase"]).toBeUndefined();
+    expect(normalizeGrillQuestions([], GRILL_FALLBACK_QUESTIONS["made-up-phase"] ?? [], 3, "made-up-phase")).toEqual([]);
+  });
+
+  it("buildGrillRoundPrompt asks for project-based recommendations and feeds, not a house style", async () => {
+    const { buildGrillRoundPrompt } = await import("../generateQuestions");
+    const prompt = buildGrillRoundPrompt({
+      title: "SpecForge",
+      description: "AI specification system",
+      phaseId: "specs",
+      count: 3,
+    });
+
+    expect(prompt).not.toContain("2026");
+    expect(prompt).not.toContain("tracer bullets");
+    expect(prompt).toContain("Base it on this project's own rules");
+    expect(prompt).toContain("omit \"recommendedAnswer\"");
+    expect(prompt).toContain("architecture-overview, deep-modules, test-seams, data-models-and-api, deployment-and-security");
+    expect(prompt).toContain('"feeds": ["section-id"]');
   });
 });

@@ -10,7 +10,6 @@ interface QuestionRowProps {
     id: string;
     text: string;
     answer?: string;
-    aiGenerated?: boolean;
     required?: boolean;
     suggestions?: string[];
     selectedSuggestionIndex?: number;
@@ -20,10 +19,15 @@ interface QuestionRowProps {
   isSaving: boolean;
   isSaved: boolean;
   isAiGenerating: boolean;
-  aiGenerated: boolean;
+  /** The assistant wrote the answer, however far the user has reviewed it. */
+  modelWritten: boolean;
   suggestions: string[];
   selectedSuggestionIndex?: number;
   stagedAnswer?: string | null;
+  /** What the question is for, e.g. "Feeds Requirements". */
+  feedsLabel?: string;
+  /** The answer was written by the assistant and the user has not reviewed it. */
+  assumed?: boolean;
   isPhaseGenerating: boolean;
   maxLength: number;
   onAnswerChange: (questionId: string, value: string) => void;
@@ -31,6 +35,7 @@ interface QuestionRowProps {
   onSuggestionSelect: (questionId: string, suggestion: string, index: number) => void;
   onAcceptStaged?: (questionId: string) => void;
   onDismissStaged?: (questionId: string) => void;
+  onKeepAssumed?: (questionId: string) => void;
 }
 
 export function QuestionRow({
@@ -40,10 +45,12 @@ export function QuestionRow({
   isSaving,
   isSaved,
   isAiGenerating,
-  aiGenerated,
+  modelWritten,
   suggestions,
   selectedSuggestionIndex,
   stagedAnswer,
+  feedsLabel,
+  assumed = false,
   isPhaseGenerating,
   maxLength,
   onAnswerChange,
@@ -51,6 +58,7 @@ export function QuestionRow({
   onSuggestionSelect,
   onAcceptStaged,
   onDismissStaged,
+  onKeepAssumed,
 }: QuestionRowProps) {
   const charCount = answer.length;
 
@@ -65,7 +73,10 @@ export function QuestionRow({
             {question.text}
             {question.required && <span className="text-warning ml-1">*</span>}
           </p>
-          {aiGenerated && (
+          {feedsLabel && (
+            <p className="text-caption text-muted-foreground mt-1">{feedsLabel}</p>
+          )}
+          {modelWritten && (
             <span className="inline-flex items-center text-caption text-muted-foreground mt-1">
               <Sparkles className="size-3 mr-1" /> AI suggested
             </span>
@@ -125,6 +136,24 @@ export function QuestionRow({
             {charCount.toLocaleString()}/{maxLength.toLocaleString()}
           </span>
         </div>
+
+        {assumed && answer.trim() && (
+          <div className="flex items-center justify-between gap-2 p-2 bg-warning/10 border border-warning/20 rounded-sm">
+            <span className="text-caption text-warning">
+              Assumed. The assistant wrote this and you have not reviewed it, so the document will say so.
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 px-2.5 text-caption gap-1 shrink-0"
+              onClick={() => onKeepAssumed?.(question.id)}
+            >
+              <Check className="size-3.5" />
+              Keep
+            </Button>
+          </div>
+        )}
 
         {stagedAnswer && (
           <div className="p-3 bg-primary/5 border border-primary/20 rounded-sm space-y-2">

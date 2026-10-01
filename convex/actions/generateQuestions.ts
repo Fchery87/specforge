@@ -4,21 +4,21 @@ import { action } from '../_generated/server';
 import type { ActionCtx } from '../_generated/server';
 import { api, internal as internalApi } from '../_generated/api';
 import { v } from 'convex/values';
-import type { Doc } from '../_generated/dataModel';
-import { selectEnabledModels } from '../../lib/llm/model-select';
-import {
-  resolveCredentials,
-  resolveModelForCredentials,
-  getFirstEnabledModelForProvider,
-} from '../../lib/llm/registry';
-import type { SystemCredential } from '../../lib/llm/registry';
-import { createLlmClient } from '../../lib/llm/client-factory';
+import type { Doc, Id } from '../_generated/dataModel';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff } from '../../lib/llm/retry';
+import { openLlmSession } from './llmSession';
+import { loadQuestionContext } from '../lib/question_context';
 import { rateLimiter } from '../rateLimiter';
 import { logTelemetry } from '../../lib/llm/telemetry';
-import { fetchModelDirectory } from '../../lib/llm/model-directory';
-import { PHASE_DEPENDENCIES } from '../../lib/specification/dependency-graph';
+import { PHASE_PURPOSE, sectionIdsFor, sectionsFor } from '../../lib/specification/phase-sections';
+import type { PhaseId } from '../../lib/workflow';
+import {
+  isGrillQuestion,
+  newQuestionId,
+  sanitizeFeeds,
+  type PhaseQuestion,
+} from '../../lib/specification/question-model';
 
 const PHASE_QUESTIONS: Record<
   string,
@@ -131,41 +131,6 @@ const PHASE_QUESTION_RANGE: Record<string, { min: number; max: number }> = {
   handoff: { min: 3, max: 5 },
 };
 
-const PHASE_CONTEXT: Record<string, { description: string; sections: string[] }> = {
-  constitution: {
-    description: 'Project Constitution — immutable standards and constraints governing the entire project',
-    sections: ['locked-constraints', 'architecture-decisions', 'tech-stack', 'quality-and-standards'],
-  },
-  brief: {
-    description: 'Project Brief — high-level overview, problem statement, goals, and target audience',
-    sections: ['problem-and-objectives', 'features-and-requirements', 'target-audience'],
-  },
-  prd: {
-    description: 'Product Requirements Document — detailed requirements, user personas, and success metrics',
-    sections: ['executive-summary', 'problem-statement', 'goals-and-objectives', 'user-personas', 'requirements', 'success-metrics'],
-  },
-  domainModel: {
-    description: 'Domain Model — core entities, relationships, state transitions, and invariants',
-    sections: ['entity-definitions', 'entity-relationships', 'state-transitions'],
-  },
-  specs: {
-    description: 'Technical Specifications — architecture, data models, API design, security, and deployment',
-    sections: ['architecture-overview', 'data-models', 'api-design', 'component-architecture', 'security-considerations', 'deployment-strategy'],
-  },
-  stories: {
-    description: 'User Stories & Tasks — epics, user stories with acceptance criteria, and technical tasks',
-    sections: ['epic-overview', 'user-stories', 'technical-tasks', 'acceptance-criteria'],
-  },
-  artifacts: {
-    description: 'Technical Artifacts — API documentation, database schemas, environment config, deployment scripts',
-    sections: ['api-documentation', 'database-schema', 'environment-config', 'deployment-scripts'],
-  },
-  handoff: {
-    description: 'Project Handoff — summary, setup guide, implementation guide, and next steps',
-    sections: ['project-summary', 'setup-guide', 'implementation-guide', 'next-steps'],
-  },
-};
-
 export function buildQuestionPrompt(params: {
   title: string;
   description: string;
@@ -173,10 +138,16 @@ export function buildQuestionPrompt(params: {
   range: { min: number; max: number };
   upstreamContext?: string;
   codebaseContext?: string;
+  /** Questions already asked and answered, which the new ones must not repeat. */
+  alreadyAsked?: string[];
 }): string {
-  const phaseCtx = PHASE_CONTEXT[params.phaseId];
-  const phaseDesc = phaseCtx?.description ?? params.phaseId;
-  const sectionsList = phaseCtx?.sections?.join(', ') ?? '';
+  const phaseDesc = PHASE_PURPOSE[params.phaseId as PhaseId] ?? params.phaseId;
+  const sections = sectionsFor(params.phaseId);
+  const sectionsBlock = sections.length
+    ? `Sections this phase will generate. Every question must inform at least one of them:\n` +
+      sections.map((section) => `- ${section.id}: ${section.description}`).join('\n') +
+      '\n\n'
+    : '';
 
   const upstreamBlock = params.upstreamContext
     ? `Existing Project Decisions & Prior Phase Answers:\n${params.upstreamContext}\n\n`
@@ -186,44 +157,100 @@ export function buildQuestionPrompt(params: {
     ? `Repository & Codebase Context:\n${params.codebaseContext}\n\n`
     : '';
 
+  const askedBlock = params.alreadyAsked?.length
+    ? `Questions already asked and answered for this phase. Do not repeat or rephrase them:\n${params.alreadyAsked.map((text) => `- ${text}`).join('\n')}\n\n`
+    : '';
+
   return (
     `Generate ${params.range.min}-${params.range.max} specific, high-value questions for the "${params.phaseId}" phase.\n\n` +
-    `Phase Purpose: ${phaseDesc}\n` +
-    (sectionsList ? `Sections this phase will generate: ${sectionsList}\n\n` : '\n') +
+    `Phase Purpose: ${phaseDesc}\n\n` +
+    sectionsBlock +
     `Project Title: ${params.title}\n` +
     `Project Description: ${params.description}\n\n` +
     upstreamBlock +
     codebaseBlock +
+    askedBlock +
     `Ask questions whose answers will directly inform the content of the sections listed above. ` +
     `Focus on decisions, constraints, and preferences that the user must clarify before generating each section.\n` +
     `CRITICAL: Do NOT ask questions that have already been definitively answered or decided in the existing project decisions or codebase context above.\n\n` +
-    `For each question, also provide 3-5 selectable suggestion options that represent common answers.\n\n` +
+    `For each question, name the sections it informs in "feeds", using section ids exactly as written above. ` +
+    `Also provide 3-5 selectable suggestion options that represent common answers.\n\n` +
     `Return JSON only in this shape:\n` +
-    `{"questions":[{"text":"...","required":true,"suggestions":["Option A","Option B","Option C"]}]}`
+    `{"questions":[{"text":"...","required":true,"feeds":["section-id"],"suggestions":["Option A","Option B","Option C"]}]}`
   );
 }
 
-export function normalizeQuestions(
-  questions: Array<{ text: string; required?: boolean; suggestions?: string[] }>,
-  phaseId: string,
-  range: { min: number; max: number },
-): Array<{ text: string; required?: boolean; suggestions?: string[] }> {
-  const filtered = questions.filter((q) => q.text?.trim().length);
-  return filtered.slice(0, range.max);
+export interface CandidateQuestion {
+  text: string;
+  required?: boolean;
+  suggestions?: string[];
+  feeds?: string[];
 }
 
-export function selectQuestions(
-  aiQuestions: Array<{ text: string; required?: boolean; suggestions?: string[] }>,
-  baseQuestions: Array<{ text: string; required?: boolean }>,
+export function normalizeQuestions(
+  questions: CandidateQuestion[],
+  phaseId: string,
   range: { min: number; max: number },
-): {
-  questions: Array<{ text: string; required?: boolean; suggestions?: string[] }>;
-  aiGenerated: boolean;
-} {
-  if (aiQuestions.length >= range.min) {
-    return { questions: aiQuestions.slice(0, range.max), aiGenerated: true };
+): CandidateQuestion[] {
+  return questions
+    .filter((q) => q.text?.trim().length)
+    .slice(0, range.max)
+    .map((q) => ({ ...q, feeds: sanitizeFeeds(q.feeds, phaseId) }));
+}
+
+function normalizedText(text: string): string {
+  return text.trim().toLowerCase();
+}
+
+/**
+ * The phase's questions after a regenerate: every answered question stays as it is, and the model's
+ * questions replace only the unanswered ones.
+ *
+ * The generic fallback questions fill a shortfall below the phase minimum and never displace a
+ * question the model wrote. A question already present, answered or not, is not added twice.
+ */
+export function mergeRegeneratedQuestions(
+  existing: PhaseQuestion[],
+  fromModel: CandidateQuestion[],
+  fallback: Array<{ text: string; required?: boolean }>,
+  range: { min: number; max: number },
+): PhaseQuestion[] {
+  const kept = existing.filter((q) => q.answer?.trim());
+  const keptPhaseCount = kept.filter((q) => !isGrillQuestion(q)).length;
+  const taken = new Set(kept.map((q) => normalizedText(q.text)));
+  const room = () => Math.max(0, range.max - keptPhaseCount - added.length);
+  const added: PhaseQuestion[] = [];
+
+  for (const candidate of fromModel) {
+    if (room() === 0) break;
+    if (taken.has(normalizedText(candidate.text))) continue;
+    taken.add(normalizedText(candidate.text));
+    added.push({
+      id: newQuestionId(),
+      text: candidate.text,
+      required: candidate.required === true,
+      suggestions: Array.isArray(candidate.suggestions)
+        ? candidate.suggestions.filter((s): s is string => typeof s === 'string')
+        : undefined,
+      source: 'phase',
+      feeds: candidate.feeds ?? [],
+    });
   }
-  return { questions: baseQuestions.slice(0, range.max), aiGenerated: false };
+
+  for (const base of fallback) {
+    if (keptPhaseCount + added.length >= range.min || room() === 0) break;
+    if (taken.has(normalizedText(base.text))) continue;
+    taken.add(normalizedText(base.text));
+    added.push({
+      id: newQuestionId(),
+      text: base.text,
+      required: base.required ?? false,
+      source: 'phase',
+      feeds: [],
+    });
+  }
+
+  return [...kept, ...added];
 }
 
 function parseQuestionsResponse(
@@ -255,219 +282,121 @@ function parseQuestionsResponse(
   return [];
 }
 
+export async function generateQuestionsHandler(
+  ctx: ActionCtx,
+  args: { projectId: Id<'projects'>; phaseId: string },
+) {
+  const project = await ctx.runQuery(
+    internalApi.internal.getProjectInternal,
+    {
+      projectId: args.projectId,
+    },
+  );
+  if (!project) throw new Error('Project not found');
+
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity || project.userId !== identity.subject)
+    throw new Error('Forbidden');
+
+  const userId = identity.tokenIdentifier;
+  await rateLimiter.limit(ctx, 'generateQuestions', {
+    key: userId,
+    throws: true,
+  });
+
+  const range = PHASE_QUESTION_RANGE[args.phaseId] || { min: 5, max: 8 };
+  const baseQuestions =
+    PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS['brief'];
+
+  const existingPhase = await ctx.runQuery(
+    internalApi.internal.getPhaseInternal,
+    { projectId: args.projectId, phaseId: args.phaseId },
+  );
+  const existingQuestions: PhaseQuestion[] = existingPhase?.questions ?? [];
+  const answeredTexts = existingQuestions
+    .filter((q) => q.answer?.trim())
+    .map((q) => q.text);
+
+  let aiQuestions: CandidateQuestion[] = [];
+  let provider = 'unknown';
+  try {
+    const session = await openLlmSession(ctx);
+    provider = session.model.provider;
+    const context = await loadQuestionContext(ctx, project, args.phaseId);
+
+    const prompt = buildQuestionPrompt({
+      title: project.title,
+      description: context.description,
+      phaseId: args.phaseId,
+      range,
+      upstreamContext: context.upstream || undefined,
+      codebaseContext: context.codebase,
+      alreadyAsked: answeredTexts,
+    });
+
+    const startedAt = Date.now();
+    const response = await retryWithBackoff(
+      () =>
+        session.client.complete(prompt, {
+          model: session.modelId,
+          maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+          temperature: 0.4,
+        }),
+      { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
+    );
+    logTelemetry('info', {
+      provider,
+      model: session.modelId,
+      durationMs: Date.now() - startedAt,
+      success: true,
+      tokens: {
+        prompt: response.usage.promptTokens,
+        completion: response.usage.completionTokens,
+        total: response.usage.totalTokens,
+      },
+    });
+    aiQuestions = normalizeQuestions(
+      parseQuestionsResponse(response.content),
+      args.phaseId,
+      range,
+    );
+  } catch (err) {
+    console.error('[generateQuestions] AI question generation failed:', err);
+    logTelemetry('warn', {
+      provider,
+      model: 'unknown',
+      success: false,
+      error: `generateQuestions failed: ${err instanceof Error ? err.message : String(err)}`,
+    });
+    aiQuestions = [];
+  }
+
+  const questions = mergeRegeneratedQuestions(
+    existingQuestions,
+    aiQuestions,
+    baseQuestions,
+    range,
+  );
+
+  await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {
+    projectId: args.projectId,
+    phaseId: args.phaseId,
+    questions,
+  });
+
+  return { questions };
+}
+
 export const generateQuestions = action({
   args: { projectId: v.id('projects'), phaseId: v.string() },
-  handler: async (ctx: ActionCtx, args) => {
-    const project = await ctx.runQuery(
-      internalApi.internal.getProjectInternal,
-      {
-        projectId: args.projectId,
-      },
-    );
-    if (!project) throw new Error('Project not found');
-
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity || project.userId !== identity.subject)
-      throw new Error('Forbidden');
-
-    const userId = identity.tokenIdentifier;
-    await rateLimiter.limit(ctx, 'generateQuestions', {
-      key: userId,
-      throws: true,
-    });
-
-    const range = PHASE_QUESTION_RANGE[args.phaseId] || { min: 5, max: 8 };
-    const baseQuestions =
-      PHASE_QUESTIONS[args.phaseId] || PHASE_QUESTIONS['brief'];
-
-    let aiQuestions: Array<{ text: string; required?: boolean }> = [];
-    let aiGenerated = false;
-    let credentials: ReturnType<typeof resolveCredentials> = null;
-    try {
-      // Resolve credentials for AI question generation
-      const userConfig = await ctx.runAction(
-        internalApi.userConfigActions.getUserConfigInternal,
-        {},
-      );
-
-      let systemCredentialsMap: Record<string, SystemCredential>;
-      try {
-        systemCredentialsMap = await ctx.runAction(
-          internalApi.internalActions.getAllDecryptedSystemCredentials,
-          {},
-        );
-      } catch {
-        systemCredentialsMap = {};
-      }
-
-      const enabledModelsFromDb = await ctx.runQuery(
-        internalApi.llmModels.listEnabledModelsInternal,
-      );
-      const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
-
-      credentials = resolveCredentials(
-        userConfig,
-        new Map(Object.entries(systemCredentialsMap || {})),
-        enabledModels,
-      );
-
-      const model = resolveModelForCredentials(
-        credentials,
-        enabledModelsFromDb || [],
-        enabledModels,
-      );
-
-      // Fetch provider API endpoint from models.dev
-      let providerApiEndpoint: string | null = null;
-      const providerId = credentials?.provider;
-      if (providerId) {
-        try {
-          const providers = await fetchModelDirectory();
-          const provider = providers.find((p) => p.id === providerId);
-          providerApiEndpoint = provider?.api || null;
-        } catch (err) {
-          console.warn(
-            `[generateQuestions] Failed to fetch provider API endpoint: ${err}`,
-          );
-        }
-      }
-
-      const llmClient = createLlmClient(credentials, providerApiEndpoint);
-      if (!llmClient) {
-        console.warn('[generateQuestions] No LLM client — credentials missing or invalid. Falling back to base questions.');
-      }
-      if (llmClient) {
-        // Gather upstream answers from dependent phases
-        const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
-        const upstreamAnswersList: string[] = [];
-
-        if (project.constitutionTemplate?.lockedConstraints) {
-          const constraints = project.constitutionTemplate.lockedConstraints;
-          const constraintParts: string[] = [];
-          if (constraints.architecture) constraintParts.push(`Architecture: ${constraints.architecture}`);
-          if (constraints.stateManagement) constraintParts.push(`State Management: ${constraints.stateManagement}`);
-          if (constraints.apiDesign) constraintParts.push(`API Design: ${constraints.apiDesign}`);
-          if (constraints.securityProtocols?.length) {
-            constraintParts.push(`Security Protocols: ${constraints.securityProtocols.join(', ')}`);
-          }
-          if (constraintParts.length > 0) {
-            upstreamAnswersList.push(`[Constitution Constraints]\n${constraintParts.join('\n')}`);
-          }
-        }
-
-        for (const upstreamPhaseId of upstreamPhaseIds) {
-          const upstreamPhase = await ctx.runQuery(
-            internalApi.internal.getPhaseInternal,
-            { projectId: args.projectId, phaseId: upstreamPhaseId },
-          );
-          if (upstreamPhase?.questions) {
-            const answered = upstreamPhase.questions
-              .filter((q: { answer?: string }) => q.answer?.trim())
-              .map((q: { text: string; answer?: string }) => `Q: [${upstreamPhaseId}] ${q.text}\nA: ${q.answer}`);
-            if (answered.length > 0) {
-              upstreamAnswersList.push(answered.join('\n\n'));
-            }
-          }
-        }
-        const upstreamContext = upstreamAnswersList.join('\n\n');
-
-        let codebaseContext: string | undefined;
-        try {
-          const codebase = await ctx.runQuery(
-            internalApi.internal.getCodebaseInternal,
-            { projectId: args.projectId },
-          );
-          if (codebase) {
-            const keyFilePaths = (codebase.keyFiles || []).map((f: { path: string }) => f.path).slice(0, 10);
-            codebaseContext = `Repository: ${codebase.repoOwner}/${codebase.repoName} (${codebase.defaultBranch})\nKey Files: ${keyFilePaths.join(', ')}`;
-          }
-        } catch {
-          // Codebase lookup is optional
-        }
-
-        const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
-        const projectDescription = isEarlyPhase
-          ? project.description
-          : (project.description.length > 3000
-              ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
-              : project.description);
-
-        const prompt = buildQuestionPrompt({
-          title: project.title,
-          description: projectDescription,
-          phaseId: args.phaseId,
-          range,
-          upstreamContext: upstreamContext || undefined,
-          codebaseContext,
-        });
-
-        const telemetryProvider = credentials?.provider ?? model.provider;
-        const telemetryModel = model.id;
-        const startedAt = Date.now();
-        const response = await retryWithBackoff(
-          () =>
-            llmClient.complete(prompt, {
-              model: model.id,
-              maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
-              temperature: 0.4,
-            }),
-          { retries: 3, minDelayMs: 500, maxDelayMs: 4000 },
-        );
-        const durationMs = Date.now() - startedAt;
-        logTelemetry('info', {
-          provider: telemetryProvider,
-          model: telemetryModel,
-          durationMs,
-          success: true,
-          tokens: {
-            prompt: response.usage.promptTokens,
-            completion: response.usage.completionTokens,
-            total: response.usage.totalTokens,
-          },
-        });
-        aiQuestions = normalizeQuestions(
-          parseQuestionsResponse(response.content),
-          args.phaseId,
-          range,
-        );
-      }
-    } catch (err) {
-      console.error('[generateQuestions] AI question generation failed:', err);
-      logTelemetry('warn', {
-        provider: credentials?.provider ?? 'unknown',
-        model: 'unknown',
-        success: false,
-        error: `generateQuestions failed: ${err instanceof Error ? err.message : String(err)}`,
-      });
-      aiQuestions = [];
-    }
-
-    const selection = selectQuestions(aiQuestions, baseQuestions, range);
-    aiGenerated = selection.aiGenerated;
-
-    const questions = selection.questions.map((q, idx) => ({
-      id: `${args.phaseId}-q${idx + 1}`,
-      text: q.text,
-      answer: undefined as string | undefined,
-      aiGenerated,
-      required: q.required ?? false,
-      suggestions: Array.isArray(q.suggestions) ? q.suggestions.filter((s): s is string => typeof s === 'string') : undefined,
-    }));
-
-    await ctx.runMutation(internalApi.internal.updatePhaseQuestionsInternal, {
-      projectId: args.projectId,
-      phaseId: args.phaseId,
-      questions,
-    });
-
-    return { questions };
-  },
+  handler: generateQuestionsHandler,
 });
 
 export interface GrillQuestionItem {
   text: string;
   recommendedAnswer?: string;
   suggestions?: string[];
+  feeds?: string[];
 }
 
 export const GRILL_FALLBACK_QUESTIONS: Record<string, GrillQuestionItem[]> = {
@@ -637,9 +566,8 @@ export function buildGrillRoundPrompt(params: {
   upstreamAnswers?: string;
   priorGrillHistory?: Array<{ question: string; answer: string }>;
 }): string {
-  const phaseCtx = PHASE_CONTEXT[params.phaseId];
-  const phaseDesc = phaseCtx?.description ?? params.phaseId;
-  const sectionsList = phaseCtx?.sections?.join(', ') ?? '';
+  const phaseDesc = PHASE_PURPOSE[params.phaseId as PhaseId] ?? params.phaseId;
+  const sectionsList = sectionIdsFor(params.phaseId).join(', ');
 
   const priorHistoryText =
     params.priorGrillHistory && params.priorGrillHistory.length > 0
@@ -665,11 +593,15 @@ export function buildGrillRoundPrompt(params: {
     `GOAL:\n` +
     `Ask exactly ${params.count} challenging, architectural questions that pressure-test assumptions, failure modes, data invariants, and ambiguous boundaries for this phase.\n` +
     `Do NOT ask generic or repetitive questions. Build on prior answers if any exist.\n\n` +
-    `CRITICAL REQUIREMENT:\n` +
-    `For EVERY question, you MUST provide a concrete, opinionated "recommendedAnswer" adhering to 2026 production-grade standards (e.g., deep interfaces, explicit test seams, idempotent mutations, tracer bullets, exponential backoff, ubiquitous language) so the user can accept it with one click.\n` +
-    `Also provide 2-3 selectable alternative suggestions.\n\n` +
-    `Return JSON ONLY in this format:\n` +
-    `{"questions": [{"text": "...", "recommendedAnswer": "...", "suggestions": ["Option A", "Option B", "Option C"]}]}`
+    `RECOMMENDATIONS:\n` +
+    `Give every question a concrete "recommendedAnswer" the user could accept with one click. Base it on this project's own rules, requirements and earlier answers above, and on what its description says it needs. ` +
+    `Do not import a fixed house style. If nothing in the project supports a recommendation, omit "recommendedAnswer" and give 2-4 distinct options in "suggestions" so the user chooses.\n` +
+    `Also provide 2-3 selectable alternative suggestions when you recommend an answer.\n` +
+    (sectionsList
+      ? `Name the sections each question informs in "feeds", using these ids exactly as written: ${sectionsList}.\n`
+      : '') +
+    `\nReturn JSON ONLY in this format:\n` +
+    `{"questions": [{"text": "...", "recommendedAnswer": "...", "feeds": ["section-id"], "suggestions": ["Option A", "Option B", "Option C"]}]}`
   );
 }
 
@@ -715,10 +647,14 @@ function mapToGrillItem(rawItem: unknown): GrillQuestionItem | null {
   if (!text) return null;
   const recommendedAnswer = extractGrillRecommendation(obj);
   const suggestions = extractGrillSuggestions(obj);
+  const feeds = Array.isArray(obj.feeds)
+    ? obj.feeds.filter((feed): feed is string => typeof feed === 'string')
+    : undefined;
   return {
     text,
     recommendedAnswer,
     suggestions,
+    feeds,
   };
 }
 
@@ -781,10 +717,18 @@ export function parseGrillQuestionsResponse(raw: string): GrillQuestionItem[] {
   return [];
 }
 
+/**
+ * The questions to ask this round: the model's, then fallback questions to reach `count`.
+ *
+ * A question keeps exactly the recommendation the model gave it. None is invented from an option or
+ * borrowed from another question, because a recommendation the user can accept with one click has to
+ * be one the project supports.
+ */
 export function normalizeGrillQuestions(
   questions: GrillQuestionItem[],
   fallback: GrillQuestionItem[],
   count: number,
+  phaseId: string,
 ): GrillQuestionItem[] {
   const valid = questions.filter((q) => q.text?.trim().length > 0);
   const merged = [...valid];
@@ -795,27 +739,12 @@ export function normalizeGrillQuestions(
     }
   }
 
-  return merged.slice(0, count).map((item, idx) => {
-    const fallbackItem = fallback[idx % (fallback.length || 1)];
-    let rec = item.recommendedAnswer?.trim();
-    if (!rec && item.suggestions && item.suggestions.length > 0) {
-      rec = item.suggestions[0];
-    }
-    if (!rec) {
-      rec = fallbackItem?.recommendedAnswer || "Standard production practice";
-    }
-
-    let suggestions = item.suggestions;
-    if (!suggestions || suggestions.length === 0) {
-      suggestions = fallbackItem?.suggestions || [rec];
-    }
-
-    return {
-      text: item.text.trim(),
-      recommendedAnswer: rec,
-      suggestions,
-    };
-  });
+  return merged.slice(0, count).map((item) => ({
+    text: item.text.trim(),
+    recommendedAnswer: item.recommendedAnswer?.trim() || undefined,
+    suggestions: item.suggestions?.length ? item.suggestions : undefined,
+    feeds: sanitizeFeeds(item.feeds, phaseId),
+  }));
 }
 
 export interface GeneratedGrillQuestion {
@@ -824,8 +753,8 @@ export interface GeneratedGrillQuestion {
   answer?: string;
   recommendedAnswer?: string;
   suggestions?: string[];
+  feeds: string[];
   grillRound: number;
-  aiGenerated: boolean;
   required: boolean;
 }
 
@@ -887,159 +816,71 @@ export const generateGrillRound = action({
     }
 
     const countToAsk = Math.min(remaining, 3);
-    const fallbackList =
-      GRILL_FALLBACK_QUESTIONS[args.phaseId] ||
-      GRILL_FALLBACK_QUESTIONS['specs'] ||
-      [];
+    const fallbackList = GRILL_FALLBACK_QUESTIONS[args.phaseId] ?? [];
 
     let rawAiQuestions: GrillQuestionItem[] = [];
-    let credentials: ReturnType<typeof resolveCredentials> = null;
+    let provider = 'unknown';
 
     try {
-      const userConfig = await ctx.runAction(
-        internalApi.userConfigActions.getUserConfigInternal,
-        {},
+      const session = await openLlmSession(ctx);
+      provider = session.model.provider;
+      const context = await loadQuestionContext(ctx, project, args.phaseId);
+
+      const currentPhaseAnswers = (phase?.questions || [])
+        .filter((q: { answer?: string }) => q.answer?.trim())
+        .map((q: { text: string; answer?: string }) => `Q: ${q.text}\nA: ${q.answer}`)
+        .join('\n\n');
+      const upstreamAnswers = [context.upstream, currentPhaseAnswers]
+        .filter((block) => block.length > 0)
+        .join('\n\n');
+
+      const priorGrillHistory = grillSession?.rounds
+        ? grillSession.rounds
+            .flatMap((r) => r.questions)
+            .map((q) => ({
+              question: q.text,
+              answer: q.userAnswer || q.recommendedAnswer || '',
+            }))
+            .filter((entry) => entry.answer.length > 0)
+        : [];
+
+      const prompt = buildGrillRoundPrompt({
+        title: project.title,
+        description: context.description,
+        phaseId: args.phaseId,
+        count: countToAsk,
+        upstreamAnswers: upstreamAnswers || undefined,
+        priorGrillHistory,
+      });
+
+      const startedAt = Date.now();
+      const response = await retryWithBackoff(
+        () =>
+          session.client.complete(prompt, {
+            model: session.modelId,
+            maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
+            temperature: 0.3,
+          }),
+        { retries: 2, minDelayMs: 500, maxDelayMs: 3000 },
       );
 
-      let systemCredentialsMap: Record<string, SystemCredential>;
-      try {
-        systemCredentialsMap = await ctx.runAction(
-          internalApi.internalActions.getAllDecryptedSystemCredentials,
-          {},
-        );
-      } catch {
-        systemCredentialsMap = {};
-      }
+      logTelemetry('info', {
+        provider,
+        model: session.modelId,
+        durationMs: Date.now() - startedAt,
+        success: true,
+        tokens: {
+          prompt: response.usage.promptTokens,
+          completion: response.usage.completionTokens,
+          total: response.usage.totalTokens,
+        },
+      });
 
-      const enabledModelsFromDb = await ctx.runQuery(
-        internalApi.llmModels.listEnabledModelsInternal,
-      );
-      const enabledModels = selectEnabledModels(enabledModelsFromDb || []);
-
-      credentials = resolveCredentials(
-        userConfig,
-        new Map(Object.entries(systemCredentialsMap || {})),
-        enabledModels,
-      );
-
-      const model = resolveModelForCredentials(
-        credentials,
-        enabledModelsFromDb || [],
-        enabledModels,
-      );
-
-      let providerApiEndpoint: string | null = null;
-      const providerId = credentials?.provider;
-      if (providerId) {
-        try {
-          const providers = await fetchModelDirectory();
-          const provider = providers.find((p) => p.id === providerId);
-          providerApiEndpoint = provider?.api || null;
-        } catch (err) {
-          console.warn(
-            `[generateGrillRound] Failed to fetch provider API endpoint: ${err}`,
-          );
-        }
-      }
-
-      const llmClient = createLlmClient(credentials, providerApiEndpoint);
-      if (llmClient) {
-        const upstreamPhaseIds = PHASE_DEPENDENCIES[args.phaseId] || [];
-        const upstreamAnswersList: string[] = [];
-
-        if (project.constitutionTemplate?.lockedConstraints) {
-          const constraints = project.constitutionTemplate.lockedConstraints;
-          const constraintParts: string[] = [];
-          if (constraints.architecture) constraintParts.push(`Architecture: ${constraints.architecture}`);
-          if (constraints.stateManagement) constraintParts.push(`State Management: ${constraints.stateManagement}`);
-          if (constraints.apiDesign) constraintParts.push(`API Design: ${constraints.apiDesign}`);
-          if (constraints.securityProtocols?.length) {
-            constraintParts.push(`Security Protocols: ${constraints.securityProtocols.join(', ')}`);
-          }
-          if (constraintParts.length > 0) {
-            upstreamAnswersList.push(`[Constitution Constraints]\n${constraintParts.join('\n')}`);
-          }
-        }
-
-        for (const upstreamPhaseId of upstreamPhaseIds) {
-          const upstreamPhase = await ctx.runQuery(
-            internalApi.internal.getPhaseInternal,
-            { projectId: args.projectId, phaseId: upstreamPhaseId },
-          );
-          if (upstreamPhase?.questions) {
-            const answered = upstreamPhase.questions
-              .filter((q: { answer?: string }) => q.answer?.trim())
-              .map((q: { text: string; answer?: string }) => `Q: [${upstreamPhaseId}] ${q.text}\nA: ${q.answer}`);
-            if (answered.length > 0) {
-              upstreamAnswersList.push(answered.join('\n\n'));
-            }
-          }
-        }
-
-        const currentPhaseAnswers = (phase?.questions || [])
-          .filter((q: { answer?: string }) => q.answer?.trim())
-          .map((q: { text: string; answer?: string }) => `Q: ${q.text}\nA: ${q.answer}`);
-        if (currentPhaseAnswers.length > 0) {
-          upstreamAnswersList.push(currentPhaseAnswers.join('\n\n'));
-        }
-
-        const upstreamAnswers = upstreamAnswersList.join('\n\n');
-
-        const priorGrillHistory = grillSession?.rounds
-          ? grillSession.rounds
-              .flatMap((r) => r.questions)
-              .map((q) => ({
-                question: q.text,
-                answer: q.userAnswer || q.recommendedAnswer,
-              }))
-          : [];
-
-        const isEarlyPhase = args.phaseId === 'constitution' || args.phaseId === 'brief';
-        const projectDescription = isEarlyPhase
-          ? project.description
-          : (project.description.length > 3000
-              ? `${project.description.slice(0, 3000)}\n\n[... Project description truncated for downstream phase. Refer to approved upstream Constitution and Brief ...]`
-              : project.description);
-
-        const prompt = buildGrillRoundPrompt({
-          title: project.title,
-          description: projectDescription,
-          phaseId: args.phaseId,
-          count: countToAsk,
-          upstreamAnswers: upstreamAnswers || undefined,
-          priorGrillHistory,
-        });
-
-        const startedAt = Date.now();
-        const response = await retryWithBackoff(
-          () =>
-            llmClient.complete(prompt, {
-              model: model.id,
-              maxTokens: LLM_DEFAULTS.QUESTION_ANSWER_TOKENS,
-              temperature: 0.3,
-            }),
-          { retries: 2, minDelayMs: 500, maxDelayMs: 3000 },
-        );
-        const durationMs = Date.now() - startedAt;
-
-        logTelemetry('info', {
-          provider: credentials?.provider ?? model.provider,
-          model: model.id,
-          durationMs,
-          success: true,
-          tokens: {
-            prompt: response.usage.promptTokens,
-            completion: response.usage.completionTokens,
-            total: response.usage.totalTokens,
-          },
-        });
-
-        rawAiQuestions = parseGrillQuestionsResponse(response.content);
-      }
+      rawAiQuestions = parseGrillQuestionsResponse(response.content);
     } catch (err) {
       console.error('[generateGrillRound] AI grilling round generation failed:', err);
       logTelemetry('warn', {
-        provider: credentials?.provider ?? 'unknown',
+        provider,
         model: 'unknown',
         success: false,
         error: `generateGrillRound failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -1051,16 +892,17 @@ export const generateGrillRound = action({
       rawAiQuestions,
       fallbackList,
       countToAsk,
+      args.phaseId,
     );
 
     const questions = normalized.map((q, idx) => ({
-      id: `${args.phaseId}-grill-r${currentRound}-q${idx + 1}`,
+      id: newQuestionId(),
       text: q.text,
       answer: undefined as string | undefined,
       recommendedAnswer: q.recommendedAnswer,
       suggestions: q.suggestions,
+      feeds: q.feeds ?? [],
       grillRound: currentRound,
-      aiGenerated: true,
       required: false,
     }));
 
