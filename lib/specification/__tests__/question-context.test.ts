@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getUpstreamPhases } from '../dependency-graph';
+import { phaseQuestion } from './question-fixture';
 import { descriptionForPhase, formatQuestionContext } from '../question-context';
 
 describe('getUpstreamPhases', () => {
@@ -40,9 +41,9 @@ describe('formatQuestionContext', () => {
     {
       phaseId: 'brief',
       questions: [
-        { id: 'q_1', text: 'Who is it for?', answer: 'Agencies', answerOrigin: 'user' as const },
-        { id: 'q_2', text: 'Unanswered?' },
-        { id: 'q_3', text: 'Retention?', answer: 'One year', answerOrigin: 'drafted' as const },
+        phaseQuestion({ id: 'q_1', text: 'Who is it for?', answer: 'Agencies', answerOrigin: 'user' }),
+        phaseQuestion({ id: 'q_2', text: 'Unanswered?' }),
+        phaseQuestion({ id: 'q_3', text: 'Retention?', answer: 'One year', answerOrigin: 'drafted' }),
       ],
       claims: [],
     },

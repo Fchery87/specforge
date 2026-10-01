@@ -115,7 +115,7 @@ await rateLimiter(ctx, { key: userId });
 - **Rate limiter**: `convex/rateLimiter.ts`
 - **Internal queries**: `convex/internal.ts`
 - **Generation action**: `convex/actions/generatePhase.ts`
-- **Questions generation**: `convex/actions/generateQuestions.ts` (10-question cap, recommended answers)
+- **Questions generation**: `convex/actions/generateQuestions.ts` (question prompts, Regenerate as a merge, Stress-Test with its 10-question cap). A phase's sections live only in `lib/specification/phase-sections.ts`; each question names the sections it feeds. `convex/lib/question_context.ts` loads what the prompts know, and `convex/lib/question_validators.ts` is the one definition of a stored question
 - **Ticket parsing**: `convex/actions/parseTickets.ts` (Tracer bullets & blocking edges)
 - **Evidence and claim review**: `convex/evidence.ts`, `convex/lib/evidence.ts`, `convex/internal.ts`
 - **Source capture**: `convex/projects.ts` (answer revisions), `convex/actions/scanCodebase.ts` (commit-pinned repository files)

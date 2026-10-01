@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'vitest';
+import { phaseQuestion } from '../../specification/__tests__/question-fixture';
 import {
   answersToAddressForSection,
   deserializeQAPairs,
@@ -102,7 +103,7 @@ describe('origin, feeds and phase', () => {
 });
 
 describe('qaPairFromQuestion', () => {
-  const base = { id: 'q_1', text: 'Who is it for?', answer: 'Agencies' };
+  const base = phaseQuestion({ id: 'q_1', text: 'Who is it for?', answer: 'Agencies' });
 
   test('reads the stored origin, and user when none is stored', () => {
     expect(qaPairFromQuestion({ ...base, answerOrigin: 'drafted' }).origin).toBe('drafted');

@@ -78,7 +78,7 @@ describe("withStoredGrillCount", () => {
   it("counts the Stress-Test questions that are stored", async () => {
     const { withStoredGrillCount } = await import("../projects");
     const session = { totalQuestionsAsked: 6, currentRound: 2, isComplete: false, rounds: [] };
-    const stored = [{}, { source: "phase" as const }, { source: "grill" as const }, { source: "grill" as const }];
+    const stored = [{ source: "phase" as const }, { source: "phase" as const }, { source: "grill" as const }, { source: "grill" as const }];
     expect(withStoredGrillCount(session, stored)).toEqual({
       totalQuestionsAsked: 2,
       currentRound: 2,

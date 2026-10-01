@@ -5,7 +5,6 @@ import {
   evidenceOriginFor,
   isModelWritten,
   newQuestionId,
-  originFromLegacyFlag,
   sanitizeFeeds,
   sectionIdOfPlanEntry,
 } from '../question-model';
@@ -15,12 +14,6 @@ describe('answer origin', () => {
     expect(evidenceOriginFor('user')).toBe('user');
     expect(evidenceOriginFor('accepted')).toBe('assistant');
     expect(evidenceOriginFor('drafted')).toBe('assistant');
-  });
-
-  it('reads the legacy flag as accepted, which keeps the prompt as it is today', () => {
-    expect(originFromLegacyFlag(true)).toBe('accepted');
-    expect(originFromLegacyFlag(false)).toBe('user');
-    expect(originFromLegacyFlag(undefined)).toBeUndefined();
   });
 
   it('says whether the model wrote an answer', () => {

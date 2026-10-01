@@ -1,4 +1,4 @@
-import { newQuestionId, originFromLegacyFlag, type PhaseQuestion } from './question-model';
+import { newQuestionId, type AnswerOrigin, type PhaseQuestion } from './question-model';
 
 /** A question as stored before the current shape, which may still carry the legacy `aiGenerated` flag. */
 export type StoredQuestion = Omit<PhaseQuestion, 'source' | 'feeds' | 'required'> & {
@@ -13,6 +13,15 @@ export interface BackfillResult {
   /** Old id to new id, for the questions this pass gave a stable id. */
   idMap: Record<string, string>;
   migrated: number;
+}
+
+/**
+ * The origin a legacy `aiGenerated` flag implies. The flag cannot tell a chosen suggestion from a
+ * batch fill, so an AI answer reads as `accepted`, which keeps today's prompt behaviour.
+ */
+export function originFromLegacyFlag(aiGenerated: boolean | undefined): AnswerOrigin | undefined {
+  if (aiGenerated === undefined) return undefined;
+  return aiGenerated ? 'accepted' : 'user';
 }
 
 /** A legacy Stress-Test id, from before `source` existed. Read only here, by the migration. */

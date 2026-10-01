@@ -19,15 +19,6 @@ export function evidenceOriginFor(origin: AnswerOrigin): 'user' | 'assistant' {
   return origin === 'user' ? 'user' : 'assistant';
 }
 
-/**
- * The origin a legacy `aiGenerated` flag implies. The flag cannot tell a chosen suggestion from a
- * batch fill, so an AI answer reads as `accepted`, which keeps today's prompt behaviour.
- */
-export function originFromLegacyFlag(aiGenerated: boolean | undefined): AnswerOrigin | undefined {
-  if (aiGenerated === undefined) return undefined;
-  return aiGenerated ? 'accepted' : 'user';
-}
-
 /** Whether the model wrote the answer, however far the user has since reviewed it. */
 export function isModelWritten(origin: AnswerOrigin | undefined): boolean {
   return origin === 'accepted' || origin === 'drafted';
@@ -47,12 +38,12 @@ export interface PhaseQuestion {
   id: string;
   text: string;
   answer?: string;
-  required?: boolean;
+  required: boolean;
   suggestions?: string[];
   selectedSuggestionIndex?: number;
-  source?: QuestionSource;
-  /** Section ids of the phase this question informs. Empty or absent means the whole phase. */
-  feeds?: string[];
+  source: QuestionSource;
+  /** Section ids of the phase this question informs. Empty means the whole phase. */
+  feeds: string[];
   answerOrigin?: AnswerOrigin;
 }
 

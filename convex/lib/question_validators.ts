@@ -16,15 +16,13 @@ export const phaseQuestionValidator = v.object({
   id: v.string(),
   text: v.string(),
   answer: v.optional(v.string()),
-  // Legacy. Optional until the backfill has stripped it from every stored question, then removed.
-  aiGenerated: v.optional(v.boolean()),
-  required: v.optional(v.boolean()),
+  required: v.boolean(),
   // AI-generated selectable suggestion options
   suggestions: v.optional(v.array(v.string())),
   selectedSuggestionIndex: v.optional(v.number()),
-  source: v.optional(questionSourceValidator),
-  // Section ids of the phase this question informs. Empty or absent means the whole phase.
-  feeds: v.optional(v.array(v.string())),
+  source: questionSourceValidator,
+  // Section ids of the phase this question informs. Empty means the whole phase.
+  feeds: v.array(v.string()),
   answerOrigin: v.optional(answerOriginValidator),
 });
 
