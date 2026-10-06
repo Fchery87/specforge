@@ -5,6 +5,7 @@ import { internal as internalApi } from '../_generated/api';
 import { api } from '../_generated/api';
 import { v } from 'convex/values';
 import { getParallelBatches } from '../../lib/specification/dependency-graph';
+import { requireActiveAccountAction } from '../lib/account';
 
 export const generateAllPhases = action({
   args: {
@@ -18,6 +19,8 @@ export const generateAllPhases = action({
       projectId: args.projectId,
     });
     if (!project || project.userId !== identity.subject) throw new Error('Forbidden');
+
+    await requireActiveAccountAction(ctx);
 
     // Get all phase statuses
     const phases = await ctx.runQuery(internalApi.internal.getProjectPhasesInternal, {

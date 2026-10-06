@@ -682,6 +682,12 @@ export default defineSchema({
 
   verificationResults: defineTable(verificationResultFields).index('by_project', ['projectId']),
 
+  accountRestrictions: defineTable({
+    userId: v.string(),
+    suspendedAt: v.number(),
+    reason: v.optional(v.string()),
+  }).index('by_user', ['userId']),
+
   // Audit logs for security tracking
   auditLogs: defineTable({
     action: v.string(), // e.g., 'credential_updated', 'user_suspended', 'project_deleted'

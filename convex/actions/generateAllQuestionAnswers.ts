@@ -17,6 +17,7 @@ import { createLlmClient } from '../../lib/llm/client-factory';
 import { LLM_DEFAULTS } from '../../lib/llm/response-normalizer';
 import { retryWithBackoff, sleep } from '../../lib/llm/retry';
 import { rateLimiter } from '../rateLimiter';
+import { requireActiveAccountAction } from '../lib/account';
 import { replyTokensFor } from '../../lib/llm/reply-tokens';
 import { logTelemetry } from '../../lib/llm/telemetry';
 import { fetchModelDirectory } from '../../lib/llm/model-directory';
@@ -49,6 +50,9 @@ export const generateAllQuestionAnswers = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject)
       throw new Error('Forbidden');
+
+    await requireActiveAccountAction(ctx);
+    await rateLimiter.limit(ctx, 'generateQuestions', { key: identity.subject, throws: true });
 
     // Get phase with questions
     const phaseData = await ctx.runQuery(internalApi.internal.getPhaseInternal, {

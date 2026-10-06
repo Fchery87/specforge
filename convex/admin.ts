@@ -324,27 +324,45 @@ export const getUserDetails = query({
   },
 });
 
-export const suspendUser = mutation({
-  args: { 
-    userId: v.string(),
-    reason: v.optional(v.string()),
-  },
-  handler: async (ctx: MutationCtx, args) => {
+export async function suspendUserHandler(
+  ctx: MutationCtx,
+  args: { userId: string; reason?: string },
+) {
     await requireAdmin(ctx);
     const identity = await ctx.auth.getUserIdentity();
-    
-    // Log the action
+    const now = Date.now();
+    const existing = await ctx.db
+      .query('accountRestrictions')
+      .withIndex('by_user', (q) => q.eq('userId', args.userId))
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { reason: args.reason });
+    } else {
+      await ctx.db.insert('accountRestrictions', {
+        userId: args.userId,
+        reason: args.reason,
+        suspendedAt: now,
+      });
+    }
+
     await ctx.db.insert('auditLogs', {
       action: 'user_suspended',
       actorId: identity?.subject ?? 'system',
       targetType: 'user',
       targetId: args.userId,
       details: args.reason,
-      createdAt: Date.now(),
+      createdAt: now,
     });
 
     return { success: true };
+}
+
+export const suspendUser = mutation({
+  args: { 
+    userId: v.string(),
+    reason: v.optional(v.string()),
   },
+  handler: suspendUserHandler,
 });
 
 // ==================== PROJECT MANAGEMENT ====================

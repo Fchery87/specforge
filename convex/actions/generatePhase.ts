@@ -31,6 +31,7 @@ import { createLlmClient } from '../../lib/llm/client-factory';
 import { retryWithBackoff } from '../../lib/llm/retry';
 import { continueIfTruncated } from '../../lib/llm/continuation';
 import { rateLimiter } from '../rateLimiter';
+import { requireActiveAccountAction } from '../lib/account';
 import { renderPreviewHtml } from '../../lib/markdown-render';
 import {
   formatLiveClaimsForPrompt,
@@ -121,6 +122,10 @@ export const generatePhase = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity || project.userId !== identity.subject)
       throw new Error('Forbidden');
+
+    await requireActiveAccountAction(ctx);
+    await rateLimiter.limit(ctx, 'generatePhase', { key: identity.subject, throws: true });
+    await rateLimiter.limit(ctx, 'globalPhaseGen', { throws: true });
 
     // Get phase data
     const phaseData = await ctx.runQuery(

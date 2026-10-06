@@ -147,9 +147,42 @@ export const clearAllNotifications = mutation({
   },
 });
 
+export async function createNotificationHandler(
+  ctx: MutationCtx,
+  args: {
+    userId?: string;
+    type: 'generation_complete' | 'generation_failed' | 'drift_detected' | 'phase_stale' | 'verification_complete' | 'system_announcement';
+    title: string;
+    message: string;
+    metadata?: {
+      projectId?: Id<'projects'>;
+      phaseId?: string;
+      artifactId?: Id<'artifacts'>;
+      actionUrl?: string;
+    };
+  },
+) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthorized');
+    if (args.userId !== undefined && args.userId !== identity.subject) {
+      throw new Error('Forbidden');
+    }
+
+    const id = await ctx.db.insert('notifications', {
+      userId: identity.subject,
+      type: args.type,
+      title: args.title,
+      message: args.message,
+      metadata: args.metadata,
+      read: false,
+      createdAt: Date.now(),
+    });
+
+    return { success: true, notificationId: id };
+}
+
 export const createNotification = mutation({
   args: {
-    userId: v.string(),
     type: v.union(
       v.literal('generation_complete'),
       v.literal('generation_failed'),
@@ -167,30 +200,7 @@ export const createNotification = mutation({
       actionUrl: v.optional(v.string()),
     })),
   },
-  handler: async (ctx: MutationCtx, args: {
-    userId: string;
-    type: 'generation_complete' | 'generation_failed' | 'drift_detected' | 'phase_stale' | 'verification_complete' | 'system_announcement';
-    title: string;
-    message: string;
-    metadata?: {
-      projectId?: Id<'projects'>;
-      phaseId?: string;
-      artifactId?: Id<'artifacts'>;
-      actionUrl?: string;
-    };
-  }) => {
-    const id = await ctx.db.insert('notifications', {
-      userId: args.userId,
-      type: args.type,
-      title: args.title,
-      message: args.message,
-      metadata: args.metadata,
-      read: false,
-      createdAt: Date.now(),
-    });
-
-    return { success: true, notificationId: id };
-  },
+  handler: createNotificationHandler,
 });
 
 export const getNotificationById = query({

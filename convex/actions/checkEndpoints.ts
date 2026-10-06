@@ -1,11 +1,18 @@
 'use node';
 
 import { action } from '../_generated/server';
+import type { ActionCtx } from '../_generated/server';
 import { internal } from '../_generated/api';
 import { getRequiredEncryptionKey } from '../../lib/encryption-key';
 import { decrypt } from '../../lib/encryption';
 import { fetchModelDirectory, type ModelsDevProvider } from '../../lib/llm/model-directory';
 import { FALLBACK_REGISTRY } from '../../lib/llm/model-data';
+import { requireAdmin } from '../lib/auth';
+
+export async function assertAdmin(ctx: Pick<ActionCtx, 'auth'>): Promise<void> {
+  await requireAdmin(ctx as ActionCtx);
+}
+
 
 interface ProviderEndpointCheck {
   provider: string;
@@ -27,6 +34,7 @@ interface ProviderEndpointCheck {
 export const checkConfiguredEndpoints = action({
   args: {},
   handler: async (ctx): Promise<ProviderEndpointCheck[]> => {
+    await assertAdmin(ctx);
     const ENCRYPTION_KEY = getRequiredEncryptionKey();
     const results: ProviderEndpointCheck[] = [];
 

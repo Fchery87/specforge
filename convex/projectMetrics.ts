@@ -2,17 +2,18 @@ import { mutation, query } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { v } from 'convex/values';
 import type { Id } from './_generated/dataModel';
+import { canAccessProject } from '../lib/authz';
 
-export const getProjectMetrics = query({
-  args: {
-    projectId: v.id('projects'),
-  },
-  handler: async (ctx: QueryCtx, args: { projectId: Id<'projects'> }) => {
+export async function getProjectMetricsHandler(
+  ctx: QueryCtx,
+  args: { projectId: Id<'projects'> },
+) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error('Unauthorized');
 
     const project = await ctx.db.get(args.projectId);
     if (!project) return null;
+    if (!canAccessProject(project.userId, identity.subject)) throw new Error('Forbidden');
 
     const metrics = await ctx.db
       .query('projectMetrics')
@@ -53,7 +54,13 @@ export const getProjectMetrics = query({
       generationCount: completedPhases,
       updatedAt: Date.now(),
     };
+}
+
+export const getProjectMetrics = query({
+  args: {
+    projectId: v.id('projects'),
   },
+  handler: getProjectMetricsHandler,
 });
 
 export const updateProjectMetrics = mutation({
@@ -196,13 +203,17 @@ export const removeProjectTag = mutation({
   },
 });
 
-export const getProjectTags = query({
-  args: {
-    projectId: v.id('projects'),
-  },
-  handler: async (ctx: QueryCtx, args: { projectId: Id<'projects'> }) => {
+export async function getProjectTagsHandler(
+  ctx: QueryCtx,
+  args: { projectId: Id<'projects'> },
+) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
+
+    const project = await ctx.db.get(args.projectId);
+    if (!project || !canAccessProject(project.userId, identity.subject)) {
+      throw new Error('Forbidden');
+    }
 
     const tags = await ctx.db
       .query('projectTags')
@@ -210,7 +221,13 @@ export const getProjectTags = query({
       .collect();
 
     return tags.map((t) => t.tag);
+}
+
+export const getProjectTags = query({
+  args: {
+    projectId: v.id('projects'),
   },
+  handler: getProjectTagsHandler,
 });
 
 export const getAllTags = query({

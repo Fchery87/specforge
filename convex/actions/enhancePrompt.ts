@@ -162,7 +162,7 @@ export const enhancePrompt = action({
 
       // Rate limiting - prevent abuse
       try {
-        await rateLimiter.limit(ctx, 'enhancePrompt');
+        await rateLimiter.limit(ctx, 'enhancePrompt', { key: userId, throws: true });
       } catch (rateError) {
         return {
           success: false,
