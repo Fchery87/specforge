@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { ArrowRight } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   WORKFLOW_STAGES,
@@ -108,10 +107,7 @@ export function NextActionButton({
 
   return (
     <Button asChild variant={variant} size={size} className={className}>
-      <Link href={href as Route}>
-        {label}
-        <ArrowRight className="size-4 ml-2" />
-      </Link>
+      <Link href={href as Route}>{label}</Link>
     </Button>
   );
 }

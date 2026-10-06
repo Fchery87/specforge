@@ -12,7 +12,7 @@ import {
   getAllProjectArtifactsAction,
   generateProjectZipAction,
 } from "@/lib/convex-actions";
-import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { StageStepper } from "@/components/stage-stepper";
 import { NextActionPanel } from "@/components/next-action-panel";
@@ -20,7 +20,7 @@ import { PhaseLedger } from "@/components/phase-ledger";
 import { AddSectionMenu } from "@/components/add-section-menu";
 import { ProjectRulesCard } from "@/components/project-rules-card";
 import { ExportOptionsPanel } from "@/components/export-options";
-import { Sparkles, Loader2, Download } from "lucide-react";
+import { Sparkles, Download } from "lucide-react";
 import { CodebaseConnector } from "@/components/codebase-connector";
 import { ProjectChanges } from "@/components/changes/project-changes";
 import { ProjectChecks } from "@/components/checks/project-checks";
@@ -76,35 +76,25 @@ export default function ProjectPage() {
     isLoaded && isSignedIn ? { projectId: params.id as Id<"projects"> } : "skip"
   );
 
-  // Show loading while auth is initializing
-  if (!isLoaded) {
-    return (
-      <main className="page-container py-20">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        </div>
-      </main>
-    );
-  }
-
-  // Show loading skeleton while project data is being fetched
-  // Check if project is undefined (loading) vs null (not found)
-  if (project === undefined) {
+  if (!isLoaded || project === undefined) {
     return (
       <main className="min-h-[calc(100vh-var(--header-height))]">
         <div className="page-container py-6">
-          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-5 w-48" />
         </div>
-        <div className="page-container">
-          <div className="mb-12">
-            <Skeleton className="h-8 w-32 mb-4" />
-            <Skeleton className="h-16 w-2/3 mb-4" />
-            <Skeleton className="h-6 w-1/2" />
+        <div className="page-container pb-16">
+          <div className="rounded-lg border border-line bg-surface px-5 py-7 md:px-8 md:py-9">
+            <Skeleton className="h-9 w-2/3 max-w-sm" />
+            <Skeleton className="mt-2 h-5 w-28" />
+            <Skeleton className="mt-2 h-5 w-full max-w-xl" />
+            <Skeleton className="mt-9 h-16 w-full" />
+            <Skeleton className="mt-8 h-20 w-full" />
+            <Skeleton className="mt-8 h-40 w-full" />
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <CardSkeleton />
-            <CardSkeleton />
-          </div>
+          <Skeleton className="mt-8 h-28 w-full rounded-lg" />
+          <Skeleton className="mt-8 h-28 w-full rounded-lg" />
+          <Skeleton className="mt-8 h-28 w-full rounded-lg" />
+          <Skeleton className="mt-8 h-28 w-full rounded-lg" />
         </div>
       </main>
     );
@@ -214,35 +204,30 @@ export default function ProjectPage() {
       <section className="page-container pb-16">
         <GenerationReadinessBanner ready={readiness?.ready ?? true} className="mb-6" />
         <div className="rounded-lg border border-line bg-surface px-5 py-7 md:px-8 md:py-9">
-          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-            <div className="min-w-0">
-              <h1 className="font-display text-heading font-semibold text-ink">{project.title}</h1>
-              <p className="mt-2 text-label text-dim">
-                {MODE_POLICIES[mode].label} mode
-                {project.description ? (
-                  <span className="mt-1 line-clamp-2 block max-w-[72ch] text-ui text-muted-foreground">
-                    {project.description}
-                  </span>
-                ) : null}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {hasPendingPhases ? (
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/project/${params.id}/questions` as Route}>
-                    <Sparkles aria-hidden className="size-4" />
-                    Generate all phases
-                  </Link>
-                </Button>
-              ) : null}
-              <AddSectionMenu skippedPhases={skippedPhases} onEnable={handleEnablePhase} />
-              <Button variant="outline" size="sm" onClick={() => setIsExportOpen(true)}>
-                <Download aria-hidden className="size-4" />
-                Export
-              </Button>
-            </div>
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <h1 className="min-w-0 font-display text-heading font-semibold text-ink">{project.title}</h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasPendingPhases ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/project/${params.id}/questions` as Route}>
+                        <Sparkles aria-hidden className="size-4" />
+                        Generate all phases
+                      </Link>
+                    </Button>
+                  ) : null}
+                  <AddSectionMenu skippedPhases={skippedPhases} onEnable={handleEnablePhase} />
+                  <Button variant="outline" size="sm" onClick={() => setIsExportOpen(true)}>
+                    <Download aria-hidden className="size-4" />
+                    Export
+                  </Button>
+                </div>
           </div>
+          <p className="mt-2 text-label text-dim">{MODE_POLICIES[mode].label} mode</p>
+          {project.description ? (
+            <p className="mt-2 line-clamp-2 max-w-[72ch] text-ui text-muted-foreground">
+              {project.description}
+            </p>
+          ) : null}
 
           {/* One map, one instruction, one ledger. */}
           <StageStepper

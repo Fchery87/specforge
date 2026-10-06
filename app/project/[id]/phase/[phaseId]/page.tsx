@@ -369,43 +369,39 @@ export default function PhasePage() {
         />
 
         <div className="min-w-0">
-          <section className="pt-6 pb-8 lg:pt-0">
+          <section className="border-b border-line pt-6 pb-8 lg:pt-0">
             <p className="text-label text-dim">{outlineGroup}</p>
-            <h1 className="mt-2 font-display text-heading font-semibold text-ink">{phaseConfig.label}</h1>
+            <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <h1 className="min-w-0 font-display text-heading font-semibold text-ink">{phaseConfig.label}</h1>
+              {nextActionItem ? (
+                <div className="shrink-0">
+                  <NextActionButton
+                    projectId={projectId}
+                    action={nextActionItem}
+                    skippedPhases={project?.skippedPhases ?? []}
+                  />
+                </div>
+              ) : null}
+            </div>
             <p className="mt-3 max-w-xl text-body leading-relaxed text-muted-foreground">
               {phaseConfig.description}
             </p>
-          </section>
-
-          {/* One next action, under the heading */}
-          {nextActionItem || (project.skippedPhases ?? []).length > 0 ? (
-            <section className="pb-8">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
-                <div className="flex min-w-0 flex-wrap items-center gap-3">
-                  <AddSectionMenu
-                    skippedPhases={project.skippedPhases ?? []}
-                    onEnable={async (phaseToEnable) => {
-                      try {
-                        await toggleSkip({ projectId, phaseId: phaseToEnable, skip: false });
-                        toast.success(`Enabled ${PHASE_CONFIG[phaseToEnable]?.label ?? phaseToEnable}`);
-                      } catch {
-                        toast.error("Failed to enable section");
-                      }
-                    }}
-                  />
-                </div>
-                {nextActionItem && (
-                  <div className="ml-auto shrink-0">
-                    <NextActionButton
-                      projectId={projectId}
-                      action={nextActionItem}
-                      skippedPhases={project?.skippedPhases ?? []}
-                    />
-                  </div>
-                )}
+            {(project.skippedPhases ?? []).length > 0 ? (
+              <div className="mt-4">
+                <AddSectionMenu
+                  skippedPhases={project.skippedPhases ?? []}
+                  onEnable={async (phaseToEnable) => {
+                    try {
+                      await toggleSkip({ projectId, phaseId: phaseToEnable, skip: false });
+                      toast.success(`Enabled ${PHASE_CONFIG[phaseToEnable]?.label ?? phaseToEnable}`);
+                    } catch {
+                      toast.error("Failed to enable section");
+                    }
+                  }}
+                />
               </div>
-            </section>
-          ) : null}
+            ) : null}
+          </section>
 
           {staleness && artifactCount > 0 ? (
             <section className="pb-6">
